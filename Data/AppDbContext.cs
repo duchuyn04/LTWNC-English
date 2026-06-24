@@ -35,11 +35,19 @@ public class AppDbContext : IdentityDbContext
         builder.Entity<StudySession>(entity =>
         {
             entity.HasIndex(e => new { e.UserId, e.FlashcardSetId });
+            entity.HasOne(e => e.FlashcardSet)
+                  .WithMany()
+                  .HasForeignKey(e => e.FlashcardSetId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<UserProgress>(entity =>
         {
             entity.HasIndex(e => new { e.UserId, e.FlashcardId }).IsUnique();
+            entity.HasOne(e => e.Flashcard)
+                  .WithMany()
+                  .HasForeignKey(e => e.FlashcardId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
