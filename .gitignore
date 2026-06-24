@@ -53,3 +53,8 @@ artifacts/
 *.swp
 *.swo
 *~
+
+## Claude Code
+.agents/
+.superpowers/
+skills-lock.json
