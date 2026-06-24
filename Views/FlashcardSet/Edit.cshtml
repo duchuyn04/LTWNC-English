@@ -1,0 +1,85 @@
+@model EditSetViewModel
+@{
+    ViewData["Title"] = "Sửa bộ thẻ";
+    var cards = ViewBag.Cards as List<ltwnc.Models.Entities.Flashcard> ?? new();
+}
+
+<div class="row justify-content-center fade-in-up">
+    <div class="col-md-10 col-lg-8">
+        <div class="card-custom mb-4">
+            <h1 class="h3 mb-1" style="letter-spacing: -0.02em;">Sửa bộ thẻ</h1>
+
+            <form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="mt-4">
+                <div asp-validation-summary="ModelOnly" class="mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label" style="font-size: 0.875rem; color: #787774;"></label>
+                    <input asp-for="Title" class="form-input-custom" />
+                    <span asp-validation-for="Title"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label" style="font-size: 0.875rem; color: #787774;"></label>
+                    <textarea asp-for="Description" class="form-input-custom" rows="3"></textarea>
+                </div>
+
+                <div class="mb-4 form-check">
+                    <input asp-for="IsPublic" class="form-check-input" />
+                    <label asp-for="IsPublic" style="font-size: 0.875rem; color: #787774;">Công khai</label>
+                </div>
+
+                <button type="submit" class="btn-primary-custom">Lưu thay đổi</button>
+                <a href="/Set" class="btn-secondary-custom ms-2">Hủy</a>
+            </form>
+        </div>
+
+        <div class="card-custom">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0" style="font-weight: 600;">Thẻ trong bộ</h5>
+            </div>
+
+            @if (!cards.Any())
+            {
+                <p style="color: #787774;">Chưa có thẻ nào.</p>
+            }
+
+            <div class="mb-4" id="cardList">
+                @foreach (var card in cards.OrderBy(c => c.OrderIndex))
+                {
+                    <div class="d-flex align-items-center gap-2 mb-2 p-3" style="border: 1px solid #EAEAEA; border-radius: 8px;">
+                        <span style="color: #787774; font-size: 0.8125rem; min-width: 24px;">@card.OrderIndex</span>
+                        <span style="flex: 1; font-weight: 500;">@card.FrontText</span>
+                        <i class="ph ph-arrow-right" style="color: #787774;"></i>
+                        <span style="flex: 1;">@card.BackText</span>
+                        <form asp-action="DeleteCard" asp-route-id="@card.Id" method="post" class="d-inline" onsubmit="return confirm('Xóa thẻ này?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn-secondary-custom" style="padding: 2px 8px; font-size: 0.75rem; color: #9F2F2D;">
+                                <i class="ph ph-x"></i>
+                            </button>
+                        </form>
+                    </div>
+                }
+            </div>
+
+            <h6 class="mb-2" style="font-weight: 600;">Thêm thẻ mới</h6>
+            <form asp-action="AddCard" asp-route-setId="@Model.Id" method="post" class="row g-2">
+                @Html.AntiForgeryToken()
+                <div class="col-md-5">
+                    <input type="text" name="frontText" class="form-input-custom" placeholder="Tiếng Anh" required />
+                </div>
+                <div class="col-md-5">
+                    <input type="text" name="backText" class="form-input-custom" placeholder="Nghĩa tiếng Việt" required />
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn-primary-custom w-100">
+                        <i class="ph ph-plus"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

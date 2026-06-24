@@ -1,0 +1,57 @@
+@model SetDetailViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<div class="fade-in-up">
+    <div class="d-flex justify-content-between align-items-start mb-4">
+        <div>
+            <h1 class="h3 mb-1" style="letter-spacing: -0.02em;">@Model.Title</h1>
+            @if (!string.IsNullOrEmpty(Model.Description))
+            {
+                <p style="color: #787774;">@Model.Description</p>
+            }
+            <small style="color: #787774;">
+                <i class="ph ph-cards"></i> @Model.Flashcards.Count thẻ
+                @if (Model.IsPublic)
+                {
+                    <span class="tag tag-new ms-2">Công khai</span>
+                }
+            </small>
+        </div>
+        <div class="d-flex gap-2">
+            @if (Model.IsOwner)
+            {
+                <a href="/Set/@Model.Id/Edit" class="btn-secondary-custom">
+                    <i class="ph ph-pencil"></i> Sửa
+                </a>
+            }
+            <a href="/Study/@Model.Id" class="btn-primary-custom">
+                <i class="ph ph-play-circle"></i> Học ngay
+            </a>
+        </div>
+    </div>
+
+    @if (Model.Flashcards.Any())
+    {
+        <div class="card-custom">
+            <h5 class="mb-3" style="font-weight: 600;">Danh sách thẻ</h5>
+            @foreach (var card in Model.Flashcards.OrderBy(c => c.OrderIndex))
+            {
+                <div class="d-flex align-items-center gap-3 py-3" style="border-bottom: 1px solid #EAEAEA;">
+                    <span style="color: #787774; font-size: 0.8125rem; min-width: 28px;">@card.OrderIndex</span>
+                    <span style="flex: 1; font-weight: 500; font-size: 1.0625rem;">@card.FrontText</span>
+                    <i class="ph ph-arrow-right" style="color: #787774;"></i>
+                    <span style="flex: 1; font-size: 1.0625rem;">@card.BackText</span>
+                </div>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5" style="color: #787774;">
+            <i class="ph ph-cards" style="font-size: 3rem;"></i>
+            <p class="mt-3">Bộ thẻ này chưa có thẻ nào.</p>
+        </div>
+    }
+</div>

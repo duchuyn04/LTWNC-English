@@ -1,0 +1,39 @@
+@model CreateSetViewModel
+@{
+    ViewData["Title"] = "Tạo bộ thẻ mới";
+}
+
+<div class="row justify-content-center fade-in-up">
+    <div class="col-md-8 col-lg-6">
+        <div class="card-custom">
+            <h1 class="h3 mb-1" style="letter-spacing: -0.02em;">Tạo bộ thẻ mới</h1>
+            <p style="color: #787774; font-size: 0.9375rem;">Đặt tiêu đề và mô tả cho bộ thẻ của bạn.</p>
+
+            <form asp-action="Create" method="post" class="mt-4">
+                <div asp-validation-summary="ModelOnly" class="mb-3"></div>
+
+                <div class="mb-3">
+                    <label asp-for="Title" class="form-label" style="font-size: 0.875rem; color: #787774;"></label>
+                    <input asp-for="Title" class="form-input-custom" placeholder="Ví dụ: Từ vựng Unit 1" />
+                    <span asp-validation-for="Title"></span>
+                </div>
+
+                <div class="mb-3">
+                    <label asp-for="Description" class="form-label" style="font-size: 0.875rem; color: #787774;"></label>
+                    <textarea asp-for="Description" class="form-input-custom" rows="3" placeholder="Mô tả ngắn về bộ thẻ..."></textarea>
+                </div>
+
+                <div class="mb-4 form-check">
+                    <input asp-for="IsPublic" class="form-check-input" />
+                    <label asp-for="IsPublic" style="font-size: 0.875rem; color: #787774;">Công khai — mọi người có thể xem và học</label>
+                </div>
+
+                <button type="submit" class="btn-primary-custom w-100">Tiếp tục — Thêm thẻ</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

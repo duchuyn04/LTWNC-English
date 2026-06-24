@@ -1,0 +1,100 @@
+@model FlashcardStudyViewModel
+@{
+    ViewData["Title"] = "Học flashcard";
+    var total = Model.Flashcards.Count;
+    var current = Model.Flashcards.ElementAtOrDefault(Model.CurrentIndex);
+    var progress = total > 0 ? (double)(Model.CurrentIndex + 1) / total * 100 : 0;
+}
+
+<div class="fade-in-up">
+    <div class="text-center mb-4">
+        <h1 class="h4" style="letter-spacing: -0.02em;">@Model.SetTitle</h1>
+        <p style="color: #787774; font-size: 0.875rem;">Thẻ @(Model.CurrentIndex + 1) / @total</p>
+        <div class="progress-custom" style="max-width: 400px; margin: 0 auto;">
+            <div class="progress-custom-bar" style="width: @progress%;"></div>
+        </div>
+    </div>
+
+    @if (current != null)
+    {
+        <div class="flashcard-container" onclick="toggleFlip()">
+            <div class="flashcard" id="flashcard">
+                <div class="flashcard-front">
+                    <span style="font-size: 2rem; font-weight: 600;">@current.FrontText</span>
+                </div>
+                <div class="flashcard-back">
+                    <div>
+                        <span style="font-size: 2rem; font-weight: 500;">@current.BackText</span>
+                        <p style="color: #787774; margin-top: 16px;">Nhấn để lật thẻ</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3 mt-4">
+            <form asp-action="MarkLearned" asp-route-setId="@Model.SetId" asp-route-cardId="@current.Id" asp-route-learned="false" method="post" style="display: inline;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-secondary-custom" style="border-color: #FDEBEC; color: #9F2F2D;">
+                    <i class="ph ph-x-circle"></i> Chưa biết
+                </button>
+            </form>
+
+            <form asp-action="MarkLearned" asp-route-setId="@Model.SetId" asp-route-cardId="@current.Id" asp-route-learned="true" method="post" style="display: inline;">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-secondary-custom" style="border-color: #EDF3EC; color: #346538;">
+                    <i class="ph ph-check-circle"></i> Đã biết
+                </button>
+            </form>
+        </div>
+
+        <div class="d-flex justify-content-center gap-3 mt-3">
+            @if (Model.CurrentIndex > 0)
+            {
+                <a href="/Study/@Model.SetId/Flashcard?index=@(Model.CurrentIndex - 1)" class="btn-secondary-custom">
+                    <i class="ph ph-caret-left"></i> Trước
+                </a>
+            }
+            @if (Model.CurrentIndex < total - 1)
+            {
+                <a href="/Study/@Model.SetId/Flashcard?index=@(Model.CurrentIndex + 1)" class="btn-primary-custom">
+                    Sau <i class="ph ph-caret-right"></i>
+                </a>
+            }
+            else
+            {
+                <form asp-action="Complete" asp-route-setId="@Model.SetId" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn-primary-custom">
+                        <i class="ph ph-check"></i> Hoàn thành
+                    </button>
+                </form>
+            }
+        </div>
+    }
+    else
+    {
+        <div class="text-center py-5" style="color: #787774;">
+            <i class="ph ph-cards" style="font-size: 3rem;"></i>
+            <p class="mt-3">Không có thẻ nào để học.</p>
+            <a href="/Study/@Model.SetId" class="btn-primary-custom">Quay lại</a>
+        </div>
+    }
+
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert text-center mt-4" style="background: #EDF3EC; color: #346538; border: none; border-radius: 8px;">
+            @TempData["Success"]
+        </div>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        document.addEventListener('keydown', function(e) {
+            if (e.key === ' ' || e.key === 'Enter') {
+                e.preventDefault();
+                toggleFlip();
+            }
+        });
+    </script>
+}
