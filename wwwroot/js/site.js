@@ -1,4 +1,11 @@
-﻿// Please see documentation at https://learn.microsoft.com/aspnet/core/client-side/bundling-and-minification
-// for details on configuring this project to bundle and minify static web assets.
+// Flashcard flip
+function toggleFlip() {
+    document.querySelector('.flashcard')?.classList.toggle('flipped');
+}
 
-// Write your JavaScript code.
+// Add stagger animation to list items
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.stagger-item').forEach((el, i) => {
+        el.style.animationDelay = `${i * 80}ms`;
+    });
+});
