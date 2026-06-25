@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://unpkg.com/phosphor-icons@1.4.2/src/css/icons.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
 </head>
 <body>
     <header>
@@ -67,9 +68,16 @@
     </header>
 
     <main style="background: #F7F6F3; min-height: calc(100vh - 120px);">
-        <div class="container py-5">
-            @RenderBody()
-        </div>
+        @if (IsSectionDefined("FullWidth"))
+        {
+            @RenderSection("FullWidth", required: false)
+        }
+        else
+        {
+            <div class="container py-5">
+                @RenderBody()
+            </div>
+        }
     </main>
 
     <footer style="background: #FFFFFF; border-top: 1px solid #EAEAEA; color: #787774; font-size: 0.875rem;">
@@ -80,6 +88,7 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
