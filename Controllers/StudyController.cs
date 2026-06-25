@@ -5,6 +5,7 @@ using ltwnc.Models.ViewModels.Study;
 
 namespace ltwnc.Controllers;
 
+// Controller xử lý chức năng học flashcard — yêu cầu đăng nhập
 [Authorize]
 public class StudyController : Controller
 {
@@ -12,6 +13,7 @@ public class StudyController : Controller
     private readonly IFlashcardSetService _setService;
     private readonly IAccountService _accountService;
 
+    // Inject các service: học tập, bộ thẻ, tài khoản
     public StudyController(IStudyService studyService, IFlashcardSetService setService, IAccountService accountService)
     {
         _studyService = studyService;
@@ -19,40 +21,52 @@ public class StudyController : Controller
         _accountService = accountService;
     }
 
+    // Hiển thị trang chọn chế độ học (Flashcard, Quiz, Write, Match)
     [Route("/Study/{setId}")]
     public async Task<IActionResult> Index(int setId)
     {
+        // Kiểm tra bộ thẻ có tồn tại không
         var set = await _setService.GetSetByIdAsync(setId);
         if (set == null) return NotFound();
+
+        // Truyền thông tin bộ thẻ qua ViewBag
         ViewBag.SetTitle = set.Title;
         ViewBag.SetId = setId;
         return View();
     }
 
+    // Hiển thị giao diện học flashcard
+    // Tham số index: vị trí thẻ hiện tại (mặc định = 0)
     [Route("/Study/{setId}/Flashcard")]
     public async Task<IActionResult> Flashcard(int setId, int index = 0)
     {
+        // Kiểm tra bộ thẻ có tồn tại không
         var set = await _setService.GetSetByIdAsync(setId);
         if (set == null) return NotFound();
 
+        // Lấy danh sách thẻ để học
         var cards = await _studyService.GetFlashcardsForStudyAsync(setId);
         if (!cards.Any())
         {
+            // Bộ thẻ chưa có thẻ nào → quay lại trang chọn chế độ
             TempData["Message"] = "Bộ thẻ này chưa có thẻ nào.";
             return RedirectToAction("Index", new { setId });
         }
 
+        // Tạo ViewModel cho trang học flashcard
         var model = new FlashcardStudyViewModel
         {
             SetId = setId,
             SetTitle = set.Title,
             Flashcards = cards,
-            CurrentIndex = Math.Clamp(index, 0, cards.Count - 1)
+            CurrentIndex = Math.Clamp(index, 0, cards.Count - 1) // Giới hạn index hợp lệ
         };
 
         return View(model);
     }
 
+    // Xử lý đánh dấu thẻ đã biết hoặc chưa biết
+    // learned = true: đã biết, learned = false: chưa biết
     [HttpPost]
     [Route("/Study/{setId}/Flashcard/Mark")]
     [ValidateAntiForgeryToken]
@@ -61,10 +75,14 @@ public class StudyController : Controller
         var user = await _accountService.GetCurrentUserAsync(User);
         if (user == null) return Challenge();
 
+        // Lưu tiến trình học vào database
         await _studyService.MarkLearnedAsync(user.Id, cardId, learned);
+
+        // Quay lại trang flashcard hiện tại
         return RedirectToAction("Flashcard", new { setId });
     }
 
+    // Xử lý hoàn thành buổi học
     [HttpPost]
     [Route("/Study/{setId}/Complete")]
     [ValidateAntiForgeryToken]
@@ -73,7 +91,10 @@ public class StudyController : Controller
         var user = await _accountService.GetCurrentUserAsync(User);
         if (user == null) return Challenge();
 
+        // Ghi nhận phiên học hoàn thành
         await _studyService.CompleteSessionAsync(user.Id, setId, Models.Entities.StudyMode.Flashcard);
+
+        // Hiển thị thông báo thành công
         TempData["Success"] = "Hoàn thành buổi học!";
         return RedirectToAction("Index", new { setId });
     }
