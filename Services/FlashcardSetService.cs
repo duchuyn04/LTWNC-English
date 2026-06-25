@@ -3,37 +3,45 @@ using ltwnc.Repositories;
 
 namespace ltwnc.Services;
 
+// Service xử lý nghiệp vụ bộ thẻ flashcard
+// Phân quyền: chỉ chủ sở hữu mới được sửa/xóa bộ thẻ và thẻ
 public class FlashcardSetService : IFlashcardSetService
 {
     private readonly IFlashcardSetRepository _setRepo;
     private readonly IFlashcardRepository _cardRepo;
 
+    // Inject repository bộ thẻ và repository thẻ
     public FlashcardSetService(IFlashcardSetRepository setRepo, IFlashcardRepository cardRepo)
     {
         _setRepo = setRepo;
         _cardRepo = cardRepo;
     }
 
+    // Lấy tất cả bộ thẻ thuộc về một người dùng
     public async Task<List<FlashcardSet>> GetMySetsAsync(string userId)
     {
         return await _setRepo.GetByUserIdAsync(userId);
     }
 
+    // Lấy danh sách bộ thẻ public (mới nhất)
     public async Task<List<FlashcardSet>> GetPublicSetsAsync()
     {
         return await _setRepo.GetPublicSetsAsync();
     }
 
+    // Tìm kiếm bộ thẻ public theo tiêu đề
     public async Task<List<FlashcardSet>> SearchPublicSetsAsync(string query)
     {
         return await _setRepo.SearchPublicSetsAsync(query);
     }
 
+    // Lấy bộ thẻ theo id (không kèm thẻ)
     public async Task<FlashcardSet?> GetSetByIdAsync(int id)
     {
         return await _setRepo.GetByIdAsync(id);
     }
 
+    // Lấy bộ thẻ kèm danh sách thẻ — chỉ trả về nếu người yêu cầu là chủ sở hữu
     public async Task<FlashcardSet?> GetSetWithCardsAsync(int id, string userId)
     {
         var set = await _setRepo.GetByIdWithCardsAsync(id);
@@ -41,6 +49,8 @@ public class FlashcardSetService : IFlashcardSetService
         return set;
     }
 
+    // Tạo bộ thẻ mới
+    // Gán thời gian tạo/cập nhật là thời điểm hiện tại (UTC)
     public async Task<FlashcardSet> CreateSetAsync(string title, string? description, bool isPublic, string userId)
     {
         var set = new FlashcardSet
@@ -57,6 +67,8 @@ public class FlashcardSetService : IFlashcardSetService
         return set;
     }
 
+    // Cập nhật thông tin bộ thẻ
+    // Kiểm tra quyền sở hữu trước khi sửa — ném UnauthorizedAccessException nếu không phải chủ
     public async Task UpdateSetAsync(int id, string title, string? description, bool isPublic, string userId)
     {
         var set = await _setRepo.GetByIdAsync(id);
@@ -70,6 +82,8 @@ public class FlashcardSetService : IFlashcardSetService
         await _setRepo.SaveChangesAsync();
     }
 
+    // Xóa bộ thẻ
+    // Kiểm tra quyền sở hữu trước khi xóa
     public async Task DeleteSetAsync(int id, string userId)
     {
         var set = await _setRepo.GetByIdAsync(id);
@@ -79,6 +93,8 @@ public class FlashcardSetService : IFlashcardSetService
         await _setRepo.SaveChangesAsync();
     }
 
+    // Thêm thẻ mới vào bộ
+    // Tự động gán OrderIndex = max hiện tại + 1 (thẻ mới luôn ở cuối)
     public async Task<Flashcard> AddCardAsync(int setId, string frontText, string backText, string userId)
     {
         var set = await _setRepo.GetByIdWithCardsAsync(setId);
@@ -97,6 +113,8 @@ public class FlashcardSetService : IFlashcardSetService
         return card;
     }
 
+    // Cập nhật nội dung thẻ (mặt trước + mặt sau)
+    // Trả về setId để controller redirect về trang chỉnh sửa
     public async Task<int> UpdateCardAsync(int cardId, string frontText, string backText, string userId)
     {
         var card = await _cardRepo.GetByIdAsync(cardId);
@@ -112,6 +130,8 @@ public class FlashcardSetService : IFlashcardSetService
         return setId;
     }
 
+    // Xóa thẻ khỏi bộ
+    // Trả về setId để controller redirect về trang chỉnh sửa
     public async Task<int> DeleteCardAsync(int cardId, string userId)
     {
         var card = await _cardRepo.GetByIdAsync(cardId);
