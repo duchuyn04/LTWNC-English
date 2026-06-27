@@ -44,25 +44,25 @@ public class StudyController : Controller
     // Tham số index: vị trí thẻ hiện tại (mặc định = 0)
     [AllowAnonymous]
     [Route("/Study/{setId}/Flashcard")]
-    public async Task<IActionResult> Flashcard(int setId, int index = 0, bool starredOnly = false, bool unlearnedOnly = false)
+    public async Task<IActionResult> Flashcard(int setId, int index = 0, bool? starredOnly = null, bool? unlearnedOnly = null)
     {
         var user = await _userManager.GetUserAsync(User);
 
         // Đọc settings và kết hợp bộ lọc
         var settings = await _studyService.GetSettingsAsync(user?.Id);
-        starredOnly = starredOnly || settings.StarredOnly;
-        unlearnedOnly = unlearnedOnly || settings.UnlearnedOnly;
+        var effectiveStarredOnly = starredOnly ?? settings.StarredOnly;
+        var effectiveUnlearnedOnly = unlearnedOnly ?? settings.UnlearnedOnly;
 
         // Kiểm tra bộ thẻ có tồn tại và người dùng có quyền học không
         var set = await _setService.GetAccessibleSetAsync(setId, user?.Id);
         if (set == null) return NotFound();
 
         // Lấy danh sách thẻ để học
-        var cards = await _studyService.GetFlashcardsForStudyAsync(setId, starredOnly, unlearnedOnly, user?.Id);
+        var cards = await _studyService.GetFlashcardsForStudyAsync(setId, effectiveStarredOnly, effectiveUnlearnedOnly, user?.Id);
         if (!cards.Any())
         {
             // Bộ thẻ chưa có thẻ nào → quay lại trang chọn chế độ
-            TempData["Message"] = starredOnly || unlearnedOnly
+            TempData["Message"] = effectiveStarredOnly || effectiveUnlearnedOnly
                 ? "Không có thẻ phù hợp với bộ lọc hiện tại."
                 : "Bộ thẻ này chưa có thẻ nào.";
             return RedirectToAction("Index", new { setId });
@@ -75,10 +75,10 @@ public class StudyController : Controller
             SetTitle = set.Title,
             Flashcards = cards,
             CurrentIndex = Math.Clamp(index, 0, cards.Count - 1), // Giới hạn index hợp lệ
-            StarredOnly = starredOnly,
+            StarredOnly = effectiveStarredOnly,
             Settings = settings,
             IsAuthenticated = user != null,
-            UnlearnedOnly = unlearnedOnly
+            UnlearnedOnly = effectiveUnlearnedOnly
         };
 
         return View(model);
