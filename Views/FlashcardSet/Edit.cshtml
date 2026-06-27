@@ -76,6 +76,7 @@
                         <form asp-action="EditCard"
                               asp-route-id="@card.Id"
                               method="post"
+                              enctype="multipart/form-data"
                               class="vocab-card-form">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="setId" value="@card.FlashcardSetId" />
@@ -127,6 +128,27 @@
                                 <span>Từ đồng nghĩa</span>
                                 <input type="text" name="synonyms" value="@card.Synonyms" class="form-input-custom" />
                             </label>
+
+                            <div class="vocab-grid mt-2">
+                                <label>
+                                    <span>Đường dẫn ảnh (URL)</span>
+                                    <input type="text" name="imageUrl" value="@card.ImageUrl" class="form-input-custom" placeholder="https://example.com/image.png" />
+                                </label>
+                                <label>
+                                    <span>Tải ảnh lên (Max 2MB)</span>
+                                    <input type="file" name="imageFile" class="form-input-custom" accept=".jpg,.jpeg,.png,.webp" />
+                                </label>
+                            </div>
+                            @if (!string.IsNullOrEmpty(card.UploadedImagePath))
+                            {
+                                <div class="mt-2 d-flex align-items-center gap-3">
+                                    <img src="@card.UploadedImagePath" alt="Uploaded image" style="max-height: 80px; border-radius: 6px; border: 1px solid #EAEAEA;" />
+                                    <label class="form-check d-flex align-items-center gap-2" style="font-size: 0.85rem; color: #dc3545; cursor: pointer; margin-bottom: 0;">
+                                        <input type="checkbox" name="removeUploadedImage" value="true" class="form-check-input" style="margin-top: 0;" />
+                                        <span>Xóa ảnh đã tải lên</span>
+                                    </label>
+                                </div>
+                            }
                         </form>
 
                         <form asp-action="DeleteCard"
@@ -146,6 +168,7 @@
                       asp-action="AddCard"
                       asp-route-setId="@Model.Id"
                       method="post"
+                      enctype="multipart/form-data"
                       class="vocab-card-form add-card-form">
                     @Html.AntiForgeryToken()
                     
@@ -196,6 +219,17 @@
                         <span>Từ đồng nghĩa</span>
                         <input type="text" name="synonyms" class="form-input-custom" aria-label="Từ đồng nghĩa" />
                     </label>
+
+                    <div class="vocab-grid mt-2">
+                        <label>
+                            <span>Đường dẫn ảnh (URL)</span>
+                            <input type="text" name="imageUrl" class="form-input-custom" placeholder="https://example.com/image.png" aria-label="Đường dẫn ảnh" />
+                        </label>
+                        <label>
+                            <span>Tải ảnh lên (Max 2MB)</span>
+                            <input type="file" name="imageFile" class="form-input-custom" accept=".jpg,.jpeg,.png,.webp" aria-label="Tải ảnh lên" />
+                        </label>
+                    </div>
                 </form>
             </section>
         </div>

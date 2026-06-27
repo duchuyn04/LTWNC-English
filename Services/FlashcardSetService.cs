@@ -1,6 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
+using System;
+using System.IO;
 
 namespace ltwnc.Services;
 
@@ -9,11 +13,13 @@ namespace ltwnc.Services;
 public class FlashcardSetService
 {
     private readonly AppDbContext _context;
+    private readonly IWebHostEnvironment _environment;
 
     // Inject AppDbContext
-    public FlashcardSetService(AppDbContext context)
+    public FlashcardSetService(AppDbContext context, IWebHostEnvironment environment)
     {
         _context = context;
+        _environment = environment;
     }
 
     private static string RequiredText(string? value, string fieldName)
@@ -40,6 +46,32 @@ public class FlashcardSetService
     {
         var trimmed = value?.Trim();
         return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+    }
+
+    private static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ".jpg", ".jpeg", ".png", ".webp"
+    };
+
+    private async Task<string?> SaveImageAsync(IFormFile? imageFile)
+    {
+        if (imageFile == null || imageFile.Length == 0) return null;
+        if (imageFile.Length > 2 * 1024 * 1024)
+            throw new ArgumentException("Ảnh tối đa 2 MB.");
+
+        var extension = Path.GetExtension(imageFile.FileName);
+        if (!AllowedImageExtensions.Contains(extension))
+            throw new ArgumentException("Ảnh chỉ hỗ trợ JPG, PNG hoặc WebP.");
+
+        var uploadRoot = Path.Combine(_environment.WebRootPath, "uploads", "flashcards");
+        Directory.CreateDirectory(uploadRoot);
+
+        var fileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+        var absolutePath = Path.Combine(uploadRoot, fileName);
+        await using var stream = File.Create(absolutePath);
+        await imageFile.CopyToAsync(stream);
+
+        return $"/uploads/flashcards/{fileName}";
     }
 
     // Lấy tất cả bộ thẻ thuộc về một người dùng
@@ -163,6 +195,8 @@ public class FlashcardSetService
         string exampleSentence,
         string exampleMeaning,
         string? synonyms,
+        string? imageUrl,
+        IFormFile? imageFile,
         bool isStarred,
         string userId)
     {
@@ -179,6 +213,8 @@ public class FlashcardSetService
         exampleSentence = RequiredText(exampleSentence, "Ví dụ tiếng Anh");
         exampleMeaning = RequiredText(exampleMeaning, "Nghĩa câu ví dụ tiếng Việt");
         synonyms = OptionalText(synonyms);
+        imageUrl = OptionalText(imageUrl);
+        var uploadedImagePath = await SaveImageAsync(imageFile);
 
         var maxOrder = set.Flashcards.Any() ? set.Flashcards.Max(f => f.OrderIndex) : 0;
         var card = new Flashcard
@@ -191,6 +227,8 @@ public class FlashcardSetService
             ExampleSentence = exampleSentence,
             ExampleMeaning = exampleMeaning,
             Synonyms = synonyms,
+            ImageUrl = imageUrl,
+            UploadedImagePath = uploadedImagePath,
             IsStarred = isStarred,
             OrderIndex = maxOrder + 1
         };
@@ -210,6 +248,9 @@ public class FlashcardSetService
         string exampleSentence,
         string exampleMeaning,
         string? synonyms,
+        string? imageUrl,
+        IFormFile? imageFile,
+        bool removeUploadedImage,
         bool isStarred,
         string userId)
     {
@@ -228,6 +269,19 @@ public class FlashcardSetService
         card.ExampleSentence = RequiredText(exampleSentence, "Ví dụ tiếng Anh");
         card.ExampleMeaning = RequiredText(exampleMeaning, "Nghĩa câu ví dụ tiếng Việt");
         card.Synonyms = OptionalText(synonyms);
+        card.ImageUrl = OptionalText(imageUrl);
+
+        if (removeUploadedImage)
+        {
+            card.UploadedImagePath = null;
+        }
+
+        var newUpload = await SaveImageAsync(imageFile);
+        if (newUpload != null)
+        {
+            card.UploadedImagePath = newUpload;
+        }
+
         card.IsStarred = isStarred;
 
         _context.Flashcards.Update(card);
@@ -252,5 +306,21 @@ public class FlashcardSetService
         _context.Flashcards.Remove(card);
         await _context.SaveChangesAsync();
         return setId;
+    }
+
+    // Đổi trạng thái đánh sao của thẻ
+    public async Task<bool> ToggleStarAsync(int cardId, string userId)
+    {
+        var card = await _context.Flashcards.FindAsync(cardId);
+        if (card == null) throw new KeyNotFoundException("Thẻ không tồn tại.");
+
+        var set = await _context.FlashcardSets.FindAsync(card.FlashcardSetId);
+        if (set == null || set.UserId != userId)
+            throw new UnauthorizedAccessException("Không có quyền chỉnh sửa thẻ này.");
+
+        card.IsStarred = !card.IsStarred;
+        _context.Flashcards.Update(card);
+        await _context.SaveChangesAsync();
+        return card.IsStarred;
     }
 }

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using ltwnc.Services;
 using ltwnc.Models.ViewModels.FlashcardSet;
+using Microsoft.AspNetCore.Http;
 
 namespace ltwnc.Controllers;
 
@@ -166,6 +167,8 @@ public class FlashcardSetController : Controller
         string exampleSentence,
         string exampleMeaning,
         string? synonyms,
+        string? imageUrl,
+        IFormFile? imageFile,
         bool isStarred = false)
     {
         var user = await _userManager.GetUserAsync(User);
@@ -183,6 +186,8 @@ public class FlashcardSetController : Controller
                 exampleSentence,
                 exampleMeaning,
                 synonyms,
+                imageUrl,
+                imageFile,
                 isStarred,
                 user.Id);
             return RedirectToAction("Edit", new { id = setId });
@@ -212,6 +217,9 @@ public class FlashcardSetController : Controller
         string exampleSentence,
         string exampleMeaning,
         string? synonyms,
+        string? imageUrl,
+        IFormFile? imageFile,
+        bool removeUploadedImage = false,
         bool isStarred = false)
     {
         var user = await _userManager.GetUserAsync(User);
@@ -229,6 +237,9 @@ public class FlashcardSetController : Controller
                 exampleSentence,
                 exampleMeaning,
                 synonyms,
+                imageUrl,
+                imageFile,
+                removeUploadedImage,
                 isStarred,
                 user.Id);
             return RedirectToAction("Edit", new { id = updatedSetId });
