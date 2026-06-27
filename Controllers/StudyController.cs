@@ -52,6 +52,8 @@ public class StudyController : Controller
         var settings = await _studyService.GetSettingsAsync(user?.Id);
         var effectiveStarredOnly = starredOnly ?? settings.StarredOnly;
         var effectiveUnlearnedOnly = unlearnedOnly ?? settings.UnlearnedOnly;
+        settings.StarredOnly = effectiveStarredOnly; // ponytail: sync so JS initialSettings matches effective filter
+        settings.UnlearnedOnly = effectiveUnlearnedOnly;
 
         // Kiểm tra bộ thẻ có tồn tại và người dùng có quyền học không
         var set = await _setService.GetAccessibleSetAsync(setId, user?.Id);
