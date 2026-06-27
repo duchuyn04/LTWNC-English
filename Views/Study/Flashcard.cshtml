@@ -1,100 +1,853 @@
 @model FlashcardStudyViewModel
 @{
     ViewData["Title"] = "Học flashcard";
-    var total = Model.Flashcards.Count;
-    var current = Model.Flashcards.ElementAtOrDefault(Model.CurrentIndex);
-    var progress = total > 0 ? (double)(Model.CurrentIndex + 1) / total * 100 : 0;
 }
 
-<div class="fade-in-up">
-    <div class="text-center mb-4">
-        <h1 class="h4" style="letter-spacing: -0.02em;">@Model.SetTitle</h1>
-        <p style="color: #787774; font-size: 0.875rem;">Thẻ @(Model.CurrentIndex + 1) / @total</p>
-        <div class="progress-custom" style="max-width: 400px; margin: 0 auto;">
-            <div class="progress-custom-bar" style="width: @progress%;"></div>
-        </div>
-    </div>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
-    @if (current != null)
-    {
-        <div class="flashcard-container" onclick="toggleFlip()">
-            <div class="flashcard" id="flashcard">
-                <div class="flashcard-front">
-                    <span style="font-size: 2rem; font-weight: 600;">@current.FrontText</span>
-                </div>
-                <div class="flashcard-back">
+<style>
+    /* Premium font override & general improvements */
+    .study-wrapper {
+        font-family: 'Plus Jakarta Sans', sans-serif !important;
+        background: #F7F6F3;
+        color: #111111;
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem 1rem;
+    }
+
+    /* Double Bezel Outer Container */
+    .outer-container {
+        background: rgba(255, 255, 255, 0.4);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        border-radius: 2rem;
+        padding: 1.25rem;
+        max-width: 680px;
+        width: 100%;
+        backdrop-filter: blur(20px);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0,0,0,0.01);
+        position: relative;
+    }
+
+    /* Inner Core Container */
+    .inner-container {
+        background: #ffffff;
+        border: 1px solid #EAEAEA;
+        border-radius: calc(2rem - 0.5rem);
+        padding: 2.5rem;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.01);
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* 3D Flashcard Wrapper (Double Bezel Card) */
+    .card-outer-shell {
+        background: #ffffff;
+        border: 1px solid #EAEAEA;
+        border-radius: 2.5rem;
+        padding: 0.75rem;
+        max-width: 440px;
+        margin: 2rem auto;
+        perspective: 1000px;
+        transition: all 0.6s cubic-bezier(0.32, 0.72, 0, 1);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+    }
+    .card-outer-shell:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 16px 32px rgba(0,0,0,0.05);
+        border-color: #d1d1d6;
+    }
+
+    .card-inner-core {
+        background: #ffffff;
+        border: 1px solid #EAEAEA;
+        border-radius: calc(2.5rem - 0.75rem);
+        height: 280px;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 0.8s cubic-bezier(0.32, 0.72, 0, 1);
+        cursor: pointer;
+    }
+
+    .card-inner-core.flipped {
+      transform: rotateY(180deg);
+    }
+
+    .card-face {
+        position: absolute;
+        width: 100%;
+        height: 100%;
+        backface-visibility: hidden;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        align-items: center;
+        padding: 2rem;
+        box-sizing: border-box;
+        border-radius: calc(2.5rem - 0.75rem);
+    }
+
+    .card-front {
+        z-index: 2;
+        background: #ffffff;
+    }
+
+    .card-back {
+        transform: rotateY(180deg);
+        background: #FAF9F6;
+        border: 1px solid #E5E4E0;
+    }
+
+    /* Badges */
+    .eyebrow-badge {
+        display: inline-block;
+        background: #F7F6F3;
+        border: 1px solid #EAEAEA;
+        border-radius: 9999px;
+        padding: 4px 12px;
+        font-size: 0.65rem;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
+        font-weight: 600;
+        color: #787774;
+    }
+
+    /* Buttons with button-in-button architecture */
+    .pill-button {
+        font-family: inherit;
+        display: inline-flex;
+        align-items: center;
+        justify-content: space-between;
+        border-radius: 9999px;
+        padding: 0.5rem 0.5rem 0.5rem 1.5rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+        border: none;
+        text-decoration: none;
+        min-width: 150px;
+    }
+
+    .pill-button-inner-icon {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+    }
+
+    .btn-know {
+        background: #EDF3EC;
+        color: #346538;
+        border: 1px solid rgba(52, 101, 56, 0.15);
+    }
+    .btn-know:hover {
+        background: #e2edd1;
+        transform: translateY(-2px);
+    }
+    .btn-know .pill-button-inner-icon {
+        background: #346538;
+        color: white;
+    }
+
+    .btn-dont-know {
+        background: #FDEBEC;
+        color: #9F2F2D;
+        border: 1px solid rgba(159, 47, 45, 0.15);
+    }
+    .btn-dont-know:hover {
+        background: #fbd6d8;
+        transform: translateY(-2px);
+    }
+    .btn-dont-know .pill-button-inner-icon {
+        background: #9F2F2D;
+        color: white;
+    }
+
+    .nav-btn {
+        background: #ffffff;
+        border: 1px solid #EAEAEA;
+        color: #111111;
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+    }
+    .nav-btn:hover {
+        background: #F7F6F3;
+        border-color: #d1d1d6;
+        transform: scale(1.05);
+    }
+
+    .progress-bar-container {
+        width: 100%;
+        height: 6px;
+        background: #EAEAEA;
+        border-radius: 9999px;
+        overflow: hidden;
+        margin-top: 8px;
+    }
+    .progress-bar-fill {
+        height: 100%;
+        background: #111111;
+        border-radius: 9999px;
+        transition: width 0.4s ease;
+    }
+
+    .premium-select {
+        background: #ffffff;
+        border: 1px solid #EAEAEA;
+        color: #111111;
+        border-radius: 8px;
+        padding: 4px 10px;
+        font-size: 0.8rem;
+        cursor: pointer;
+        outline: none;
+    }
+
+    /* Bento design for completion */
+    .bento-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.25rem;
+        margin: 2rem 0;
+    }
+    .bento-card {
+        background: #ffffff;
+        border: 1px solid #EAEAEA;
+        border-radius: 1.5rem;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.01);
+    }
+</style>
+
+<div class="study-wrapper">
+    <div class="outer-container">
+        <div class="inner-container">
+            
+            <!-- Anti-Forgery Token for AJAX requests -->
+            @Html.AntiForgeryToken()
+
+            <!-- 1. STUDY VIEW -->
+            <div id="study-view">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; position: relative; z-index: 2;">
                     <div>
-                        <span style="font-size: 2rem; font-weight: 500;">@current.BackText</span>
-                        <p style="color: #787774; margin-top: 16px;">Nhấn để lật thẻ</p>
+                        <span class="eyebrow-badge" style="background: #E1F3FE; color: #1f6c9f; border-color: rgba(31,108,159,0.15);">Học Flashcard</span>
+                        <h3 id="set-title-header" style="font-size: 1.35rem; font-weight: 700; color: #111111; margin-top: 8px; letter-spacing: -0.02em;">@Model.SetTitle</h3>
+                    </div>
+                    <div style="text-align: right;">
+                        <span id="card-progress-text" style="font-size: 0.85rem; font-weight: 600; color: #787774;">Thẻ 1 / 1</span>
+                        <div class="progress-bar-container" style="width: 100px;">
+                            <div id="card-progress-fill" class="progress-bar-fill" style="width: 0%;"></div>
+                        </div>
                     </div>
                 </div>
+
+                <!-- 3D Card Shell (Double Bezel Light) -->
+                <div class="card-outer-shell" onclick="toggleCardFlip()">
+                    <div class="card-inner-core" id="study-card-core">
+                        <!-- Front Face (English) -->
+                        <div class="card-face card-front">
+                          <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                            <span class="eyebrow-badge">English</span>
+                            <span style="font-size: 0.75rem; color: #787774;">Click để lật thẻ</span>
+                          </div>
+                          <div style="text-align: center;">
+                            <span id="card-front-text" style="font-size: 2.5rem; font-weight: 700; color: #111111; letter-spacing: -0.03em;">Loading...</span>
+                            <p id="card-phonetic" style="color: #787774; font-size: 0.85rem; margin-top: 8px; display: none;"></p>
+                          </div>
+                          <div style="font-size: 0.75rem; color: #787774; opacity: 0.7;">⌨ Phím [Space] để lật nhanh</div>
+                        </div>
+                        
+                        <!-- Back Face (Vietnamese) -->
+                        <div class="card-face card-back">
+                          <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
+                            <span class="eyebrow-badge" style="background: #EDF3EC; border-color: rgba(52,101,56,0.2); color: #346538;">Nghĩa Việt</span>
+                            <span style="font-size: 0.75rem; color: #787774;">Click để lật lại</span>
+                          </div>
+                          <div style="text-align: center;">
+                            <span id="card-back-text" style="font-size: 2rem; font-weight: 600; color: #346538;">Loading...</span>
+                          </div>
+                          <div style="font-size: 0.75rem; color: #787774; opacity: 0.7;">🔊 Đang phát âm thanh...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- TTS & Action Controls Panel -->
+                <div style="background: #ffffff; border: 1px solid #EAEAEA; border-radius: 1.5rem; padding: 1.25rem; margin-top: 2rem; position: relative; z-index: 2; box-shadow: 0 4px 12px rgba(0,0,0,0.01);">
+                  <!-- Audio settings -->
+                  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid #EAEAEA; padding-bottom: 1rem; margin-bottom: 1rem;">
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                      <button type="button" onclick="playAudioCurrentCard()" style="background: #E1F3FE; border: 1px solid rgba(31,108,159,0.15); color: #1f6c9f; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;" title="Phát lại phát âm">🔊</button>
+                      <span style="font-size: 0.8rem; font-weight: 600; color: #111111;">Giọng phát âm tự động</span>
+                    </div>
+                    <div style="display: flex; gap: 12px; align-items: center; font-size: 0.78rem; color: #787774;">
+                      <label style="cursor: pointer; display: flex; align-items: center; gap: 4px; color: #111111; font-weight: 500;">
+                        <input type="checkbox" id="tts-autoplay" checked style="accent-color: #111111;"> Tự phát âm
+                      </label>
+                      <span>Giọng EN: 
+                        <select id="tts-voice-select" class="premium-select"></select>
+                      </span>
+                      <span>Tốc độ: 
+                        <select id="tts-speed" class="premium-select">
+                          <option value="0.8">0.8x</option>
+                          <option value="1.0" selected>1.0x</option>
+                          <option value="1.2">1.2x</option>
+                        </select>
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Card scoring & navigation -->
+                  <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <button class="nav-btn" onclick="prevCard()" title="Quay lại">←</button>
+                    
+                    <div style="display: flex; gap: 12px;">
+                      <button class="pill-button btn-dont-know" onclick="markCard(false)">
+                        Chưa biết
+                        <div class="pill-button-inner-icon">✕</div>
+                      </button>
+                      <button class="pill-button btn-know" onclick="markCard(true)">
+                        Đã biết
+                        <div class="pill-button-inner-icon">✓</div>
+                      </button>
+                    </div>
+
+                    <button class="nav-btn" onclick="nextCard()" title="Tiếp theo">→</button>
+                  </div>
+                </div>
+
+                <!-- Shortcuts Footer -->
+                <div style="display: flex; justify-content: center; gap: 15px; margin-top: 1.5rem; font-size: 0.72rem; color: #787774; position: relative; z-index: 2;">
+                  <span>⌨ [Space] Lật thẻ</span>
+                  <span>•</span>
+                  <span>[←] Trở lại</span>
+                  <span>•</span>
+                  <span>[→] Tiếp tục</span>
+                  <span>•</span>
+                  <span>[1] Chưa biết</span>
+                  <span>•</span>
+                  <span>[2] Đã biết</span>
+                  <span>•</span>
+                  <span>[R] Đọc lại</span>
+                </div>
             </div>
-        </div>
 
-        <div class="d-flex justify-content-center gap-3 mt-4">
-            <form asp-action="MarkLearned" asp-route-setId="@Model.SetId" asp-route-cardId="@current.Id" asp-route-learned="false" method="post" style="display: inline;">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn-secondary-custom" style="border-color: #FDEBEC; color: #9F2F2D;">
-                    <i class="ph ph-x-circle"></i> Chưa biết
-                </button>
-            </form>
+            <!-- 2. COMPLETION VIEW -->
+            <div id="completion-view" style="display: none; text-align: center; position: relative; z-index: 2;">
+                <!-- Canvas for fireworks inside light mode -->
+                <canvas id="fireworksCanvas" style="position: absolute; top: -2.5rem; left: -2.5rem; width: calc(100% + 5rem); height: calc(100% + 5rem); pointer-events: none; z-index: 1;"></canvas>
 
-            <form asp-action="MarkLearned" asp-route-setId="@Model.SetId" asp-route-cardId="@current.Id" asp-route-learned="true" method="post" style="display: inline;">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn-secondary-custom" style="border-color: #EDF3EC; color: #346538;">
-                    <i class="ph ph-check-circle"></i> Đã biết
-                </button>
-            </form>
-        </div>
+                <div style="position: relative; z-index: 2; padding: 1rem 0;">
+                  <span class="eyebrow-badge" style="background: #EDF3EC; border-color: rgba(52,101,56,0.2); color: #346538;">🎉 Đã hoàn thành bộ thẻ</span>
+                  
+                  <h2 style="font-size: 2rem; font-weight: 800; color: #111111; letter-spacing: -0.03em; margin: 10px 0;">
+                    Tuyệt vời! Bạn đã về đích!
+                  </h2>
+                  <p style="color: #787774; font-size: 0.9rem; max-width: 400px; margin: 0 auto 2rem auto; line-height: 1.5;">
+                    Hệ thống đã ghi nhận bạn hoàn thành phiên học Flashcard. Hãy xem kết quả phân loại thẻ của bạn bên dưới:
+                  </p>
 
-        <div class="d-flex justify-content-center gap-3 mt-3">
-            @if (Model.CurrentIndex > 0)
-            {
-                <a href="/Study/@Model.SetId/Flashcard?index=@(Model.CurrentIndex - 1)" class="btn-secondary-custom">
-                    <i class="ph ph-caret-left"></i> Trước
-                </a>
-            }
-            @if (Model.CurrentIndex < total - 1)
-            {
-                <a href="/Study/@Model.SetId/Flashcard?index=@(Model.CurrentIndex + 1)" class="btn-primary-custom">
-                    Sau <i class="ph ph-caret-right"></i>
-                </a>
-            }
-            else
-            {
-                <form asp-action="Complete" asp-route-setId="@Model.SetId" method="post">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="btn-primary-custom">
-                        <i class="ph ph-check"></i> Hoàn thành
+                  <!-- Bento grid layout (Light mode) -->
+                  <div class="bento-grid" style="max-width: 450px; margin: 0 auto 2rem auto;">
+                    <div class="bento-card" style="border-color: rgba(52, 101, 56, 0.15); background: #EDF3EC;">
+                      <div id="count-learned" style="font-size: 2.25rem; font-weight: 800; color: #346538; line-height: 1;">0</div>
+                      <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #346538; margin-top: 8px; font-weight: 600;">Đã thuộc lòng</div>
+                    </div>
+                    <div class="bento-card" style="border-color: rgba(159, 47, 45, 0.15); background: #FDEBEC;">
+                      <div id="count-unlearned" style="font-size: 2.25rem; font-weight: 800; color: #9F2F2D; line-height: 1;">0</div>
+                      <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #9F2F2D; margin-top: 8px; font-weight: 600;">Cần ôn lại thêm</div>
+                    </div>
+                  </div>
+
+                  <!-- Actions -->
+                  <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
+                    <button class="pill-button btn-dont-know" style="min-width: 180px; padding: 12px 20px; border-radius: 9999px;" onclick="restartStudy()">
+                      🔄 Ôn lại thẻ chưa thuộc
+                      <div class="pill-button-inner-icon" style="background: #9F2F2D; color: white;">↩</div>
                     </button>
-                </form>
-            }
-        </div>
-    }
-    else
-    {
-        <div class="text-center py-5" style="color: #787774;">
-            <i class="ph ph-cards" style="font-size: 3rem;"></i>
-            <p class="mt-3">Không có thẻ nào để học.</p>
-            <a href="/Study/@Model.SetId" class="btn-primary-custom">Quay lại</a>
-        </div>
-    }
+                    <button class="pill-button" style="min-width: 180px; padding: 12px 20px; border-radius: 9999px; background: #111111; color: white;" onclick="completeStudySession()">
+                      🏠 Về trang chủ bộ thẻ
+                      <div class="pill-button-inner-icon" style="background: rgba(255,255,255,0.2); color: white;">→</div>
+                    </button>
+                  </div>
+                </div>
+            </div>
 
-    @if (TempData["Success"] != null)
-    {
-        <div class="alert text-center mt-4" style="background: #EDF3EC; color: #346538; border: none; border-radius: 8px;">
-            @TempData["Success"]
         </div>
-    }
+    </div>
 </div>
 
 @section Scripts {
     <script>
+        // 1. DATA INITIALIZATION
+        // Serialize flashcards data from ASP.NET MVC backend model
+        const flashcards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Flashcards.Select(c => new { c.Id, c.FrontText, c.BackText })));
+        const setId = @Model.SetId;
+        
+        let currentIndex = 0;
+        let isFlipped = false;
+        
+        // Track session stats
+        const sessionStats = {
+            learned: new Set(),
+            unlearned: new Set()
+        };
+
+        // 2. TTS SYNTHESIS ENGINE
+        let voices = [];
+        const synth = window.speechSynthesis;
+        const voiceSelect = document.getElementById('tts-voice-select');
+        const autoplayCheckbox = document.getElementById('tts-autoplay');
+        const speedSelect = document.getElementById('tts-speed');
+
+        function loadVoices() {
+            if (!synth) return;
+            voices = synth.getVoices();
+            
+            // Clear current options
+            voiceSelect.innerHTML = '';
+            
+            // Filter English voices
+            const enVoices = voices.filter(v => v.lang.startsWith('en'));
+            
+            if (enVoices.length === 0) {
+                const opt = document.createElement('option');
+                opt.textContent = 'Mặc định hệ thống';
+                opt.value = 'default';
+                voiceSelect.appendChild(opt);
+            } else {
+                enVoices.forEach((voice, index) => {
+                    const opt = document.createElement('option');
+                    opt.value = voice.name;
+                    opt.textContent = `${voice.name} (${voice.lang.includes('US') ? 'US' : 'UK'})`;
+                    
+                    // Default selection logic
+                    if (voice.name.toLowerCase().includes('zira') || voice.name.toLowerCase().includes('female')) {
+                        opt.selected = true; // prefer female voice as default
+                    }
+                    voiceSelect.appendChild(opt);
+                });
+            }
+
+            // Restore user settings if available
+            restoreTtsSettings();
+        }
+
+        if (synth) {
+            if (synth.onvoiceschanged !== undefined) {
+                synth.onvoiceschanged = loadVoices;
+            }
+            loadVoices();
+        }
+
+        // Save settings to LocalStorage
+        function saveTtsSettings() {
+            const settings = {
+                autoplay: autoplayCheckbox.checked,
+                voiceName: voiceSelect.value,
+                speed: speedSelect.value
+            };
+            localStorage.setItem('ltwnc_tts_settings', JSON.stringify(settings));
+        }
+
+        function restoreTtsSettings() {
+            const data = localStorage.getItem('ltwnc_tts_settings');
+            if (data) {
+                try {
+                    const settings = JSON.parse(data);
+                    autoplayCheckbox.checked = settings.autoplay;
+                    speedSelect.value = settings.speed;
+                    
+                    // Match selected voice name
+                    for (let i = 0; i < voiceSelect.options.length; i++) {
+                        if (voiceSelect.options[i].value === settings.voiceName) {
+                            voiceSelect.selectedIndex = i;
+                            break;
+                        }
+                    }
+                } catch (e) {
+                    console.error("Failed to restore TTS settings", e);
+                }
+            }
+        }
+
+        // Attach change listeners to save settings automatically
+        autoplayCheckbox.addEventListener('change', saveTtsSettings);
+        voiceSelect.addEventListener('change', saveTtsSettings);
+        speedSelect.addEventListener('change', saveTtsSettings);
+
+        // Speak functions
+        function speak(text, isVietnamese = false) {
+            if (!synth || synth.speaking) {
+                synth.cancel(); // Cancel current speech
+            }
+
+            if (text.trim() === '') return;
+
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = parseFloat(speedSelect.value) || 1.0;
+
+            if (isVietnamese) {
+                // Find Vietnamese voice if available
+                const viVoice = voices.find(v => v.lang.startsWith('vi'));
+                if (viVoice) utterance.voice = viVoice;
+                utterance.lang = 'vi-VN';
+            } else {
+                // Find selected English voice
+                const selectedVoiceName = voiceSelect.value;
+                const enVoice = voices.find(v => v.name === selectedVoiceName);
+                if (enVoice) utterance.voice = enVoice;
+                utterance.lang = 'en-US';
+            }
+
+            synth.speak(utterance);
+        }
+
+        // 3. STUDY ENGINE FLOW
+        function updateUI() {
+            if (flashcards.length === 0) return;
+            
+            const currentCard = flashcards[currentIndex];
+            
+            // Set texts
+            document.getElementById('card-front-text').textContent = currentCard.FrontText;
+            document.getElementById('card-back-text').textContent = currentCard.BackText;
+            
+            // Reset card flip class
+            const cardCore = document.getElementById('study-card-core');
+            cardCore.classList.remove('flipped');
+            isFlipped = false;
+
+            // Update progress indicators
+            const currentDisplay = currentIndex + 1;
+            const total = flashcards.length;
+            document.getElementById('card-progress-text').textContent = `Thẻ ${currentDisplay} / ${total}`;
+            
+            const progressPercent = (currentDisplay / total) * 100;
+            document.getElementById('card-progress-fill').style.width = `${progressPercent}%`;
+        }
+
+        function toggleCardFlip() {
+            const cardCore = document.getElementById('study-card-core');
+            isFlipped = !isFlipped;
+            
+            if (isFlipped) {
+                cardCore.classList.add('flipped');
+                // Auto play sound when flipped to the back (Option C logic: play Vietnamese, or EN then VI)
+                if (autoplayCheckbox.checked) {
+                    // Start by playing English term, then Vietnamese meaning
+                    speak(flashcards[currentIndex].FrontText, false);
+                    
+                    // Delay slightly and play Vietnamese translation
+                    setTimeout(() => {
+                        speak(flashcards[currentIndex].BackText, true);
+                    }, 1200);
+                }
+            } else {
+                cardCore.classList.remove('flipped');
+                if (synth) synth.cancel();
+            }
+        }
+
+        // Play audio for current card face manually
+        function playAudioCurrentCard() {
+            if (flashcards.length === 0) return;
+            if (isFlipped) {
+                speak(flashcards[currentIndex].BackText, true);
+            } else {
+                speak(flashcards[currentIndex].FrontText, false);
+            }
+        }
+
+        function nextCard() {
+            if (currentIndex < flashcards.length - 1) {
+                currentIndex++;
+                updateUI();
+            } else {
+                // End of deck reached
+                showCompletionScreen();
+            }
+        }
+
+        function prevCard() {
+            if (currentIndex > 0) {
+                currentIndex--;
+                updateUI();
+            }
+        }
+
+        // Mark learned or unlearned card
+        function markCard(learned) {
+            if (flashcards.length === 0) return;
+            
+            const card = flashcards[currentIndex];
+            
+            if (learned) {
+                sessionStats.learned.add(card.Id);
+                sessionStats.unlearned.delete(card.Id);
+            } else {
+                sessionStats.unlearned.add(card.Id);
+                sessionStats.learned.delete(card.Id);
+            }
+
+            // Send async POST request to database to save progress
+            const verificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            const params = new URLSearchParams();
+            params.append('__RequestVerificationToken', verificationToken);
+            params.append('setId', setId);
+            params.append('cardId', card.Id);
+            params.append('learned', learned);
+
+            fetch(`/Study/${setId}/Flashcard/Mark`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params
+            })
+            .then(res => {
+                if (!res.ok) console.error("Failed to save progress to server");
+            })
+            .catch(err => console.error("AJAX Error: ", err));
+
+            // Proceed to the next card
+            nextCard();
+        }
+
+        // Restart study session
+        function restartStudy() {
+            currentIndex = 0;
+            sessionStats.learned.clear();
+            sessionStats.unlearned.clear();
+            
+            document.getElementById('study-view').style.display = 'block';
+            document.getElementById('completion-view').style.display = 'none';
+            
+            stopFireworks();
+            updateUI();
+        }
+
+        // Save complete session and redirect to study index
+        function completeStudySession() {
+            const verificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            const params = new URLSearchParams();
+            params.append('__RequestVerificationToken', verificationToken);
+            params.append('setId', setId);
+
+            fetch(`/Study/${setId}/Complete`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success && data.redirectUrl) {
+                    window.location.href = data.redirectUrl;
+                } else {
+                    window.location.href = `/Study/${setId}`;
+                }
+            })
+            .catch(err => {
+                console.error("AJAX Error: ", err);
+                window.location.href = `/Study/${setId}`;
+            });
+        }
+
+        // Show completed view
+        function showCompletionScreen() {
+            // Count cards
+            const totalCards = flashcards.length;
+            const learnedCount = sessionStats.learned.size;
+            const unlearnedCount = totalCards - learnedCount; // default rest is unlearned
+
+            document.getElementById('count-learned').textContent = learnedCount;
+            document.getElementById('count-unlearned').textContent = unlearnedCount;
+
+            document.getElementById('study-view').style.display = 'none';
+            document.getElementById('completion-view').style.display = 'block';
+
+            startFireworks();
+        }
+
+        // Keyboard Shortcuts listener
         document.addEventListener('keydown', function(e) {
-            if (e.key === ' ' || e.key === 'Enter') {
-                e.preventDefault();
-                toggleFlip();
+            // Ignore if user is typing in inputs/selects
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+
+            switch (e.key) {
+                case ' ': // Space key to flip
+                    e.preventDefault();
+                    toggleCardFlip();
+                    break;
+                case 'ArrowLeft': // Prev
+                    e.preventDefault();
+                    prevCard();
+                    break;
+                case 'ArrowRight': // Next
+                    e.preventDefault();
+                    nextCard();
+                    break;
+                case '1': // Mark unlearned
+                    markCard(false);
+                    break;
+                case '2': // Mark learned
+                    markCard(true);
+                    break;
+                case 'r':
+                case 'R': // Repeat speak
+                    playAudioCurrentCard();
+                    break;
             }
         });
+
+        // Initialize UI
+        updateUI();
+
+        // 4. CANVAS FIREWORKS ANIMATION CODE
+        let canvas, ctx, animationFrameId;
+        let fireworksList = [];
+        let particlesList = [];
+        const celebrateColors = ['#6366f1', '#4f46e5', '#10b981', '#059669', '#f43f5e', '#d97706', '#0284c7'];
+
+        class CanvasParticle {
+          constructor(x, y, color) {
+            this.x = x;
+            this.y = y;
+            this.color = color;
+            this.angle = Math.random() * Math.PI * 2;
+            this.speed = Math.random() * 4 + 1.5;
+            this.friction = 0.96;
+            this.gravity = 0.08;
+            this.alpha = 1;
+            this.decay = Math.random() * 0.015 + 0.008;
+            this.radius = Math.random() * 2 + 1.5;
+          }
+          update() {
+            this.speed *= this.friction;
+            this.x += Math.cos(this.angle) * this.speed;
+            this.y += Math.sin(this.angle) * this.speed + this.gravity;
+            this.alpha -= this.decay;
+          }
+          draw() {
+            ctx.save();
+            ctx.globalAlpha = this.alpha;
+            ctx.fillStyle = this.color;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+          }
+        }
+
+        class CanvasFirework {
+          constructor() {
+            const w = canvas.width / window.devicePixelRatio;
+            const h = canvas.height / window.devicePixelRatio;
+            this.x = Math.random() * w;
+            this.y = h;
+            this.targetY = Math.random() * (h * 0.55) + 30;
+            this.speed = Math.random() * 5 + 6;
+            this.color = celebrateColors[Math.floor(Math.random() * celebrateColors.length)];
+            this.exploded = false;
+          }
+          update() {
+            if (!this.exploded) {
+              this.y -= this.speed;
+              this.speed *= 0.98;
+              if (this.speed <= 1 || this.y <= this.targetY) {
+                this.exploded = true;
+                this.explode();
+              }
+            }
+          }
+          draw() {
+            if (!this.exploded) {
+              ctx.fillStyle = this.color;
+              ctx.beginPath();
+              ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+              ctx.fill();
+            }
+          }
+          explode() {
+            const count = Math.floor(Math.random() * 25) + 35;
+            for (let i = 0; i < count; i++) {
+              particlesList.push(new CanvasParticle(this.x, this.y, this.color));
+            }
+          }
+        }
+
+        function resizeCanvas() {
+          if (!canvas) return;
+          canvas.width = canvas.offsetWidth * window.devicePixelRatio;
+          canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+          ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+        }
+
+        function animateFireworks() {
+          const w = canvas.width / window.devicePixelRatio;
+          const h = canvas.height / window.devicePixelRatio;
+          
+          ctx.fillStyle = 'rgba(255, 255, 255, 0.25)'; // Clear trail for light mode
+          ctx.fillRect(0, 0, w, h);
+          
+          if (Math.random() < 0.05 && fireworksList.length < 4) {
+            fireworksList.push(new CanvasFirework());
+          }
+
+          for (let i = fireworksList.length - 1; i >= 0; i--) {
+            fireworksList[i].update();
+            fireworksList[i].draw();
+            if (fireworksList[i].exploded) {
+              fireworksList.splice(i, 1);
+            }
+          }
+
+          for (let i = particlesList.length - 1; i >= 0; i--) {
+            particlesList[i].update();
+            particlesList[i].draw();
+            if (particlesList[i].alpha <= 0) {
+              particlesList.splice(i, 1);
+            }
+          }
+
+          animationFrameId = requestAnimationFrame(animateFireworks);
+        }
+
+        function startFireworks() {
+          canvas = document.getElementById('fireworksCanvas');
+          ctx = canvas.getContext('2d');
+          window.addEventListener('resize', resizeCanvas);
+          resizeCanvas();
+          fireworksList = [];
+          particlesList = [];
+          animateFireworks();
+        }
+
+        function stopFireworks() {
+          if (animationFrameId) {
+            cancelAnimationFrame(animationFrameId);
+            animationFrameId = null;
+          }
+          window.removeEventListener('resize', resizeCanvas);
+        }
     </script>
 }
