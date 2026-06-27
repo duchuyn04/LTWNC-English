@@ -53,6 +53,11 @@ public class FlashcardSetService
         ".jpg", ".jpeg", ".png", ".webp"
     };
 
+    private static readonly HashSet<string> AllowedImageContentTypes = new(StringComparer.OrdinalIgnoreCase)
+    {
+        "image/jpeg", "image/png", "image/webp"
+    };
+
     private async Task<string?> SaveImageAsync(IFormFile? imageFile)
     {
         if (imageFile == null || imageFile.Length == 0) return null;
@@ -61,6 +66,9 @@ public class FlashcardSetService
 
         var extension = Path.GetExtension(imageFile.FileName);
         if (!AllowedImageExtensions.Contains(extension))
+            throw new ArgumentException("Ảnh chỉ hỗ trợ JPG, PNG hoặc WebP.");
+
+        if (!AllowedImageContentTypes.Contains(imageFile.ContentType))
             throw new ArgumentException("Ảnh chỉ hỗ trợ JPG, PNG hoặc WebP.");
 
         var uploadRoot = Path.Combine(_environment.WebRootPath, "uploads", "flashcards");
