@@ -111,8 +111,18 @@
             </div>
         </main>
 
+        <div class="card-nav-strip">
+            <button type="button" class="card-nav-btn" onclick="prevCard()" title="Thẻ trước (←)">
+                <i class="ph ph-arrow-left"></i>
+            </button>
+            <span id="card-nav-progress" class="card-nav-progress">Thẻ 1 / 1</span>
+            <button type="button" class="card-nav-btn" onclick="nextCard()" title="Thẻ tiếp (→)">
+                <i class="ph ph-arrow-right"></i>
+            </button>
+        </div>
+
         <section class="control-dock" aria-label="Điều khiển học">
-            <div class="nav-cluster">
+            <div class="nav-cluster" aria-hidden="true" style="visibility:hidden;">
                 <button type="button" class="icon-button" onclick="prevCard()" title="Thẻ trước">
                     <i class="ph ph-arrow-left"></i>
                 </button>
@@ -394,6 +404,11 @@
             const total = flashcards.length;
             document.getElementById('card-progress-text').textContent = `Thẻ ${currentDisplay} / ${total}`;
             document.getElementById('card-progress-fill').style.width = `${(currentDisplay / total) * 100}%`;
+            
+            const cardNavProgress = document.getElementById('card-nav-progress');
+            if (cardNavProgress) {
+                cardNavProgress.textContent = `Thẻ ${currentDisplay} / ${total}`;
+            }
 
             updateStarUI(currentCard.IsStarred);
         }
