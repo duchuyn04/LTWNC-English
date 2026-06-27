@@ -672,7 +672,7 @@
     }
     .study-settings-button:hover {
         transform: scale(1.08);
-        background-color: var(--bg-hover);
+        background-color: var(--soft);
     }
 
     .study-settings-panel {
@@ -1114,7 +1114,22 @@
             const backExElem = document.getElementById('card-back-example');
             backExElem.hidden = !settings.ShowBackExample || !currentCard.ExampleSentence;
             if (currentCard.ExampleSentence) {
-                backExElem.innerHTML = `<strong>Ví dụ:</strong> ${currentCard.ExampleSentence} <br/><span class="text-sm text-muted">${currentCard.ExampleMeaning || ''}</span>`;
+                backExElem.innerHTML = '';
+                const strong = document.createElement('strong');
+                strong.textContent = 'Ví dụ: ';
+                backExElem.appendChild(strong);
+                
+                const textSpan = document.createElement('span');
+                textSpan.textContent = currentCard.ExampleSentence;
+                backExElem.appendChild(textSpan);
+                
+                if (currentCard.ExampleMeaning) {
+                    backExElem.appendChild(document.createElement('br'));
+                    const meaningSpan = document.createElement('span');
+                    meaningSpan.className = 'text-sm text-muted';
+                    meaningSpan.textContent = currentCard.ExampleMeaning;
+                    backExElem.appendChild(meaningSpan);
+                }
             }
 
             renderCardImage('front', currentCard);
@@ -1327,7 +1342,7 @@
 
         document.addEventListener('keydown', function(e) {
             const tagName = e.target.tagName;
-            if (tagName === 'INPUT' || tagName === 'SELECT' || tagName === 'TEXTAREA' || e.target.isContentEditable) return;
+            if (tagName === 'INPUT' || tagName === 'SELECT' || tagName === 'TEXTAREA' || tagName === 'BUTTON' || tagName === 'A' || e.target.isContentEditable) return;
 
             switch (e.key) {
                 case ' ':
@@ -1373,8 +1388,9 @@
                 input.addEventListener('change', () => {
                     settings[key] = input.checked;
                     if (key === 'StarredOnly' || key === 'UnlearnedOnly') {
-                        saveSettings();
-                        reloadWithFilters();
+                        saveSettings().finally(() => {
+                            reloadWithFilters();
+                        });
                         return;
                     }
                     enforceVisibleSide('front');
@@ -1420,7 +1436,7 @@
         }
 
         function saveSettings() {
-            if (!isAuthenticated) return;
+            if (!isAuthenticated) return Promise.resolve();
 
             const verificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
             const params = new URLSearchParams();
@@ -1429,7 +1445,7 @@
                 params.append(key, settings[key]);
             });
 
-            fetch('/Study/Settings', {
+            return fetch('/Study/Settings', {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
