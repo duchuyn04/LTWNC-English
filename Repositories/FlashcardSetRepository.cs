@@ -82,4 +82,12 @@ public class FlashcardSetRepository : IFlashcardSetRepository
     {
         await _context.SaveChangesAsync();
     }
+
+    // Xóa phiên học trước khi xóa bộ thẻ để tránh lỗi khóa ngoại Restrict
+    public async Task DeleteSessionsBySetIdAsync(int setId)
+    {
+        await _context.StudySessions
+            .Where(s => s.FlashcardSetId == setId)
+            .ExecuteDeleteAsync();
+    }
 }

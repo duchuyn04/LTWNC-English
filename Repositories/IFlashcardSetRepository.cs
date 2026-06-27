@@ -31,4 +31,7 @@ public interface IFlashcardSetRepository
 
     // Lưu tất cả thay đổi vào database
     Task SaveChangesAsync();
+
+    // Xóa phiên học liên quan đến một bộ thẻ
+    Task DeleteSessionsBySetIdAsync(int setId);
 }

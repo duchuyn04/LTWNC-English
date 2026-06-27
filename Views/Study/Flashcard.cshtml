@@ -5,446 +5,804 @@
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
 <style>
-    /* Premium font override & general improvements */
-    .study-wrapper {
-        font-family: 'Plus Jakarta Sans', sans-serif !important;
-        background: #F7F6F3;
-        color: #111111;
-        min-height: 80vh;
-        display: flex;
+    .study-shell {
+        --ink: #151515;
+        --muted: #74716b;
+        --line: #e4e1da;
+        --paper: #fffdf9;
+        --canvas: #f6f3ed;
+        --soft: #ebe6dc;
+        --blue-bg: #e6f3fb;
+        --blue: #1f6c9f;
+        --green-bg: #eaf3e8;
+        --green: #2f6a37;
+        --red-bg: #fae9e7;
+        --red: #9c3430;
+        font-family: "Plus Jakarta Sans", sans-serif;
+        min-height: calc(100dvh - 58px);
+        margin: -3rem calc(50% - 50vw);
+        padding: 1rem clamp(1rem, 3vw, 2.5rem);
+        color: var(--ink);
+        background:
+            radial-gradient(circle at 20% 0%, rgba(230, 243, 251, 0.7), transparent 30rem),
+            linear-gradient(180deg, #fbfaf7 0%, var(--canvas) 100%);
+    }
+
+    .study-stage {
+        width: min(100%, 980px);
+        margin: 0 auto;
+        display: grid;
+        gap: 1rem;
+    }
+
+    .study-header {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .exit-link,
+    .icon-button {
+        border: 1px solid var(--line);
+        background: rgba(255, 255, 255, 0.8);
+        color: var(--ink);
+        text-decoration: none;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 2rem 1rem;
+        gap: 0.45rem;
+        min-height: 42px;
+        border-radius: 999px;
+        font-weight: 700;
+        transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+        box-shadow: 0 8px 24px rgba(62, 53, 40, 0.05);
     }
 
-    /* Double Bezel Outer Container */
-    .outer-container {
-        background: rgba(255, 255, 255, 0.4);
-        border: 1px solid rgba(0, 0, 0, 0.04);
-        border-radius: 2rem;
-        padding: 1.25rem;
-        max-width: 680px;
-        width: 100%;
-        backdrop-filter: blur(20px);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.02), 0 1px 3px rgba(0,0,0,0.01);
-        position: relative;
+    .exit-link {
+        padding: 0 0.9rem;
+        white-space: nowrap;
     }
 
-    /* Inner Core Container */
-    .inner-container {
+    .exit-link:hover,
+    .icon-button:hover {
         background: #ffffff;
-        border: 1px solid #EAEAEA;
-        border-radius: calc(2rem - 0.5rem);
-        padding: 2.5rem;
-        box-shadow: 0 8px 24px rgba(0,0,0,0.01);
-        position: relative;
+        color: var(--ink);
+        border-color: #cfc9bd;
+        transform: translateY(-1px);
+    }
+
+    .exit-link:active,
+    .icon-button:active,
+    .study-button:active {
+        transform: translateY(1px) scale(0.99);
+    }
+
+    .keycap {
+        border: 1px solid #d6d1c7;
+        border-bottom-width: 2px;
+        border-radius: 6px;
+        padding: 0.08rem 0.35rem;
+        color: var(--muted);
+        font-size: 0.68rem;
+        font-weight: 700;
+        line-height: 1.2;
+        background: #fffaf2;
+    }
+
+    .set-meta {
+        min-width: 0;
+        text-align: center;
+    }
+
+    .study-eyebrow {
+        color: var(--blue);
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .set-title {
+        margin: 0.1rem 0 0;
+        font-size: clamp(1.05rem, 2vw, 1.45rem);
+        font-weight: 800;
+        letter-spacing: -0.02em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .progress-block {
+        justify-self: end;
+        min-width: 132px;
+    }
+
+    .progress-text {
+        display: block;
+        margin-bottom: 0.35rem;
+        color: var(--muted);
+        font-size: 0.82rem;
+        font-weight: 800;
+        text-align: right;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .progress-track {
+        height: 7px;
+        border-radius: 999px;
+        background: #ded9cf;
         overflow: hidden;
     }
 
-    /* 3D Flashcard Wrapper (Double Bezel Card) */
-    .card-outer-shell {
-        background: #ffffff;
-        border: 1px solid #EAEAEA;
-        border-radius: 2.5rem;
-        padding: 0.75rem;
-        max-width: 440px;
-        margin: 2rem auto;
-        perspective: 1000px;
-        transition: all 0.6s cubic-bezier(0.32, 0.72, 0, 1);
-        box-shadow: 0 4px 20px rgba(0,0,0,0.02);
-    }
-    .card-outer-shell:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 16px 32px rgba(0,0,0,0.05);
-        border-color: #d1d1d6;
+    .progress-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: inherit;
+        background: var(--ink);
+        transition: width 260ms ease;
     }
 
-    .card-inner-core {
-        background: #ffffff;
-        border: 1px solid #EAEAEA;
-        border-radius: calc(2.5rem - 0.75rem);
-        height: 280px;
+    .card-area {
         position: relative;
-        transform-style: preserve-3d;
-        transition: transform 0.8s cubic-bezier(0.32, 0.72, 0, 1);
-        cursor: pointer;
+        perspective: 1200px;
     }
 
-    .card-inner-core.flipped {
-      transform: rotateY(180deg);
+    .flashcard-frame {
+        width: min(100%, 860px);
+        margin: 0 auto;
+        padding: clamp(0.55rem, 1.2vw, 0.9rem);
+        border: 1px solid rgba(77, 66, 49, 0.12);
+        border-radius: clamp(1.2rem, 2vw, 1.8rem);
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: 0 28px 70px rgba(75, 63, 45, 0.12);
+        cursor: pointer;
+        transition: transform 220ms ease, box-shadow 220ms ease;
+    }
+
+    .flashcard-frame:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 34px 80px rgba(75, 63, 45, 0.15);
+    }
+
+    .flashcard-core {
+        position: relative;
+        height: clamp(340px, 52vh, 500px);
+        border-radius: clamp(0.9rem, 1.5vw, 1.35rem);
+        transform-style: preserve-3d;
+        transition: transform 520ms cubic-bezier(0.2, 0.75, 0.2, 1);
+    }
+
+    .flashcard-core.flipped {
+        transform: rotateY(180deg);
     }
 
     .card-face {
         position: absolute;
-        width: 100%;
-        height: 100%;
-        backface-visibility: hidden;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
+        inset: 0;
+        display: grid;
+        grid-template-rows: auto 1fr auto;
         align-items: center;
-        padding: 2rem;
-        box-sizing: border-box;
-        border-radius: calc(2.5rem - 0.75rem);
+        padding: clamp(1.25rem, 3vw, 2.3rem);
+        border: 1px solid var(--line);
+        border-radius: inherit;
+        backface-visibility: hidden;
+        overflow: hidden;
+    }
+
+    .card-face::before {
+        content: "";
+        position: absolute;
+        inset: 1rem;
+        border: 1px solid rgba(77, 66, 49, 0.06);
+        border-radius: calc(clamp(0.9rem, 1.5vw, 1.35rem) - 0.2rem);
+        pointer-events: none;
     }
 
     .card-front {
-        z-index: 2;
-        background: #ffffff;
+        background: var(--paper);
     }
 
     .card-back {
+        background: #f8fbf4;
         transform: rotateY(180deg);
-        background: #FAF9F6;
-        border: 1px solid #E5E4E0;
     }
 
-    /* Badges */
-    .eyebrow-badge {
-        display: inline-block;
-        background: #F7F6F3;
-        border: 1px solid #EAEAEA;
-        border-radius: 9999px;
-        padding: 4px 12px;
-        font-size: 0.65rem;
+    .card-topline,
+    .card-bottomline {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        padding: 0.32rem 0.7rem;
+        background: #ffffff;
+        color: var(--muted);
+        font-size: 0.68rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
         text-transform: uppercase;
-        letter-spacing: 0.12em;
-        font-weight: 600;
-        color: #787774;
     }
 
-    /* Buttons with button-in-button architecture */
-    .pill-button {
-        font-family: inherit;
+    .badge-blue {
+        background: var(--blue-bg);
+        border-color: rgba(31, 108, 159, 0.15);
+        color: var(--blue);
+    }
+
+    .badge-green {
+        background: var(--green-bg);
+        border-color: rgba(47, 106, 55, 0.15);
+        color: var(--green);
+    }
+
+    .card-content {
+        position: relative;
+        z-index: 1;
+        width: 100%;
+        text-align: center;
+    }
+
+    .card-word {
+        display: block;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        line-height: 1.02;
+        letter-spacing: -0.04em;
+    }
+
+    .card-word-front {
+        font-size: clamp(3rem, 8vw, 6.5rem);
+        font-weight: 800;
+        color: var(--ink);
+    }
+
+    .card-word-back {
+        font-size: clamp(2.4rem, 6vw, 5.4rem);
+        font-weight: 800;
+        color: var(--green);
+    }
+
+    .control-dock {
+        width: min(100%, 860px);
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        gap: 1rem;
+        align-items: center;
+        padding: 0.85rem;
+        border: 1px solid rgba(77, 66, 49, 0.1);
+        border-radius: 1.15rem;
+        background: rgba(255, 255, 255, 0.72);
+        box-shadow: 0 14px 36px rgba(75, 63, 45, 0.08);
+    }
+
+    .nav-cluster,
+    .audio-cluster {
+        display: flex;
+        align-items: center;
+        gap: 0.55rem;
+    }
+
+    .audio-cluster {
+        justify-content: flex-end;
+    }
+
+    .icon-button {
+        width: 42px;
+        padding: 0;
+        font-size: 1rem;
+        cursor: pointer;
+    }
+
+    .score-cluster {
+        display: flex;
+        gap: 0.8rem;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .study-button {
+        min-height: 50px;
+        border: 1px solid transparent;
+        border-radius: 999px;
+        padding: 0.45rem 0.55rem 0.45rem 1.2rem;
         display: inline-flex;
         align-items: center;
         justify-content: space-between;
-        border-radius: 9999px;
-        padding: 0.5rem 0.5rem 0.5rem 1.5rem;
-        font-size: 0.88rem;
-        font-weight: 600;
+        gap: 0.9rem;
+        min-width: 160px;
+        color: var(--ink);
+        font-weight: 800;
         cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-        border: none;
-        text-decoration: none;
-        min-width: 150px;
+        transition: transform 180ms ease, filter 180ms ease;
     }
 
-    .pill-button-inner-icon {
-        width: 28px;
-        height: 28px;
+    .study-button:hover {
+        filter: brightness(0.98);
+    }
+
+    .study-button.is-red {
+        color: var(--red);
+        background: var(--red-bg);
+        border-color: rgba(156, 52, 48, 0.16);
+    }
+
+    .study-button.is-green {
+        color: var(--green);
+        background: var(--green-bg);
+        border-color: rgba(47, 106, 55, 0.16);
+    }
+
+    .button-icon {
+        width: 34px;
+        height: 34px;
         border-radius: 50%;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        font-size: 0.75rem;
-        transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
+        color: #ffffff;
+        font-size: 1rem;
     }
 
-    .btn-know {
-        background: #EDF3EC;
-        color: #346538;
-        border: 1px solid rgba(52, 101, 56, 0.15);
-    }
-    .btn-know:hover {
-        background: #e2edd1;
-        transform: translateY(-2px);
-    }
-    .btn-know .pill-button-inner-icon {
-        background: #346538;
-        color: white;
+    .is-red .button-icon {
+        background: var(--red);
     }
 
-    .btn-dont-know {
-        background: #FDEBEC;
-        color: #9F2F2D;
-        border: 1px solid rgba(159, 47, 45, 0.15);
-    }
-    .btn-dont-know:hover {
-        background: #fbd6d8;
-        transform: translateY(-2px);
-    }
-    .btn-dont-know .pill-button-inner-icon {
-        background: #9F2F2D;
-        color: white;
+    .is-green .button-icon {
+        background: var(--green);
     }
 
-    .nav-btn {
+    .tts-summary {
+        min-height: 42px;
+        list-style: none;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.72);
+        padding: 0 0.85rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+        color: var(--muted);
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    .tts-summary::-webkit-details-marker {
+        display: none;
+    }
+
+    .tts-panel {
+        position: absolute;
+        right: 0;
+        top: calc(100% + 0.5rem);
+        z-index: 5;
+        width: min(88vw, 420px);
+        padding: 0.9rem;
+        border: 1px solid var(--line);
+        border-radius: 1rem;
         background: #ffffff;
-        border: 1px solid #EAEAEA;
-        color: #111111;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition: all 0.3s cubic-bezier(0.32, 0.72, 0, 1);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-    }
-    .nav-btn:hover {
-        background: #F7F6F3;
-        border-color: #d1d1d6;
-        transform: scale(1.05);
+        box-shadow: 0 18px 48px rgba(75, 63, 45, 0.14);
+        display: grid;
+        gap: 0.75rem;
     }
 
-    .progress-bar-container {
-        width: 100%;
-        height: 6px;
-        background: #EAEAEA;
-        border-radius: 9999px;
-        overflow: hidden;
-        margin-top: 8px;
+    .tts-details {
+        position: relative;
     }
-    .progress-bar-fill {
-        height: 100%;
-        background: #111111;
-        border-radius: 9999px;
-        transition: width 0.4s ease;
+
+    .tts-row {
+        display: grid;
+        grid-template-columns: 90px 1fr;
+        gap: 0.75rem;
+        align-items: center;
+        color: var(--muted);
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .tts-row label {
+        margin: 0;
     }
 
     .premium-select {
+        width: 100%;
+        border: 1px solid var(--line);
+        border-radius: 0.65rem;
+        padding: 0.48rem 0.65rem;
         background: #ffffff;
-        border: 1px solid #EAEAEA;
-        color: #111111;
-        border-radius: 8px;
-        padding: 4px 10px;
-        font-size: 0.8rem;
-        cursor: pointer;
+        color: var(--ink);
+        font-size: 0.82rem;
         outline: none;
     }
 
-    /* Bento design for completion */
-    .bento-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 1.25rem;
-        margin: 2rem 0;
+    .shortcut-strip {
+        width: min(100%, 860px);
+        margin: 0 auto;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 0.45rem 1rem;
+        color: var(--muted);
+        font-size: 0.76rem;
+        font-weight: 700;
     }
-    .bento-card {
-        background: #ffffff;
-        border: 1px solid #EAEAEA;
-        border-radius: 1.5rem;
-        padding: 1.5rem;
+
+    .completion-view {
+        display: none;
+        position: relative;
+        width: min(100%, 760px);
+        min-height: 520px;
+        margin: 0 auto;
+        padding: clamp(1.5rem, 5vw, 3rem);
         text-align: center;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.01);
+        border: 1px solid rgba(77, 66, 49, 0.12);
+        border-radius: 1.5rem;
+        background: rgba(255, 255, 255, 0.78);
+        box-shadow: 0 28px 70px rgba(75, 63, 45, 0.12);
+        overflow: hidden;
+    }
+
+    .completion-inner {
+        position: relative;
+        z-index: 2;
+    }
+
+    .completion-title {
+        margin: 0.8rem 0 0.5rem;
+        font-size: clamp(2rem, 5vw, 3.5rem);
+        font-weight: 800;
+        letter-spacing: -0.04em;
+    }
+
+    .completion-copy {
+        max-width: 520px;
+        margin: 0 auto 1.5rem;
+        color: var(--muted);
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 1rem;
+        margin: 1.5rem auto;
+        max-width: 480px;
+    }
+
+    .stat-card {
+        border: 1px solid transparent;
+        border-radius: 1.1rem;
+        padding: 1.25rem;
+    }
+
+    .stat-card.is-green {
+        background: var(--green-bg);
+        border-color: rgba(47, 106, 55, 0.15);
+        color: var(--green);
+    }
+
+    .stat-card.is-red {
+        background: var(--red-bg);
+        border-color: rgba(156, 52, 48, 0.15);
+        color: var(--red);
+    }
+
+    .stat-number {
+        display: block;
+        font-size: 2.5rem;
+        font-weight: 800;
+        line-height: 1;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .stat-label {
+        display: block;
+        margin-top: 0.45rem;
+        font-size: 0.76rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .completion-actions {
+        display: flex;
+        justify-content: center;
+        gap: 0.8rem;
+        flex-wrap: wrap;
+    }
+
+    .primary-dark {
+        min-height: 50px;
+        border: none;
+        border-radius: 999px;
+        padding: 0 1.2rem;
+        background: var(--ink);
+        color: #ffffff;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
+    #fireworksCanvas {
+        position: absolute;
+        inset: -2rem;
+        width: calc(100% + 4rem);
+        height: calc(100% + 4rem);
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    @@media (max-width: 767px) {
+        .study-shell {
+            padding: 0.75rem;
+        }
+
+        .study-header {
+            grid-template-columns: 1fr auto;
+        }
+
+        .exit-link {
+            grid-column: 1;
+            grid-row: 1;
+            justify-self: start;
+        }
+
+        .set-meta {
+            grid-column: 1 / -1;
+            grid-row: 2;
+            text-align: left;
+        }
+
+        .progress-block {
+            grid-column: 2;
+            grid-row: 1;
+            min-width: 120px;
+        }
+
+        .flashcard-core {
+            height: clamp(300px, 48vh, 420px);
+        }
+
+        .control-dock {
+            grid-template-columns: 1fr;
+        }
+
+        .nav-cluster,
+        .audio-cluster,
+        .score-cluster {
+            justify-content: center;
+        }
+
+        .score-cluster {
+            order: -1;
+        }
+
+        .study-button {
+            min-width: 0;
+            width: min(44vw, 170px);
+            padding-left: 0.9rem;
+        }
+
+        .tts-panel {
+            right: 50%;
+            transform: translateX(50%);
+        }
     }
 </style>
 
-<div class="study-wrapper">
-    <div class="outer-container">
-        <div class="inner-container">
-            
-            <!-- Anti-Forgery Token for AJAX requests -->
-            @Html.AntiForgeryToken()
+<div class="study-shell">
+    @Html.AntiForgeryToken()
 
-            <!-- 1. STUDY VIEW -->
-            <div id="study-view">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; position: relative; z-index: 2;">
-                    <div>
-                        <span class="eyebrow-badge" style="background: #E1F3FE; color: #1f6c9f; border-color: rgba(31,108,159,0.15);">Học Flashcard</span>
-                        <h3 id="set-title-header" style="font-size: 1.35rem; font-weight: 700; color: #111111; margin-top: 8px; letter-spacing: -0.02em;">@Model.SetTitle</h3>
-                    </div>
-                    <div style="text-align: right;">
-                        <span id="card-progress-text" style="font-size: 0.85rem; font-weight: 600; color: #787774;">Thẻ 1 / 1</span>
-                        <div class="progress-bar-container" style="width: 100px;">
-                            <div id="card-progress-fill" class="progress-bar-fill" style="width: 0%;"></div>
-                        </div>
-                    </div>
-                </div>
+    <section id="study-view" class="study-stage" aria-label="Học flashcard">
+        <header class="study-header">
+            <a class="exit-link" href="/Study/@Model.SetId" title="Backspace: thoát về trang học">
+                <i class="ph ph-arrow-left"></i>
+                <span>Thoát</span>
+                <span class="keycap">Backspace</span>
+            </a>
 
-                <!-- 3D Card Shell (Double Bezel Light) -->
-                <div class="card-outer-shell" onclick="toggleCardFlip()">
-                    <div class="card-inner-core" id="study-card-core">
-                        <!-- Front Face (English) -->
-                        <div class="card-face card-front">
-                          <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
-                            <span class="eyebrow-badge">English</span>
-                            <span style="font-size: 0.75rem; color: #787774;">Click để lật thẻ</span>
-                          </div>
-                          <div style="text-align: center;">
-                            <span id="card-front-text" style="font-size: 2.5rem; font-weight: 700; color: #111111; letter-spacing: -0.03em;">Loading...</span>
-                            <p id="card-phonetic" style="color: #787774; font-size: 0.85rem; margin-top: 8px; display: none;"></p>
-                          </div>
-                          <div style="font-size: 0.75rem; color: #787774; opacity: 0.7;">⌨ Phím [Space] để lật nhanh</div>
-                        </div>
-                        
-                        <!-- Back Face (Vietnamese) -->
-                        <div class="card-face card-back">
-                          <div style="width: 100%; display: flex; justify-content: space-between; align-items: center;">
-                            <span class="eyebrow-badge" style="background: #EDF3EC; border-color: rgba(52,101,56,0.2); color: #346538;">Nghĩa Việt</span>
-                            <span style="font-size: 0.75rem; color: #787774;">Click để lật lại</span>
-                          </div>
-                          <div style="text-align: center;">
-                            <span id="card-back-text" style="font-size: 2rem; font-weight: 600; color: #346538;">Loading...</span>
-                          </div>
-                          <div style="font-size: 0.75rem; color: #787774; opacity: 0.7;">🔊 Đang phát âm thanh...</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- TTS & Action Controls Panel -->
-                <div style="background: #ffffff; border: 1px solid #EAEAEA; border-radius: 1.5rem; padding: 1.25rem; margin-top: 2rem; position: relative; z-index: 2; box-shadow: 0 4px 12px rgba(0,0,0,0.01);">
-                  <!-- Audio settings -->
-                  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 1px solid #EAEAEA; padding-bottom: 1rem; margin-bottom: 1rem;">
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                      <button type="button" onclick="playAudioCurrentCard()" style="background: #E1F3FE; border: 1px solid rgba(31,108,159,0.15); color: #1f6c9f; width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.8rem;" title="Phát lại phát âm">🔊</button>
-                      <span style="font-size: 0.8rem; font-weight: 600; color: #111111;">Giọng phát âm tự động</span>
-                    </div>
-                    <div style="display: flex; gap: 12px; align-items: center; font-size: 0.78rem; color: #787774;">
-                      <label style="cursor: pointer; display: flex; align-items: center; gap: 4px; color: #111111; font-weight: 500;">
-                        <input type="checkbox" id="tts-autoplay" checked style="accent-color: #111111;"> Tự phát âm
-                      </label>
-                      <span>Giọng EN: 
-                        <select id="tts-voice-select" class="premium-select"></select>
-                      </span>
-                      <span>Tốc độ: 
-                        <select id="tts-speed" class="premium-select">
-                          <option value="0.8">0.8x</option>
-                          <option value="1.0" selected>1.0x</option>
-                          <option value="1.2">1.2x</option>
-                        </select>
-                      </span>
-                    </div>
-                  </div>
-
-                  <!-- Card scoring & navigation -->
-                  <div style="display: flex; justify-content: space-between; align-items: center;">
-                    <button class="nav-btn" onclick="prevCard()" title="Quay lại">←</button>
-                    
-                    <div style="display: flex; gap: 12px;">
-                      <button class="pill-button btn-dont-know" onclick="markCard(false)">
-                        Chưa biết
-                        <div class="pill-button-inner-icon">✕</div>
-                      </button>
-                      <button class="pill-button btn-know" onclick="markCard(true)">
-                        Đã biết
-                        <div class="pill-button-inner-icon">✓</div>
-                      </button>
-                    </div>
-
-                    <button class="nav-btn" onclick="nextCard()" title="Tiếp theo">→</button>
-                  </div>
-                </div>
-
-                <!-- Shortcuts Footer -->
-                <div style="display: flex; justify-content: center; gap: 15px; margin-top: 1.5rem; font-size: 0.72rem; color: #787774; position: relative; z-index: 2;">
-                  <span>⌨ [Space] Lật thẻ</span>
-                  <span>•</span>
-                  <span>[←] Trở lại</span>
-                  <span>•</span>
-                  <span>[→] Tiếp tục</span>
-                  <span>•</span>
-                  <span>[1] Chưa biết</span>
-                  <span>•</span>
-                  <span>[2] Đã biết</span>
-                  <span>•</span>
-                  <span>[R] Đọc lại</span>
-                </div>
+            <div class="set-meta">
+                <div class="study-eyebrow">Học flashcard</div>
+                <h1 id="set-title-header" class="set-title">@Model.SetTitle</h1>
             </div>
 
-            <!-- 2. COMPLETION VIEW -->
-            <div id="completion-view" style="display: none; text-align: center; position: relative; z-index: 2;">
-                <!-- Canvas for fireworks inside light mode -->
-                <canvas id="fireworksCanvas" style="position: absolute; top: -2.5rem; left: -2.5rem; width: calc(100% + 5rem); height: calc(100% + 5rem); pointer-events: none; z-index: 1;"></canvas>
-
-                <div style="position: relative; z-index: 2; padding: 1rem 0;">
-                  <span class="eyebrow-badge" style="background: #EDF3EC; border-color: rgba(52,101,56,0.2); color: #346538;">🎉 Đã hoàn thành bộ thẻ</span>
-                  
-                  <h2 style="font-size: 2rem; font-weight: 800; color: #111111; letter-spacing: -0.03em; margin: 10px 0;">
-                    Tuyệt vời! Bạn đã về đích!
-                  </h2>
-                  <p style="color: #787774; font-size: 0.9rem; max-width: 400px; margin: 0 auto 2rem auto; line-height: 1.5;">
-                    Hệ thống đã ghi nhận bạn hoàn thành phiên học Flashcard. Hãy xem kết quả phân loại thẻ của bạn bên dưới:
-                  </p>
-
-                  <!-- Bento grid layout (Light mode) -->
-                  <div class="bento-grid" style="max-width: 450px; margin: 0 auto 2rem auto;">
-                    <div class="bento-card" style="border-color: rgba(52, 101, 56, 0.15); background: #EDF3EC;">
-                      <div id="count-learned" style="font-size: 2.25rem; font-weight: 800; color: #346538; line-height: 1;">0</div>
-                      <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #346538; margin-top: 8px; font-weight: 600;">Đã thuộc lòng</div>
-                    </div>
-                    <div class="bento-card" style="border-color: rgba(159, 47, 45, 0.15); background: #FDEBEC;">
-                      <div id="count-unlearned" style="font-size: 2.25rem; font-weight: 800; color: #9F2F2D; line-height: 1;">0</div>
-                      <div style="font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.1em; color: #9F2F2D; margin-top: 8px; font-weight: 600;">Cần ôn lại thêm</div>
-                    </div>
-                  </div>
-
-                  <!-- Actions -->
-                  <div style="display: flex; justify-content: center; gap: 1rem; flex-wrap: wrap;">
-                    <button class="pill-button btn-dont-know" style="min-width: 180px; padding: 12px 20px; border-radius: 9999px;" onclick="restartStudy()">
-                      🔄 Ôn lại thẻ chưa thuộc
-                      <div class="pill-button-inner-icon" style="background: #9F2F2D; color: white;">↩</div>
-                    </button>
-                    <button class="pill-button" style="min-width: 180px; padding: 12px 20px; border-radius: 9999px; background: #111111; color: white;" onclick="completeStudySession()">
-                      🏠 Về trang chủ bộ thẻ
-                      <div class="pill-button-inner-icon" style="background: rgba(255,255,255,0.2); color: white;">→</div>
-                    </button>
-                  </div>
+            <div class="progress-block">
+                <span id="card-progress-text" class="progress-text">Thẻ 1 / 1</span>
+                <div class="progress-track" aria-hidden="true">
+                    <div id="card-progress-fill" class="progress-fill"></div>
                 </div>
             </div>
+        </header>
 
+        <main class="card-area">
+            <div class="flashcard-frame" onclick="toggleCardFlip()" role="button" tabindex="0" aria-label="Lật thẻ">
+                <div id="study-card-core" class="flashcard-core">
+                    <article class="card-face card-front">
+                        <div class="card-topline">
+                            <span class="badge badge-blue">English</span>
+                            <span>Click để lật</span>
+                        </div>
+                        <div class="card-content">
+                            <span id="card-front-text" class="card-word card-word-front">Loading...</span>
+                            <p id="card-phonetic" style="display: none;"></p>
+                        </div>
+                        <div class="card-bottomline">
+                            <span>Space để lật nhanh</span>
+                            <span>R để đọc lại</span>
+                        </div>
+                    </article>
+
+                    <article class="card-face card-back">
+                        <div class="card-topline">
+                            <span class="badge badge-green">Nghĩa Việt</span>
+                            <span>Click để quay lại</span>
+                        </div>
+                        <div class="card-content">
+                            <span id="card-back-text" class="card-word card-word-back">Loading...</span>
+                        </div>
+                        <div class="card-bottomline">
+                            <span>1: chưa biết</span>
+                            <span>2: đã biết</span>
+                        </div>
+                    </article>
+                </div>
+            </div>
+        </main>
+
+        <section class="control-dock" aria-label="Điều khiển học">
+            <div class="nav-cluster">
+                <button type="button" class="icon-button" onclick="prevCard()" title="Thẻ trước">
+                    <i class="ph ph-arrow-left"></i>
+                </button>
+                <button type="button" class="icon-button" onclick="nextCard()" title="Thẻ tiếp theo">
+                    <i class="ph ph-arrow-right"></i>
+                </button>
+            </div>
+
+            <div class="score-cluster">
+                <button type="button" class="study-button is-red" onclick="markCard(false)">
+                    <span>Chưa biết</span>
+                    <span class="button-icon"><i class="ph ph-x"></i></span>
+                </button>
+                <button type="button" class="study-button is-green" onclick="markCard(true)">
+                    <span>Đã biết</span>
+                    <span class="button-icon"><i class="ph ph-check"></i></span>
+                </button>
+            </div>
+
+            <div class="audio-cluster">
+                <button type="button" class="icon-button" onclick="playAudioCurrentCard()" title="Đọc lại">
+                    <i class="ph ph-speaker-high"></i>
+                </button>
+
+                <details class="tts-details">
+                    <summary class="tts-summary">
+                        <i class="ph ph-sliders-horizontal"></i>
+                        <span>Giọng đọc</span>
+                    </summary>
+                    <div class="tts-panel">
+                        <div class="tts-row">
+                            <label for="tts-autoplay">Tự đọc</label>
+                            <input type="checkbox" id="tts-autoplay" checked style="accent-color: #151515;">
+                        </div>
+                        <div class="tts-row">
+                            <label for="tts-voice-select">Giọng EN</label>
+                            <select id="tts-voice-select" class="premium-select"></select>
+                        </div>
+                        <div class="tts-row">
+                            <label for="tts-speed">Tốc độ</label>
+                            <select id="tts-speed" class="premium-select">
+                                <option value="0.8">0.8x</option>
+                                <option value="1.0" selected>1.0x</option>
+                                <option value="1.2">1.2x</option>
+                            </select>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </section>
+
+        <div class="shortcut-strip" aria-label="Phím tắt">
+            <span><span class="keycap">Space</span> lật thẻ</span>
+            <span><span class="keycap">←</span> thẻ trước</span>
+            <span><span class="keycap">→</span> thẻ tiếp</span>
+            <span><span class="keycap">Backspace</span> thoát</span>
         </div>
-    </div>
+    </section>
+
+    <section id="completion-view" class="completion-view" aria-label="Hoàn thành">
+        <canvas id="fireworksCanvas"></canvas>
+        <div class="completion-inner">
+            <span class="badge badge-green">Đã hoàn thành bộ thẻ</span>
+            <h2 class="completion-title">Hoàn thành phiên học</h2>
+            <p class="completion-copy">
+                Tiến độ của bạn đã được ghi nhận. Xem nhanh nhóm thẻ đã biết và nhóm cần ôn lại bên dưới.
+            </p>
+
+            <div class="stats-grid">
+                <div class="stat-card is-green">
+                    <span id="count-learned" class="stat-number">0</span>
+                    <span class="stat-label">Đã biết</span>
+                </div>
+                <div class="stat-card is-red">
+                    <span id="count-unlearned" class="stat-number">0</span>
+                    <span class="stat-label">Cần ôn</span>
+                </div>
+            </div>
+
+            <div class="completion-actions">
+                <button type="button" class="study-button is-red" onclick="restartStudy()">
+                    <span>Ôn lại</span>
+                    <span class="button-icon"><i class="ph ph-arrow-counter-clockwise"></i></span>
+                </button>
+                <button type="button" class="primary-dark" onclick="completeStudySession()">
+                    Về trang học
+                </button>
+            </div>
+        </div>
+    </section>
 </div>
 
 @section Scripts {
     <script>
-        // 1. DATA INITIALIZATION
-        // Serialize flashcards data from ASP.NET MVC backend model
         const flashcards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Flashcards.Select(c => new { c.Id, c.FrontText, c.BackText })));
         const setId = @Model.SetId;
-        
+
         let currentIndex = 0;
         let isFlipped = false;
-        
-        // Track session stats
+
         const sessionStats = {
             learned: new Set(),
             unlearned: new Set()
         };
 
-        // 2. TTS SYNTHESIS ENGINE
         let voices = [];
         const synth = window.speechSynthesis;
         const voiceSelect = document.getElementById('tts-voice-select');
         const autoplayCheckbox = document.getElementById('tts-autoplay');
         const speedSelect = document.getElementById('tts-speed');
 
+        function exitStudy() {
+            window.location.href = `/Study/${setId}`;
+        }
+
         function loadVoices() {
-            if (!synth) return;
+            if (!synth || !voiceSelect) return;
+
             voices = synth.getVoices();
-            
-            // Clear current options
             voiceSelect.innerHTML = '';
-            
-            // Filter English voices
+
             const enVoices = voices.filter(v => v.lang.startsWith('en'));
-            
+
             if (enVoices.length === 0) {
                 const opt = document.createElement('option');
                 opt.textContent = 'Mặc định hệ thống';
                 opt.value = 'default';
                 voiceSelect.appendChild(opt);
             } else {
-                enVoices.forEach((voice, index) => {
+                enVoices.forEach(voice => {
                     const opt = document.createElement('option');
                     opt.value = voice.name;
-                    opt.textContent = `${voice.name} (${voice.lang.includes('US') ? 'US' : 'UK'})`;
-                    
-                    // Default selection logic
+                    opt.textContent = `${voice.name} (${voice.lang})`;
                     if (voice.name.toLowerCase().includes('zira') || voice.name.toLowerCase().includes('female')) {
-                        opt.selected = true; // prefer female voice as default
+                        opt.selected = true;
                     }
                     voiceSelect.appendChild(opt);
                 });
             }
 
-            // Restore user settings if available
             restoreTtsSettings();
         }
 
@@ -455,62 +813,52 @@
             loadVoices();
         }
 
-        // Save settings to LocalStorage
         function saveTtsSettings() {
-            const settings = {
+            if (!voiceSelect || !autoplayCheckbox || !speedSelect) return;
+            localStorage.setItem('ltwnc_tts_settings', JSON.stringify({
                 autoplay: autoplayCheckbox.checked,
                 voiceName: voiceSelect.value,
                 speed: speedSelect.value
-            };
-            localStorage.setItem('ltwnc_tts_settings', JSON.stringify(settings));
+            }));
         }
 
         function restoreTtsSettings() {
             const data = localStorage.getItem('ltwnc_tts_settings');
-            if (data) {
-                try {
-                    const settings = JSON.parse(data);
-                    autoplayCheckbox.checked = settings.autoplay;
-                    speedSelect.value = settings.speed;
-                    
-                    // Match selected voice name
-                    for (let i = 0; i < voiceSelect.options.length; i++) {
-                        if (voiceSelect.options[i].value === settings.voiceName) {
-                            voiceSelect.selectedIndex = i;
-                            break;
-                        }
+            if (!data) return;
+
+            try {
+                const settings = JSON.parse(data);
+                autoplayCheckbox.checked = settings.autoplay;
+                speedSelect.value = settings.speed || '1.0';
+
+                for (let i = 0; i < voiceSelect.options.length; i++) {
+                    if (voiceSelect.options[i].value === settings.voiceName) {
+                        voiceSelect.selectedIndex = i;
+                        break;
                     }
-                } catch (e) {
-                    console.error("Failed to restore TTS settings", e);
                 }
+            } catch (e) {
+                console.error('Failed to restore TTS settings', e);
             }
         }
 
-        // Attach change listeners to save settings automatically
-        autoplayCheckbox.addEventListener('change', saveTtsSettings);
-        voiceSelect.addEventListener('change', saveTtsSettings);
-        speedSelect.addEventListener('change', saveTtsSettings);
+        autoplayCheckbox?.addEventListener('change', saveTtsSettings);
+        voiceSelect?.addEventListener('change', saveTtsSettings);
+        speedSelect?.addEventListener('change', saveTtsSettings);
 
-        // Speak functions
         function speak(text, isVietnamese = false) {
-            if (!synth || synth.speaking) {
-                synth.cancel(); // Cancel current speech
-            }
-
-            if (text.trim() === '') return;
+            if (!synth || !text || text.trim() === '') return;
+            if (synth.speaking) synth.cancel();
 
             const utterance = new SpeechSynthesisUtterance(text);
-            utterance.rate = parseFloat(speedSelect.value) || 1.0;
+            utterance.rate = parseFloat(speedSelect?.value) || 1.0;
 
             if (isVietnamese) {
-                // Find Vietnamese voice if available
                 const viVoice = voices.find(v => v.lang.startsWith('vi'));
                 if (viVoice) utterance.voice = viVoice;
                 utterance.lang = 'vi-VN';
             } else {
-                // Find selected English voice
-                const selectedVoiceName = voiceSelect.value;
-                const enVoice = voices.find(v => v.name === selectedVoiceName);
+                const enVoice = voices.find(v => v.name === voiceSelect?.value);
                 if (enVoice) utterance.voice = enVoice;
                 utterance.lang = 'en-US';
             }
@@ -518,70 +866,57 @@
             synth.speak(utterance);
         }
 
-        // 3. STUDY ENGINE FLOW
         function updateUI() {
             if (flashcards.length === 0) return;
-            
+
             const currentCard = flashcards[currentIndex];
-            
-            // Set texts
             document.getElementById('card-front-text').textContent = currentCard.FrontText;
             document.getElementById('card-back-text').textContent = currentCard.BackText;
-            
-            // Reset card flip class
+
             const cardCore = document.getElementById('study-card-core');
             cardCore.classList.remove('flipped');
             isFlipped = false;
 
-            // Update progress indicators
             const currentDisplay = currentIndex + 1;
             const total = flashcards.length;
             document.getElementById('card-progress-text').textContent = `Thẻ ${currentDisplay} / ${total}`;
-            
-            const progressPercent = (currentDisplay / total) * 100;
-            document.getElementById('card-progress-fill').style.width = `${progressPercent}%`;
+            document.getElementById('card-progress-fill').style.width = `${(currentDisplay / total) * 100}%`;
         }
 
         function toggleCardFlip() {
+            if (flashcards.length === 0) return;
+
             const cardCore = document.getElementById('study-card-core');
             isFlipped = !isFlipped;
-            
-            if (isFlipped) {
-                cardCore.classList.add('flipped');
-                // Auto play sound when flipped to the back (Option C logic: play Vietnamese, or EN then VI)
-                if (autoplayCheckbox.checked) {
-                    // Start by playing English term, then Vietnamese meaning
-                    speak(flashcards[currentIndex].FrontText, false);
-                    
-                    // Delay slightly and play Vietnamese translation
-                    setTimeout(() => {
-                        speak(flashcards[currentIndex].BackText, true);
-                    }, 1200);
-                }
-            } else {
-                cardCore.classList.remove('flipped');
+            cardCore.classList.toggle('flipped', isFlipped);
+
+            if (!isFlipped) {
                 if (synth) synth.cancel();
+                return;
+            }
+
+            if (autoplayCheckbox?.checked) {
+                speak(flashcards[currentIndex].FrontText, false);
+                setTimeout(() => {
+                    if (isFlipped) speak(flashcards[currentIndex].BackText, true);
+                }, 1000);
             }
         }
 
-        // Play audio for current card face manually
         function playAudioCurrentCard() {
             if (flashcards.length === 0) return;
-            if (isFlipped) {
-                speak(flashcards[currentIndex].BackText, true);
-            } else {
-                speak(flashcards[currentIndex].FrontText, false);
-            }
+            const current = flashcards[currentIndex];
+            speak(isFlipped ? current.BackText : current.FrontText, isFlipped);
         }
 
         function nextCard() {
             if (currentIndex < flashcards.length - 1) {
                 currentIndex++;
                 updateUI();
-            } else {
-                // End of deck reached
-                showCompletionScreen();
+                return;
             }
+
+            showCompletionScreen();
         }
 
         function prevCard() {
@@ -591,12 +926,11 @@
             }
         }
 
-        // Mark learned or unlearned card
         function markCard(learned) {
             if (flashcards.length === 0) return;
-            
+
             const card = flashcards[currentIndex];
-            
+
             if (learned) {
                 sessionStats.learned.add(card.Id);
                 sessionStats.unlearned.delete(card.Id);
@@ -605,7 +939,6 @@
                 sessionStats.learned.delete(card.Id);
             }
 
-            // Send async POST request to database to save progress
             const verificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
             const params = new URLSearchParams();
             params.append('__RequestVerificationToken', verificationToken);
@@ -622,28 +955,25 @@
                 body: params
             })
             .then(res => {
-                if (!res.ok) console.error("Failed to save progress to server");
+                if (!res.ok) console.error('Failed to save progress to server');
             })
-            .catch(err => console.error("AJAX Error: ", err));
+            .catch(err => console.error('AJAX Error:', err));
 
-            // Proceed to the next card
             nextCard();
         }
 
-        // Restart study session
         function restartStudy() {
             currentIndex = 0;
             sessionStats.learned.clear();
             sessionStats.unlearned.clear();
-            
-            document.getElementById('study-view').style.display = 'block';
+
+            document.getElementById('study-view').style.display = 'grid';
             document.getElementById('completion-view').style.display = 'none';
-            
+
             stopFireworks();
             updateUI();
         }
 
-        // Save complete session and redirect to study index
         function completeStudySession() {
             const verificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
             const params = new URLSearchParams();
@@ -660,24 +990,17 @@
             })
             .then(res => res.json())
             .then(data => {
-                if (data.success && data.redirectUrl) {
-                    window.location.href = data.redirectUrl;
-                } else {
-                    window.location.href = `/Study/${setId}`;
-                }
+                window.location.href = data.success && data.redirectUrl ? data.redirectUrl : `/Study/${setId}`;
             })
             .catch(err => {
-                console.error("AJAX Error: ", err);
+                console.error('AJAX Error:', err);
                 window.location.href = `/Study/${setId}`;
             });
         }
 
-        // Show completed view
         function showCompletionScreen() {
-            // Count cards
-            const totalCards = flashcards.length;
             const learnedCount = sessionStats.learned.size;
-            const unlearnedCount = totalCards - learnedCount; // default rest is unlearned
+            const unlearnedCount = flashcards.length - learnedCount;
 
             document.getElementById('count-learned').textContent = learnedCount;
             document.getElementById('count-unlearned').textContent = unlearnedCount;
@@ -688,166 +1011,177 @@
             startFireworks();
         }
 
-        // Keyboard Shortcuts listener
         document.addEventListener('keydown', function(e) {
-            // Ignore if user is typing in inputs/selects
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+            const tagName = e.target.tagName;
+            if (tagName === 'INPUT' || tagName === 'SELECT' || tagName === 'TEXTAREA' || e.target.isContentEditable) return;
 
             switch (e.key) {
-                case ' ': // Space key to flip
+                case ' ':
                     e.preventDefault();
                     toggleCardFlip();
                     break;
-                case 'ArrowLeft': // Prev
+                case 'Backspace':
+                    e.preventDefault();
+                    exitStudy();
+                    break;
+                case 'ArrowLeft':
                     e.preventDefault();
                     prevCard();
                     break;
-                case 'ArrowRight': // Next
+                case 'ArrowRight':
                     e.preventDefault();
                     nextCard();
                     break;
-                case '1': // Mark unlearned
+                case '1':
                     markCard(false);
                     break;
-                case '2': // Mark learned
+                case '2':
                     markCard(true);
                     break;
                 case 'r':
-                case 'R': // Repeat speak
+                case 'R':
                     playAudioCurrentCard();
                     break;
             }
         });
 
-        // Initialize UI
+        document.querySelector('.flashcard-frame')?.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                toggleCardFlip();
+            }
+        });
+
         updateUI();
 
-        // 4. CANVAS FIREWORKS ANIMATION CODE
         let canvas, ctx, animationFrameId;
         let fireworksList = [];
         let particlesList = [];
-        const celebrateColors = ['#6366f1', '#4f46e5', '#10b981', '#059669', '#f43f5e', '#d97706', '#0284c7'];
+        const celebrateColors = ['#2f6a37', '#1f6c9f', '#9c3430', '#956400', '#151515'];
 
         class CanvasParticle {
-          constructor(x, y, color) {
-            this.x = x;
-            this.y = y;
-            this.color = color;
-            this.angle = Math.random() * Math.PI * 2;
-            this.speed = Math.random() * 4 + 1.5;
-            this.friction = 0.96;
-            this.gravity = 0.08;
-            this.alpha = 1;
-            this.decay = Math.random() * 0.015 + 0.008;
-            this.radius = Math.random() * 2 + 1.5;
-          }
-          update() {
-            this.speed *= this.friction;
-            this.x += Math.cos(this.angle) * this.speed;
-            this.y += Math.sin(this.angle) * this.speed + this.gravity;
-            this.alpha -= this.decay;
-          }
-          draw() {
-            ctx.save();
-            ctx.globalAlpha = this.alpha;
-            ctx.fillStyle = this.color;
-            ctx.beginPath();
-            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.restore();
-          }
+            constructor(x, y, color) {
+                this.x = x;
+                this.y = y;
+                this.color = color;
+                this.angle = Math.random() * Math.PI * 2;
+                this.speed = Math.random() * 4 + 1.5;
+                this.friction = 0.96;
+                this.gravity = 0.08;
+                this.alpha = 1;
+                this.decay = Math.random() * 0.015 + 0.008;
+                this.radius = Math.random() * 2 + 1.5;
+            }
+
+            update() {
+                this.speed *= this.friction;
+                this.x += Math.cos(this.angle) * this.speed;
+                this.y += Math.sin(this.angle) * this.speed + this.gravity;
+                this.alpha -= this.decay;
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = this.alpha;
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
         }
 
         class CanvasFirework {
-          constructor() {
-            const w = canvas.width / window.devicePixelRatio;
-            const h = canvas.height / window.devicePixelRatio;
-            this.x = Math.random() * w;
-            this.y = h;
-            this.targetY = Math.random() * (h * 0.55) + 30;
-            this.speed = Math.random() * 5 + 6;
-            this.color = celebrateColors[Math.floor(Math.random() * celebrateColors.length)];
-            this.exploded = false;
-          }
-          update() {
-            if (!this.exploded) {
-              this.y -= this.speed;
-              this.speed *= 0.98;
-              if (this.speed <= 1 || this.y <= this.targetY) {
-                this.exploded = true;
-                this.explode();
-              }
+            constructor() {
+                const w = canvas.width / window.devicePixelRatio;
+                const h = canvas.height / window.devicePixelRatio;
+                this.x = Math.random() * w;
+                this.y = h;
+                this.targetY = Math.random() * (h * 0.55) + 30;
+                this.speed = Math.random() * 5 + 6;
+                this.color = celebrateColors[Math.floor(Math.random() * celebrateColors.length)];
+                this.exploded = false;
             }
-          }
-          draw() {
-            if (!this.exploded) {
-              ctx.fillStyle = this.color;
-              ctx.beginPath();
-              ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
-              ctx.fill();
+
+            update() {
+                if (!this.exploded) {
+                    this.y -= this.speed;
+                    this.speed *= 0.98;
+                    if (this.speed <= 1 || this.y <= this.targetY) {
+                        this.exploded = true;
+                        this.explode();
+                    }
+                }
             }
-          }
-          explode() {
-            const count = Math.floor(Math.random() * 25) + 35;
-            for (let i = 0; i < count; i++) {
-              particlesList.push(new CanvasParticle(this.x, this.y, this.color));
+
+            draw() {
+                if (!this.exploded) {
+                    ctx.fillStyle = this.color;
+                    ctx.beginPath();
+                    ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
             }
-          }
+
+            explode() {
+                const count = Math.floor(Math.random() * 25) + 35;
+                for (let i = 0; i < count; i++) {
+                    particlesList.push(new CanvasParticle(this.x, this.y, this.color));
+                }
+            }
         }
 
         function resizeCanvas() {
-          if (!canvas) return;
-          canvas.width = canvas.offsetWidth * window.devicePixelRatio;
-          canvas.height = canvas.offsetHeight * window.devicePixelRatio;
-          ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+            if (!canvas || !ctx) return;
+
+            const dpr = window.devicePixelRatio || 1;
+            canvas.width = canvas.offsetWidth * dpr;
+            canvas.height = canvas.offsetHeight * dpr;
+            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         }
 
         function animateFireworks() {
-          const w = canvas.width / window.devicePixelRatio;
-          const h = canvas.height / window.devicePixelRatio;
-          
-          ctx.fillStyle = 'rgba(255, 255, 255, 0.25)'; // Clear trail for light mode
-          ctx.fillRect(0, 0, w, h);
-          
-          if (Math.random() < 0.05 && fireworksList.length < 4) {
-            fireworksList.push(new CanvasFirework());
-          }
+            const w = canvas.width / (window.devicePixelRatio || 1);
+            const h = canvas.height / (window.devicePixelRatio || 1);
 
-          for (let i = fireworksList.length - 1; i >= 0; i--) {
-            fireworksList[i].update();
-            fireworksList[i].draw();
-            if (fireworksList[i].exploded) {
-              fireworksList.splice(i, 1);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
+            ctx.fillRect(0, 0, w, h);
+
+            if (Math.random() < 0.05 && fireworksList.length < 4) {
+                fireworksList.push(new CanvasFirework());
             }
-          }
 
-          for (let i = particlesList.length - 1; i >= 0; i--) {
-            particlesList[i].update();
-            particlesList[i].draw();
-            if (particlesList[i].alpha <= 0) {
-              particlesList.splice(i, 1);
+            for (let i = fireworksList.length - 1; i >= 0; i--) {
+                fireworksList[i].update();
+                fireworksList[i].draw();
+                if (fireworksList[i].exploded) fireworksList.splice(i, 1);
             }
-          }
 
-          animationFrameId = requestAnimationFrame(animateFireworks);
+            for (let i = particlesList.length - 1; i >= 0; i--) {
+                particlesList[i].update();
+                particlesList[i].draw();
+                if (particlesList[i].alpha <= 0) particlesList.splice(i, 1);
+            }
+
+            animationFrameId = requestAnimationFrame(animateFireworks);
         }
 
         function startFireworks() {
-          canvas = document.getElementById('fireworksCanvas');
-          ctx = canvas.getContext('2d');
-          window.addEventListener('resize', resizeCanvas);
-          resizeCanvas();
-          fireworksList = [];
-          particlesList = [];
-          animateFireworks();
+            canvas = document.getElementById('fireworksCanvas');
+            ctx = canvas.getContext('2d');
+            window.addEventListener('resize', resizeCanvas);
+            resizeCanvas();
+            fireworksList = [];
+            particlesList = [];
+            animateFireworks();
         }
 
         function stopFireworks() {
-          if (animationFrameId) {
-            cancelAnimationFrame(animationFrameId);
-            animationFrameId = null;
-          }
-          window.removeEventListener('resize', resizeCanvas);
+            if (animationFrameId) {
+                cancelAnimationFrame(animationFrameId);
+                animationFrameId = null;
+            }
+            window.removeEventListener('resize', resizeCanvas);
         }
     </script>
 }

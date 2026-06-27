@@ -54,20 +54,4 @@ public class FlashcardRepository : IFlashcardRepository
     {
         _context.Flashcards.Remove(card);
     }
-
-    // Xóa tiến trình học trước khi xóa thẻ để tránh lỗi khóa ngoại Restrict
-    public async Task DeleteProgressByFlashcardIdAsync(int flashcardId)
-    {
-        await _context.UserProgresses
-            .Where(p => p.FlashcardId == flashcardId)
-            .ExecuteDeleteAsync();
-    }
-
-    // Xóa tiến trình học của cả bộ trước khi xóa bộ thẻ
-    public async Task DeleteProgressBySetIdAsync(int setId)
-    {
-        await _context.UserProgresses
-            .Where(p => p.Flashcard!.FlashcardSetId == setId)
-            .ExecuteDeleteAsync();
-    }
 }

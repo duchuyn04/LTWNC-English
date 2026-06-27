@@ -58,27 +58,11 @@ public class FlashcardSetService : IFlashcardSetService
         return await _setRepo.GetByIdAsync(id);
     }
 
-    // Lấy bộ thẻ nếu bộ công khai hoặc người yêu cầu là chủ sở hữu
-    public async Task<FlashcardSet?> GetAccessibleSetAsync(int id, string? userId)
-    {
-        var set = await _setRepo.GetByIdAsync(id);
-        if (set == null || (!set.IsPublic && set.UserId != userId)) return null;
-        return set;
-    }
-
     // Lấy bộ thẻ kèm danh sách thẻ — chỉ trả về nếu người yêu cầu là chủ sở hữu
     public async Task<FlashcardSet?> GetSetWithCardsAsync(int id, string userId)
     {
         var set = await _setRepo.GetByIdWithCardsAsync(id);
         if (set == null || set.UserId != userId) return null;
-        return set;
-    }
-
-    // Lấy bộ thẻ kèm danh sách thẻ nếu bộ công khai hoặc người yêu cầu là chủ sở hữu
-    public async Task<FlashcardSet?> GetAccessibleSetWithCardsAsync(int id, string? userId)
-    {
-        var set = await _setRepo.GetByIdWithCardsAsync(id);
-        if (set == null || (!set.IsPublic && set.UserId != userId)) return null;
         return set;
     }
 
@@ -122,8 +106,6 @@ public class FlashcardSetService : IFlashcardSetService
         var set = await _setRepo.GetByIdAsync(id);
         if (set == null || set.UserId != userId)
             throw new UnauthorizedAccessException("Không có quyền xóa bộ thẻ này.");
-        await _cardRepo.DeleteProgressBySetIdAsync(id);
-        await _setRepo.DeleteSessionsBySetIdAsync(id);
         _setRepo.Delete(set);
         await _setRepo.SaveChangesAsync();
     }
@@ -220,7 +202,6 @@ public class FlashcardSetService : IFlashcardSetService
         var set = await _setRepo.GetByIdAsync(setId);
         if (set == null || set.UserId != userId)
             throw new UnauthorizedAccessException("Không có quyền xóa thẻ này.");
-        await _cardRepo.DeleteProgressByFlashcardIdAsync(cardId);
         _cardRepo.Delete(card);
         await _setRepo.SaveChangesAsync();
         return setId;
