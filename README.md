@@ -1,152 +1,146 @@
-# LTWNC English - Website Học Tiếng Anh Flashcard
+# LTWNC English
 
-Website học tiếng Anh cộng đồng giống Quizlet, cho phép người dùng tạo bộ thẻ flashcard, chia sẻ và học từ bộ thẻ của nhau.
+Ứng dụng học từ vựng tiếng Anh bằng flashcard, xây bằng ASP.NET Core MVC. Người dùng có thể tạo bộ thẻ, thêm từ vựng có IPA/ví dụ/ảnh, chia sẻ bộ thẻ công khai và học theo tiến độ cá nhân.
 
-## Tính năng
+## Tính năng chính
 
-### Đã hoàn thành (MVP)
+- Đăng ký, đăng nhập, đăng xuất bằng ASP.NET Identity.
+- Tạo, sửa, xóa bộ thẻ công khai hoặc riêng tư.
+- Thêm, sửa, xóa thẻ từ vựng với các trường: thuật ngữ, định nghĩa, IPA, loại từ, ví dụ tiếng Anh, nghĩa ví dụ tiếng Việt, từ đồng nghĩa.
+- Ảnh minh họa cho thẻ bằng URL hoặc upload nội bộ JPG/PNG/WebP, tối đa 2 MB.
+- Đánh dấu sao thẻ để học riêng.
+- Học flashcard với lật thẻ, trộn thẻ, lọc thẻ đã sao hoặc chưa thuộc.
+- Chế độ tiến độ: đổi nút điều hướng thành `Chưa biết` / `Đã biết` và lưu tiến trình học.
+- Cài đặt hiển thị mặt trước/mặt sau: thuật ngữ, định nghĩa, IPA, ví dụ, ảnh, ẩn ảnh, làm mờ ảnh, ảnh lớn.
+- Text-to-speech bằng Web Speech API: chọn giọng, tốc độ, tự đọc khi lật sang mặt sau, nút loa luôn đọc từ tiếng Anh.
+- Phím tắt: `Space` lật thẻ, `←/→` chuyển thẻ, `1/2` đánh dấu chưa biết/đã biết, `Ctrl` đọc từ tiếng Anh, `Backspace` thoát.
+- Màn hình hoàn thành phiên học với thống kê đã biết/cần ôn.
 
-- **Đăng ký / Đăng nhập / Đăng xuất**: xác thực bằng email và mật khẩu
-- **Tạo bộ thẻ**: đặt tiêu đề, mô tả, chọn công khai hoặc riêng tư
-- **Quản lý bộ thẻ**: sửa, xóa bộ thẻ của mình
-- **Thêm / sửa / xóa thẻ**: quản lý từ vựng trong mỗi bộ thẻ, hỗ trợ IPA, loại từ, câu ví dụ, từ đồng nghĩa
-- **Ảnh minh họa cho thẻ**: upload ảnh từ máy (JPG/PNG/WebP, tối đa 2MB) hoặc nhập URL; validation cả extension lẫn MIME type
-- **Tìm kiếm**: tìm bộ thẻ công khai theo tiêu đề
-- **Học flashcard**: lật thẻ, đánh dấu đã biết / chưa biết, theo dõi tiến trình
-- **Đánh dấu sao thẻ**: đánh dấu từ quan trọng ngay trong lúc học (AJAX)
-- **Bộ lọc học tập**: lọc chỉ học thẻ đã sao hoặc thẻ chưa thuộc; URL filter ghi đè setting đã lưu
-- **Cài đặt học flashcard**: tùy chỉnh mặt trước/sau (thuật ngữ, định nghĩa, IPA, ví dụ, ảnh), ẩn/làm mờ ảnh, tự phát âm; lưu server-side theo tài khoản
-- **Text-to-speech**: tự phát âm tiếng Anh mặt trước / tiếng Việt mặt sau, chọn giọng và tốc độ
-- **Phím tắt học**: Space lật thẻ, ←/→ chuyển thẻ, 1/2 đánh dấu, R đọc lại, Backspace thoát
-- **Màn hình hoàn thành**: thống kê đã biết / cần ôn sau mỗi phiên học
+## Kiến trúc hiện tại
 
-### Sắp ra mắt
+Dự án đang dùng kiến trúc MVC đơn giản:
 
-- Trắc nghiệm (Quiz)
-- Viết chính tả (Write)
-- Ghép đôi (Match)
-- Hồ sơ người dùng với thống kê học tập
+```text
+Razor View
+   ↓
+Controller
+   ↓
+Service
+   ↓
+AppDbContext / EF Core
+   ↓
+SQL Server
+```
+
+Không còn tầng Repository riêng. Các service thao tác trực tiếp với `AppDbContext` để giữ code gọn:
+
+- `AccountController` dùng `UserManager` và `SignInManager` của ASP.NET Identity.
+- `FlashcardSetController` nhận request quản lý bộ thẻ/thẻ và gọi `FlashcardSetService`.
+- `StudyController` xử lý luồng học flashcard, tiến trình, đánh sao, settings và gọi `StudyService` hoặc `FlashcardSetService`.
+- `FlashcardSetService` quản lý bộ thẻ, thẻ, quyền sở hữu, upload ảnh và đánh dấu sao.
+- `StudyService` quản lý danh sách thẻ để học, tiến trình học, phiên học và cài đặt học.
+- `AppDbContext` kế thừa `IdentityDbContext`, chứa bảng domain và bảng Identity.
 
 ## Công nghệ
 
 | Thành phần | Công nghệ |
-|------------|-----------|
-| Framework | ASP.NET MVC (.NET 10.0) |
+| --- | --- |
+| Framework | ASP.NET Core MVC (.NET 10.0) |
 | Database | SQL Server |
-| ORM | Entity Framework Core 10.0.9 |
+| ORM | Entity Framework Core |
 | Xác thực | ASP.NET Identity |
-| Frontend | Razor Views + jQuery + Bootstrap 5 |
+| UI | Razor Views, Bootstrap, CSS riêng |
 | Icons | Phosphor Icons |
-| Kiến trúc | 3 tầng: Controller → Service → Repository |
+| TTS | Web Speech API |
 
 ## Cấu trúc thư mục
 
-```
+```text
 ltwnc/
-├── Controllers/              # Điều phối request/response
+├── Controllers/
 │   ├── AccountController.cs
 │   ├── HomeController.cs
 │   ├── FlashcardSetController.cs
 │   └── StudyController.cs
-├── Services/                 # Logic nghiệp vụ
-│   ├── IAccountService.cs
-│   ├── AccountService.cs
-│   ├── IFlashcardSetService.cs
+├── Services/
 │   ├── FlashcardSetService.cs
-│   ├── IStudyService.cs
 │   └── StudyService.cs
-├── Repositories/             # Truy xuất database
-│   ├── IFlashcardSetRepository.cs
-│   ├── FlashcardSetRepository.cs
-│   ├── IFlashcardRepository.cs
-│   ├── FlashcardRepository.cs
-│   ├── IStudySessionRepository.cs
-│   └── StudySessionRepository.cs
-├── Models/
-│   ├── Entities/             # Entity models (database)
-│   └── ViewModels/           # View models (UI)
 ├── Data/
-│   └── AppDbContext.cs       # EF Core DbContext
-├── Views/                    # Razor views
-│   ├── Shared/
+│   └── AppDbContext.cs
+├── Models/
+│   ├── Entities/
+│   │   ├── Flashcard.cs
+│   │   ├── FlashcardSet.cs
+│   │   ├── StudySession.cs
+│   │   ├── UserProgress.cs
+│   │   └── UserStudySettings.cs
+│   └── ViewModels/
+├── Views/
 │   ├── Account/
-│   ├── Home/
 │   ├── FlashcardSet/
+│   ├── Home/
+│   ├── Shared/
 │   └── Study/
-├── wwwroot/                  # Static files (CSS, JS)
-├── Program.cs                # Entry point
-└── appsettings.json          # Cấu hình
+├── wwwroot/
+│   ├── css/
+│   │   ├── site.css
+│   │   ├── edit.css
+│   │   └── flashcard.css
+│   ├── js/
+│   └── uploads/flashcards/   # tạo khi upload ảnh
+├── Migrations/
+├── Program.cs
+├── appsettings.json
+└── ltwnc.csproj
 ```
 
-## Yêu cầu hệ thống
+## Database
 
-- [.NET 10.0 SDK](https://dotnet.microsoft.com/download/dotnet/10.0)
-- [SQL Server](https://www.microsoft.com/en-us/sql-server/sql-server-downloads) (Express, Developer, hoặc Standard)
-- [SQL Server Management Studio (SSMS)](https://learn.microsoft.com/en-us/sql/ssms/download-sql-server-management-studio-ssms) (tùy chọn, để quản lý database)
+`AppDbContext` quản lý các bảng chính:
+
+- `AspNetUsers`, `AspNetRoles`, ...: bảng của ASP.NET Identity.
+- `FlashcardSets`: bộ thẻ.
+- `Flashcards`: thẻ từ vựng, gồm IPA, loại từ, ví dụ, ảnh, trạng thái sao.
+- `StudySessions`: phiên học đã hoàn thành.
+- `UserProgresses`: tiến trình từng user theo từng thẻ, unique theo `(UserId, FlashcardId)`.
+- `UserStudySettings`: cài đặt học của từng user, unique theo `UserId`.
+
+Quan hệ quan trọng:
+
+- Một `FlashcardSet` có nhiều `Flashcard`, xóa bộ thẻ sẽ xóa thẻ.
+- `StudySession` và `UserProgress` dùng delete restrict, service xóa dữ liệu liên quan trước khi xóa bộ thẻ/thẻ.
+- `Flashcard` có index theo `FlashcardSetId` và `(FlashcardSetId, IsStarred)` để lọc học nhanh hơn.
 
 ## Cài đặt
 
-### 1. Clone repository
+Yêu cầu:
+
+- .NET 10 SDK
+- SQL Server hoặc SQL Server Express
+- `dotnet-ef` nếu cần chạy migration
+
+Clone repo:
 
 ```bash
 git clone https://github.com/duchuyn04/LTWNC-English.git
 cd LTWNC-English
 ```
 
-### 2. Cài đặt .NET EF tools (nếu chưa có)
+Cài EF tool nếu máy chưa có:
 
 ```bash
 dotnet tool install --global dotnet-ef
 ```
 
-### 3. Restore packages
+Restore package:
 
 ```bash
 dotnet restore
 ```
 
-## Cấu hình Database
+## Cấu hình database
 
-### Bước 1: Xác định tên SQL Server
-
-Mở SQL Server Management Studio (SSMS) hoặc Command Prompt, kiểm tra tên server:
-
-**Cách 1: Dùng SSMS**
-- Mở SSMS → Server name hiển thị ở ô "Server name"
-- Thường là: `localhost\SQLEXPRESS` hoặc `.\SQLEXPRESS`
-
-**Cách 2: Dùng Command Prompt**
-```bash
-sqlcmd -L
-```
-
-**Cách 3: Dùng PowerShell**
-```powershell
-Get-Service | Where-Object {$_.Name -like "*SQL*"}
-```
-
-### Bước 2: Cấu hình connection string
-
-Mở file `appsettings.json`, tìm mục `ConnectionStrings`:
-
-```json
-{
-  "ConnectionStrings": {
-    "DefaultConnection": "Server=TÊN_SERVER;Database=LTWNC-English;Trusted_Connection=True;TrustServerCertificate=True;MultipleActiveResultSets=true"
-  }
-}
-```
-
-Thay `TÊN_SERVER` bằng tên SQL Server của bạn:
-
-| Loại SQL Server | Giá trị |
-|-----------------|---------|
-| SQL Server Express (mặc định) | `localhost\SQLEXPRESS` hoặc `.\SQLEXPRESS` |
-| SQL Server LocalDB | `(localdb)\mssqllocaldb` |
-| SQL Server mặc định | `localhost` hoặc `.` |
-| SQL Server đặt tên | `localhost\TÊN_INSTANCE` |
-
-**Ví dụ:**
+Mở `appsettings.json` và chỉnh connection string:
 
 ```json
 {
@@ -156,33 +150,19 @@ Thay `TÊN_SERVER` bằng tên SQL Server của bạn:
 }
 ```
 
-> **Lưu ý:** Trong JSON, dấu `\` phải được escape thành `\\`.
+Một số giá trị `Server` thường dùng:
 
-### Bước 3: Chạy Migration
+| SQL Server | Server |
+| --- | --- |
+| SQL Server Express | `localhost\\SQLEXPRESS` hoặc `.\\SQLEXPRESS` |
+| LocalDB | `(localdb)\\mssqllocaldb` |
+| Default instance | `localhost` hoặc `.` |
 
-Tạo database và các bảng:
+Tạo/cập nhật database:
 
 ```bash
 dotnet ef database update
 ```
-
-Nếu muốn tạo migration mới (sau khi thay đổi model):
-
-```bash
-dotnet ef migrations add TênMigration
-dotnet ef database update
-```
-
-### Bước 4: Kiểm tra database
-
-Mở SSMS, kết nối đến server của bạn. Bạn sẽ thấy database `LTWNC-English` với các bảng:
-
-- `AspNetUsers` — người dùng
-- `AspNetRoles` — vai trò
-- `FlashcardSets` — bộ thẻ
-- `Flashcards` — thẻ
-- `StudySessions` — phiên học
-- `UserProgresses` — tiến trình học
 
 ## Chạy ứng dụng
 
@@ -190,20 +170,25 @@ Mở SSMS, kết nối đến server của bạn. Bạn sẽ thấy database `LT
 dotnet run
 ```
 
-Mở trình duyệt truy cập: **http://localhost:5000**
+Mở URL được in ra trong terminal, thường là:
 
-## Sử dụng
+- `https://localhost:5001`
+- `http://localhost:5000`
 
-1. **Đăng ký** — tạo tài khoản mới
-2. **Đăng nhập** — đăng nhập bằng email và mật khẩu
-3. **Tạo bộ thẻ** — nhấn "Tạo bộ thẻ mới" trên trang chủ
-4. **Thêm thẻ** — thêm từ vựng tiếng Anh và nghĩa tiếng Việt
-5. **Học** — chọn bộ thẻ → chọn chế độ Flashcard → lật thẻ và đánh dấu đã biết/chưa biết
+## Luồng sử dụng
 
-## API Routes
+1. Đăng ký hoặc đăng nhập.
+2. Tạo bộ thẻ mới ở `/Set/Create`.
+3. Vào trang sửa bộ thẻ để thêm từ vựng, ảnh và đánh dấu sao nếu cần.
+4. Vào chi tiết bộ thẻ, chọn học Flashcard.
+5. Dùng thanh điều hướng để chuyển thẻ, trộn thẻ hoặc bật `Tiến độ`.
+6. Bật panel cài đặt trên thẻ để chọn mặt trước/mặt sau hiển thị gì.
+7. Hoàn thành phiên học để ghi nhận thống kê.
+
+## Routes chính
 
 | Route | Method | Mô tả |
-|-------|--------|-------|
+| --- | --- | --- |
 | `/` | GET | Trang chủ |
 | `/Account/Register` | GET/POST | Đăng ký |
 | `/Account/Login` | GET/POST | Đăng nhập |
@@ -213,48 +198,52 @@ Mở trình duyệt truy cập: **http://localhost:5000**
 | `/Set/{id}` | GET | Chi tiết bộ thẻ |
 | `/Set/{id}/Edit` | GET/POST | Sửa bộ thẻ |
 | `/Set/{id}/Delete` | POST | Xóa bộ thẻ |
-| `/Set/{id}/AddCard` | POST | Thêm thẻ vào bộ |
-| `/Set/{id}/EditCard/{cardId}` | POST | Sửa thẻ |
-| `/Set/{id}/DeleteCard/{cardId}` | POST | Xóa thẻ |
+| `/Set/{setId}/Cards/Create` | POST | Thêm thẻ |
+| `/Cards/{id}/Edit` | POST | Sửa thẻ |
+| `/Cards/{id}/Delete` | POST | Xóa thẻ |
 | `/Study/{setId}` | GET | Chọn chế độ học |
-| `/Study/{setId}/Flashcard` | GET | Học flashcard (query: `starredOnly`, `unlearnedOnly`, `index`) |
-| `/Study/{setId}/Flashcard/Mark` | POST | Đánh dấu đã biết / chưa biết |
-| `/Study/{setId}/Flashcard/{cardId}/ToggleStar` | POST | Đánh dấu sao thẻ (AJAX) |
+| `/Study/{setId}/Flashcard` | GET | Học flashcard |
+| `/Study/{setId}/Flashcard/Mark` | POST | Đánh dấu đã biết/chưa biết |
+| `/Study/{setId}/Flashcard/{cardId}/ToggleStar` | POST | Đổi trạng thái sao |
 | `/Study/{setId}/Complete` | POST | Hoàn thành phiên học |
-| `/Study/Settings` | POST | Lưu cài đặt học (AJAX) |
+| `/Study/Settings` | POST | Lưu cài đặt học |
 
-## Xử lý lỗi thường gặp
+Query của `/Study/{setId}/Flashcard`:
 
-### Lỗi kết nối database
+- `index`: vị trí thẻ hiện tại.
+- `starredOnly`: chỉ học thẻ đã sao.
+- `unlearnedOnly`: chỉ học thẻ chưa thuộc.
 
+## Lưu ý kỹ thuật
+
+- File upload được lưu trong `wwwroot/uploads/flashcards/`.
+- Validation ảnh hiện kiểm tra dung lượng, extension và MIME type.
+- Cài đặt học được lưu server-side theo user; người chưa đăng nhập vẫn xem/học bộ công khai nhưng không lưu được settings/progress.
+- Text-to-speech chạy ở trình duyệt, phụ thuộc voice mà hệ điều hành/trình duyệt cung cấp.
+- Nút loa trong flashcard luôn đọc thuật ngữ tiếng Anh (`FrontText`), kể cả khi đang ở mặt sau.
+
+## Lỗi thường gặp
+
+### Lỗi certificate SQL Server
+
+Nếu gặp lỗi SSL/certificate khi kết nối SQL Server, thêm vào connection string:
+
+```text
+TrustServerCertificate=True
 ```
-A connection was successfully established with the server, but then an error occurred during the login process.
-```
 
-**Giải pháp:** Thêm `TrustServerCertificate=True` vào connection string.
+### Port đang được dùng
 
-### Lỗi migration
+Nếu `dotnet run` báo port đang được dùng, đổi port trong `Properties/launchSettings.json` hoặc tắt process cũ.
 
-```
-Introducing FOREIGN KEY constraint may cause cycles or multiple cascade paths.
-```
+### File build bị lock
 
-**Giải pháp:** Dự án đã xử lý lỗi này. Nếu gặp lại, chạy lại migration:
+Nếu build báo `ltwnc.dll` hoặc `ltwnc.exe` đang bị process `ltwnc` khóa, hãy dừng server đang chạy rồi build lại. Khi chỉ cần kiểm compile mà không dừng server, có thể build ra thư mục tạm:
 
 ```bash
-dotnet ef migrations remove
-dotnet ef migrations add InitialCreate
-dotnet ef database update
+dotnet build --no-restore /p:UseAppHost=false /p:OutputPath=C:\tmp\ltwnc-build\
 ```
-
-### Lỗi port đã sử dụng
-
-```
-Failed to bind to address https://127.0.0.1:5000: address already in use.
-```
-
-**Giải pháp:** Đổi port trong `Properties/launchSettings.json` hoặc tắt ứng dụng đang sử dụng port 5000.
 
 ## License
 
-Dự án học tập — LTWNC.
+Dự án học tập cho môn LTWNC.
