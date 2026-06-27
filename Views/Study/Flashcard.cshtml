@@ -652,6 +652,108 @@
             transform: translateX(50%);
         }
     }
+
+    .study-settings-button {
+        position: absolute;
+        top: 1.25rem;
+        left: 1.25rem;
+        z-index: 12;
+        width: 42px;
+        height: 42px;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: #ffffff;
+        color: var(--ink);
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 180ms ease, background-color 180ms ease;
+    }
+    .study-settings-button:hover {
+        transform: scale(1.08);
+        background-color: var(--bg-hover);
+    }
+
+    .study-settings-panel {
+        position: absolute;
+        top: 4.2rem;
+        left: 1.25rem;
+        z-index: 20;
+        width: min(330px, calc(100vw - 2rem));
+        max-height: min(70vh, 620px);
+        overflow: auto;
+        display: grid;
+        gap: 0.65rem;
+        padding: 1rem;
+        border: 1px solid rgba(18, 26, 43, 0.18);
+        border-radius: 1rem;
+        background: #1b2438;
+        color: #ffffff;
+        box-shadow: 0 22px 60px rgba(20, 25, 40, 0.28);
+        text-align: left;
+    }
+
+    .study-settings-panel[hidden] {
+        display: none;
+    }
+
+    .study-settings-panel label {
+        display: flex;
+        gap: 0.55rem;
+        align-items: center;
+        margin: 0;
+        font-weight: 700;
+        cursor: pointer;
+        font-size: 0.88rem;
+    }
+
+    .settings-title {
+        font-size: 1rem;
+        font-weight: 800;
+        border-bottom: 1px solid rgba(255,255,255,0.12);
+        padding-bottom: 0.35rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .settings-group-title {
+        color: rgba(255,255,255,.6);
+        font-size: .75rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        margin-top: 0.45rem;
+        letter-spacing: 0.05em;
+    }
+
+    .card-detail-text {
+        margin: .5rem 0 0;
+        color: var(--muted);
+        font-weight: 700;
+        font-size: 1.1rem;
+    }
+
+    .card-study-image {
+        display: block;
+        width: min(220px, 60%);
+        max-height: 150px;
+        object-fit: cover;
+        margin: 1rem auto 0;
+        border-radius: .85rem;
+        border: 1px solid var(--line);
+        transition: transform 180ms ease, filter 180ms ease;
+    }
+
+    .card-study-image.is-large {
+        width: min(420px, 86%);
+        max-height: 250px;
+    }
+
+    .card-study-image.is-blurred {
+        filter: blur(10px);
+    }
+    .card-study-image.is-blurred:hover {
+        filter: none;
+    }
 </style>
 
 <div class="study-shell">
@@ -684,6 +786,38 @@
 
         <main class="card-area">
             <div class="flashcard-frame" onclick="toggleCardFlip()" role="button" tabindex="0" aria-label="Lật thẻ">
+                <button type="button" class="study-settings-button" onclick="toggleSettingsPanel(event)" title="Cài đặt học">
+                    <i class="ph ph-sliders-horizontal"></i>
+                </button>
+
+                <div id="study-settings-panel" class="study-settings-panel" hidden onclick="event.stopPropagation()">
+                    <div class="settings-title">Cài đặt học</div>
+                    <label><input type="checkbox" data-setting="StarredOnly"> Chỉ học từ đánh dấu sao</label>
+                    <label><input type="checkbox" data-setting="UnlearnedOnly"> Chỉ học từ chưa thuộc</label>
+
+                    <div class="settings-group-title">Mặt trước</div>
+                    <label><input type="checkbox" data-setting="ShowFrontTerm"> Hiển thị thuật ngữ</label>
+                    <label><input type="checkbox" data-setting="ShowFrontDefinition"> Hiển thị định nghĩa</label>
+                    <label><input type="checkbox" data-setting="ShowFrontIpa"> Hiển thị IPA</label>
+                    <label><input type="checkbox" data-setting="ShowFrontImage"> Hiển thị ảnh</label>
+
+                    <div class="settings-group-title">Mặt sau</div>
+                    <label><input type="checkbox" data-setting="ShowBackTerm"> Hiển thị thuật ngữ</label>
+                    <label><input type="checkbox" data-setting="ShowBackDefinition"> Hiển thị định nghĩa</label>
+                    <label><input type="checkbox" data-setting="ShowBackIpa"> Hiển thị IPA</label>
+                    <label><input type="checkbox" data-setting="ShowBackExample"> Hiển thị ví dụ</label>
+                    <label><input type="checkbox" data-setting="ShowBackImage"> Hiển thị ảnh</label>
+
+                    <div class="settings-group-title">Ảnh</div>
+                    <label><input type="checkbox" data-setting="HideImage"> Ẩn ảnh</label>
+                    <label><input type="checkbox" data-setting="BlurImage"> Che mờ ảnh</label>
+                    <label><input type="checkbox" data-setting="LargeImage"> Ảnh lớn</label>
+
+                    <div class="settings-group-title">Phát âm</div>
+                    <label><input type="checkbox" data-setting="PronounceFront"> Tự phát âm mặt trước</label>
+                    <label><input type="checkbox" data-setting="PronounceBack"> Tự phát âm mặt sau</label>
+                </div>
+
                 <div id="study-card-core" class="flashcard-core">
                     <article class="card-face card-front">
                         <button type="button" class="card-star-btn" onclick="toggleCurrentCardStar(event)" title="Đánh dấu sao">
@@ -695,7 +829,9 @@
                         </div>
                         <div class="card-content">
                             <span id="card-front-text" class="card-word card-word-front">Loading...</span>
-                            <p id="card-phonetic" style="display: none;"></p>
+                            <p id="card-front-ipa" class="card-detail-text" hidden></p>
+                            <p id="card-front-definition" class="card-detail-text" hidden></p>
+                            <img id="card-front-image" class="card-study-image" alt="Ảnh minh họa mặt trước" hidden />
                         </div>
                         <div class="card-bottomline">
                             <span>Space để lật nhanh</span>
@@ -713,6 +849,10 @@
                         </div>
                         <div class="card-content">
                             <span id="card-back-text" class="card-word card-word-back">Loading...</span>
+                            <p id="card-back-term" class="card-detail-text" hidden></p>
+                            <p id="card-back-ipa" class="card-detail-text" hidden></p>
+                            <p id="card-back-example" class="card-detail-text" hidden></p>
+                            <img id="card-back-image" class="card-study-image" alt="Ảnh minh họa mặt sau" hidden />
                         </div>
                         <div class="card-bottomline">
                             <span>1: chưa biết</span>
@@ -819,7 +959,20 @@
 
 @section Scripts {
     <script>
-        const flashcards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Flashcards.Select(c => new { c.Id, c.FrontText, c.BackText, c.IsStarred })));
+        const flashcards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Flashcards.Select(c => new
+        {
+            c.Id,
+            c.FrontText,
+            c.BackText,
+            c.Pronunciation,
+            c.ExampleSentence,
+            c.ExampleMeaning,
+            c.IsStarred,
+            Image = !string.IsNullOrWhiteSpace(c.UploadedImagePath) ? c.UploadedImagePath : c.ImageUrl
+        })));
+        const initialSettings = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Settings));
+        const isAuthenticated = @Json.Serialize(Model.IsAuthenticated);
+        const settings = { ...initialSettings };
         const setId = @Model.SetId;
 
         let currentIndex = 0;
@@ -932,8 +1085,40 @@
             if (flashcards.length === 0) return;
 
             const currentCard = flashcards[currentIndex];
-            document.getElementById('card-front-text').textContent = currentCard.FrontText;
-            document.getElementById('card-back-text').textContent = currentCard.BackText;
+            // Front face rendering
+            const frontTextElem = document.getElementById('card-front-text');
+            frontTextElem.hidden = !settings.ShowFrontTerm;
+            frontTextElem.textContent = currentCard.FrontText;
+
+            const frontIpaElem = document.getElementById('card-front-ipa');
+            frontIpaElem.hidden = !settings.ShowFrontIpa || !currentCard.Pronunciation;
+            frontIpaElem.textContent = currentCard.Pronunciation || '';
+
+            const frontDefElem = document.getElementById('card-front-definition');
+            frontDefElem.hidden = !settings.ShowFrontDefinition;
+            frontDefElem.textContent = currentCard.BackText || '';
+
+            // Back face rendering
+            const backDefElem = document.getElementById('card-back-text');
+            backDefElem.hidden = !settings.ShowBackDefinition;
+            backDefElem.textContent = currentCard.BackText;
+
+            const backTermElem = document.getElementById('card-back-term');
+            backTermElem.hidden = !settings.ShowBackTerm;
+            backTermElem.textContent = currentCard.FrontText || '';
+
+            const backIpaElem = document.getElementById('card-back-ipa');
+            backIpaElem.hidden = !settings.ShowBackIpa || !currentCard.Pronunciation;
+            backIpaElem.textContent = currentCard.Pronunciation || '';
+
+            const backExElem = document.getElementById('card-back-example');
+            backExElem.hidden = !settings.ShowBackExample || !currentCard.ExampleSentence;
+            if (currentCard.ExampleSentence) {
+                backExElem.innerHTML = `<strong>Ví dụ:</strong> ${currentCard.ExampleSentence} <br/><span class="text-sm text-muted">${currentCard.ExampleMeaning || ''}</span>`;
+            }
+
+            renderCardImage('front', currentCard);
+            renderCardImage('back', currentCard);
 
             const cardCore = document.getElementById('study-card-core');
             cardCore.classList.remove('flipped');
@@ -945,6 +1130,10 @@
             document.getElementById('card-progress-fill').style.width = `${(currentDisplay / total) * 100}%`;
 
             updateStarUI(currentCard.IsStarred);
+
+            if (settings.PronounceFront && autoplayCheckbox?.checked) {
+                speak(currentCard.FrontText, false);
+            }
         }
 
         function toggleCurrentCardStar(event) {
@@ -1023,11 +1212,8 @@
                 return;
             }
 
-            if (autoplayCheckbox?.checked) {
-                speak(flashcards[currentIndex].FrontText, false);
-                setTimeout(() => {
-                    if (isFlipped) speak(flashcards[currentIndex].BackText, true);
-                }, 1000);
+            if (autoplayCheckbox?.checked && settings.PronounceBack) {
+                speak(flashcards[currentIndex].BackText, true);
             }
         }
 
@@ -1180,6 +1366,104 @@
             }
         });
 
+        function bindSettingsInputs() {
+            document.querySelectorAll('[data-setting]').forEach(input => {
+                const key = input.dataset.setting;
+                input.checked = !!settings[key];
+                input.addEventListener('change', () => {
+                    settings[key] = input.checked;
+                    if (key === 'StarredOnly' || key === 'UnlearnedOnly') {
+                        saveSettings();
+                        reloadWithFilters();
+                        return;
+                    }
+                    enforceVisibleSide('front');
+                    enforceVisibleSide('back');
+                    saveSettings();
+                    updateUI();
+                });
+            });
+
+            // Close popover when clicking outside of it
+            document.addEventListener('click', (e) => {
+                const panel = document.getElementById('study-settings-panel');
+                const btn = document.querySelector('.study-settings-button');
+                if (panel && !panel.hidden && !panel.contains(e.target) && !btn.contains(e.target)) {
+                    panel.hidden = true;
+                }
+            });
+        }
+
+        function toggleSettingsPanel(event) {
+            event.stopPropagation();
+            const panel = document.getElementById('study-settings-panel');
+            panel.hidden = !panel.hidden;
+        }
+
+        function sideHasImage(side) {
+            const card = flashcards[currentIndex];
+            if (!card || !card.Image || settings.HideImage) return false;
+            return side === 'front' ? settings.ShowFrontImage : settings.ShowBackImage;
+        }
+
+        function enforceVisibleSide(side) {
+            if (sideHasImage(side)) return;
+
+            const keys = side === 'front'
+                ? ['ShowFrontTerm', 'ShowFrontDefinition', 'ShowFrontIpa']
+                : ['ShowBackTerm', 'ShowBackDefinition', 'ShowBackIpa', 'ShowBackExample'];
+
+            if (keys.some(key => settings[key])) return;
+            settings[keys[0]] = true;
+            const input = document.querySelector(`[data-setting="${keys[0]}"]`);
+            if (input) input.checked = true;
+        }
+
+        function saveSettings() {
+            if (!isAuthenticated) return;
+
+            const verificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            const params = new URLSearchParams();
+            params.append('__RequestVerificationToken', verificationToken);
+            Object.keys(settings).forEach(key => {
+                params.append(key, settings[key]);
+            });
+
+            fetch('/Study/Settings', {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params
+            }).catch(err => console.error('Failed to save study settings', err));
+        }
+
+        function reloadWithFilters() {
+            const url = new URL(window.location.href);
+            url.searchParams.set('starredOnly', settings.StarredOnly);
+            url.searchParams.set('unlearnedOnly', settings.UnlearnedOnly);
+            url.searchParams.set('index', '0');
+            window.location.href = url.toString();
+        }
+
+        function renderCardImage(side, card) {
+            const image = document.getElementById(side === 'front' ? 'card-front-image' : 'card-back-image');
+            const enabled = side === 'front' ? settings.ShowFrontImage : settings.ShowBackImage;
+
+            if (!enabled || settings.HideImage || !card.Image) {
+                image.hidden = true;
+                image.removeAttribute('src');
+                return;
+            }
+
+            image.src = card.Image;
+            image.hidden = false;
+            image.classList.toggle('is-large', !!settings.LargeImage);
+            image.classList.toggle('is-blurred', !!settings.BlurImage);
+        }
+
+        bindSettingsInputs();
         updateUI();
 
         let canvas, ctx, animationFrameId;
