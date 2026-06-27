@@ -3,9 +3,7 @@
     ViewData["Title"] = "Học flashcard";
 }
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="~/css/flashcard.css" asp-append-version="true" />
 
 <style>
     .study-shell {
@@ -686,12 +684,31 @@
         display: grid;
         gap: 0.65rem;
         padding: 1rem;
-        border: 1px solid rgba(18, 26, 43, 0.18);
+        border: 1px solid rgba(77, 66, 49, 0.12);
         border-radius: 1rem;
-        background: #1b2438;
-        color: #ffffff;
-        box-shadow: 0 22px 60px rgba(20, 25, 40, 0.28);
+        background: #ffffff;
+        color: var(--ink);
+        box-shadow: 0 22px 60px rgba(75, 63, 45, 0.14);
         text-align: left;
+        scrollbar-width: thin;
+        scrollbar-color: rgba(0,0,0,0.15) transparent;
+    }
+
+    .study-settings-panel::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .study-settings-panel::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .study-settings-panel::-webkit-scrollbar-thumb {
+        background: rgba(0,0,0,0.15);
+        border-radius: 999px;
+    }
+
+    .study-settings-panel::-webkit-scrollbar-thumb:hover {
+        background: rgba(0,0,0,0.28);
     }
 
     .study-settings-panel[hidden] {
@@ -711,13 +728,13 @@
     .settings-title {
         font-size: 1rem;
         font-weight: 800;
-        border-bottom: 1px solid rgba(255,255,255,0.12);
+        border-bottom: 1px solid var(--line);
         padding-bottom: 0.35rem;
         margin-bottom: 0.25rem;
     }
 
     .settings-group-title {
-        color: rgba(255,255,255,.6);
+        color: var(--muted);
         font-size: .75rem;
         font-weight: 800;
         text-transform: uppercase;
@@ -813,9 +830,7 @@
                     <label><input type="checkbox" data-setting="BlurImage"> Che mờ ảnh</label>
                     <label><input type="checkbox" data-setting="LargeImage"> Ảnh lớn</label>
 
-                    <div class="settings-group-title">Phát âm</div>
-                    <label><input type="checkbox" data-setting="PronounceFront"> Tự phát âm mặt trước</label>
-                    <label><input type="checkbox" data-setting="PronounceBack"> Tự phát âm mặt sau</label>
+
                 </div>
 
                 <div id="study-card-core" class="flashcard-core">
@@ -1148,10 +1163,6 @@
             document.getElementById('card-progress-fill').style.width = `${(currentDisplay / total) * 100}%`;
 
             updateStarUI(currentCard.IsStarred);
-
-            if (settings.PronounceFront && autoplayCheckbox?.checked) {
-                speak(currentCard.FrontText, false);
-            }
         }
 
         function toggleCurrentCardStar(event) {
@@ -1230,8 +1241,8 @@
                 return;
             }
 
-            if (autoplayCheckbox?.checked && settings.PronounceBack) {
-                speak(flashcards[currentIndex].BackText, true);
+            if (autoplayCheckbox?.checked) {
+                speak(flashcards[currentIndex].FrontText, false);
             }
         }
 
