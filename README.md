@@ -6,19 +6,19 @@ Website học tiếng Anh cộng đồng giống Quizlet, cho phép người dù
 
 ### Đã hoàn thành (MVP)
 
-- **Đăng ký / Đăng nhập / Đăng xuất** — xác thực bằng email và mật khẩu
-- **Tạo bộ thẻ** — đặt tiêu đề, mô tả, chọn công khai hoặc riêng tư
-- **Quản lý bộ thẻ** — sửa, xóa bộ thẻ của mình
-- **Thêm / sửa / xóa thẻ** — quản lý từ vựng trong mỗi bộ thẻ, hỗ trợ IPA, loại từ, câu ví dụ, từ đồng nghĩa
-- **Ảnh minh họa cho thẻ** — upload ảnh từ máy (JPG/PNG/WebP, tối đa 2MB) hoặc nhập URL; validation cả extension lẫn MIME type
-- **Tìm kiếm** — tìm bộ thẻ công khai theo tiêu đề
-- **Học flashcard** — lật thẻ, đánh dấu đã biết / chưa biết, theo dõi tiến trình
-- **Đánh dấu sao thẻ** — đánh dấu từ quan trọng ngay trong lúc học (AJAX)
-- **Bộ lọc học tập** — lọc chỉ học thẻ đã sao hoặc thẻ chưa thuộc; URL filter ghi đè setting đã lưu
-- **Cài đặt học flashcard** — tùy chỉnh mặt trước/sau (thuật ngữ, định nghĩa, IPA, ví dụ, ảnh), ẩn/làm mờ ảnh, tự phát âm; lưu server-side theo tài khoản
-- **Text-to-speech** — tự phát âm tiếng Anh mặt trước / tiếng Việt mặt sau, chọn giọng và tốc độ
-- **Phím tắt học** — Space lật thẻ, ←/→ chuyển thẻ, 1/2 đánh dấu, R đọc lại, Backspace thoát
-- **Màn hình hoàn thành** — thống kê đã biết / cần ôn sau mỗi phiên học
+- **Đăng ký / Đăng nhập / Đăng xuất**: xác thực bằng email và mật khẩu
+- **Tạo bộ thẻ**: đặt tiêu đề, mô tả, chọn công khai hoặc riêng tư
+- **Quản lý bộ thẻ**: sửa, xóa bộ thẻ của mình
+- **Thêm / sửa / xóa thẻ**: quản lý từ vựng trong mỗi bộ thẻ, hỗ trợ IPA, loại từ, câu ví dụ, từ đồng nghĩa
+- **Ảnh minh họa cho thẻ**: upload ảnh từ máy (JPG/PNG/WebP, tối đa 2MB) hoặc nhập URL; validation cả extension lẫn MIME type
+- **Tìm kiếm**: tìm bộ thẻ công khai theo tiêu đề
+- **Học flashcard**: lật thẻ, đánh dấu đã biết / chưa biết, theo dõi tiến trình
+- **Đánh dấu sao thẻ**: đánh dấu từ quan trọng ngay trong lúc học (AJAX)
+- **Bộ lọc học tập**: lọc chỉ học thẻ đã sao hoặc thẻ chưa thuộc; URL filter ghi đè setting đã lưu
+- **Cài đặt học flashcard**: tùy chỉnh mặt trước/sau (thuật ngữ, định nghĩa, IPA, ví dụ, ảnh), ẩn/làm mờ ảnh, tự phát âm; lưu server-side theo tài khoản
+- **Text-to-speech**: tự phát âm tiếng Anh mặt trước / tiếng Việt mặt sau, chọn giọng và tốc độ
+- **Phím tắt học**: Space lật thẻ, ←/→ chuyển thẻ, 1/2 đánh dấu, R đọc lại, Backspace thoát
+- **Màn hình hoàn thành**: thống kê đã biết / cần ôn sau mỗi phiên học
 
 ### Sắp ra mắt
 
