@@ -73,10 +73,22 @@ public class StudyController : Controller
     public async Task<IActionResult> MarkLearned(int setId, int cardId, bool learned)
     {
         var user = await _accountService.GetCurrentUserAsync(User);
-        if (user == null) return Challenge();
+        if (user == null)
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return Unauthorized();
+            }
+            return Challenge();
+        }
 
         // Lưu tiến trình học vào database
         await _studyService.MarkLearnedAsync(user.Id, cardId, learned);
+
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+            return Json(new { success = true });
+        }
 
         // Quay lại trang flashcard hiện tại
         return RedirectToAction("Flashcard", new { setId });
@@ -89,10 +101,22 @@ public class StudyController : Controller
     public async Task<IActionResult> Complete(int setId)
     {
         var user = await _accountService.GetCurrentUserAsync(User);
-        if (user == null) return Challenge();
+        if (user == null)
+        {
+            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            {
+                return Unauthorized();
+            }
+            return Challenge();
+        }
 
         // Ghi nhận phiên học hoàn thành
         await _studyService.CompleteSessionAsync(user.Id, setId, Models.Entities.StudyMode.Flashcard);
+
+        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        {
+            return Json(new { success = true, redirectUrl = Url.Action("Index", new { setId }) });
+        }
 
         // Hiển thị thông báo thành công
         TempData["Success"] = "Hoàn thành buổi học!";
