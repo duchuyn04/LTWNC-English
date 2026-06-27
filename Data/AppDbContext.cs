@@ -16,6 +16,7 @@ public class AppDbContext : IdentityDbContext
     public DbSet<Flashcard> Flashcards => Set<Flashcard>();
     public DbSet<StudySession> StudySessions => Set<StudySession>();
     public DbSet<UserProgress> UserProgresses => Set<UserProgress>();
+    public DbSet<UserStudySettings> UserStudySettings => Set<UserStudySettings>();
 
     // Cấu hình model — indexes, relationships, constraints
     protected override void OnModelCreating(ModelBuilder builder)
@@ -70,6 +71,11 @@ public class AppDbContext : IdentityDbContext
                   .WithMany()
                   .HasForeignKey(e => e.FlashcardId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<UserStudySettings>(entity =>
+        {
+            entity.HasIndex(e => e.UserId).IsUnique();
         });
     }
 }

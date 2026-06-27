@@ -43,6 +43,12 @@ public class Flashcard
     // Từ đồng nghĩa, phân tách bằng dấu phẩy hoặc chấm phẩy
     public string? Synonyms { get; set; }
 
+    // Ảnh ngoài, không bắt buộc
+    public string? ImageUrl { get; set; }
+
+    // Ảnh upload nội bộ, không bắt buộc
+    public string? UploadedImagePath { get; set; }
+
     // Đánh dấu sao để học riêng
     public bool IsStarred { get; set; }
 
