@@ -36,10 +36,6 @@
 
         <main class="card-area">
             <div class="flashcard-frame" onclick="toggleCardFlip()" role="button" tabindex="0" aria-label="Lật thẻ">
-                <button type="button" class="study-settings-button" onclick="toggleSettingsPanel(event)" title="Cài đặt học">
-                    <i class="ph ph-sliders-horizontal"></i>
-                </button>
-
                 <div id="study-settings-panel" class="study-settings-panel" hidden onclick="event.stopPropagation()">
                     <div class="settings-title">Cài đặt học</div>
                     <label><input type="checkbox" data-setting="StarredOnly"> Chỉ học từ đánh dấu sao</label>
@@ -67,6 +63,10 @@
                 </div>
 
                 <div id="study-card-core" class="flashcard-core">
+                    <button type="button" class="study-settings-button" onclick="toggleSettingsPanel(event)" title="Cài đặt học">
+                        <i class="ph ph-sliders-horizontal"></i>
+                    </button>
+
                     <article class="card-face card-front">
                         <button type="button" class="card-star-btn" onclick="toggleCurrentCardStar(event)" title="Đánh dấu sao">
                             <i class="ph ph-star"></i>
@@ -83,7 +83,15 @@
                         </div>
                         <div class="card-bottomline">
                             <span>Space để lật nhanh</span>
-                            <span>R để đọc lại</span>
+                        </div>
+                        <div class="card-audio-controls" onclick="event.stopPropagation()">
+                            <label class="card-voice-toggle" title="Tự động phát khi chuyển sang mặt sau">
+                                <input type="checkbox" id="tts-autoplay" checked>
+                                <span></span>
+                            </label>
+                            <button type="button" class="card-audio-btn" onclick="playAudioCurrentCard()" title="Phát giọng đọc (Ctrl)">
+                                <i class="ph ph-speaker-high"></i>
+                            </button>
                         </div>
                     </article>
 
@@ -106,18 +114,34 @@
                             <span>1: chưa biết</span>
                             <span>2: đã biết</span>
                         </div>
+                        <div class="card-audio-controls" onclick="event.stopPropagation()">
+                            <label class="card-voice-toggle" title="Tự động phát khi chuyển sang mặt sau">
+                                <input type="checkbox" id="tts-autoplay-back" checked>
+                                <span></span>
+                            </label>
+                            <button type="button" class="card-audio-btn" onclick="playAudioCurrentCard()" title="Phát giọng đọc (Ctrl)">
+                                <i class="ph ph-speaker-high"></i>
+                            </button>
+                        </div>
                     </article>
                 </div>
             </div>
         </main>
 
         <div class="card-nav-strip">
-            <button type="button" class="card-nav-btn" onclick="prevCard()" title="Thẻ trước (←)">
+            <button type="button" id="progress-mode-btn" class="card-nav-btn card-progress-mode-btn" onclick="toggleProgressMode()" title="Bật chế độ đánh giá tiến độ">
+                <i class="ph ph-stack"></i>
+                <span>Tiến độ</span>
+            </button>
+            <button type="button" id="nav-left-btn" class="card-nav-btn" onclick="handleLeftAction()" title="Thẻ trước (←)">
                 <i class="ph ph-arrow-left"></i>
             </button>
             <span id="card-nav-progress" class="card-nav-progress">Thẻ 1 / 1</span>
-            <button type="button" class="card-nav-btn" onclick="nextCard()" title="Thẻ tiếp (→)">
+            <button type="button" id="nav-right-btn" class="card-nav-btn" onclick="handleRightAction()" title="Thẻ tiếp (→)">
                 <i class="ph ph-arrow-right"></i>
+            </button>
+            <button type="button" class="card-nav-btn" onclick="shuffleCards()" title="Trộn thẻ">
+                <i class="ph ph-shuffle"></i>
             </button>
         </div>
 
@@ -131,32 +155,15 @@
                 </button>
             </div>
 
-            <div class="score-cluster">
-                <button type="button" class="study-button is-red" onclick="markCard(false)">
-                    <span>Chưa biết</span>
-                    <span class="button-icon"><i class="ph ph-x"></i></span>
-                </button>
-                <button type="button" class="study-button is-green" onclick="markCard(true)">
-                    <span>Đã biết</span>
-                    <span class="button-icon"><i class="ph ph-check"></i></span>
-                </button>
-            </div>
+            <div></div>
 
             <div class="audio-cluster">
-                <button type="button" class="icon-button" onclick="playAudioCurrentCard()" title="Đọc lại">
-                    <i class="ph ph-speaker-high"></i>
-                </button>
-
                 <details class="tts-details">
                     <summary class="tts-summary">
                         <i class="ph ph-sliders-horizontal"></i>
                         <span>Giọng đọc</span>
                     </summary>
                     <div class="tts-panel">
-                        <div class="tts-row">
-                            <label for="tts-autoplay">Tự đọc</label>
-                            <input type="checkbox" id="tts-autoplay" checked style="accent-color: #151515;">
-                        </div>
                         <div class="tts-row">
                             <label for="tts-voice-select">Giọng EN</label>
                             <select id="tts-voice-select" class="premium-select"></select>
@@ -217,7 +224,7 @@
 
 @section Scripts {
     <script>
-        const flashcards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Flashcards.Select(c => new
+        let flashcards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Flashcards.Select(c => new
         {
             c.Id,
             c.FrontText,
@@ -235,6 +242,7 @@
 
         let currentIndex = 0;
         let isFlipped = false;
+        let progressMode = false;
 
         const sessionStats = {
             learned: new Set(),
@@ -245,6 +253,7 @@
         const synth = window.speechSynthesis;
         const voiceSelect = document.getElementById('tts-voice-select');
         const autoplayCheckbox = document.getElementById('tts-autoplay');
+        const autoplayBackCheckbox = document.getElementById('tts-autoplay-back');
         const speedSelect = document.getElementById('tts-speed');
 
         function exitStudy() {
@@ -302,6 +311,7 @@
             try {
                 const settings = JSON.parse(data);
                 autoplayCheckbox.checked = settings.autoplay;
+                if (autoplayBackCheckbox) autoplayBackCheckbox.checked = settings.autoplay;
                 speedSelect.value = settings.speed || '1.0';
 
                 for (let i = 0; i < voiceSelect.options.length; i++) {
@@ -315,7 +325,14 @@
             }
         }
 
-        autoplayCheckbox?.addEventListener('change', saveTtsSettings);
+        function setAutoplay(value) {
+            if (autoplayCheckbox) autoplayCheckbox.checked = value;
+            if (autoplayBackCheckbox) autoplayBackCheckbox.checked = value;
+            saveTtsSettings();
+        }
+
+        autoplayCheckbox?.addEventListener('change', () => setAutoplay(autoplayCheckbox.checked));
+        autoplayBackCheckbox?.addEventListener('change', () => setAutoplay(autoplayBackCheckbox.checked));
         voiceSelect?.addEventListener('change', saveTtsSettings);
         speedSelect?.addEventListener('change', saveTtsSettings);
 
@@ -411,6 +428,37 @@
             }
 
             updateStarUI(currentCard.IsStarred);
+            updateProgressModeButtons();
+        }
+
+        function toggleProgressMode() {
+            progressMode = !progressMode;
+            updateProgressModeButtons();
+        }
+
+        function handleLeftAction() {
+            progressMode ? markCard(false) : prevCard();
+        }
+
+        function handleRightAction() {
+            progressMode ? markCard(true) : nextCard();
+        }
+
+        function updateProgressModeButtons() {
+            const modeBtn = document.getElementById('progress-mode-btn');
+            const leftBtn = document.getElementById('nav-left-btn');
+            const rightBtn = document.getElementById('nav-right-btn');
+            if (!modeBtn || !leftBtn || !rightBtn) return;
+
+            modeBtn.classList.toggle('is-active', progressMode);
+            modeBtn.title = progressMode ? 'Tắt chế độ đánh giá tiến độ' : 'Bật chế độ đánh giá tiến độ';
+
+            leftBtn.classList.toggle('is-danger', progressMode);
+            rightBtn.classList.toggle('is-success', progressMode);
+            leftBtn.title = progressMode ? 'Chưa biết (1)' : 'Thẻ trước (←)';
+            rightBtn.title = progressMode ? 'Đã biết (2)' : 'Thẻ tiếp (→)';
+            leftBtn.innerHTML = progressMode ? '<i class="ph ph-x"></i>' : '<i class="ph ph-arrow-left"></i>';
+            rightBtn.innerHTML = progressMode ? '<i class="ph ph-check"></i>' : '<i class="ph ph-arrow-right"></i>';
         }
 
         function toggleCurrentCardStar(event) {
@@ -497,7 +545,7 @@
         function playAudioCurrentCard() {
             if (flashcards.length === 0) return;
             const current = flashcards[currentIndex];
-            speak(isFlipped ? current.BackText : current.FrontText, isFlipped);
+            speak(current.FrontText, false);
         }
 
         function nextCard() {
@@ -515,6 +563,15 @@
                 currentIndex--;
                 updateUI();
             }
+        }
+
+        function shuffleCards() {
+            for (let i = flashcards.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [flashcards[i], flashcards[j]] = [flashcards[j], flashcards[i]];
+            }
+            currentIndex = 0;
+            updateUI();
         }
 
         function markCard(learned) {
@@ -629,8 +686,8 @@
                 case '2':
                     markCard(true);
                     break;
-                case 'r':
-                case 'R':
+                case 'Control':
+                    e.preventDefault();
                     playAudioCurrentCard();
                     break;
             }
