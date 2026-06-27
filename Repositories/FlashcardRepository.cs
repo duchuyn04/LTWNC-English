@@ -54,4 +54,18 @@ public class FlashcardRepository : IFlashcardRepository
     {
         _context.Flashcards.Remove(card);
     }
+
+    public async Task DeleteProgressByFlashcardIdAsync(int flashcardId)
+    {
+        await _context.UserProgresses
+            .Where(p => p.FlashcardId == flashcardId)
+            .ExecuteDeleteAsync();
+    }
+
+    public async Task DeleteProgressBySetIdAsync(int setId)
+    {
+        await _context.UserProgresses
+            .Where(p => p.Flashcard!.FlashcardSetId == setId)
+            .ExecuteDeleteAsync();
+    }
 }

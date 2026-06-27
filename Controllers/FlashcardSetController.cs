@@ -262,6 +262,10 @@ public class FlashcardSetController : Controller
             var setId = await _setService.DeleteCardAsync(id, user.Id);
             return RedirectToAction("Edit", new { id = setId });
         }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
         catch (UnauthorizedAccessException)
         {
             return Forbid();

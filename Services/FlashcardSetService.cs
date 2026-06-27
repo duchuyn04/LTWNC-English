@@ -120,6 +120,9 @@ public class FlashcardSetService : IFlashcardSetService
         var set = await _setRepo.GetByIdAsync(id);
         if (set == null || set.UserId != userId)
             throw new UnauthorizedAccessException("Không có quyền xóa bộ thẻ này.");
+
+        await _cardRepo.DeleteProgressBySetIdAsync(id);
+        await _setRepo.DeleteSessionsBySetIdAsync(id);
         _setRepo.Delete(set);
         await _setRepo.SaveChangesAsync();
     }
@@ -216,6 +219,7 @@ public class FlashcardSetService : IFlashcardSetService
         var set = await _setRepo.GetByIdAsync(setId);
         if (set == null || set.UserId != userId)
             throw new UnauthorizedAccessException("Không có quyền xóa thẻ này.");
+        await _cardRepo.DeleteProgressByFlashcardIdAsync(cardId);
         _cardRepo.Delete(card);
         await _setRepo.SaveChangesAsync();
         return setId;
