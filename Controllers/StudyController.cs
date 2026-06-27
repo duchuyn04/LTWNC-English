@@ -91,8 +91,19 @@ public class StudyController : Controller
             return Challenge();
         }
 
-        // Lưu tiến trình học vào database
-        await _studyService.MarkLearnedAsync(user.Id, cardId, learned);
+        try
+        {
+            // Lưu tiến trình học vào database
+            await _studyService.MarkLearnedAsync(user.Id, setId, cardId, learned);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
 
         if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
         {
@@ -119,8 +130,19 @@ public class StudyController : Controller
             return Challenge();
         }
 
-        // Ghi nhận phiên học hoàn thành
-        await _studyService.CompleteSessionAsync(user.Id, setId, Models.Entities.StudyMode.Flashcard);
+        try
+        {
+            // Ghi nhận phiên học hoàn thành
+            await _studyService.CompleteSessionAsync(user.Id, setId, Models.Entities.StudyMode.Flashcard);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
 
         if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
         {

@@ -28,13 +28,21 @@ public class StudyService : IStudyService
     // Đánh dấu thẻ đã biết hoặc chưa biết
     // Nếu chưa có tiến trình → tạo mới
     // Nếu đã có → cập nhật trạng thái
-    public async Task MarkLearnedAsync(string userId, int flashcardId, bool learned)
+    public async Task MarkLearnedAsync(string userId, int setId, int flashcardId, bool learned)
     {
-        // Kiểm tra đã có tiến trình học cho thẻ này chưa
+        var set = await _setRepo.GetByIdAsync(setId);
+        if (set == null)
+            throw new KeyNotFoundException("Bộ thẻ không tồn tại.");
+        if (!set.IsPublic && set.UserId != userId)
+            throw new UnauthorizedAccessException("Không có quyền học bộ thẻ này.");
+
+        var card = await _cardRepo.GetByIdAsync(flashcardId);
+        if (card == null || card.FlashcardSetId != setId)
+            throw new KeyNotFoundException("Thẻ không tồn tại trong bộ thẻ này.");
+
         var progress = await _studyRepo.GetProgressAsync(userId, flashcardId);
         if (progress == null)
         {
-            // Chưa có → tạo mới tiến trình
             progress = new UserProgress
             {
                 UserId = userId,
@@ -46,13 +54,11 @@ public class StudyService : IStudyService
         }
         else
         {
-            // Đã có → cập nhật trạng thái và thời gian học
             progress.IsLearned = learned;
             progress.LastReviewed = DateTime.UtcNow;
             _studyRepo.UpdateProgress(progress);
         }
 
-        // Lưu thay đổi vào database
         await _setRepo.SaveChangesAsync();
     }
 
@@ -60,6 +66,12 @@ public class StudyService : IStudyService
     // Lưu lại chế độ học (Flashcard, Quiz, Write, Match) và thời gian hoàn thành
     public async Task CompleteSessionAsync(string userId, int setId, StudyMode mode)
     {
+        var set = await _setRepo.GetByIdAsync(setId);
+        if (set == null)
+            throw new KeyNotFoundException("Bộ thẻ không tồn tại.");
+        if (!set.IsPublic && set.UserId != userId)
+            throw new UnauthorizedAccessException("Không có quyền học bộ thẻ này.");
+
         var session = new StudySession
         {
             UserId = userId,
