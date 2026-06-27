@@ -16,6 +16,12 @@ public interface IFlashcardSetService
 
     // Lấy bộ thẻ theo id (không kèm danh sách thẻ)
     Task<FlashcardSet?> GetSetByIdAsync(int id);
+
+    // Lấy bộ thẻ nếu người dùng được phép xem/học: public hoặc chủ sở hữu
+    Task<FlashcardSet?> GetAccessibleSetAsync(int id, string? userId);
+
+    // Lấy bộ thẻ kèm thẻ nếu người dùng được phép xem: public hoặc chủ sở hữu
+    Task<FlashcardSet?> GetAccessibleSetWithCardsAsync(int id, string? userId);
     // Lấy bộ thẻ theo id kèm danh sách thẻ — chỉ trả về nếu là chủ sở hữu
     Task<FlashcardSet?> GetSetWithCardsAsync(int id, string userId);
     // Tạo bộ thẻ mới

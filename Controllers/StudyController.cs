@@ -25,8 +25,11 @@ public class StudyController : Controller
     [Route("/Study/{setId}")]
     public async Task<IActionResult> Index(int setId)
     {
-        // Kiểm tra bộ thẻ có tồn tại không
-        var set = await _setService.GetSetByIdAsync(setId);
+        var user = await _accountService.GetCurrentUserAsync(User);
+        if (user == null) return Challenge();
+
+        // Kiểm tra bộ thẻ có tồn tại và người dùng có quyền học không
+        var set = await _setService.GetAccessibleSetAsync(setId, user.Id);
         if (set == null) return NotFound();
 
         // Truyền thông tin bộ thẻ qua ViewBag
@@ -40,8 +43,11 @@ public class StudyController : Controller
     [Route("/Study/{setId}/Flashcard")]
     public async Task<IActionResult> Flashcard(int setId, int index = 0, bool starredOnly = false)
     {
-        // Kiểm tra bộ thẻ có tồn tại không
-        var set = await _setService.GetSetByIdAsync(setId);
+        var user = await _accountService.GetCurrentUserAsync(User);
+        if (user == null) return Challenge();
+
+        // Kiểm tra bộ thẻ có tồn tại và người dùng có quyền học không
+        var set = await _setService.GetAccessibleSetAsync(setId, user.Id);
         if (set == null) return NotFound();
 
         // Lấy danh sách thẻ để học

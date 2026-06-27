@@ -63,12 +63,9 @@ public class FlashcardSetController : Controller
     {
         var user = await _accountService.GetCurrentUserAsync(User);
 
-        // Tìm bộ thẻ theo id
-        var set = await _setService.GetSetByIdAsync(id);
+        // Chỉ cho xem bộ công khai hoặc bộ của chính người dùng hiện tại
+        var set = await _setService.GetAccessibleSetWithCardsAsync(id, user?.Id);
         if (set == null) return NotFound();
-
-        // Lấy danh sách thẻ trong bộ
-        var setWithCards = await _setService.GetSetWithCardsAsync(id, set.UserId);
 
         // Ánh xạ sang ViewModel để hiển thị trên View
         var model = new SetDetailViewModel
@@ -78,7 +75,7 @@ public class FlashcardSetController : Controller
             Description = set.Description,
             IsPublic = set.IsPublic,
             UserId = set.UserId,
-            Flashcards = setWithCards?.Flashcards.ToList() ?? new(),
+            Flashcards = set.Flashcards.ToList(),
             IsOwner = user?.Id == set.UserId // Kiểm tra người xem có phải chủ sở hữu không
         };
         return View(model);

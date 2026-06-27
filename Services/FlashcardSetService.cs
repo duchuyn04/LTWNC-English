@@ -58,11 +58,25 @@ public class FlashcardSetService : IFlashcardSetService
         return await _setRepo.GetByIdAsync(id);
     }
 
+    public async Task<FlashcardSet?> GetAccessibleSetAsync(int id, string? userId)
+    {
+        var set = await _setRepo.GetByIdAsync(id);
+        if (set == null || (!set.IsPublic && set.UserId != userId)) return null;
+        return set;
+    }
+
     // Lấy bộ thẻ kèm danh sách thẻ — chỉ trả về nếu người yêu cầu là chủ sở hữu
     public async Task<FlashcardSet?> GetSetWithCardsAsync(int id, string userId)
     {
         var set = await _setRepo.GetByIdWithCardsAsync(id);
         if (set == null || set.UserId != userId) return null;
+        return set;
+    }
+
+    public async Task<FlashcardSet?> GetAccessibleSetWithCardsAsync(int id, string? userId)
+    {
+        var set = await _setRepo.GetByIdWithCardsAsync(id);
+        if (set == null || (!set.IsPublic && set.UserId != userId)) return null;
         return set;
     }
 
