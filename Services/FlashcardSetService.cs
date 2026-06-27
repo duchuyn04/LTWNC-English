@@ -28,6 +28,17 @@ public class FlashcardSetService : IFlashcardSetService
         return trimmed;
     }
 
+    private static string RequiredText(string? value, string fieldName, int maxLength)
+    {
+        var trimmed = RequiredText(value, fieldName);
+        if (trimmed.Length > maxLength)
+        {
+            throw new ArgumentException($"{fieldName} tối đa {maxLength} ký tự.");
+        }
+
+        return trimmed;
+    }
+
     private static string? OptionalText(string? value)
     {
         var trimmed = value?.Trim();
@@ -148,7 +159,7 @@ public class FlashcardSetService : IFlashcardSetService
         frontText = RequiredText(frontText, "Thuật ngữ");
         backText = RequiredText(backText, "Định nghĩa");
         pronunciation = RequiredText(pronunciation, "IPA");
-        partOfSpeech = RequiredText(partOfSpeech, "Loại từ");
+        partOfSpeech = RequiredText(partOfSpeech, "Loại từ", 80);
         exampleSentence = RequiredText(exampleSentence, "Ví dụ tiếng Anh");
         exampleMeaning = RequiredText(exampleMeaning, "Nghĩa câu ví dụ tiếng Việt");
         synonyms = OptionalText(synonyms);
@@ -198,7 +209,7 @@ public class FlashcardSetService : IFlashcardSetService
         card.FrontText = RequiredText(frontText, "Thuật ngữ");
         card.BackText = RequiredText(backText, "Định nghĩa");
         card.Pronunciation = RequiredText(pronunciation, "IPA");
-        card.PartOfSpeech = RequiredText(partOfSpeech, "Loại từ");
+        card.PartOfSpeech = RequiredText(partOfSpeech, "Loại từ", 80);
         card.ExampleSentence = RequiredText(exampleSentence, "Ví dụ tiếng Anh");
         card.ExampleMeaning = RequiredText(exampleMeaning, "Nghĩa câu ví dụ tiếng Việt");
         card.Synonyms = OptionalText(synonyms);

@@ -11,6 +11,15 @@
             <p style="color: #787774;">Chọn chế độ học.</p>
         </div>
 
+        @if (TempData["Message"] is string message)
+        {
+            <div class="alert alert-info">@message</div>
+        }
+        @if (TempData["Success"] is string success)
+        {
+            <div class="alert alert-success">@success</div>
+        }
+
         <div class="row g-4 justify-content-center">
             <div class="col-md-6">
                 <a href="/Study/@setId/Flashcard" class="text-decoration-none">
