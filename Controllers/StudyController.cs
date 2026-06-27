@@ -22,14 +22,14 @@ public class StudyController : Controller
     }
 
     // Hiển thị trang chọn chế độ học (Flashcard, Quiz, Write, Match)
+    [AllowAnonymous]
     [Route("/Study/{setId}")]
     public async Task<IActionResult> Index(int setId)
     {
         var user = await _accountService.GetCurrentUserAsync(User);
-        if (user == null) return Challenge();
 
         // Kiểm tra bộ thẻ có tồn tại và người dùng có quyền học không
-        var set = await _setService.GetAccessibleSetAsync(setId, user.Id);
+        var set = await _setService.GetAccessibleSetAsync(setId, user?.Id);
         if (set == null) return NotFound();
 
         // Truyền thông tin bộ thẻ qua ViewBag
@@ -40,14 +40,14 @@ public class StudyController : Controller
 
     // Hiển thị giao diện học flashcard
     // Tham số index: vị trí thẻ hiện tại (mặc định = 0)
+    [AllowAnonymous]
     [Route("/Study/{setId}/Flashcard")]
     public async Task<IActionResult> Flashcard(int setId, int index = 0, bool starredOnly = false)
     {
         var user = await _accountService.GetCurrentUserAsync(User);
-        if (user == null) return Challenge();
 
         // Kiểm tra bộ thẻ có tồn tại và người dùng có quyền học không
-        var set = await _setService.GetAccessibleSetAsync(setId, user.Id);
+        var set = await _setService.GetAccessibleSetAsync(setId, user?.Id);
         if (set == null) return NotFound();
 
         // Lấy danh sách thẻ để học
