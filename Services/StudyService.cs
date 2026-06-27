@@ -28,9 +28,7 @@ public class StudyService
 
         if (unlearnedOnly && !string.IsNullOrWhiteSpace(userId))
         {
-            query = query.Where(f =>
-                !_context.UserProgresses.Any(p => p.UserId == userId && p.FlashcardId == f.Id)
-                || _context.UserProgresses.Any(p => p.UserId == userId && p.FlashcardId == f.Id && !p.IsLearned));
+            query = query.Where(f => !_context.UserProgresses.Any(p => p.UserId == userId && p.FlashcardId == f.Id && p.IsLearned));
         }
 
         return await query.OrderBy(f => f.OrderIndex).ToListAsync();
@@ -41,12 +39,7 @@ public class StudyService
         if (string.IsNullOrWhiteSpace(userId)) return new UserStudySettings();
 
         var settings = await _context.UserStudySettings.FirstOrDefaultAsync(s => s.UserId == userId);
-        if (settings != null) return settings;
-
-        settings = new UserStudySettings { UserId = userId };
-        await _context.UserStudySettings.AddAsync(settings);
-        await _context.SaveChangesAsync();
-        return settings;
+        return settings ?? new UserStudySettings { UserId = userId };
     }
 
     public async Task<UserStudySettings> SaveSettingsAsync(string userId, UserStudySettings input)

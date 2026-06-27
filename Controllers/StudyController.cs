@@ -200,7 +200,14 @@ public class StudyController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return Unauthorized();
 
-        var saved = await _studyService.SaveSettingsAsync(user.Id, settings);
-        return Json(new { success = true, settings = saved });
+        try
+        {
+            var saved = await _studyService.SaveSettingsAsync(user.Id, settings);
+            return Json(new { success = true, settings = saved });
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, new { success = false, message = "Could not save study settings." });
+        }
     }
 }

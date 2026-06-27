@@ -223,6 +223,34 @@
         font-weight: 700;
     }
 
+    .card-topline {
+        padding-right: 2rem; /* Give space for absolute star button */
+    }
+
+    .card-star-btn {
+        position: absolute;
+        top: 1.25rem;
+        right: 1.25rem;
+        z-index: 10;
+        background: none;
+        border: none;
+        color: var(--muted);
+        font-size: 1.65rem;
+        cursor: pointer;
+        padding: 0.25rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 180ms ease, color 180ms ease;
+    }
+    .card-star-btn:hover {
+        transform: scale(1.15);
+        color: #B7791F;
+    }
+    .card-star-btn.is-starred {
+        color: #B7791F;
+    }
+
     .badge {
         display: inline-flex;
         align-items: center;
@@ -658,6 +686,9 @@
             <div class="flashcard-frame" onclick="toggleCardFlip()" role="button" tabindex="0" aria-label="Lật thẻ">
                 <div id="study-card-core" class="flashcard-core">
                     <article class="card-face card-front">
+                        <button type="button" class="card-star-btn" onclick="toggleCurrentCardStar(event)" title="Đánh dấu sao">
+                            <i class="ph ph-star"></i>
+                        </button>
                         <div class="card-topline">
                             <span class="badge badge-blue">English</span>
                             <span>Click để lật</span>
@@ -673,6 +704,9 @@
                     </article>
 
                     <article class="card-face card-back">
+                        <button type="button" class="card-star-btn" onclick="toggleCurrentCardStar(event)" title="Đánh dấu sao">
+                            <i class="ph ph-star"></i>
+                        </button>
                         <div class="card-topline">
                             <span class="badge badge-green">Nghĩa Việt</span>
                             <span>Click để quay lại</span>
@@ -785,7 +819,7 @@
 
 @section Scripts {
     <script>
-        const flashcards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Flashcards.Select(c => new { c.Id, c.FrontText, c.BackText })));
+        const flashcards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Flashcards.Select(c => new { c.Id, c.FrontText, c.BackText, c.IsStarred })));
         const setId = @Model.SetId;
 
         let currentIndex = 0;
@@ -909,6 +943,72 @@
             const total = flashcards.length;
             document.getElementById('card-progress-text').textContent = `Thẻ ${currentDisplay} / ${total}`;
             document.getElementById('card-progress-fill').style.width = `${(currentDisplay / total) * 100}%`;
+
+            updateStarUI(currentCard.IsStarred);
+        }
+
+        function toggleCurrentCardStar(event) {
+            if (event) {
+                event.stopPropagation(); // Prevents flipping the card when clicking the star!
+            }
+            if (flashcards.length === 0) return;
+
+            const card = flashcards[currentIndex];
+            const verificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+            // Optimistic update of UI
+            card.IsStarred = !card.IsStarred;
+            updateStarUI(card.IsStarred);
+
+            const params = new URLSearchParams();
+            params.append('__RequestVerificationToken', verificationToken);
+
+            fetch(`/Study/${setId}/Flashcard/${card.Id}/ToggleStar`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: params
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    card.IsStarred = data.isStarred;
+                    updateStarUI(card.IsStarred);
+                } else {
+                    // Revert if failed
+                    card.IsStarred = !card.IsStarred;
+                    updateStarUI(card.IsStarred);
+                }
+            })
+            .catch(err => {
+                console.error('AJAX Error:', err);
+                // Revert if failed
+                card.IsStarred = !card.IsStarred;
+                updateStarUI(card.IsStarred);
+            });
+        }
+
+        function updateStarUI(isStarred) {
+            const starIconFront = document.querySelector('.card-front .card-star-btn i');
+            const starIconBack = document.querySelector('.card-back .card-star-btn i');
+            const starBtnFront = document.querySelector('.card-front .card-star-btn');
+            const starBtnBack = document.querySelector('.card-back .card-star-btn');
+
+            if (starIconFront && starIconBack) {
+                if (isStarred) {
+                    starIconFront.className = 'ph ph-star-fill';
+                    starIconBack.className = 'ph ph-star-fill';
+                    starBtnFront.classList.add('is-starred');
+                    starBtnBack.classList.add('is-starred');
+                } else {
+                    starIconFront.className = 'ph ph-star';
+                    starIconBack.className = 'ph ph-star';
+                    starBtnFront.classList.remove('is-starred');
+                    starBtnBack.classList.remove('is-starred');
+                }
+            }
         }
 
         function toggleCardFlip() {
