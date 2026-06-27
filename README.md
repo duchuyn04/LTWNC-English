@@ -57,38 +57,38 @@ Không còn tầng Repository riêng. Các service thao tác trực tiếp với
 
 ```text
 ltwnc/
-├── Controllers/
+├── Controllers/              # Nhận request, kiểm tra quyền, trả View/Redirect/JSON
 │   ├── AccountController.cs
 │   ├── HomeController.cs
 │   ├── FlashcardSetController.cs
 │   └── StudyController.cs
-├── Services/
+├── Services/                 # Logic nghiệp vụ, thao tác trực tiếp với AppDbContext
 │   ├── FlashcardSetService.cs
 │   └── StudyService.cs
-├── Data/
+├── Data/                     # EF Core DbContext và cấu hình quan hệ/index
 │   └── AppDbContext.cs
-├── Models/
-│   ├── Entities/
+├── Models/                   # Dữ liệu domain và dữ liệu truyền ra View
+│   ├── Entities/             # Entity map với bảng database
 │   │   ├── Flashcard.cs
 │   │   ├── FlashcardSet.cs
 │   │   ├── StudySession.cs
 │   │   ├── UserProgress.cs
 │   │   └── UserStudySettings.cs
-│   └── ViewModels/
-├── Views/
+│   └── ViewModels/           # Model chỉ phục vụ UI/Razor View
+├── Views/                    # Razor Views hiển thị giao diện
 │   ├── Account/
 │   ├── FlashcardSet/
 │   ├── Home/
 │   ├── Shared/
 │   └── Study/
-├── wwwroot/
+├── wwwroot/                  # Static files public: CSS, JS, ảnh upload
 │   ├── css/
 │   │   ├── site.css
 │   │   ├── edit.css
 │   │   └── flashcard.css
 │   ├── js/
-│   └── uploads/flashcards/   # tạo khi upload ảnh
-├── Migrations/
+│   └── uploads/flashcards/
+├── Migrations/               # EF Core migrations tạo/cập nhật database
 ├── Program.cs
 ├── appsettings.json
 └── ltwnc.csproj
