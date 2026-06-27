@@ -32,7 +32,7 @@ AppDbContext / EF Core
 SQL Server
 ```
 
-Không còn tầng Repository riêng. Các service thao tác trực tiếp với `AppDbContext` để giữ code gọn:
+Các service thao tác trực tiếp với `AppDbContext` để giữ code gọn:
 
 - `AccountController` dùng `UserManager` và `SignInManager` của ASP.NET Identity.
 - `FlashcardSetController` nhận request quản lý bộ thẻ/thẻ và gọi `FlashcardSetService`.
