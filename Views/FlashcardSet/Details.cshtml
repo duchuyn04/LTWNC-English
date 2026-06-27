@@ -38,10 +38,14 @@
             <h5 class="mb-3" style="font-weight: 600;">Danh sách thẻ</h5>
             @foreach (var card in Model.Flashcards.OrderBy(c => c.OrderIndex))
             {
-                <div class="d-flex align-items-center gap-3 py-3" style="border-bottom: 1px solid #EAEAEA;">
+                <div class="d-flex align-items-start gap-3 py-3" style="border-bottom: 1px solid #EAEAEA;">
                     <span style="color: #787774; font-size: 0.8125rem; min-width: 28px;">@card.OrderIndex</span>
-                    <span style="flex: 1; font-weight: 500; font-size: 1.0625rem;">@card.FrontText</span>
-                    <i class="ph ph-arrow-right" style="color: #787774;"></i>
+                    <span style="color: #B7791F; min-width: 20px;">@(card.IsStarred ? "★" : "☆")</span>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 600; font-size: 1.0625rem;">@card.FrontText</div>
+                        <small style="color: #787774;">@card.PartOfSpeech · @card.Pronunciation</small>
+                    </div>
+                    <i class="ph ph-arrow-right" style="color: #787774; margin-top: 4px;"></i>
                     <span style="flex: 1; font-size: 1.0625rem;">@card.BackText</span>
                 </div>
             }

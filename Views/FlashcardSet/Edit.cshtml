@@ -33,57 +33,324 @@
             </form>
         </div>
 
-        <div class="card-custom">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0" style="font-weight: 600;">Thẻ trong bộ</h5>
-            </div>
-            @if (TempData["Error"] is string error)
-            {
-                <div class="alert alert-danger">@error</div>
-            }
+        @if (TempData["Error"] is string error)
+        {
+            <div class="alert alert-danger">@error</div>
+        }
 
-            @if (!cards.Any())
-            {
-                <p style="color: #787774;">Chưa có thẻ nào.</p>
-            }
+        <div class="vocab-editor">
+            <aside class="vocab-list">
+                <div class="vocab-list-header">
+                    <h5>Danh sách từ</h5>
+                    <a href="#add-card-form" class="btn-primary-custom vocab-add-link">
+                        <i class="ph ph-plus"></i> Thêm
+                    </a>
+                </div>
 
-            <div class="mb-4" id="cardList">
+                @if (!cards.Any())
+                {
+                    <p style="color: #787774;">Chưa có thẻ nào.</p>
+                }
+                else
+                {
+                    @foreach (var card in cards.OrderBy(c => c.OrderIndex))
+                    {
+                        <button type="button"
+                                class="vocab-list-item @(card == cards.OrderBy(c => c.OrderIndex).First() ? "is-active" : "")"
+                                data-card-id="@card.Id">
+                            <span class="vocab-star">@(card.IsStarred ? "★" : "☆")</span>
+                            <span class="vocab-list-copy">
+                                <strong>@card.FrontText</strong>
+                                <small>@card.PartOfSpeech · @card.Pronunciation</small>
+                                <span>@card.BackText</span>
+                            </span>
+                        </button>
+                    }
+                }
+            </aside>
+
+            <section class="vocab-detail">
                 @foreach (var card in cards.OrderBy(c => c.OrderIndex))
                 {
-                    <div class="d-flex align-items-center gap-2 mb-2 p-3" style="border: 1px solid #EAEAEA; border-radius: 8px;">
-                        <span style="color: #787774; font-size: 0.8125rem; min-width: 24px;">@card.OrderIndex</span>
-                        <span style="flex: 1; font-weight: 500;">@card.FrontText</span>
-                        <i class="ph ph-arrow-right" style="color: #787774;"></i>
-                        <span style="flex: 1;">@card.BackText</span>
-                        <form asp-action="DeleteCard" asp-route-id="@card.Id" method="post" class="d-inline" onsubmit="return confirm('Xóa thẻ này?');">
+                    <div class="vocab-card-panel" data-card-panel="@card.Id">
+                        <form asp-action="EditCard"
+                              asp-route-id="@card.Id"
+                              method="post"
+                              class="vocab-card-form">
                             @Html.AntiForgeryToken()
-                            <button type="submit" class="btn-secondary-custom" style="padding: 2px 8px; font-size: 0.75rem; color: #9F2F2D;">
-                                <i class="ph ph-x"></i>
+                            <input type="hidden" name="setId" value="@card.FlashcardSetId" />
+                            
+                            <div class="vocab-form-header">
+                                <div>
+                                    <span class="vocab-form-label">Đang chỉnh sửa</span>
+                                    <h5>@card.FrontText</h5>
+                                </div>
+                                <div class="vocab-form-actions">
+                                    <label class="star-toggle">
+                                        <input type="checkbox" name="isStarred" value="true" @(card.IsStarred ? "checked" : "") />
+                                        <span>★ Đánh sao</span>
+                                    </label>
+                                    <button type="submit" class="btn-primary-custom">Lưu từ</button>
+                                </div>
+                            </div>
+
+                            <div class="vocab-grid">
+                                <label>
+                                    <span>Thuật ngữ <b>*</b></span>
+                                    <input type="text" name="frontText" value="@card.FrontText" class="form-input-custom" required />
+                                </label>
+                                <label>
+                                    <span>Định nghĩa <b>*</b></span>
+                                    <input type="text" name="backText" value="@card.BackText" class="form-input-custom" required />
+                                </label>
+                                <label>
+                                    <span>IPA <b>*</b></span>
+                                    <input type="text" name="pronunciation" value="@card.Pronunciation" class="form-input-custom" required />
+                                </label>
+                                <label>
+                                    <span>Loại từ <b>*</b></span>
+                                    <input type="text" name="partOfSpeech" value="@card.PartOfSpeech" list="partOfSpeechOptions" class="form-input-custom" required />
+                                </label>
+                            </div>
+
+                            <label class="vocab-wide-field">
+                                <span>Ví dụ tiếng Anh <b>*</b></span>
+                                <textarea name="exampleSentence" class="form-input-custom" rows="2" required>@card.ExampleSentence</textarea>
+                            </label>
+
+                            <label class="vocab-wide-field">
+                                <span>Nghĩa câu ví dụ tiếng Việt <b>*</b></span>
+                                <textarea name="exampleMeaning" class="form-input-custom" rows="2" required>@card.ExampleMeaning</textarea>
+                            </label>
+
+                            <label class="vocab-wide-field">
+                                <span>Từ đồng nghĩa</span>
+                                <input type="text" name="synonyms" value="@card.Synonyms" class="form-input-custom" />
+                            </label>
+                        </form>
+
+                        <form asp-action="DeleteCard"
+                              asp-route-id="@card.Id"
+                              method="post"
+                              class="vocab-delete-form"
+                              onsubmit="return confirm('Xóa thẻ này?');">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn-secondary-custom">
+                                <i class="ph ph-trash"></i> Xóa từ
                             </button>
                         </form>
                     </div>
                 }
-            </div>
 
-            <h6 class="mb-2" style="font-weight: 600;">Thêm thẻ mới</h6>
-            <form asp-action="AddCard" asp-route-setId="@Model.Id" method="post" class="row g-2">
-                @Html.AntiForgeryToken()
-                <div class="col-md-5">
-                    <input type="text" name="frontText" class="form-input-custom" placeholder="Tiếng Anh" required />
-                </div>
-                <div class="col-md-5">
-                    <input type="text" name="backText" class="form-input-custom" placeholder="Nghĩa tiếng Việt" required />
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn-primary-custom w-100">
-                        <i class="ph ph-plus"></i>
-                    </button>
-                </div>
-            </form>
+                <form id="add-card-form"
+                      asp-action="AddCard"
+                      asp-route-setId="@Model.Id"
+                      method="post"
+                      class="vocab-card-form add-card-form">
+                    @Html.AntiForgeryToken()
+                    
+                    <div class="vocab-form-header">
+                        <div>
+                            <span class="vocab-form-label">Thêm mới</span>
+                            <h5>Thêm từ vựng</h5>
+                        </div>
+                        <div class="vocab-form-actions">
+                            <label class="star-toggle">
+                                <input type="checkbox" name="isStarred" value="true" />
+                                <span>★ Đánh sao</span>
+                            </label>
+                            <button type="submit" class="btn-primary-custom">Thêm từ</button>
+                        </div>
+                    </div>
+
+                    <div class="vocab-grid">
+                        <label>
+                            <span>Thuật ngữ <b>*</b></span>
+                            <input type="text" name="frontText" class="form-input-custom" aria-label="Thuật ngữ" required />
+                        </label>
+                        <label>
+                            <span>Định nghĩa <b>*</b></span>
+                            <input type="text" name="backText" class="form-input-custom" aria-label="Định nghĩa" required />
+                        </label>
+                        <label>
+                            <span>IPA <b>*</b></span>
+                            <input type="text" name="pronunciation" class="form-input-custom" aria-label="IPA" required />
+                        </label>
+                        <label>
+                            <span>Loại từ <b>*</b></span>
+                            <input type="text" name="partOfSpeech" list="partOfSpeechOptions" class="form-input-custom" aria-label="Loại từ" required />
+                        </label>
+                    </div>
+
+                    <label class="vocab-wide-field">
+                        <span>Ví dụ tiếng Anh <b>*</b></span>
+                        <textarea name="exampleSentence" class="form-input-custom" rows="2" required></textarea>
+                    </label>
+
+                    <label class="vocab-wide-field">
+                        <span>Nghĩa câu ví dụ tiếng Việt <b>*</b></span>
+                        <textarea name="exampleMeaning" class="form-input-custom" rows="2" required></textarea>
+                    </label>
+
+                    <label class="vocab-wide-field">
+                        <span>Từ đồng nghĩa</span>
+                        <input type="text" name="synonyms" class="form-input-custom" aria-label="Từ đồng nghĩa" />
+                    </label>
+                </form>
+            </section>
         </div>
     </div>
 </div>
 
+<datalist id="partOfSpeechOptions">
+    <option value="noun"></option>
+    <option value="verb"></option>
+    <option value="adjective"></option>
+    <option value="adverb"></option>
+    <option value="phrase"></option>
+    <option value="idiom"></option>
+    <option value="other"></option>
+</datalist>
+
+<style>
+.vocab-editor {
+    display: grid;
+    grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
+    gap: 1rem;
+}
+
+.vocab-list,
+.vocab-detail {
+    border: 1px solid #EAEAEA;
+    border-radius: 12px;
+    background: #fff;
+}
+
+.vocab-list {
+    padding: 1rem;
+}
+
+.vocab-list-header,
+.vocab-form-header,
+.vocab-form-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.vocab-list-item {
+    width: 100%;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: inherit;
+    display: flex;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    text-align: left;
+}
+
+.vocab-list-item.is-active,
+.vocab-list-item:hover {
+    border-color: #D7E7F3;
+    background: #F4FAFE;
+}
+
+.vocab-star {
+    color: #B7791F;
+    font-size: 1.1rem;
+    line-height: 1.2;
+}
+
+.vocab-list-copy {
+    display: grid;
+    gap: 0.15rem;
+    min-width: 0;
+}
+
+.vocab-list-copy small,
+.vocab-list-copy span {
+    color: #787774;
+    font-size: 0.85rem;
+}
+
+.vocab-detail {
+    padding: 1rem;
+}
+
+.vocab-card-panel {
+    display: none;
+}
+
+.vocab-card-panel.is-active,
+.add-card-form {
+    display: grid;
+    gap: 1rem;
+}
+
+.vocab-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.vocab-grid label,
+.vocab-wide-field {
+    display: grid;
+    gap: 0.45rem;
+}
+
+.vocab-grid span,
+.vocab-wide-field span,
+.vocab-form-label {
+    color: #58708A;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.vocab-grid b,
+.vocab-wide-field b {
+    color: #B7791F;
+}
+
+.star-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #B7791F;
+    font-weight: 600;
+}
+
+@@media (max-width: 900px) {
+    .vocab-editor {
+        grid-template-columns: 1fr;
+    }
+
+    .vocab-grid {
+        grid-template-columns: 1fr;
+    }
+}
+</style>
+
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.querySelectorAll('[data-card-id]').forEach(button => {
+            button.addEventListener('click', () => {
+                const cardId = button.getAttribute('data-card-id');
+
+                document.querySelectorAll('[data-card-id]').forEach(item => {
+                    item.classList.toggle('is-active', item === button);
+                });
+
+                document.querySelectorAll('[data-card-panel]').forEach(panel => {
+                    panel.classList.toggle('is-active', panel.getAttribute('data-card-panel') === cardId);
+                });
+            });
+        });
+
+        const firstCardButton = document.querySelector('[data-card-id]');
+        if (firstCardButton) firstCardButton.click();
+    </script>
 }
