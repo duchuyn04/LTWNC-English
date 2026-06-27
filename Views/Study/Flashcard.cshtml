@@ -771,8 +771,8 @@
                 <div class="study-eyebrow">Học flashcard</div>
                 <h1 id="set-title-header" class="set-title">@Model.SetTitle</h1>
                 <div class="study-filter-toggle" aria-label="Lọc thẻ học">
-                    <a class="@(Model.StarredOnly ? "" : "is-active")" href="/Study/@Model.SetId/Flashcard">Tất cả</a>
-                    <a class="@(Model.StarredOnly ? "is-active" : "")" href="/Study/@Model.SetId/Flashcard?starredOnly=true">Đã sao</a>
+                    <a class="@(!Model.StarredOnly && !Model.UnlearnedOnly ? "is-active" : "")" href="/Study/@Model.SetId/Flashcard?starredOnly=false&unlearnedOnly=false">Tất cả</a>
+                    <a class="@(Model.StarredOnly ? "is-active" : "")" href="/Study/@Model.SetId/Flashcard?starredOnly=true&unlearnedOnly=false">Đã sao</a>
                 </div>
             </div>
 
@@ -1085,6 +1085,9 @@
             if (flashcards.length === 0) return;
 
             const currentCard = flashcards[currentIndex];
+            enforceVisibleSide('front');
+            enforceVisibleSide('back');
+            syncSettingsInputs();
             // Front face rendering
             const frontTextElem = document.getElementById('card-front-text');
             frontTextElem.hidden = !settings.ShowFrontTerm;
@@ -1420,6 +1423,13 @@
             const card = flashcards[currentIndex];
             if (!card || !card.Image || settings.HideImage) return false;
             return side === 'front' ? settings.ShowFrontImage : settings.ShowBackImage;
+        }
+
+        function syncSettingsInputs() {
+            document.querySelectorAll('[data-setting]').forEach(input => {
+                const key = input.dataset.setting;
+                input.checked = !!settings[key];
+            });
         }
 
         function enforceVisibleSide(side) {
