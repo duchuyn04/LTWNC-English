@@ -23,6 +23,29 @@ public class Flashcard
     [Required]
     public string BackText { get; set; } = string.Empty;
 
+    // IPA hoặc phát âm của thuật ngữ — bắt buộc với thẻ mới
+    [Required]
+    public string Pronunciation { get; set; } = string.Empty;
+
+    // Loại từ: noun, verb, adjective, adverb hoặc giá trị custom
+    [Required]
+    [MaxLength(80)]
+    public string PartOfSpeech { get; set; } = string.Empty;
+
+    // Câu ví dụ tiếng Anh — bắt buộc với thẻ mới
+    [Required]
+    public string ExampleSentence { get; set; } = string.Empty;
+
+    // Nghĩa tiếng Việt của câu ví dụ — bắt buộc với thẻ mới
+    [Required]
+    public string ExampleMeaning { get; set; } = string.Empty;
+
+    // Từ đồng nghĩa, phân tách bằng dấu phẩy hoặc chấm phẩy
+    public string? Synonyms { get; set; }
+
+    // Đánh dấu sao để học riêng
+    public bool IsStarred { get; set; }
+
     // Thứ tự hiển thị trong bộ thẻ (0, 1, 2, ...)
     public int OrderIndex { get; set; }
 

@@ -37,6 +37,7 @@ public class AppDbContext : IdentityDbContext
         {
             // Index cho FlashcardSetId — tăng tốc truy vấn "lấy thẻ theo bộ"
             entity.HasIndex(e => e.FlashcardSetId);
+            entity.HasIndex(e => new { e.FlashcardSetId, e.IsStarred });
             // Quan hệ: 1 FlashcardSet có nhiều Flashcards
             // Cascade = xóa bộ thẻ sẽ xóa tất cả thẻ bên trong
             entity.HasOne(e => e.FlashcardSet)
