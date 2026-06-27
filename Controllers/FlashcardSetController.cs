@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
 using ltwnc.Services;
 using ltwnc.Models.ViewModels.FlashcardSet;
 
@@ -9,14 +10,14 @@ namespace ltwnc.Controllers;
 [Authorize]
 public class FlashcardSetController : Controller
 {
-    private readonly IFlashcardSetService _setService;
-    private readonly IAccountService _accountService;
+    private readonly FlashcardSetService _setService;
+    private readonly UserManager<IdentityUser> _userManager;
 
-    // Inject service bộ thẻ và service tài khoản
-    public FlashcardSetController(IFlashcardSetService setService, IAccountService accountService)
+    // Inject service bộ thẻ và UserManager
+    public FlashcardSetController(FlashcardSetService setService, UserManager<IdentityUser> userManager)
     {
         _setService = setService;
-        _accountService = accountService;
+        _userManager = userManager;
     }
 
     // Hiển thị danh sách bộ thẻ của người dùng hiện tại
@@ -24,7 +25,7 @@ public class FlashcardSetController : Controller
     public async Task<IActionResult> Index()
     {
         // Lấy thông tin người dùng đang đăng nhập
-        var user = await _accountService.GetCurrentUserAsync(User);
+        var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
         // Lấy tất cả bộ thẻ thuộc về người dùng này
@@ -48,7 +49,7 @@ public class FlashcardSetController : Controller
         // Kiểm tra dữ liệu đầu vào hợp lệ
         if (!ModelState.IsValid) return View(model);
 
-        var user = await _accountService.GetCurrentUserAsync(User);
+        var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
         // Tạo bộ thẻ mới → chuyển sang trang chỉnh sửa để thêm thẻ
@@ -61,7 +62,7 @@ public class FlashcardSetController : Controller
     [AllowAnonymous] // Cho phép truy cập không cần đăng nhập
     public async Task<IActionResult> Details(int id)
     {
-        var user = await _accountService.GetCurrentUserAsync(User);
+        var user = await _userManager.GetUserAsync(User);
 
         // Chỉ cho xem bộ công khai hoặc bộ của chính người dùng hiện tại
         var set = await _setService.GetAccessibleSetWithCardsAsync(id, user?.Id);
@@ -85,7 +86,7 @@ public class FlashcardSetController : Controller
     [Route("/Set/{id}/Edit")]
     public async Task<IActionResult> Edit(int id)
     {
-        var user = await _accountService.GetCurrentUserAsync(User);
+        var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
         // Lấy bộ thẻ kèm danh sách thẻ — chỉ chủ sở hữu mới sửa được
@@ -115,7 +116,7 @@ public class FlashcardSetController : Controller
         // Kiểm tra dữ liệu đầu vào hợp lệ
         if (!ModelState.IsValid) return View(model);
 
-        var user = await _accountService.GetCurrentUserAsync(User);
+        var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
         try
@@ -137,7 +138,7 @@ public class FlashcardSetController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
-        var user = await _accountService.GetCurrentUserAsync(User);
+        var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
         try
@@ -167,7 +168,7 @@ public class FlashcardSetController : Controller
         string? synonyms,
         bool isStarred = false)
     {
-        var user = await _accountService.GetCurrentUserAsync(User);
+        var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
         try
@@ -213,7 +214,7 @@ public class FlashcardSetController : Controller
         string? synonyms,
         bool isStarred = false)
     {
-        var user = await _accountService.GetCurrentUserAsync(User);
+        var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
         try
@@ -253,7 +254,7 @@ public class FlashcardSetController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteCard(int id)
     {
-        var user = await _accountService.GetCurrentUserAsync(User);
+        var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
         try

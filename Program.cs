@@ -1,7 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using ltwnc.Data;
-using ltwnc.Repositories;
 using ltwnc.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -29,15 +28,10 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.AccessDeniedPath = "/Account/Login";
 });
 
-// Add Repositories
-builder.Services.AddScoped<IFlashcardSetRepository, FlashcardSetRepository>();
-builder.Services.AddScoped<IFlashcardRepository, FlashcardRepository>();
-builder.Services.AddScoped<IStudySessionRepository, StudySessionRepository>();
-
 // Add Services
-builder.Services.AddScoped<IAccountService, AccountService>();
-builder.Services.AddScoped<IFlashcardSetService, FlashcardSetService>();
-builder.Services.AddScoped<IStudyService, StudyService>();
+builder.Services.AddScoped<FlashcardSetService>();
+builder.Services.AddScoped<StudyService>();
+
 
 // Add MVC
 builder.Services.AddControllersWithViews();

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
 using ltwnc.Services;
 using ltwnc.Models.ViewModels.Account;
 
@@ -7,12 +8,13 @@ namespace ltwnc.Controllers;
 // Controller xử lý đăng ký, đăng nhập, đăng xuất
 public class AccountController : Controller
 {
-    private readonly IAccountService _accountService;
+    private readonly UserManager<IdentityUser> _userManager;
+    private readonly SignInManager<IdentityUser> _signInManager;
 
-    // Inject service xử lý nghiệp vụ tài khoản
-    public AccountController(IAccountService accountService)
+    public AccountController(UserManager<IdentityUser> userManager, SignInManager<IdentityUser> signInManager)
     {
-        _accountService = accountService;
+        _userManager = userManager;
+        _signInManager = signInManager;
     }
 
     // Hiển thị form đăng ký
@@ -30,12 +32,13 @@ public class AccountController : Controller
         // Kiểm tra dữ liệu đầu vào hợp lệ
         if (!ModelState.IsValid) return View(model);
 
-        // Gọi service tạo tài khoản mới
-        var result = await _accountService.RegisterAsync(model.Email, model.Username, model.Password);
+        // Tạo tài khoản mới bằng UserManager
+        var user = new IdentityUser { UserName = model.Username, Email = model.Email };
+        var result = await _userManager.CreateAsync(user, model.Password);
         if (result.Succeeded)
         {
             // Đăng ký thành công → tự động đăng nhập
-            await _accountService.LoginAsync(model.Email, model.Password, false);
+            await _signInManager.SignInAsync(user, isPersistent: false);
             return RedirectToAction("Index", "Home");
         }
 
@@ -62,12 +65,15 @@ public class AccountController : Controller
         // Kiểm tra dữ liệu đầu vào hợp lệ
         if (!ModelState.IsValid) return View(model);
 
-        // Gọi service xác thực đăng nhập
-        var result = await _accountService.LoginAsync(model.Email, model.Password, model.RememberMe);
-        if (result.Succeeded)
+        // Tìm user theo email và đăng nhập bằng SignInManager
+        var user = await _userManager.FindByEmailAsync(model.Email);
+        if (user != null)
         {
-            // Đăng nhập thành công → chuyển về trang chủ
-            return RedirectToAction("Index", "Home");
+            var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, false);
+            if (result.Succeeded)
+            {
+                return RedirectToAction("Index", "Home");
+            }
         }
 
         // Đăng nhập thất bại → hiển thị lỗi
@@ -80,7 +86,7 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
-        await _accountService.LogoutAsync();
+        await _signInManager.SignOutAsync();
         return RedirectToAction("Index", "Home");
     }
 }

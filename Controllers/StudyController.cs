@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Identity;
 using ltwnc.Services;
 using ltwnc.Models.ViewModels.Study;
 
@@ -9,16 +10,16 @@ namespace ltwnc.Controllers;
 [Authorize]
 public class StudyController : Controller
 {
-    private readonly IStudyService _studyService;
-    private readonly IFlashcardSetService _setService;
-    private readonly IAccountService _accountService;
+    private readonly StudyService _studyService;
+    private readonly FlashcardSetService _setService;
+    private readonly UserManager<IdentityUser> _userManager;
 
-    // Inject các service: học tập, bộ thẻ, tài khoản
-    public StudyController(IStudyService studyService, IFlashcardSetService setService, IAccountService accountService)
+    // Inject các service: học tập, bộ thẻ, UserManager
+    public StudyController(StudyService studyService, FlashcardSetService setService, UserManager<IdentityUser> userManager)
     {
         _studyService = studyService;
         _setService = setService;
-        _accountService = accountService;
+        _userManager = userManager;
     }
 
     // Hiển thị trang chọn chế độ học (Flashcard, Quiz, Write, Match)
@@ -26,7 +27,7 @@ public class StudyController : Controller
     [Route("/Study/{setId}")]
     public async Task<IActionResult> Index(int setId)
     {
-        var user = await _accountService.GetCurrentUserAsync(User);
+        var user = await _userManager.GetUserAsync(User);
 
         // Kiểm tra bộ thẻ có tồn tại và người dùng có quyền học không
         var set = await _setService.GetAccessibleSetAsync(setId, user?.Id);
@@ -44,7 +45,7 @@ public class StudyController : Controller
     [Route("/Study/{setId}/Flashcard")]
     public async Task<IActionResult> Flashcard(int setId, int index = 0, bool starredOnly = false)
     {
-        var user = await _accountService.GetCurrentUserAsync(User);
+        var user = await _userManager.GetUserAsync(User);
 
         // Kiểm tra bộ thẻ có tồn tại và người dùng có quyền học không
         var set = await _setService.GetAccessibleSetAsync(setId, user?.Id);
@@ -81,7 +82,7 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkLearned(int setId, int cardId, bool learned)
     {
-        var user = await _accountService.GetCurrentUserAsync(User);
+        var user = await _userManager.GetUserAsync(User);
         if (user == null)
         {
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
@@ -120,7 +121,7 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Complete(int setId)
     {
-        var user = await _accountService.GetCurrentUserAsync(User);
+        var user = await _userManager.GetUserAsync(User);
         if (user == null)
         {
             if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")

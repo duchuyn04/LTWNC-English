@@ -1,46 +1,48 @@
+using Microsoft.EntityFrameworkCore;
+using ltwnc.Data;
 using ltwnc.Models.Entities;
-using ltwnc.Repositories;
 
 namespace ltwnc.Services;
 
 // Service xử lý nghiệp vụ học tập
 // Quản lý tiến trình học (đã biết/chưa biết) và phiên học
-public class StudyService : IStudyService
+public class StudyService
 {
-    private readonly IFlashcardRepository _cardRepo;
-    private readonly IStudySessionRepository _studyRepo;
-    private readonly IFlashcardSetRepository _setRepo;
+    private readonly AppDbContext _context;
 
-    // Inject 3 repository: thẻ, phiên học, bộ thẻ
-    public StudyService(IFlashcardRepository cardRepo, IStudySessionRepository studyRepo, IFlashcardSetRepository setRepo)
+    // Inject AppDbContext
+    public StudyService(AppDbContext context)
     {
-        _cardRepo = cardRepo;
-        _studyRepo = studyRepo;
-        _setRepo = setRepo;
+        _context = context;
     }
 
     // Lấy danh sách thẻ trong một bộ để học
     public async Task<List<Flashcard>> GetFlashcardsForStudyAsync(int setId, bool starredOnly = false)
     {
-        return await _cardRepo.GetBySetIdAsync(setId, starredOnly);
+        var query = _context.Flashcards.Where(f => f.FlashcardSetId == setId);
+        if (starredOnly)
+        {
+            query = query.Where(f => f.IsStarred);
+        }
+        return await query.OrderBy(f => f.OrderIndex).ToListAsync();
     }
 
     // Đánh dấu thẻ đã biết hoặc chưa biết
-    // Nếu chưa có tiến trình → tạo mới
-    // Nếu đã có → cập nhật trạng thái
     public async Task MarkLearnedAsync(string userId, int setId, int flashcardId, bool learned)
     {
-        var set = await _setRepo.GetByIdAsync(setId);
+        var set = await _context.FlashcardSets.FindAsync(setId);
         if (set == null)
             throw new KeyNotFoundException("Bộ thẻ không tồn tại.");
         if (!set.IsPublic && set.UserId != userId)
             throw new UnauthorizedAccessException("Không có quyền học bộ thẻ này.");
 
-        var card = await _cardRepo.GetByIdAsync(flashcardId);
+        var card = await _context.Flashcards.FindAsync(flashcardId);
         if (card == null || card.FlashcardSetId != setId)
             throw new KeyNotFoundException("Thẻ không tồn tại trong bộ thẻ này.");
 
-        var progress = await _studyRepo.GetProgressAsync(userId, flashcardId);
+        var progress = await _context.UserProgresses
+            .FirstOrDefaultAsync(p => p.UserId == userId && p.FlashcardId == flashcardId);
+
         if (progress == null)
         {
             progress = new UserProgress
@@ -50,23 +52,22 @@ public class StudyService : IStudyService
                 IsLearned = learned,
                 LastReviewed = DateTime.UtcNow
             };
-            await _studyRepo.AddProgressAsync(progress);
+            await _context.UserProgresses.AddAsync(progress);
         }
         else
         {
             progress.IsLearned = learned;
             progress.LastReviewed = DateTime.UtcNow;
-            _studyRepo.UpdateProgress(progress);
+            _context.UserProgresses.Update(progress);
         }
 
-        await _setRepo.SaveChangesAsync();
+        await _context.SaveChangesAsync();
     }
 
     // Ghi nhận hoàn thành một phiên học
-    // Lưu lại chế độ học (Flashcard, Quiz, Write, Match) và thời gian hoàn thành
     public async Task CompleteSessionAsync(string userId, int setId, StudyMode mode)
     {
-        var set = await _setRepo.GetByIdAsync(setId);
+        var set = await _context.FlashcardSets.FindAsync(setId);
         if (set == null)
             throw new KeyNotFoundException("Bộ thẻ không tồn tại.");
         if (!set.IsPublic && set.UserId != userId)
@@ -79,6 +80,7 @@ public class StudyService : IStudyService
             Mode = mode,
             CompletedAt = DateTime.UtcNow
         };
-        await _studyRepo.AddAsync(session);
+        await _context.StudySessions.AddAsync(session);
+        await _context.SaveChangesAsync();
     }
 }
