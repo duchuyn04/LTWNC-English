@@ -63,12 +63,9 @@ public class FlashcardSetController : Controller
     {
         var user = await _accountService.GetCurrentUserAsync(User);
 
-        // Tìm bộ thẻ theo id
-        var set = await _setService.GetSetByIdAsync(id);
+        // Chỉ cho xem bộ công khai hoặc bộ của chính người dùng hiện tại
+        var set = await _setService.GetAccessibleSetWithCardsAsync(id, user?.Id);
         if (set == null) return NotFound();
-
-        // Lấy danh sách thẻ trong bộ
-        var setWithCards = await _setService.GetSetWithCardsAsync(id, set.UserId);
 
         // Ánh xạ sang ViewModel để hiển thị trên View
         var model = new SetDetailViewModel
@@ -78,7 +75,7 @@ public class FlashcardSetController : Controller
             Description = set.Description,
             IsPublic = set.IsPublic,
             UserId = set.UserId,
-            Flashcards = setWithCards?.Flashcards.ToList() ?? new(),
+            Flashcards = set.Flashcards.ToList(),
             IsOwner = user?.Id == set.UserId // Kiểm tra người xem có phải chủ sở hữu không
         };
         return View(model);
@@ -159,7 +156,16 @@ public class FlashcardSetController : Controller
     [HttpPost]
     [Route("/Set/{setId}/Cards/Create")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddCard(int setId, string frontText, string backText)
+    public async Task<IActionResult> AddCard(
+        int setId,
+        string frontText,
+        string backText,
+        string pronunciation,
+        string partOfSpeech,
+        string exampleSentence,
+        string exampleMeaning,
+        string? synonyms,
+        bool isStarred = false)
     {
         var user = await _accountService.GetCurrentUserAsync(User);
         if (user == null) return Challenge();
@@ -167,7 +173,22 @@ public class FlashcardSetController : Controller
         try
         {
             // Thêm thẻ mới vào bộ
-            await _setService.AddCardAsync(setId, frontText, backText, user.Id);
+            await _setService.AddCardAsync(
+                setId,
+                frontText,
+                backText,
+                pronunciation,
+                partOfSpeech,
+                exampleSentence,
+                exampleMeaning,
+                synonyms,
+                isStarred,
+                user.Id);
+            return RedirectToAction("Edit", new { id = setId });
+        }
+        catch (ArgumentException ex)
+        {
+            TempData["Error"] = ex.Message;
             return RedirectToAction("Edit", new { id = setId });
         }
         catch (UnauthorizedAccessException)
@@ -180,7 +201,17 @@ public class FlashcardSetController : Controller
     [HttpPost]
     [Route("/Cards/{id}/Edit")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditCard(int id, string frontText, string backText)
+    public async Task<IActionResult> EditCard(
+        int id,
+        int setId,
+        string frontText,
+        string backText,
+        string pronunciation,
+        string partOfSpeech,
+        string exampleSentence,
+        string exampleMeaning,
+        string? synonyms,
+        bool isStarred = false)
     {
         var user = await _accountService.GetCurrentUserAsync(User);
         if (user == null) return Challenge();
@@ -188,7 +219,26 @@ public class FlashcardSetController : Controller
         try
         {
             // Cập nhật nội dung thẻ, trả về setId để redirect
-            var setId = await _setService.UpdateCardAsync(id, frontText, backText, user.Id);
+            var updatedSetId = await _setService.UpdateCardAsync(
+                id,
+                frontText,
+                backText,
+                pronunciation,
+                partOfSpeech,
+                exampleSentence,
+                exampleMeaning,
+                synonyms,
+                isStarred,
+                user.Id);
+            return RedirectToAction("Edit", new { id = updatedSetId });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (ArgumentException ex)
+        {
+            TempData["Error"] = ex.Message;
             return RedirectToAction("Edit", new { id = setId });
         }
         catch (UnauthorizedAccessException)
@@ -211,6 +261,10 @@ public class FlashcardSetController : Controller
             // Xóa thẻ, trả về setId để redirect
             var setId = await _setService.DeleteCardAsync(id, user.Id);
             return RedirectToAction("Edit", new { id = setId });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
         }
         catch (UnauthorizedAccessException)
         {

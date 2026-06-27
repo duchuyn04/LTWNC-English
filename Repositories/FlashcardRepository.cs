@@ -16,10 +16,17 @@ public class FlashcardRepository : IFlashcardRepository
     }
 
     // Lấy tất cả thẻ trong một bộ, sắp xếp theo thứ tự hiển thị
-    public async Task<List<Flashcard>> GetBySetIdAsync(int setId)
+    public async Task<List<Flashcard>> GetBySetIdAsync(int setId, bool starredOnly = false)
     {
-        return await _context.Flashcards
-            .Where(f => f.FlashcardSetId == setId)
+        var query = _context.Flashcards
+            .Where(f => f.FlashcardSetId == setId);
+
+        if (starredOnly)
+        {
+            query = query.Where(f => f.IsStarred);
+        }
+
+        return await query
             .OrderBy(f => f.OrderIndex)
             .ToListAsync();
     }
@@ -46,5 +53,21 @@ public class FlashcardRepository : IFlashcardRepository
     public void Delete(Flashcard card)
     {
         _context.Flashcards.Remove(card);
+    }
+
+    // Xóa tiến trình học trước khi xóa thẻ để tránh lỗi khóa ngoại Restrict
+    public async Task DeleteProgressByFlashcardIdAsync(int flashcardId)
+    {
+        await _context.UserProgresses
+            .Where(p => p.FlashcardId == flashcardId)
+            .ExecuteDeleteAsync();
+    }
+
+    // Xóa tiến trình học của cả bộ trước khi xóa bộ thẻ
+    public async Task DeleteProgressBySetIdAsync(int setId)
+    {
+        await _context.UserProgresses
+            .Where(p => p.Flashcard!.FlashcardSetId == setId)
+            .ExecuteDeleteAsync();
     }
 }

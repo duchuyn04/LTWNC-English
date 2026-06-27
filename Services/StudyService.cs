@@ -20,16 +20,26 @@ public class StudyService : IStudyService
     }
 
     // Lấy danh sách thẻ trong một bộ để học
-    public async Task<List<Flashcard>> GetFlashcardsForStudyAsync(int setId)
+    public async Task<List<Flashcard>> GetFlashcardsForStudyAsync(int setId, bool starredOnly = false)
     {
-        return await _cardRepo.GetBySetIdAsync(setId);
+        return await _cardRepo.GetBySetIdAsync(setId, starredOnly);
     }
 
     // Đánh dấu thẻ đã biết hoặc chưa biết
     // Nếu chưa có tiến trình → tạo mới
     // Nếu đã có → cập nhật trạng thái
-    public async Task MarkLearnedAsync(string userId, int flashcardId, bool learned)
+    public async Task MarkLearnedAsync(string userId, int setId, int flashcardId, bool learned)
     {
+        var set = await _setRepo.GetByIdAsync(setId);
+        if (set == null)
+            throw new KeyNotFoundException("Bộ thẻ không tồn tại.");
+        if (!set.IsPublic && set.UserId != userId)
+            throw new UnauthorizedAccessException("Không có quyền học bộ thẻ này.");
+
+        var card = await _cardRepo.GetByIdAsync(flashcardId);
+        if (card == null || card.FlashcardSetId != setId)
+            throw new KeyNotFoundException("Thẻ không tồn tại trong bộ thẻ này.");
+
         // Kiểm tra đã có tiến trình học cho thẻ này chưa
         var progress = await _studyRepo.GetProgressAsync(userId, flashcardId);
         if (progress == null)
@@ -60,6 +70,12 @@ public class StudyService : IStudyService
     // Lưu lại chế độ học (Flashcard, Quiz, Write, Match) và thời gian hoàn thành
     public async Task CompleteSessionAsync(string userId, int setId, StudyMode mode)
     {
+        var set = await _setRepo.GetByIdAsync(setId);
+        if (set == null)
+            throw new KeyNotFoundException("Bộ thẻ không tồn tại.");
+        if (!set.IsPublic && set.UserId != userId)
+            throw new UnauthorizedAccessException("Không có quyền học bộ thẻ này.");
+
         var session = new StudySession
         {
             UserId = userId,

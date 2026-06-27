@@ -25,8 +25,11 @@ public class StudyController : Controller
     [Route("/Study/{setId}")]
     public async Task<IActionResult> Index(int setId)
     {
-        // Kiểm tra bộ thẻ có tồn tại không
-        var set = await _setService.GetSetByIdAsync(setId);
+        var user = await _accountService.GetCurrentUserAsync(User);
+        if (user == null) return Challenge();
+
+        // Kiểm tra bộ thẻ có tồn tại và người dùng có quyền học không
+        var set = await _setService.GetAccessibleSetAsync(setId, user.Id);
         if (set == null) return NotFound();
 
         // Truyền thông tin bộ thẻ qua ViewBag
@@ -38,18 +41,23 @@ public class StudyController : Controller
     // Hiển thị giao diện học flashcard
     // Tham số index: vị trí thẻ hiện tại (mặc định = 0)
     [Route("/Study/{setId}/Flashcard")]
-    public async Task<IActionResult> Flashcard(int setId, int index = 0)
+    public async Task<IActionResult> Flashcard(int setId, int index = 0, bool starredOnly = false)
     {
-        // Kiểm tra bộ thẻ có tồn tại không
-        var set = await _setService.GetSetByIdAsync(setId);
+        var user = await _accountService.GetCurrentUserAsync(User);
+        if (user == null) return Challenge();
+
+        // Kiểm tra bộ thẻ có tồn tại và người dùng có quyền học không
+        var set = await _setService.GetAccessibleSetAsync(setId, user.Id);
         if (set == null) return NotFound();
 
         // Lấy danh sách thẻ để học
-        var cards = await _studyService.GetFlashcardsForStudyAsync(setId);
+        var cards = await _studyService.GetFlashcardsForStudyAsync(setId, starredOnly);
         if (!cards.Any())
         {
             // Bộ thẻ chưa có thẻ nào → quay lại trang chọn chế độ
-            TempData["Message"] = "Bộ thẻ này chưa có thẻ nào.";
+            TempData["Message"] = starredOnly
+                ? "Bộ thẻ này chưa có thẻ nào được đánh sao."
+                : "Bộ thẻ này chưa có thẻ nào.";
             return RedirectToAction("Index", new { setId });
         }
 
@@ -59,7 +67,8 @@ public class StudyController : Controller
             SetId = setId,
             SetTitle = set.Title,
             Flashcards = cards,
-            CurrentIndex = Math.Clamp(index, 0, cards.Count - 1) // Giới hạn index hợp lệ
+            CurrentIndex = Math.Clamp(index, 0, cards.Count - 1), // Giới hạn index hợp lệ
+            StarredOnly = starredOnly
         };
 
         return View(model);
@@ -70,7 +79,7 @@ public class StudyController : Controller
     [HttpPost]
     [Route("/Study/{setId}/Flashcard/Mark")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> MarkLearned(int setId, int cardId, bool learned)
+    public async Task<IActionResult> MarkLearned(int setId, int cardId, bool learned, bool starredOnly = false)
     {
         var user = await _accountService.GetCurrentUserAsync(User);
         if (user == null)
@@ -82,8 +91,19 @@ public class StudyController : Controller
             return Challenge();
         }
 
-        // Lưu tiến trình học vào database
-        await _studyService.MarkLearnedAsync(user.Id, cardId, learned);
+        try
+        {
+            // Lưu tiến trình học vào database
+            await _studyService.MarkLearnedAsync(user.Id, setId, cardId, learned);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
 
         if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
         {
@@ -91,7 +111,7 @@ public class StudyController : Controller
         }
 
         // Quay lại trang flashcard hiện tại
-        return RedirectToAction("Flashcard", new { setId });
+        return RedirectToAction("Flashcard", new { setId, starredOnly });
     }
 
     // Xử lý hoàn thành buổi học
@@ -110,8 +130,19 @@ public class StudyController : Controller
             return Challenge();
         }
 
-        // Ghi nhận phiên học hoàn thành
-        await _studyService.CompleteSessionAsync(user.Id, setId, Models.Entities.StudyMode.Flashcard);
+        try
+        {
+            // Ghi nhận phiên học hoàn thành
+            await _studyService.CompleteSessionAsync(user.Id, setId, Models.Entities.StudyMode.Flashcard);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
 
         if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
         {

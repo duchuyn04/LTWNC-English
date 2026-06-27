@@ -8,4 +8,5 @@ public class FlashcardStudyViewModel
     public string SetTitle { get; set; } = string.Empty;
     public List<Flashcard> Flashcards { get; set; } = new();
     public int CurrentIndex { get; set; }
+    public bool StarredOnly { get; set; }
 }

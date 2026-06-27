@@ -17,8 +17,14 @@ public interface IFlashcardSetService
     // Lấy bộ thẻ theo id (không kèm danh sách thẻ)
     Task<FlashcardSet?> GetSetByIdAsync(int id);
 
+    // Lấy bộ thẻ nếu người dùng được phép xem (public hoặc chủ sở hữu)
+    Task<FlashcardSet?> GetAccessibleSetAsync(int id, string? userId);
+
     // Lấy bộ thẻ theo id kèm danh sách thẻ — chỉ trả về nếu là chủ sở hữu
     Task<FlashcardSet?> GetSetWithCardsAsync(int id, string userId);
+
+    // Lấy bộ thẻ kèm danh sách thẻ nếu người dùng được phép xem
+    Task<FlashcardSet?> GetAccessibleSetWithCardsAsync(int id, string? userId);
 
     // Tạo bộ thẻ mới
     Task<FlashcardSet> CreateSetAsync(string title, string? description, bool isPublic, string userId);
@@ -30,10 +36,30 @@ public interface IFlashcardSetService
     Task DeleteSetAsync(int id, string userId);
 
     // Thêm thẻ mới vào bộ
-    Task<Flashcard> AddCardAsync(int setId, string frontText, string backText, string userId);
+    Task<Flashcard> AddCardAsync(
+        int setId,
+        string frontText,
+        string backText,
+        string pronunciation,
+        string partOfSpeech,
+        string exampleSentence,
+        string exampleMeaning,
+        string? synonyms,
+        bool isStarred,
+        string userId);
 
     // Cập nhật nội dung thẻ — trả về setId để redirect
-    Task<int> UpdateCardAsync(int cardId, string frontText, string backText, string userId);
+    Task<int> UpdateCardAsync(
+        int cardId,
+        string frontText,
+        string backText,
+        string pronunciation,
+        string partOfSpeech,
+        string exampleSentence,
+        string exampleMeaning,
+        string? synonyms,
+        bool isStarred,
+        string userId);
 
     // Xóa thẻ — trả về setId để redirect
     Task<int> DeleteCardAsync(int cardId, string userId);

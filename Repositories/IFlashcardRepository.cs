@@ -6,7 +6,7 @@ namespace ltwnc.Repositories;
 public interface IFlashcardRepository
 {
     // Lấy danh sách thẻ theo bộ (sắp xếp theo OrderIndex)
-    Task<List<Flashcard>> GetBySetIdAsync(int setId);
+    Task<List<Flashcard>> GetBySetIdAsync(int setId, bool starredOnly = false);
 
     // Lấy thẻ theo id
     Task<Flashcard?> GetByIdAsync(int id);
@@ -19,4 +19,10 @@ public interface IFlashcardRepository
 
     // Đánh dấu thẻ cần xóa
     void Delete(Flashcard card);
+
+    // Xóa tiến trình học liên quan đến một thẻ
+    Task DeleteProgressByFlashcardIdAsync(int flashcardId);
+
+    // Xóa tiến trình học liên quan đến tất cả thẻ trong một bộ
+    Task DeleteProgressBySetIdAsync(int setId);
 }
