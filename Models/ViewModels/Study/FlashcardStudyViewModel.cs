@@ -9,4 +9,7 @@ public class FlashcardStudyViewModel
     public List<Flashcard> Flashcards { get; set; } = new();
     public int CurrentIndex { get; set; }
     public bool StarredOnly { get; set; }
+    public UserStudySettings Settings { get; set; } = new();
+    public bool IsAuthenticated { get; set; }
+    public bool UnlearnedOnly { get; set; }
 }

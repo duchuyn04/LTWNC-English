@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using ltwnc.Services;
 using ltwnc.Models.ViewModels.Study;
+using ltwnc.Models.Entities;
 
 namespace ltwnc.Controllers;
 
@@ -43,21 +44,26 @@ public class StudyController : Controller
     // Tham số index: vị trí thẻ hiện tại (mặc định = 0)
     [AllowAnonymous]
     [Route("/Study/{setId}/Flashcard")]
-    public async Task<IActionResult> Flashcard(int setId, int index = 0, bool starredOnly = false)
+    public async Task<IActionResult> Flashcard(int setId, int index = 0, bool starredOnly = false, bool unlearnedOnly = false)
     {
         var user = await _userManager.GetUserAsync(User);
+
+        // Đọc settings và kết hợp bộ lọc
+        var settings = await _studyService.GetSettingsAsync(user?.Id);
+        starredOnly = starredOnly || settings.StarredOnly;
+        unlearnedOnly = unlearnedOnly || settings.UnlearnedOnly;
 
         // Kiểm tra bộ thẻ có tồn tại và người dùng có quyền học không
         var set = await _setService.GetAccessibleSetAsync(setId, user?.Id);
         if (set == null) return NotFound();
 
         // Lấy danh sách thẻ để học
-        var cards = await _studyService.GetFlashcardsForStudyAsync(setId, starredOnly);
+        var cards = await _studyService.GetFlashcardsForStudyAsync(setId, starredOnly, unlearnedOnly, user?.Id);
         if (!cards.Any())
         {
             // Bộ thẻ chưa có thẻ nào → quay lại trang chọn chế độ
-            TempData["Message"] = starredOnly
-                ? "Bộ thẻ này chưa có thẻ nào được đánh sao."
+            TempData["Message"] = starredOnly || unlearnedOnly
+                ? "Không có thẻ phù hợp với bộ lọc hiện tại."
                 : "Bộ thẻ này chưa có thẻ nào.";
             return RedirectToAction("Index", new { setId });
         }
@@ -69,7 +75,10 @@ public class StudyController : Controller
             SetTitle = set.Title,
             Flashcards = cards,
             CurrentIndex = Math.Clamp(index, 0, cards.Count - 1), // Giới hạn index hợp lệ
-            StarredOnly = starredOnly
+            StarredOnly = starredOnly,
+            Settings = settings,
+            IsAuthenticated = user != null,
+            UnlearnedOnly = unlearnedOnly
         };
 
         return View(model);
@@ -153,5 +162,45 @@ public class StudyController : Controller
         // Hiển thị thông báo thành công
         TempData["Success"] = "Hoàn thành buổi học!";
         return RedirectToAction("Index", new { setId });
+    }
+
+    // Xử lý đánh dấu sao thẻ bằng AJAX
+    [HttpPost]
+    [Route("/Study/{setId}/Flashcard/{cardId}/ToggleStar")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleStar(int setId, int cardId)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+
+        try
+        {
+            var isStarred = await _setService.ToggleStarAsync(cardId, user.Id);
+            return Json(new { success = true, isStarred = isStarred });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (Exception)
+        {
+            return BadRequest();
+        }
+    }
+
+    [HttpPost]
+    [Route("/Study/Settings")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> SaveSettings([FromForm] UserStudySettings settings)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+
+        var saved = await _studyService.SaveSettingsAsync(user.Id, settings);
+        return Json(new { success = true, settings = saved });
     }
 }
