@@ -1,6 +1,7 @@
 @model HomeViewModel
 @{
     ViewData["Title"] = "Trang chủ";
+    ViewData["HideLayoutChrome"] = true;
     var primaryCta = User.Identity?.IsAuthenticated == true ? "/Set/Create" : "/Account/Register";
     var secondaryCta = User.Identity?.IsAuthenticated == true ? "/Set" : "#featured-sets";
 }

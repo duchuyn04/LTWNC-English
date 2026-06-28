@@ -14,6 +14,11 @@
     <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
 </head>
 <body>
+    @{
+        var hideLayoutChrome = ViewData["HideLayoutChrome"] as bool? == true;
+    }
+    @if (!hideLayoutChrome)
+    {
     <header>
         <nav class="navbar navbar-expand-lg" style="background: #FFFFFF; border-bottom: 1px solid #EAEAEA;">
             <div class="container">
@@ -69,6 +74,7 @@
             </div>
         </nav>
     </header>
+    }
 
     <main style="background: #F7F6F3; min-height: calc(100vh - 120px);">
         @if (IsSectionDefined("FullWidth"))
@@ -83,11 +89,14 @@
         }
     </main>
 
+    @if (!hideLayoutChrome)
+    {
     <footer style="background: #FFFFFF; border-top: 1px solid #EAEAEA; color: #787774; font-size: 0.875rem;">
         <div class="container py-4 text-center">
             &copy; @DateTime.Now.Year LTWNC English. Học tiếng Anh cùng flashcard.
         </div>
     </footer>
+    }
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
