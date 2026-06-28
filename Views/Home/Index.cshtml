@@ -44,8 +44,13 @@
         </div>
     </div>
 
-    <section class="home-hero">
-        <div class="container">
+    <section class="home-hero hero-container-wrapper">
+        <div class="fog-container">
+            <div class="fog-orb orb-1"></div>
+            <div class="fog-orb orb-2"></div>
+            <div class="fog-orb orb-3"></div>
+        </div>
+        <div class="container" style="position: relative; z-index: 2;">
             <div class="row align-items-center g-5">
                 <div class="col-lg-6" data-aos="fade-right">
                     <div class="home-kicker">Flashcard learning service</div>
@@ -69,12 +74,21 @@
                     </div>
                 </div>
                 <div class="col-lg-6" data-aos="fade-left">
-                    <div class="home-hero-card">
-                        <div class="home-flashcard-preview">
-                            <div>
-                                <span class="badge bg-light text-dark mb-3">ENGLISH</span>
-                                <h2 class="display-4 fw-bold">consistency</h2>
-                                <p class="mb-0">/kənˈsɪstənsi/ · sự đều đặn</p>
+                    <div class="flashcard-3d-wrapper">
+                        <div class="flashcard-3d-card" onclick="this.classList.toggle('flipped')">
+                            <div class="flashcard-face flashcard-front">
+                                <div>
+                                    <span class="badge bg-light text-dark mb-3">ENGLISH</span>
+                                    <h2 class="display-4 fw-bold">consistency</h2>
+                                    <p class="mb-0 text-muted">/kənˈsɪstənsi/ · Click to flip</p>
+                                </div>
+                            </div>
+                            <div class="flashcard-face flashcard-back">
+                                <div>
+                                    <span class="badge bg-light text-dark mb-3" style="background: rgba(255,255,255,0.2) !important;">VIETNAMESE</span>
+                                    <h2 class="display-5 fw-bold">sự đều đặn</h2>
+                                    <p class="mb-0 text-white-50">"Consistency is key to success."</p>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -87,13 +101,13 @@
         <div class="container">
             <div class="text-center mb-4">
                 <div class="home-kicker">Benefits</div>
-                <h2 class="home-section-title">Tập trung vào cách bạn ghi nhớ.</h2>
+                <h2 class="home-section-title mist-reveal">Tập trung vào cách bạn ghi nhớ.</h2>
             </div>
             <div class="home-grid-4">
-                <div class="home-card"><span class="home-icon"><i class="ph ph-cards"></i></span><h3 class="h5 mt-3">Flashcard rõ ràng</h3><p class="home-section-copy">Mỗi từ có nghĩa, IPA, ví dụ và trạng thái học.</p></div>
-                <div class="home-card"><span class="home-icon"><i class="ph ph-speaker-high"></i></span><h3 class="h5 mt-3">Giọng đọc</h3><p class="home-section-copy">Nghe phát âm tiếng Anh ngay khi học thẻ.</p></div>
-                <div class="home-card"><span class="home-icon"><i class="ph ph-star"></i></span><h3 class="h5 mt-3">Đánh dấu sao</h3><p class="home-section-copy">Tách nhóm từ quan trọng để ôn nhanh.</p></div>
-                <div class="home-card"><span class="home-icon"><i class="ph ph-chart-line-up"></i></span><h3 class="h5 mt-3">Tiến độ học</h3><p class="home-section-copy">Biết từ nào chưa học, đang học, đã thành thạo.</p></div>
+                <div class="home-card" data-aos="fade-up" data-aos-delay="0"><span class="home-icon"><i class="ph ph-cards"></i></span><h3 class="h5 mt-3">Flashcard rõ ràng</h3><p class="home-section-copy">Mỗi từ có nghĩa, IPA, ví dụ và trạng thái học.</p></div>
+                <div class="home-card" data-aos="fade-up" data-aos-delay="100"><span class="home-icon"><i class="ph ph-speaker-high"></i></span><h3 class="h5 mt-3">Giọng đọc</h3><p class="home-section-copy">Nghe phát âm tiếng Anh ngay khi học thẻ.</p></div>
+                <div class="home-card" data-aos="fade-up" data-aos-delay="200"><span class="home-icon"><i class="ph ph-star"></i></span><h3 class="h5 mt-3">Đánh dấu sao</h3><p class="home-section-copy">Tách nhóm từ quan trọng để ôn nhanh.</p></div>
+                <div class="home-card" data-aos="fade-up" data-aos-delay="300"><span class="home-icon"><i class="ph ph-chart-line-up"></i></span><h3 class="h5 mt-3">Tiến độ học</h3><p class="home-section-copy">Biết từ nào chưa học, đang học, đã thành thạo.</p></div>
             </div>
         </div>
     </section>
@@ -103,14 +117,14 @@
             <div class="row g-4 align-items-end mb-4">
                 <div class="col-lg-7">
                     <div class="home-kicker">Services</div>
-                    <h2 class="home-section-title">Dịch vụ học nằm ngay trong app.</h2>
+                    <h2 class="home-section-title mist-reveal">Dịch vụ học nằm ngay trong app.</h2>
                 </div>
                 <div class="col-lg-5"><p class="home-section-copy">Không thêm quy trình phức tạp: tạo bộ thẻ, học, xem tiến độ.</p></div>
             </div>
             <div class="home-grid-3">
-                <div class="home-card"><span class="home-icon"><i class="ph ph-plus-circle"></i></span><h3 class="h5 mt-3">Tạo bộ thẻ</h3><p class="home-section-copy">Nhập thuật ngữ, định nghĩa, IPA, ví dụ và ảnh minh họa.</p></div>
-                <div class="home-card"><span class="home-icon"><i class="ph ph-brain"></i></span><h3 class="h5 mt-3">Học flashcard</h3><p class="home-section-copy">Lật thẻ, nghe voice, trộn thẻ, đánh dấu đã biết/chưa biết.</p></div>
-                <div class="home-card"><span class="home-icon"><i class="ph ph-stack"></i></span><h3 class="h5 mt-3">Theo dõi tiến độ</h3><p class="home-section-copy">Sắp xếp theo trạng thái học để biết nên ôn gì trước.</p></div>
+                <div class="home-card" data-aos="fade-up" data-aos-delay="0"><span class="home-icon"><i class="ph ph-plus-circle"></i></span><h3 class="h5 mt-3">Tạo bộ thẻ</h3><p class="home-section-copy">Nhập thuật ngữ, định nghĩa, IPA, ví dụ và ảnh minh họa.</p></div>
+                <div class="home-card" data-aos="fade-up" data-aos-delay="100"><span class="home-icon"><i class="ph ph-brain"></i></span><h3 class="h5 mt-3">Học flashcard</h3><p class="home-section-copy">Lật thẻ, nghe voice, trộn thẻ, đánh dấu đã biết/chưa biết.</p></div>
+                <div class="home-card" data-aos="fade-up" data-aos-delay="200"><span class="home-icon"><i class="ph ph-stack"></i></span><h3 class="h5 mt-3">Theo dõi tiến độ</h3><p class="home-section-copy">Sắp xếp theo trạng thái học để biết nên ôn gì trước.</p></div>
             </div>
         </div>
     </section>
@@ -121,14 +135,26 @@
                 <div class="row g-4 align-items-center">
                     <div class="col-lg-6">
                         <div class="home-kicker">Product</div>
-                        <h2 class="home-section-title text-white">Một workspace học từ vựng gọn.</h2>
+                        <h2 class="home-section-title text-white mist-reveal">Một workspace học từ vựng gọn.</h2>
                         <p class="text-white-50">Từ tạo bộ thẻ đến học flashcard đều nằm trong cùng một luồng.</p>
                     </div>
                     <div class="col-lg-6">
-                        <div class="home-card text-dark">
-                            <strong>debugging</strong>
-                            <p class="mb-2 text-muted">/ˌdiːˈbʌɡɪŋ/ · gỡ lỗi</p>
-                            <small>Debugging helped identify the cause of the system crash.</small>
+                        <div class="flashcard-3d-wrapper" style="min-height: 200px;">
+                            <div class="flashcard-3d-card" onclick="this.classList.toggle('flipped')" style="min-height: 200px;">
+                                <div class="flashcard-face flashcard-front home-card text-dark" style="border-radius: 16px;">
+                                    <div>
+                                        <span class="badge bg-secondary text-white mb-2">VOCABULARY</span>
+                                        <h4 class="fw-bold mb-1">debugging</h4>
+                                        <p class="mb-0 text-muted">/ˌdiːˈbʌɡɪŋ/ · Click to flip</p>
+                                    </div>
+                                </div>
+                                <div class="flashcard-face flashcard-back text-white" style="border-radius: 16px; background: #2f6a37; border-color: rgba(255, 255, 255, 0.2); padding: 1.5rem;">
+                                    <div>
+                                        <h4 class="fw-bold mb-1 text-white">gỡ lỗi</h4>
+                                        <p class="mb-0 text-white-50" style="font-size: 0.85rem;">Debugging helped identify the cause of the system crash.</p>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -153,7 +179,7 @@
             <div class="row g-5 align-items-center">
                 <div class="col-lg-6">
                     <div class="home-kicker">Why choose us</div>
-                    <h2 class="home-section-title">Ít thao tác, nhiều thời gian học hơn.</h2>
+                    <h2 class="home-section-title mist-reveal">Ít thao tác, nhiều thời gian học hơn.</h2>
                 </div>
                 <div class="col-lg-6 home-checklist">
                     <div class="home-check"><i class="ph ph-check-circle"></i><span>Không cần cài thêm công cụ học rời rạc.</span></div>
@@ -169,12 +195,12 @@
         <div class="container">
             <div class="text-center mb-4">
                 <div class="home-kicker">Onboarding</div>
-                <h2 class="home-section-title">Bắt đầu trong 3 bước.</h2>
+                <h2 class="home-section-title mist-reveal">Bắt đầu trong 3 bước.</h2>
             </div>
             <div class="home-grid-3">
-                <div class="home-card"><strong>01</strong><h3 class="h5 mt-3">Đăng ký</h3><p class="home-section-copy">Tạo tài khoản để lưu bộ thẻ và tiến độ.</p></div>
-                <div class="home-card"><strong>02</strong><h3 class="h5 mt-3">Tạo hoặc chọn bộ thẻ</h3><p class="home-section-copy">Tự nhập từ hoặc học từ bộ thẻ công khai.</p></div>
-                <div class="home-card"><strong>03</strong><h3 class="h5 mt-3">Ôn mỗi ngày</h3><p class="home-section-copy">Dùng flashcard, voice và trạng thái học để ôn đúng trọng tâm.</p></div>
+                <div class="home-card" data-aos="fade-up" data-aos-delay="0"><strong>01</strong><h3 class="h5 mt-3">Đăng ký</h3><p class="home-section-copy">Tạo tài khoản để lưu bộ thẻ và tiến độ.</p></div>
+                <div class="home-card" data-aos="fade-up" data-aos-delay="100"><strong>02</strong><h3 class="h5 mt-3">Tạo hoặc chọn bộ thẻ</h3><p class="home-section-copy">Tự nhập từ hoặc học từ bộ thẻ công khai.</p></div>
+                <div class="home-card" data-aos="fade-up" data-aos-delay="200"><strong>03</strong><h3 class="h5 mt-3">Ôn mỗi ngày</h3><p class="home-section-copy">Dùng flashcard, voice và trạng thái học để ôn đúng trọng tâm.</p></div>
             </div>
         </div>
     </section>
@@ -182,9 +208,9 @@
     <section>
         <div class="container">
             <div class="home-testimonials">
-                <div class="home-card"><p>"Flashcard rõ, dễ ôn lại từ chưa thuộc."</p><strong>Minh Anh</strong><small class="d-block text-muted">Sinh viên</small></div>
-                <div class="home-card"><p>"Tôi thích phần đánh sao và nghe phát âm."</p><strong>Quang Huy</strong><small class="d-block text-muted">Người tự học</small></div>
-                <div class="home-card"><p>"Tạo bộ thẻ cho lớp rất nhanh."</p><strong>Lan Phương</strong><small class="d-block text-muted">Gia sư</small></div>
+                <div class="home-card" data-aos="fade-up" data-aos-delay="0"><p>"Flashcard rõ, dễ ôn lại từ chưa thuộc."</p><strong>Minh Anh</strong><small class="d-block text-muted">Sinh viên</small></div>
+                <div class="home-card" data-aos="fade-up" data-aos-delay="100"><p>"Tôi thích phần đánh sao và nghe phát âm."</p><strong>Quang Huy</strong><small class="d-block text-muted">Người tự học</small></div>
+                <div class="home-card" data-aos="fade-up" data-aos-delay="200"><p>"Tạo bộ thẻ cho lớp rất nhanh."</p><strong>Lan Phương</strong><small class="d-block text-muted">Gia sư</small></div>
             </div>
         </div>
     </section>
@@ -192,9 +218,9 @@
     <section>
         <div class="container">
             <div class="row g-4">
-                <div class="col-lg-4"><div class="home-card"><div class="home-kicker">Blog</div><h3 class="h5">Cách nhớ từ theo ngữ cảnh</h3><p class="home-section-copy">Viết ví dụ riêng cho mỗi từ để nhớ lâu hơn.</p></div></div>
-                <div class="col-lg-4"><div class="home-card"><div class="home-kicker">Guide</div><h3 class="h5">Khi nào nên đánh dấu sao?</h3><p class="home-section-copy">Dùng sao cho từ khó, từ hay sai và từ cần ôn trước kỳ kiểm tra.</p></div></div>
-                <div class="col-lg-4"><div class="home-card"><div class="home-kicker">Tips</div><h3 class="h5">Nghe phát âm khi lật thẻ</h3><p class="home-section-copy">Kết hợp nhìn, nghe và ví dụ để học sâu hơn.</p></div></div>
+                <div class="col-lg-4" data-aos="fade-up" data-aos-delay="0"><div class="home-card"><div class="home-kicker">Blog</div><h3 class="h5">Cách nhớ từ theo ngữ cảnh</h3><p class="home-section-copy">Viết ví dụ riêng cho mỗi từ để nhớ lâu hơn.</p></div></div>
+                <div class="col-lg-4" data-aos="fade-up" data-aos-delay="100"><div class="home-card"><div class="home-kicker">Guide</div><h3 class="h5">Khi nào nên đánh dấu sao?</h3><p class="home-section-copy">Dùng sao cho từ khó, từ hay sai và từ cần ôn trước kỳ kiểm tra.</p></div></div>
+                <div class="col-lg-4" data-aos="fade-up" data-aos-delay="200"><div class="home-card"><div class="home-kicker">Tips</div><h3 class="h5">Nghe phát âm khi lật thẻ</h3><p class="home-section-copy">Kết hợp nhìn, nghe và ví dụ để học sâu hơn.</p></div></div>
             </div>
         </div>
     </section>
@@ -214,7 +240,7 @@
             <div class="d-flex justify-content-between align-items-end gap-3 flex-wrap mb-4">
                 <div>
                     <div class="home-kicker">Public sets</div>
-                    <h2 class="home-section-title">Bộ thẻ công khai</h2>
+                    <h2 class="home-section-title mist-reveal">Bộ thẻ công khai</h2>
                 </div>
                 @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
                 {
@@ -259,7 +285,7 @@
                 <div class="row g-4 align-items-end">
                     <div class="col-lg-5">
                         <div class="home-kicker">Quote</div>
-                        <h2 class="home-section-title">Bắt đầu lộ trình học.</h2>
+                        <h2 class="home-section-title mist-reveal">Bắt đầu lộ trình học.</h2>
                     </div>
                     <div class="col-lg-7">
                         <form id="home-quote-form" class="row g-3">
@@ -303,6 +329,25 @@
     document.getElementById('home-quote-form')?.addEventListener('submit', function(e) {
         e.preventDefault();
         window.location.href = '@primaryCta';
+    });
+
+    // Intersection Observer for Misty de-blur scroll reveal
+    document.addEventListener("DOMContentLoaded", function() {
+        const mistElements = document.querySelectorAll('.mist-reveal');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('mist-visible');
+                    observer.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.15,
+            rootMargin: "0px 0px -50px 0px"
+        });
+
+        mistElements.forEach(el => observer.observe(el));
     });
 </script>
 }

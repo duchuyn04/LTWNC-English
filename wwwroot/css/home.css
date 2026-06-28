@@ -251,3 +251,152 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* ==========================================================================
+   Homepage Animations: 3D Flip, Drifting Fog & Misty Scroll Reveal
+   ========================================================================== */
+
+/* 3D Flashcard styles */
+.flashcard-3d-wrapper {
+    perspective: 1000px;
+    padding: 0;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+}
+
+.flashcard-3d-card {
+    position: relative;
+    width: 100%;
+    min-height: 360px;
+    transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transform-style: preserve-3d;
+    cursor: pointer;
+}
+
+.flashcard-3d-card:hover {
+    transform: translateY(-8px) scale(1.02);
+}
+
+.flashcard-3d-card.flipped {
+    transform: rotateY(180deg);
+}
+
+.flashcard-3d-card.flipped:hover {
+    transform: rotateY(180deg) translateY(-8px) scale(1.02);
+}
+
+.flashcard-face {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden;
+    border-radius: 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    padding: 2rem;
+}
+
+.flashcard-front {
+    background: #111827;
+    color: #ffffff;
+    border: 1px solid var(--home-line);
+    box-shadow: 0 24px 70px rgba(78, 67, 48, 0.12);
+}
+
+.flashcard-back {
+    background: #1f6c9f;
+    color: #ffffff;
+    transform: rotateY(180deg);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 24px 70px rgba(31, 108, 159, 0.25);
+}
+
+/* Drifting background fog orbs */
+.hero-container-wrapper {
+    position: relative;
+    overflow: hidden;
+}
+
+.fog-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    pointer-events: none;
+    z-index: 1;
+}
+
+.fog-orb {
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(100px);
+    opacity: 0.45;
+    will-change: transform, opacity;
+    mix-blend-mode: multiply;
+}
+
+.orb-1 {
+    width: 350px;
+    height: 350px;
+    background: rgba(31, 108, 159, 0.25);
+    top: -50px;
+    left: 10%;
+    animation: drift-1 25s infinite alternate ease-in-out;
+}
+
+.orb-2 {
+    width: 450px;
+    height: 450px;
+    background: rgba(47, 106, 55, 0.15);
+    bottom: -100px;
+    right: 5%;
+    animation: drift-2 30s infinite alternate ease-in-out;
+}
+
+.orb-3 {
+    width: 250px;
+    height: 250px;
+    background: rgba(224, 167, 94, 0.2);
+    top: 30%;
+    right: 40%;
+    animation: drift-3 20s infinite alternate ease-in-out;
+}
+
+@keyframes drift-1 {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(100px, 80px) scale(1.2); }
+}
+
+@keyframes drift-2 {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(-120px, -50px) scale(1.1); }
+}
+
+@keyframes drift-3 {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(80px, -60px) scale(1.3); }
+}
+
+/* Misty scroll reveal */
+.mist-reveal {
+    opacity: 0;
+    filter: blur(12px);
+    transform: translateY(20px);
+    transition: opacity 1.2s cubic-bezier(0.16, 1, 0.3, 1),
+                filter 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: transform, filter, opacity;
+}
+
+.mist-reveal.mist-visible {
+    opacity: 1;
+    filter: blur(0);
+    transform: translateY(0);
+}
+
