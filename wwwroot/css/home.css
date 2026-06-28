@@ -474,3 +474,41 @@
     }
 }
 
+/* Premium Onboarding Card Optimization */
+.onboarding-card {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    min-height: 150px;
+    padding: 1.35rem !important;
+}
+
+.onboarding-card h3 {
+    margin: 0 0 0.35rem 0;
+    font-weight: 700;
+    position: relative;
+    z-index: 2;
+}
+
+.onboarding-card p {
+    font-size: 0.88rem;
+    line-height: 1.5;
+    position: relative;
+    z-index: 2;
+}
+
+.onboarding-number {
+    position: absolute;
+    top: -15px;
+    right: 5px;
+    font-size: 5rem;
+    font-weight: 950;
+    color: rgba(31, 108, 159, 0.05);
+    line-height: 1;
+    pointer-events: none;
+    z-index: 1;
+    user-select: none;
+}
+
