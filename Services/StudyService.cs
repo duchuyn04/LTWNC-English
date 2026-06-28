@@ -93,18 +93,22 @@ public class StudyService
             progress = new UserProgress
             {
                 UserId = userId,
-                FlashcardId = flashcardId,
-                IsLearned = learned,
-                LastReviewed = DateTime.UtcNow
+                FlashcardId = flashcardId
             };
             await _context.UserProgresses.AddAsync(progress);
         }
+
+        progress.IsLearned = learned;
+        progress.Status = learned ? UserProgressStatus.Mastered : UserProgressStatus.Learning;
+        if (learned)
+        {
+            progress.CorrectCount++;
+        }
         else
         {
-            progress.IsLearned = learned;
-            progress.LastReviewed = DateTime.UtcNow;
-            _context.UserProgresses.Update(progress);
+            progress.WrongCount++;
         }
+        progress.LastReviewed = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();
     }

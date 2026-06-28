@@ -4,6 +4,13 @@ using Microsoft.AspNetCore.Identity;
 
 namespace ltwnc.Models.Entities;
 
+public enum UserProgressStatus
+{
+    Unlearned = 0,
+    Learning = 1,
+    Mastered = 2
+}
+
 // Entity đại diện cho bảng UserProgresses — tiến trình học của người dùng
 // Ghi nhận trạng thái đã biết/chưa biết của mỗi thẻ
 // Unique constraint: mỗi người dùng chỉ có 1 tiến trình cho mỗi thẻ
@@ -23,6 +30,12 @@ public class UserProgress
 
     // true = đã biết, false = chưa biết
     public bool IsLearned { get; set; }
+
+    public UserProgressStatus Status { get; set; } = UserProgressStatus.Unlearned;
+
+    public int CorrectCount { get; set; }
+
+    public int WrongCount { get; set; }
 
     // Thời gian học gần nhất
     public DateTime LastReviewed { get; set; } = DateTime.UtcNow;
