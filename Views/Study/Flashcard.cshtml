@@ -263,6 +263,25 @@
         const isAuthenticated = @Json.Serialize(Model.IsAuthenticated);
         const settings = { ...initialSettings };
         const setId = @Model.SetId;
+        const vocabularyCards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.VocabularyCards.Select(c =>
+        {
+            Model.ProgressByCardId.TryGetValue(c.Id, out var progress);
+            return new
+            {
+                c.Id,
+                c.FrontText,
+                c.BackText,
+                c.Pronunciation,
+                c.PartOfSpeech,
+                c.ExampleSentence,
+                c.Synonyms,
+                c.IsStarred,
+                c.OrderIndex,
+                Status = progress == null ? 0 : (int)progress.Status,
+                CorrectCount = progress == null ? 0 : progress.CorrectCount,
+                WrongCount = progress == null ? 0 : progress.WrongCount
+            };
+        })));
 
         let currentIndex = 0;
         let isFlipped = false;
@@ -378,6 +397,71 @@
             }
 
             synth.speak(utterance);
+        }
+
+        function statusLabel(status) {
+            if (status === 2) return 'Đã thành thạo';
+            if (status === 1) return 'Đang học';
+            return 'Chưa học';
+        }
+
+        function sortedVocabularyCards() {
+            const sort = document.getElementById('vocab-sort')?.value || 'original';
+            const cards = [...vocabularyCards];
+            const byOriginal = (a, b) => a.OrderIndex - b.OrderIndex;
+
+            if (sort === 'starred') return cards.sort((a, b) => Number(b.IsStarred) - Number(a.IsStarred) || byOriginal(a, b));
+            if (sort === 'unlearned') return cards.sort((a, b) => Number(a.Status !== 0) - Number(b.Status !== 0) || byOriginal(a, b));
+            if (sort === 'learning') return cards.sort((a, b) => Number(a.Status !== 1) - Number(b.Status !== 1) || byOriginal(a, b));
+            if (sort === 'mastered') return cards.sort((a, b) => Number(a.Status !== 2) - Number(b.Status !== 2) || byOriginal(a, b));
+            return cards.sort(byOriginal);
+        }
+
+        function renderVocabularyPanel() {
+            const list = document.getElementById('vocab-list');
+            const count = document.getElementById('vocab-count');
+            if (!list) return;
+
+            const cards = sortedVocabularyCards();
+            list.innerHTML = '';
+            if (count) count.textContent = `${cards.length} từ`;
+
+            cards.forEach(card => {
+                const item = document.createElement('article');
+                item.className = 'vocab-item';
+
+                const term = document.createElement('div');
+                term.className = 'vocab-term';
+                const termText = document.createElement('strong');
+                termText.textContent = card.FrontText || '';
+                const meta = document.createElement('span');
+                meta.textContent = [card.PartOfSpeech, card.Pronunciation, card.Synonyms].filter(Boolean).join(' · ');
+                term.append(termText, meta);
+
+                const definition = document.createElement('div');
+                definition.className = 'vocab-definition';
+                const backText = document.createElement('strong');
+                backText.textContent = card.BackText || '';
+                const example = document.createElement('em');
+                example.textContent = card.ExampleSentence || '';
+                const status = document.createElement('small');
+                status.textContent = statusLabel(card.Status);
+                definition.append(backText, example, status);
+
+                const actions = document.createElement('div');
+                actions.className = 'vocab-actions';
+                const star = document.createElement('i');
+                star.className = card.IsStarred ? 'ph ph-star-fill' : 'ph ph-star';
+                const audio = document.createElement('button');
+                audio.type = 'button';
+                audio.title = 'Phát giọng đọc';
+                audio.innerHTML = '<i class="ph ph-speaker-high"></i>';
+                audio.addEventListener('click', () => speak(card.FrontText || '', false));
+                actions.append(star, audio);
+
+                item.append(term, definition, actions);
+                list.appendChild(item);
+            });
         }
 
         function updateUI() {
@@ -497,6 +581,9 @@
             // Optimistic update of UI
             card.IsStarred = !card.IsStarred;
             updateStarUI(card.IsStarred);
+            const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
+            if (vocabCard) vocabCard.IsStarred = card.IsStarred;
+            renderVocabularyPanel();
 
             const params = new URLSearchParams();
             params.append('__RequestVerificationToken', verificationToken);
@@ -514,10 +601,16 @@
                 if (data.success) {
                     card.IsStarred = data.isStarred;
                     updateStarUI(card.IsStarred);
+                    const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
+                    if (vocabCard) vocabCard.IsStarred = card.IsStarred;
+                    renderVocabularyPanel();
                 } else {
                     // Revert if failed
                     card.IsStarred = !card.IsStarred;
                     updateStarUI(card.IsStarred);
+                    const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
+                    if (vocabCard) vocabCard.IsStarred = card.IsStarred;
+                    renderVocabularyPanel();
                 }
             })
             .catch(err => {
@@ -525,6 +618,9 @@
                 // Revert if failed
                 card.IsStarred = !card.IsStarred;
                 updateStarUI(card.IsStarred);
+                const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
+                if (vocabCard) vocabCard.IsStarred = card.IsStarred;
+                renderVocabularyPanel();
             });
         }
 
@@ -609,6 +705,14 @@
             } else {
                 sessionStats.unlearned.add(card.Id);
                 sessionStats.learned.delete(card.Id);
+            }
+
+            const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
+            if (vocabCard) {
+                vocabCard.Status = learned ? 2 : 1;
+                if (learned) vocabCard.CorrectCount++;
+                else vocabCard.WrongCount++;
+                renderVocabularyPanel();
             }
 
             const verificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -830,6 +934,8 @@
         }
 
         bindSettingsInputs();
+        document.getElementById('vocab-sort')?.addEventListener('change', renderVocabularyPanel);
+        renderVocabularyPanel();
         updateUI();
 
         let canvas, ctx, animationFrameId;
