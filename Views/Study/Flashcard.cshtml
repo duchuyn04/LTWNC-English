@@ -145,6 +145,30 @@
             </button>
         </div>
 
+        <section class="vocab-panel" aria-label="Danh sách từ vựng">
+            <div class="vocab-panel-toolbar">
+                <a class="vocab-edit-link" href="/Set/@Model.SetId/Edit">
+                    <i class="ph ph-pencil-simple-line"></i>
+                    <span>Chỉnh sửa</span>
+                </a>
+
+                <select id="vocab-sort" class="vocab-sort-select" aria-label="Sắp xếp từ vựng">
+                    <option value="original">Thứ tự gốc</option>
+                    <option value="starred">Được đánh dấu sao trước</option>
+                    <option value="unlearned">Chưa học trước</option>
+                    <option value="learning">Đang học trước</option>
+                    <option value="mastered">Đã thành thạo trước</option>
+                </select>
+            </div>
+
+            <div class="vocab-list-heading">
+                <h2>Từ vựng trong bộ thẻ</h2>
+                <span id="vocab-count"></span>
+            </div>
+
+            <div id="vocab-list" class="vocab-list"></div>
+        </section>
+
         <section class="control-dock" aria-label="Điều khiển học">
             <div class="nav-cluster" aria-hidden="true" style="visibility:hidden;">
                 <button type="button" class="icon-button" onclick="prevCard()" title="Thẻ trước">
