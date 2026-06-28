@@ -68,9 +68,9 @@
                         </a>
                     </div>
                     <div class="home-stats">
-                        <div class="home-stat"><strong>3 phút</strong><span>Tạo bộ thẻ đầu tiên</span></div>
-                        <div class="home-stat"><strong>5 chế độ</strong><span>Học và ôn tập</span></div>
-                        <div class="home-stat"><strong>100%</strong><span>Theo dõi tiến độ</span></div>
+                        <div class="home-stat"><strong><span class="stat-count" data-target="3">0</span> phút</strong><span>Tạo bộ thẻ đầu tiên</span></div>
+                        <div class="home-stat"><strong><span class="stat-count" data-target="5">0</span> chế độ</strong><span>Học và ôn tập</span></div>
+                        <div class="home-stat"><strong><span class="stat-count" data-target="100">0</span>%</strong><span>Theo dõi tiến độ</span></div>
                     </div>
                 </div>
                 <div class="col-lg-6" data-aos="fade-left">
@@ -80,7 +80,7 @@
                                 <div>
                                     <span class="badge bg-light text-dark mb-3">ENGLISH</span>
                                     <h2 class="display-4 fw-bold">consistency</h2>
-                                    <p class="mb-0 text-muted">/kənˈsɪstənsi/ · Click to flip</p>
+                                    <p class="mb-0" style="color: rgba(255, 255, 255, 0.45) !important;">/kənˈsɪstənsi/ · Click to flip</p>
                                 </div>
                             </div>
                             <div class="flashcard-face flashcard-back">
@@ -331,9 +331,35 @@
         window.location.href = '@primaryCta';
     });
 
-    // Intersection Observer for Misty de-blur scroll reveal
+    // Count animation logic
+    function animateCount(element) {
+        const target = parseInt(element.getAttribute('data-target'), 10);
+        const duration = 1500; // 1.5 seconds
+        const startTime = performance.now();
+        
+        function update(currentTime) {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // Easing out quadratic
+            const easeProgress = progress * (2 - progress);
+            
+            const currentValue = Math.floor(easeProgress * target);
+            element.textContent = currentValue;
+            
+            if (progress < 1) {
+                requestAnimationFrame(update);
+            } else {
+                element.textContent = target;
+            }
+        }
+        requestAnimationFrame(update);
+    }
+
+    // Intersection Observer for Misty de-blur scroll reveal and Stat Counters
     document.addEventListener("DOMContentLoaded", function() {
         const mistElements = document.querySelectorAll('.mist-reveal');
+        const countElements = document.querySelectorAll('.stat-count');
         
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -348,6 +374,19 @@
         });
 
         mistElements.forEach(el => observer.observe(el));
+
+        const countObserver = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    animateCount(entry.target);
+                    countObserver.unobserve(entry.target);
+                }
+            });
+        }, {
+            threshold: 0.5
+        });
+
+        countElements.forEach(el => countObserver.observe(el));
     });
 </script>
 }
