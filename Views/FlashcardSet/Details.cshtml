@@ -4,7 +4,7 @@
 }
 
 <div class="fade-in-up">
-    <div class="d-flex justify-content-between align-items-start mb-4">
+    <div class="d-flex justify-content-between align-items-start mb-4 mobile-stack-header">
         <div>
             <h1 class="h3 mb-1" style="letter-spacing: -0.02em;">@Model.Title</h1>
             @if (!string.IsNullOrEmpty(Model.Description))
@@ -38,7 +38,7 @@
             <h5 class="mb-3" style="font-weight: 600;">Danh sách thẻ</h5>
             @foreach (var card in Model.Flashcards.OrderBy(c => c.OrderIndex))
             {
-                <div class="d-flex align-items-start gap-3 py-3" style="border-bottom: 1px solid #EAEAEA;">
+                <div class="details-card-row">
                     <span style="color: #787774; font-size: 0.8125rem; min-width: 28px;">@card.OrderIndex</span>
                     <span style="color: #B7791F; min-width: 20px;">@(card.IsStarred ? "★" : "☆")</span>
                     <div style="flex: 1;">

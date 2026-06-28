@@ -10,27 +10,26 @@
 <link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
 
 <div class="home-landing">
-    <div class="home-topbar">
-        <div class="container d-flex justify-content-between gap-3 flex-wrap">
-            <span><i class="ph ph-sparkle"></i> Học từ vựng bằng flashcard, giọng đọc và tiến độ cá nhân.</span>
-            <span>Miễn phí bắt đầu · Tạo bộ thẻ trong vài phút</span>
-        </div>
-    </div>
 
     <nav class="home-nav">
         <div class="container home-nav-inner">
             <a class="navbar-brand fw-bold" href="/">
                 <i class="ph ph-book-open"></i> LTWNC English
             </a>
-            <div class="home-nav-links">
-                <a href="#benefits">Lợi ích</a>
-                <a href="#services">Tính năng</a>
-                <a href="#onboarding">Cách bắt đầu</a>
-                <a href="#quote">Tư vấn học</a>
+            <button class="home-nav-toggle" aria-label="Toggle menu" onclick="toggleMobileMenu()">
+                <i class="ph ph-list"></i>
+            </button>
+            <div class="home-nav-menu" id="homeNavMenu">
+                <div class="home-nav-links">
+                    <a href="#benefits" onclick="closeMobileMenu()">Lợi ích</a>
+                    <a href="#services" onclick="closeMobileMenu()">Tính năng</a>
+                    <a href="#onboarding" onclick="closeMobileMenu()">Cách bắt đầu</a>
+                    <a href="#quote" onclick="closeMobileMenu()">Tư vấn học</a>
+                </div>
+                <a class="btn-primary-custom" href="@primaryCta">
+                    <i class="ph ph-arrow-right"></i> Bắt đầu
+                </a>
             </div>
-            <a class="btn-primary-custom" href="@primaryCta">
-                <i class="ph ph-arrow-right"></i> Bắt đầu
-            </a>
         </div>
     </nav>
 
@@ -54,12 +53,12 @@
             <div class="row align-items-center g-5">
                 <div class="col-lg-6" data-aos="fade-right">
                     <div class="home-kicker">Flashcard learning service</div>
-                    <h1>Học từ vựng tiếng Anh có hệ thống hơn.</h1>
+                    <h1>Học từ vựng tiếng Anh <span id="typewriter-text" class="typewriter-text"></span><span class="typewriter-cursor">|</span></h1>
                     <p class="home-section-copy mt-3">
                         LTWNC English giúp bạn tạo bộ thẻ, luyện phát âm, đánh dấu từ quan trọng
                         và theo dõi tiến độ học trong một giao diện gọn.
                     </p>
-                    <div class="home-btn-row mt-4">
+                    <div class="home-btn-row home-btn-row--hero mt-4">
                         <a class="btn-primary-custom btn-lg" href="@primaryCta">
                             <i class="ph ph-rocket-launch"></i> Tạo bộ thẻ
                         </a>
@@ -67,31 +66,114 @@
                             <i class="ph ph-compass"></i> Khám phá
                         </a>
                     </div>
-                    <div class="home-stats">
-                        <div class="home-stat"><strong><span class="stat-count" data-target="3">0</span> phút</strong><span>Tạo bộ thẻ đầu tiên</span></div>
-                        <div class="home-stat"><strong><span class="stat-count" data-target="5">0</span> chế độ</strong><span>Học và ôn tập</span></div>
-                        <div class="home-stat"><strong><span class="stat-count" data-target="100">0</span>%</strong><span>Theo dõi tiến độ</span></div>
-                    </div>
+
                 </div>
                 <div class="col-lg-6" data-aos="fade-left">
-                    <div class="flashcard-3d-wrapper">
-                        <div class="flashcard-3d-card" onclick="this.classList.toggle('flipped')">
-                            <div class="flashcard-face flashcard-front">
-                                <div>
-                                    <span class="badge bg-light text-dark mb-3">ENGLISH</span>
-                                    <h2 class="display-4 fw-bold">consistency</h2>
-                                    <p class="mb-0" style="color: rgba(255, 255, 255, 0.45) !important;">/kənˈsɪstənsi/ · Click to flip</p>
+                    <div class="hero-carousel-wrapper">
+                        <!-- Left Navigation Button -->
+                        <button class="carousel-nav-btn nav-btn-left" onclick="rotateCarousel('left')" aria-label="Previous card">
+                            <i class="ph ph-caret-left"></i>
+                        </button>
+
+                        <div class="hero-carousel-container" id="heroCarousel">
+                            <!-- Card 1: consistency (Center position at index 0) -->
+                            <div class="hero-carousel-item pos-center" data-index="0">
+                                <div class="flashcard-3d-wrapper w-100 h-100">
+                                    <div class="flashcard-3d-card" onclick="handleCardClick(this)">
+                                        <div class="flashcard-face flashcard-front" style="border-radius: 16px; background: #111827; border: 1px solid rgba(255,255,255,0.1); padding: 1rem;">
+                                            <div>
+                                                <span class="badge bg-secondary text-white mb-2" style="font-size: 0.65rem; background: rgba(255,255,255,0.1) !important;">NOUN</span>
+                                                <h4 class="fw-bold mb-1" style="font-size: 1.2rem; color: #ffffff !important; letter-spacing: -0.02em;">consistency</h4>
+                                                <p class="mb-0" style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.45) !important;">/kənˈsɪstənsi/</p>
+                                            </div>
+                                        </div>
+                                        <div class="flashcard-face flashcard-back text-white" style="border-radius: 16px; background: #1f6c9f; border-color: rgba(255, 255, 255, 0.2); padding: 1rem;">
+                                            <div>
+                                                <h5 class="fw-bold mb-1" style="font-size: 1.1rem;">sự nhất quán</h5>
+                                                <p class="mb-0" style="font-size: 0.7rem; color: rgba(255,255,255,0.85);">Sự kiên định, không thay đổi.</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                            <div class="flashcard-face flashcard-back">
-                                <div>
-                                    <span class="badge bg-light text-dark mb-3" style="background: rgba(255,255,255,0.2) !important;">VIETNAMESE</span>
-                                    <h2 class="display-5 fw-bold">sự đều đặn</h2>
-                                    <p class="mb-0 text-white-50">"Consistency is key to success."</p>
+
+                            <!-- Card 2: fluency (Right position at index 1) -->
+                            <div class="hero-carousel-item pos-right" data-index="1">
+                                <div class="flashcard-3d-wrapper w-100 h-100">
+                                    <div class="flashcard-3d-card" onclick="handleCardClick(this)">
+                                        <div class="flashcard-face flashcard-front" style="border-radius: 16px; background: #111827; border: 1px solid rgba(255,255,255,0.1); padding: 1rem;">
+                                            <div>
+                                                <span class="badge bg-secondary text-white mb-2" style="font-size: 0.65rem; background: rgba(255,255,255,0.1) !important;">NOUN</span>
+                                                <h4 class="fw-bold mb-1" style="font-size: 1.2rem; color: #ffffff !important; letter-spacing: -0.02em;">fluency</h4>
+                                                <p class="mb-0" style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.45) !important;">/ˈfluːənsi/</p>
+                                            </div>
+                                        </div>
+                                        <div class="flashcard-face flashcard-back text-white" style="border-radius: 16px; background: #2f6a37; border-color: rgba(255, 255, 255, 0.2); padding: 1rem;">
+                                            <div>
+                                                <h5 class="fw-bold mb-1" style="font-size: 1.1rem;">sự trôi chảy</h5>
+                                                <p class="mb-0" style="font-size: 0.7rem; color: rgba(255,255,255,0.85);">Nói hoặc viết trơn tru, dễ dàng.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card 3: vocabulary (Back position at index 2) -->
+                            <div class="hero-carousel-item pos-back" data-index="2">
+                                <div class="flashcard-3d-wrapper w-100 h-100">
+                                    <div class="flashcard-3d-card" onclick="handleCardClick(this)">
+                                        <div class="flashcard-face flashcard-front" style="border-radius: 16px; background: #111827; border: 1px solid rgba(255,255,255,0.1); padding: 1rem;">
+                                            <div>
+                                                <span class="badge bg-secondary text-white mb-2" style="font-size: 0.65rem; background: rgba(255,255,255,0.1) !important;">NOUN</span>
+                                                <h4 class="fw-bold mb-1" style="font-size: 1.2rem; color: #ffffff !important; letter-spacing: -0.02em;">vocabulary</h4>
+                                                <p class="mb-0" style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.45) !important;">/vəˈkæbjələri/</p>
+                                            </div>
+                                        </div>
+                                        <div class="flashcard-face flashcard-back text-white" style="border-radius: 16px; background: #b7791f; border-color: rgba(255, 255, 255, 0.2); padding: 1rem;">
+                                            <div>
+                                                <h5 class="fw-bold mb-1" style="font-size: 1.1rem;">vốn từ vựng</h5>
+                                                <p class="mb-0" style="font-size: 0.7rem; color: rgba(255,255,255,0.85);">Tập hợp các từ trong một ngôn ngữ.</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Card 4: persistence (Left position at index 3) -->
+                            <div class="hero-carousel-item pos-left" data-index="3">
+                                <div class="flashcard-3d-wrapper w-100 h-100">
+                                    <div class="flashcard-3d-card" onclick="handleCardClick(this)">
+                                        <div class="flashcard-face flashcard-front" style="border-radius: 16px; background: #111827; border: 1px solid rgba(255,255,255,0.1); padding: 1rem;">
+                                            <div>
+                                                <span class="badge bg-secondary text-white mb-2" style="font-size: 0.65rem; background: rgba(255,255,255,0.1) !important;">NOUN</span>
+                                                <h4 class="fw-bold mb-1" style="font-size: 1.2rem; color: #ffffff !important; letter-spacing: -0.02em;">persistence</h4>
+                                                <p class="mb-0" style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.45) !important;">/pəˈsɪstəns/</p>
+                                            </div>
+                                        </div>
+                                        <div class="flashcard-face flashcard-back text-white" style="border-radius: 16px; background: #6b21a8; border-color: rgba(255, 255, 255, 0.2); padding: 1rem;">
+                                            <div>
+                                                <h5 class="fw-bold mb-1" style="font-size: 1.1rem;">sự kiên trì</h5>
+                                                <p class="mb-0" style="font-size: 0.7rem; color: rgba(255,255,255,0.85);">Bền bỉ theo đuổi mục tiêu.</p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Right Navigation Button -->
+                        <button class="carousel-nav-btn nav-btn-right" onclick="rotateCarousel('right')" aria-label="Next card">
+                            <i class="ph ph-caret-right"></i>
+                        </button>
                     </div>
+                </div>
+            </div>
+            <!-- Stats wrapper: after carousel on mobile/tablet, left-aligned on desktop -->
+            <div class="home-stats-wrapper">
+                <div class="home-stats">
+                    <div class="home-stat"><strong><span class="stat-count" data-target="3">0</span> phút</strong><span class="stat-label-long">Tạo bộ thẻ đầu tiên</span><span class="stat-label-short">Tạo bộ thẻ</span></div>
+                    <div class="home-stat"><strong><span class="stat-count" data-target="5">0</span> chế độ</strong><span class="stat-label-long">Học và ôn tập</span><span class="stat-label-short">Học &amp; ôn tập</span></div>
+                    <div class="home-stat"><strong><span class="stat-count" data-target="100">0</span>%</strong><span class="stat-label-long">Theo dõi tiến độ</span><span class="stat-label-short">Theo dõi</span></div>
                 </div>
             </div>
         </div>
@@ -433,7 +515,138 @@
 
 @section Scripts {
 <script>
+    // Mobile menu toggle logic
+    window.toggleMobileMenu = function() {
+        const menu = document.getElementById("homeNavMenu");
+        const toggleIcon = document.querySelector(".home-nav-toggle i");
+        if (menu) {
+            menu.classList.toggle("is-active");
+            if (menu.classList.contains("is-active")) {
+                toggleIcon.className = "ph ph-x";
+            } else {
+                toggleIcon.className = "ph ph-list";
+            }
+        }
+    };
+    window.closeMobileMenu = function() {
+        const menu = document.getElementById("homeNavMenu");
+        const toggleIcon = document.querySelector(".home-nav-toggle i");
+        if (menu && menu.classList.contains("is-active")) {
+            menu.classList.remove("is-active");
+            toggleIcon.className = "ph ph-list";
+        }
+    };
+
     AOS.init({ duration: 700, once: true, offset: 80 });
+
+    // Typewriter effect logic
+    const typewriterWords = [
+        "có hệ thống hơn.",
+        "mỗi ngày.",
+        "chủ động hơn.",
+        "mọi lúc mọi nơi.",
+        "qua hình ảnh.",
+        "hiệu quả hơn."
+    ];
+    let typewriterWordIndex = 0;
+    let typewriterCharIndex = 0;
+    let typewriterIsDeleting = false;
+    
+    function typeEffect() {
+        const typewriterEl = document.getElementById("typewriter-text");
+        if (!typewriterEl) return;
+        
+        const currentWord = typewriterWords[typewriterWordIndex];
+        if (typewriterIsDeleting) {
+            typewriterEl.textContent = currentWord.substring(0, typewriterCharIndex - 1);
+            typewriterCharIndex--;
+        } else {
+            typewriterEl.textContent = currentWord.substring(0, typewriterCharIndex + 1);
+            typewriterCharIndex++;
+        }
+
+        let typeSpeed = 100;
+
+        if (typewriterIsDeleting) {
+            typeSpeed /= 2;
+        }
+
+        if (!typewriterIsDeleting && typewriterCharIndex === currentWord.length) {
+            typeSpeed = 1800; // Pause at the end of the word
+            typewriterIsDeleting = true;
+        } else if (typewriterIsDeleting && typewriterCharIndex === 0) {
+            typewriterIsDeleting = false;
+            typewriterWordIndex = (typewriterWordIndex + 1) % typewriterWords.length;
+            typeSpeed = 400; // Pause before typing the next word
+        }
+
+        setTimeout(typeEffect, typeSpeed);
+    }
+
+    // Carousel State Tracking
+    let currentCenterIndex = 0; // consistency (index 0) starts in the middle
+    const totalItems = 4;
+    const positions = ['pos-center', 'pos-right', 'pos-back', 'pos-left'];
+    let autoplayInterval;
+
+    window.startAutoplay = function() {
+        window.stopAutoplay();
+        autoplayInterval = setInterval(() => {
+            window.rotateCarousel('right');
+        }, 2500);
+    }
+
+    window.stopAutoplay = function() {
+        if (autoplayInterval) {
+            clearInterval(autoplayInterval);
+            autoplayInterval = null;
+        }
+    }
+
+    window.rotateCarousel = function(direction) {
+        const container = document.getElementById('heroCarousel');
+        if (!container) return;
+        const items = container.querySelectorAll('.hero-carousel-item');
+        
+        // Clear flipped state from all cards before rotating to maintain front side
+        items.forEach(el => {
+            const card = el.querySelector('.flashcard-3d-card');
+            if (card) card.classList.remove('flipped');
+        });
+
+        if (direction === 'left') {
+            currentCenterIndex = (currentCenterIndex - 1 + totalItems) % totalItems;
+        } else {
+            currentCenterIndex = (currentCenterIndex + 1) % totalItems;
+        }
+
+        items.forEach((item, index) => {
+            item.className = 'hero-carousel-item'; // Reset class list
+            
+            // Calculate relative state class index
+            const relativePos = (index - currentCenterIndex + totalItems) % totalItems;
+            item.classList.add(positions[relativePos]);
+        });
+
+        // Reset timer if autoplay is active
+        if (autoplayInterval) {
+            window.startAutoplay();
+        }
+    }
+
+    window.handleCardClick = function(cardElement) {
+        const itemContainer = cardElement.closest('.hero-carousel-item');
+        if (!itemContainer) return;
+        
+        if (itemContainer.classList.contains('pos-center')) {
+            // Flip card only when it resides in the center focus position
+            cardElement.classList.toggle('flipped');
+        } else if (itemContainer.classList.contains('pos-left')) {
+            window.rotateCarousel('left');
+        } else if (itemContainer.classList.contains('pos-right')) {
+            window.rotateCarousel('right');
+        }
+    }
 
     document.querySelectorAll('.home-landing a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
@@ -505,6 +718,17 @@
         });
 
         countElements.forEach(el => countObserver.observe(el));
+
+        // Start typewriter
+        setTimeout(typeEffect, 1000);
+
+        // Initialize Carousel Autoplay and hover controls
+        const carousel = document.querySelector('.hero-carousel-wrapper');
+        if (carousel) {
+            window.startAutoplay();
+            carousel.addEventListener('mouseenter', window.stopAutoplay);
+            carousel.addEventListener('mouseleave', window.startAutoplay);
+        }
     });
 </script>
 }

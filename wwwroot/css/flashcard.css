@@ -719,7 +719,8 @@
     }
 
     .card-nav-strip {
-        grid-template-columns: 1fr 48px minmax(72px, auto) 48px 48px;
+        grid-template-columns: 48px 48px minmax(72px, auto) 48px 48px;
+        justify-content: center;
         gap: 0.55rem;
     }
 

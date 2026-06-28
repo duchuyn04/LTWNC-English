@@ -261,7 +261,12 @@
                 });
 
                 document.querySelectorAll('[data-card-panel]').forEach(panel => {
-                    panel.classList.toggle('is-active', panel.getAttribute('data-card-panel') === cardId);
+                    const isActive = panel.getAttribute('data-card-panel') === cardId;
+                    panel.classList.toggle('is-active', isActive);
+                    
+                    if (isActive && window.innerWidth <= 900) {
+                        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
                 });
             });
         });
