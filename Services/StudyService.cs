@@ -34,6 +34,15 @@ public class StudyService
         return await query.OrderBy(f => f.OrderIndex).ToListAsync();
     }
 
+    public async Task<Dictionary<int, UserProgress>> GetProgressByCardIdAsync(int setId, string? userId)
+    {
+        if (string.IsNullOrWhiteSpace(userId)) return new Dictionary<int, UserProgress>();
+
+        return await _context.UserProgresses
+            .Where(p => p.UserId == userId && p.Flashcard != null && p.Flashcard.FlashcardSetId == setId)
+            .ToDictionaryAsync(p => p.FlashcardId);
+    }
+
     public async Task<UserStudySettings> GetSettingsAsync(string? userId)
     {
         if (string.IsNullOrWhiteSpace(userId)) return new UserStudySettings();

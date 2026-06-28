@@ -61,6 +61,10 @@ public class StudyController : Controller
 
         // Lấy danh sách thẻ để học
         var cards = await _studyService.GetFlashcardsForStudyAsync(setId, effectiveStarredOnly, effectiveUnlearnedOnly, user?.Id);
+        
+        var vocabularyCards = await _studyService.GetFlashcardsForStudyAsync(setId, false, false, user?.Id);
+        var progressByCardId = await _studyService.GetProgressByCardIdAsync(setId, user?.Id);
+
         if (!cards.Any())
         {
             // Bộ thẻ chưa có thẻ nào → quay lại trang chọn chế độ
@@ -76,6 +80,8 @@ public class StudyController : Controller
             SetId = setId,
             SetTitle = set.Title,
             Flashcards = cards,
+            VocabularyCards = vocabularyCards,
+            ProgressByCardId = progressByCardId,
             CurrentIndex = Math.Clamp(index, 0, cards.Count - 1), // Giới hạn index hợp lệ
             StarredOnly = effectiveStarredOnly,
             Settings = settings,
