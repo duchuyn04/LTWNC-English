@@ -505,7 +505,7 @@
     right: 5px;
     font-size: 5rem;
     font-weight: 950;
-    color: rgba(31, 108, 159, 0.05);
+    color: rgba(31, 108, 159, 0.15);
     line-height: 1;
     pointer-events: none;
     z-index: 1;
