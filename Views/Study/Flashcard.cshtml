@@ -120,15 +120,7 @@
                                 <span></span>
                             </label>
                             <button type="button" class="card-audio-btn" onclick="playAudioCurrentCard()" title="Phát giọng đọc (Ctrl)">
-                                <i class="ph ph-speaker-high"></i>
-                            </button>
-                        </div>
-                    </article>
-                </div>
-            </div>
-        </main>
-
-        <div class="card-nav-strip">
+                 <div class="card-nav-strip">
             <button type="button" id="progress-mode-btn" class="card-nav-btn card-progress-mode-btn" onclick="toggleProgressMode()" title="Bật chế độ đánh giá tiến độ">
                 <i class="ph ph-stack"></i>
                 <span>Tiến độ</span>
@@ -140,6 +132,36 @@
             <button type="button" id="nav-right-btn" class="card-nav-btn" onclick="handleRightAction()" title="Thẻ tiếp (→)">
                 <i class="ph ph-arrow-right"></i>
             </button>
+            <button type="button" class="card-nav-btn" onclick="shuffleCards()" title="Trộn thẻ">
+                <i class="ph ph-shuffle"></i>
+            </button>
+        </div>
+
+        <section class="vocab-panel" aria-label="Danh sách từ vựng">
+            <div class="vocab-panel-toolbar">
+                <a class="vocab-edit-link" href="/Set/@Model.SetId/Edit">
+                    <i class="ph ph-pencil-simple-line"></i>
+                    <span>Chỉnh sửa</span>
+                </a>
+
+                <select id="vocab-sort" class="vocab-sort-select" aria-label="Sắp xếp từ vựng">
+                    <option value="original">Thứ tự gốc</option>
+                    <option value="starred">Được đánh dấu sao trước</option>
+                    <option value="unlearned">Chưa học trước</option>
+                    <option value="learning">Đang học trước</option>
+                    <option value="mastered">Đã thành thạo trước</option>
+                </select>
+            </div>
+
+            <div class="vocab-list-heading">
+                <h2>Từ vựng trong bộ thẻ</h2>
+                <span id="vocab-count"></span>
+            </div>
+
+            <div id="vocab-list" class="vocab-list"></div>
+        </section>
+
+        <section class="control-dock" aria-label="Điều khiển học">utton>
             <button type="button" class="card-nav-btn" onclick="shuffleCards()" title="Trộn thẻ">
                 <i class="ph ph-shuffle"></i>
             </button>
@@ -159,6 +181,52 @@
 
             <div class="audio-cluster">
                 <details class="tts-details">
+                    <summary class="tts-summary">
+                        <i class="ph ph-sliders-horizontal"></i>
+                        <span>Giọng đọc</span>
+                    </summary>
+                    <div class="tts-panel">
+                        <div class="tts-row">
+                            <label for="tts-voice-select">Giọng EN</label>
+                            <select id="tts-voice-select" class="premium-select"></select>
+                        </div>
+                        <div class="tts-row">
+                            <label for="tts-speed">Tốc độ</label>
+                            <select id="tts-speed" class="premium-select">
+                                <option value="0.8">0.8x</option>
+                                <option value="1.0" selected>1.0x</option>
+                                <option value="1.2">1.2x</option>
+                            </select>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </section>
+
+        <div class="shortcut-strip" aria-label="Phím tắt">
+            <span><span class="keycap">Space</span> lật thẻ</span>
+            <span><span class="keycap">←</span> thẻ trước</span>
+            <span><span class="keycap">→</span> thẻ tiếp</span>
+            <span><span class="keycap">Backspace</span> thoát</span>
+        </div>
+    </section>
+
+    <section id="completion-view" class="completion-view" aria-label="Hoàn thành">
+        <canvas id="fireworksCanvas"></canvas>
+        <div class="completion-inner">
+            <span class="badge badge-green">Đã hoàn thành bộ thẻ</span>
+            <h2 class="completion-title">Hoàn thành phiên học</h2>
+            <p class="completion-copy">
+                Tiến độ của bạn đã được ghi nhận. Xem nhanh nhóm thẻ đã biết và nhóm cần ôn lại bên dưới.
+            </p>
+
+            <div class="stats-grid">
+                <div class="stat-card is-green">
+                    <span id="count-learned" class="stat-number">0</span>
+                    <span class="stat-label">Đã biết</span>
+                </div>
+                <div class="stat-card is-red">
+                    <span id="count-unlearned" class="stat-number">0</span>
                     <summary class="tts-summary">
                         <i class="ph ph-sliders-horizontal"></i>
                         <span>Giọng đọc</span>
@@ -234,6 +302,25 @@
             c.ExampleMeaning,
             c.IsStarred,
             Image = !string.IsNullOrWhiteSpace(c.UploadedImagePath) ? c.UploadedImagePath : c.ImageUrl
+        })));
+        const vocabularyCards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.VocabularyCards.Select(c =>
+        {
+            Model.ProgressByCardId.TryGetValue(c.Id, out var progress);
+            return new
+            {
+                c.Id,
+                c.FrontText,
+                c.BackText,
+                c.Pronunciation,
+                c.PartOfSpeech,
+                c.ExampleSentence,
+                c.Synonyms,
+                c.IsStarred,
+                c.OrderIndex,
+                Status = progress == null ? 0 : (int)progress.Status,
+                CorrectCount = progress?.CorrectCount ?? 0,
+                WrongCount = progress?.WrongCount ?? 0
+            };
         })));
         const initialSettings = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Settings));
         const isAuthenticated = @Json.Serialize(Model.IsAuthenticated);
@@ -356,6 +443,66 @@
             synth.speak(utterance);
         }
 
+        function statusLabel(status) {
+            if (status === 2) return 'Đã thành thạo';
+            if (status === 1) return 'Đang học';
+            return 'Chưa học';
+        }
+
+        function sortedVocabularyCards() {
+            const sort = document.getElementById('vocab-sort')?.value || 'original';
+            const cards = [...vocabularyCards];
+
+            const byOriginal = (a, b) => a.OrderIndex - b.OrderIndex;
+            if (sort === 'starred') return cards.sort((a, b) => Number(b.IsStarred) - Number(a.IsStarred) || byOriginal(a, b));
+            if (sort === 'unlearned') return cards.sort((a, b) => Number(a.Status !== 0) - Number(b.Status !== 0) || byOriginal(a, b));
+            if (sort === 'learning') return cards.sort((a, b) => Number(a.Status !== 1) - Number(b.Status !== 1) || byOriginal(a, b));
+            if (sort === 'mastered') return cards.sort((a, b) => Number(a.Status !== 2) - Number(b.Status !== 2) || byOriginal(a, b));
+            return cards.sort(byOriginal);
+        }
+
+        function renderVocabularyPanel() {
+            const list = document.getElementById('vocab-list');
+            const count = document.getElementById('vocab-count');
+            if (!list) return;
+
+            const cards = sortedVocabularyCards();
+            list.innerHTML = '';
+            if (count) count.textContent = `${cards.length} từ`;
+
+            cards.forEach(card => {
+                const item = document.createElement('article');
+                item.className = 'vocab-item';
+                item.innerHTML = `
+                    <div class="vocab-term">
+                        <strong>${escapeHtml(card.FrontText || '')}</strong>
+                        <span>${escapeHtml([card.PartOfSpeech, card.Pronunciation, card.Synonyms].filter(Boolean).join(' · '))}</span>
+                    </div>
+                    <div class="vocab-definition">
+                        <strong>${escapeHtml(card.BackText || '')}</strong>
+                        <em>${escapeHtml(card.ExampleSentence || '')}</em>
+                        <small>${statusLabel(card.Status)}</small>
+                    </div>
+                    <div class="vocab-actions">
+                        <i class="${card.IsStarred ? 'ph ph-star-fill' : 'ph ph-star'}"></i>
+                        <button type="button" onclick="speak('${escapeJs(card.FrontText || '')}', false)" title="Phát giọng đọc">
+                            <i class="ph ph-speaker-high"></i>
+                        </button>
+                    </div>`;
+                list.appendChild(item);
+            });
+        }
+
+        function escapeHtml(value) {
+            const div = document.createElement('div');
+            div.textContent = value;
+            return div.innerHTML;
+        }
+
+        function escapeJs(value) {
+            return value.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+        }
+
         function updateUI() {
             if (flashcards.length === 0) return;
 
@@ -473,6 +620,9 @@
             // Optimistic update of UI
             card.IsStarred = !card.IsStarred;
             updateStarUI(card.IsStarred);
+            const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
+            if (vocabCard) vocabCard.IsStarred = card.IsStarred;
+            renderVocabularyPanel();
 
             const params = new URLSearchParams();
             params.append('__RequestVerificationToken', verificationToken);
@@ -490,10 +640,16 @@
                 if (data.success) {
                     card.IsStarred = data.isStarred;
                     updateStarUI(card.IsStarred);
+                    const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
+                    if (vocabCard) vocabCard.IsStarred = card.IsStarred;
+                    renderVocabularyPanel();
                 } else {
                     // Revert if failed
                     card.IsStarred = !card.IsStarred;
                     updateStarUI(card.IsStarred);
+                    const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
+                    if (vocabCard) vocabCard.IsStarred = card.IsStarred;
+                    renderVocabularyPanel();
                 }
             })
             .catch(err => {
@@ -501,6 +657,9 @@
                 // Revert if failed
                 card.IsStarred = !card.IsStarred;
                 updateStarUI(card.IsStarred);
+                const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
+                if (vocabCard) vocabCard.IsStarred = card.IsStarred;
+                renderVocabularyPanel();
             });
         }
 
@@ -585,6 +744,14 @@
             } else {
                 sessionStats.unlearned.add(card.Id);
                 sessionStats.learned.delete(card.Id);
+            }
+
+            const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
+            if (vocabCard) {
+                vocabCard.Status = learned ? 2 : 1;
+                if (learned) vocabCard.CorrectCount++;
+                else vocabCard.WrongCount++;
+                renderVocabularyPanel();
             }
 
             const verificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -691,19 +858,6 @@
                     playAudioCurrentCard();
                     break;
             }
-        });
-
-        document.querySelector('.flashcard-frame')?.addEventListener('keydown', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                toggleCardFlip();
-            }
-        });
-
-        function bindSettingsInputs() {
-            document.querySelectorAll('[data-setting]').forEach(input => {
-                const key = input.dataset.setting;
-                input.checked = !!settings[key];
                 input.addEventListener('change', () => {
                     settings[key] = input.checked;
                     if (key === 'StarredOnly' || key === 'UnlearnedOnly') {

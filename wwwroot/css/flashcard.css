@@ -925,3 +925,132 @@
     background: var(--green-bg);
     border-color: rgba(47, 106, 55, 0.32);
 }
+
+.vocab-panel {
+    display: grid;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.vocab-panel-toolbar,
+.vocab-list-heading,
+.vocab-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.vocab-edit-link,
+.vocab-sort-select,
+.vocab-item {
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.72);
+    color: var(--ink);
+    box-shadow: 0 8px 24px rgba(62, 53, 40, 0.05);
+}
+
+.vocab-edit-link {
+    min-height: 42px;
+    padding: 0 0.9rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    text-decoration: none;
+    font-weight: 800;
+}
+
+.vocab-sort-select {
+    min-height: 42px;
+    min-width: min(100%, 260px);
+    border-radius: 14px;
+    padding: 0 0.9rem;
+    font-weight: 700;
+}
+
+.vocab-list-heading h2 {
+    margin: 0;
+    font-size: 1.15rem;
+}
+
+.vocab-list-heading span {
+    color: var(--muted);
+    font-weight: 800;
+}
+
+.vocab-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.vocab-item {
+    border-radius: 18px;
+    padding: 1rem 1.1rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+}
+
+.vocab-term,
+.vocab-definition {
+    min-width: 0;
+    display: grid;
+    gap: 0.35rem;
+}
+
+.vocab-definition {
+    border-left: 1px solid var(--line);
+    padding-left: 1rem;
+}
+
+.vocab-term strong,
+.vocab-definition strong {
+    font-size: 1.05rem;
+}
+
+.vocab-term span,
+.vocab-definition em,
+.vocab-definition small {
+    color: var(--muted);
+    overflow-wrap: anywhere;
+}
+
+.vocab-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.7rem;
+}
+
+.vocab-actions button {
+    border: 0;
+    background: transparent;
+    color: inherit;
+    padding: 0.25rem;
+}
+
+@media (max-width: 720px) {
+    .vocab-panel-toolbar,
+    .vocab-list-heading {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .vocab-sort-select {
+        width: 100%;
+    }
+
+    .vocab-item {
+        grid-template-columns: 1fr;
+    }
+
+    .vocab-definition {
+        border-left: 0;
+        border-top: 1px solid var(--line);
+        padding-left: 0;
+        padding-top: 0.75rem;
+    }
+
+    .vocab-actions {
+        justify-content: flex-end;
+    }
+}
