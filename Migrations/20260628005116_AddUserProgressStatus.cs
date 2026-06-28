@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
@@ -30,6 +30,8 @@ namespace ltwnc.Migrations
                 type: "int",
                 nullable: false,
                 defaultValue: 0);
+
+            migrationBuilder.Sql("UPDATE UserProgresses SET Status = 2, CorrectCount = 1 WHERE IsLearned = 1");
         }
 
         /// <inheritdoc />
