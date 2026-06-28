@@ -512,3 +512,8 @@
     user-select: none;
 }
 
+/* Spacing and Rhythm Optimization */
+.home-landing section.home-section-tight {
+    padding: 1.5rem 0 !important;
+}
+
