@@ -517,3 +517,28 @@
     padding: 1.5rem 0 !important;
 }
 
+/* Testimonial Enhancements */
+.testimonial-card {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    height: 100%;
+}
+
+.testimonial-stars {
+    display: flex;
+    gap: 2px;
+    color: #fbbf24;
+    font-size: 0.9rem;
+}
+
+.testimonial-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid var(--home-line);
+    background: var(--home-canvas);
+    flex-shrink: 0;
+}
+
