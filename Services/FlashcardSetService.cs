@@ -86,6 +86,8 @@ public class FlashcardSetService
     public async Task<List<FlashcardSet>> GetMySetsAsync(string userId)
     {
         return await _context.FlashcardSets
+            // ponytail: load cards for the existing view model; project counts if set sizes grow large.
+            .Include(s => s.Flashcards)
             .Where(s => s.UserId == userId)
             .OrderByDescending(s => s.UpdatedAt)
             .ToListAsync();
