@@ -446,51 +446,74 @@
             return cards.sort(byOriginal);
         }
 
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         function renderVocabularyPanel() {
             const list = document.getElementById('vocab-list');
-            const count = document.getElementById('vocab-count');
             if (!list) return;
 
             const cards = sortedVocabularyCards();
             list.innerHTML = '';
-            if (count) count.textContent = `${cards.length} từ`;
 
-            cards.forEach(card => {
-                const item = document.createElement('article');
-                item.className = 'vocab-item';
+            const unlearned = cards.filter(c => c.Status !== 2);
+            const mastered = cards.filter(c => c.Status === 2);
 
-                const term = document.createElement('div');
-                term.className = 'vocab-term';
-                const termText = document.createElement('strong');
-                termText.textContent = card.FrontText || '';
-                const meta = document.createElement('span');
-                meta.textContent = [card.PartOfSpeech, card.Pronunciation, card.Synonyms].filter(Boolean).join(' · ');
-                term.append(termText, meta);
+            function renderGroup(title, items, isMastered) {
+                if (items.length === 0) return;
 
-                const definition = document.createElement('div');
-                definition.className = 'vocab-definition';
-                const backText = document.createElement('strong');
-                backText.textContent = card.BackText || '';
-                const example = document.createElement('em');
-                example.textContent = card.ExampleSentence || '';
-                const status = document.createElement('small');
-                status.textContent = statusLabel(card.Status);
-                definition.append(backText, example, status);
+                const group = document.createElement('div');
+                group.className = 'vocab-group';
 
-                const actions = document.createElement('div');
-                actions.className = 'vocab-actions';
-                const star = document.createElement('i');
-                star.className = card.IsStarred ? 'ph ph-star-fill' : 'ph ph-star';
-                const audio = document.createElement('button');
-                audio.type = 'button';
-                audio.title = 'Phát giọng đọc';
-                audio.innerHTML = '<i class="ph ph-speaker-high"></i>';
-                audio.addEventListener('click', () => speak(card.FrontText || '', false));
-                actions.append(star, audio);
+                const header = document.createElement('div');
+                header.className = 'vocab-group-header';
+                header.innerHTML = `<h3>${title}</h3><span class="vocab-group-count">${items.length}</span>`;
+                group.appendChild(header);
 
-                item.append(term, definition, actions);
-                list.appendChild(item);
-            });
+                const rows = document.createElement('div');
+                rows.className = 'vocab-group-rows';
+
+                items.forEach(card => {
+                    const row = document.createElement('div');
+                    row.className = `vocab-row glass-card ${isMastered ? 'mastered-border' : ''}`;
+                    row.innerHTML = `
+                        <div class="row g-3 align-items-center">
+                            <div class="col-12 col-md-6">
+                                <div class="d-flex align-items-center gap-3">
+                                    <span class="material-symbols-outlined ${card.IsStarred ? 'filled text-dark' : 'text-muted'}">star</span>
+                                    <div>
+                                        <p class="vocab-word ${isMastered ? 'fw-bold' : ''}">${escapeHtml(card.FrontText || '')}</p>
+                                        <p class="vocab-meta">${escapeHtml([card.PartOfSpeech, card.Pronunciation].filter(Boolean).join(' · '))}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-12 col-md-6">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div>
+                                        <p class="vocab-meaning">${escapeHtml(card.BackText || '')}</p>
+                                        <p class="vocab-example">${escapeHtml(card.ExampleSentence || '')}</p>
+                                    </div>
+                                    <button type="button" class="btn vocab-audio" title="Phát giọng đọc">
+                                        <span class="material-symbols-outlined">volume_up</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                    const audio = row.querySelector('.vocab-audio');
+                    audio.addEventListener('click', () => speak(card.FrontText || '', false));
+                    rows.appendChild(row);
+                });
+
+                group.appendChild(rows);
+                list.appendChild(group);
+            }
+
+            renderGroup('Chưa học', unlearned, false);
+            renderGroup('Đã thành thạo', mastered, true);
         }
 
         function updateUI() {
@@ -533,11 +556,11 @@
                 const strong = document.createElement('strong');
                 strong.textContent = 'Ví dụ: ';
                 backExElem.appendChild(strong);
-                
+
                 const textSpan = document.createElement('span');
                 textSpan.textContent = currentCard.ExampleSentence;
                 backExElem.appendChild(textSpan);
-                
+
                 if (currentCard.ExampleMeaning) {
                     backExElem.appendChild(document.createElement('br'));
                     const meaningSpan = document.createElement('span');
@@ -558,7 +581,7 @@
             const total = flashcards.length;
             document.getElementById('card-progress-text').textContent = `Thẻ ${currentDisplay} / ${total}`;
             document.getElementById('card-progress-fill').style.width = `${(currentDisplay / total) * 100}%`;
-            
+
             const cardNavProgress = document.getElementById('card-nav-progress');
             if (cardNavProgress) {
                 cardNavProgress.textContent = `Thẻ ${currentDisplay} / ${total}`;
@@ -594,8 +617,8 @@
             rightBtn.classList.toggle('is-success', progressMode);
             leftBtn.title = progressMode ? 'Chưa biết (1)' : 'Thẻ trước (←)';
             rightBtn.title = progressMode ? 'Đã biết (2)' : 'Thẻ tiếp (→)';
-            leftBtn.innerHTML = progressMode ? '<i class="ph ph-x"></i>' : '<i class="ph ph-arrow-left"></i>';
-            rightBtn.innerHTML = progressMode ? '<i class="ph ph-check"></i>' : '<i class="ph ph-arrow-right"></i>';
+            leftBtn.innerHTML = progressMode ? '<span class="material-symbols-outlined">close</span>' : '<span class="material-symbols-outlined">arrow_back</span>';
+            rightBtn.innerHTML = progressMode ? '<span class="material-symbols-outlined">check</span>' : '<span class="material-symbols-outlined">arrow_forward</span>';
         }
 
         function toggleCurrentCardStar(event) {
@@ -654,20 +677,20 @@
         }
 
         function updateStarUI(isStarred) {
-            const starIconFront = document.querySelector('.card-front .card-star-btn i');
-            const starIconBack = document.querySelector('.card-back .card-star-btn i');
+            const starIconFront = document.querySelector('.card-front .card-star-btn span');
+            const starIconBack = document.querySelector('.card-back .card-star-btn span');
             const starBtnFront = document.querySelector('.card-front .card-star-btn');
             const starBtnBack = document.querySelector('.card-back .card-star-btn');
 
             if (starIconFront && starIconBack) {
                 if (isStarred) {
-                    starIconFront.className = 'ph ph-star-fill';
-                    starIconBack.className = 'ph ph-star-fill';
+                    starIconFront.className = 'material-symbols-outlined filled';
+                    starIconBack.className = 'material-symbols-outlined filled';
                     starBtnFront.classList.add('is-starred');
                     starBtnBack.classList.add('is-starred');
                 } else {
-                    starIconFront.className = 'ph ph-star';
-                    starIconBack.className = 'ph ph-star';
+                    starIconFront.className = 'material-symbols-outlined';
+                    starIconBack.className = 'material-symbols-outlined';
                     starBtnFront.classList.remove('is-starred');
                     starBtnBack.classList.remove('is-starred');
                 }
