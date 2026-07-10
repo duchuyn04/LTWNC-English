@@ -3,23 +3,36 @@
     ViewData["Title"] = Model.Title;
 }
 
-<div class="fade-in-up">
-    <div class="d-flex justify-content-between align-items-start mb-4 mobile-stack-header">
-        <div>
-            <h1 class="h3 mb-1" style="letter-spacing: -0.02em;">@Model.Title</h1>
-            @if (!string.IsNullOrEmpty(Model.Description))
-            {
-                <p style="color: #787774;">@Model.Description</p>
-            }
-            <small style="color: #787774;">
-                <i class="ph ph-cards"></i> @Model.Flashcards.Count thẻ
-                @if (Model.IsPublic)
-                {
-                    <span class="tag tag-new ms-2">Công khai</span>
-                }
-            </small>
+<link rel="stylesheet" href="~/css/set-management.css" asp-append-version="true" />
+
+<div class="set-management-shell">
+    <div class="set-detail-hero">
+        <h2>@Model.Title</h2>
+        @if (!string.IsNullOrEmpty(Model.Description))
+        {
+            <p>@Model.Description</p>
+        }
+        else
+        {
+            <p>@(Model.IsPublic ? "Bộ thẻ công khai" : "Bộ thẻ riêng tư") · @Model.Flashcards.Count thẻ</p>
+        }
+
+        <div class="set-detail-stats">
+            <div class="set-detail-stat">
+                <div class="set-detail-stat-value">0%</div>
+                <div class="set-detail-stat-label">Tiến độ</div>
+            </div>
+            <div class="set-detail-stat">
+                <div class="set-detail-stat-value">0</div>
+                <div class="set-detail-stat-label">Đã thuộc</div>
+            </div>
+            <div class="set-detail-stat">
+                <div class="set-detail-stat-value">@Model.Flashcards.Count</div>
+                <div class="set-detail-stat-label">Tổng số</div>
+            </div>
         </div>
-        <div class="d-flex gap-2">
+
+        <div class="d-flex gap-2 justify-content-center">
             @if (Model.IsOwner)
             {
                 <a href="/Set/@Model.Id/Edit" class="btn-secondary-custom">
@@ -27,35 +40,42 @@
                 </a>
             }
             <a href="/Study/@Model.Id" class="btn-primary-custom">
-                <i class="ph ph-play-circle"></i> Học ngay
+                <i class="ph ph-play-circle"></i> Bắt đầu học
             </a>
         </div>
     </div>
 
     @if (Model.Flashcards.Any())
     {
-        <div class="card-custom">
-            <h5 class="mb-3" style="font-weight: 600;">Danh sách thẻ</h5>
+        <div class="set-detail-list">
+            <div class="set-detail-list-header">
+                <h3>Danh sách từ</h3>
+                @if (Model.IsOwner)
+                {
+                    <a href="/Set/@Model.Id/Edit" class="btn-secondary-custom" style="padding: 0.4rem 0.8rem; font-size: 0.8125rem;">Chỉnh sửa</a>
+                }
+            </div>
             @foreach (var card in Model.Flashcards.OrderBy(c => c.OrderIndex))
             {
-                <div class="details-card-row">
-                    <span style="color: #787774; font-size: 0.8125rem; min-width: 28px;">@card.OrderIndex</span>
-                    <span style="color: #B7791F; min-width: 20px;">@(card.IsStarred ? "★" : "☆")</span>
-                    <div style="flex: 1;">
-                        <div style="font-weight: 600; font-size: 1.0625rem;">@card.FrontText</div>
-                        <small style="color: #787774;">@card.PartOfSpeech · @card.Pronunciation</small>
+                <div class="set-detail-row">
+                    <div>
+                        <div class="set-detail-term">@card.FrontText</div>
+                        <small style="color: #78716c;">@card.PartOfSpeech · @card.Pronunciation</small>
                     </div>
-                    <i class="ph ph-arrow-right" style="color: #787774; margin-top: 4px;"></i>
-                    <span style="flex: 1; font-size: 1.0625rem;">@card.BackText</span>
+                    <div class="set-detail-definition">@card.BackText</div>
                 </div>
             }
         </div>
     }
     else
     {
-        <div class="text-center py-5" style="color: #787774;">
-            <i class="ph ph-cards" style="font-size: 3rem;"></i>
-            <p class="mt-3">Bộ thẻ này chưa có thẻ nào.</p>
+        <div class="set-empty-state">
+            <div class="set-empty-state-icon">📝</div>
+            <p style="font-size: 1.1rem; font-weight: 600; color: var(--sm-ink);">Bộ thẻ này chưa có từ nào.</p>
+            @if (Model.IsOwner)
+            {
+                <a href="/Set/@Model.Id/Edit" class="btn-primary-custom">Thêm từ đầu tiên</a>
+            }
         </div>
     }
 </div>
