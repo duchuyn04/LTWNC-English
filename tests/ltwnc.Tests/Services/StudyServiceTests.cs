@@ -204,15 +204,36 @@ public class StudyServiceTests
     }
 
     [Fact]
-    public async Task GetStudyModeSelectorDataAsync_RoadmapModesAreUnavailable()
+    public async Task SaveFilterSettingsAsync_UpdatesStarredAndUnlearnedOnly()
     {
         await using var context = CreateContext();
         await SeedSetAsync(context);
 
         var service = new StudyService(context);
+        await service.SaveFilterSettingsAsync("user-1", starredOnly: true, unlearnedOnly: false);
+
+        var settings = await context.UserStudySettings.FirstAsync(s => s.UserId == "user-1");
+        Assert.True(settings.StarredOnly);
+        Assert.False(settings.UnlearnedOnly);
+    }
+
+    [Fact]
+    public async Task GetStudyModeSelectorDataAsync_NoAvailableModes_AddsEmptyStateWarning()
+    {
+        await using var context = CreateContext();
+        await SeedSetAsync(context);
+        await SeedCardAsync(context, 1, "hello", "xin chào", isStarred: false);
+
+        context.UserStudySettings.Add(new UserStudySettings
+        {
+            UserId = "user-1",
+            StarredOnly = true
+        });
+        await context.SaveChangesAsync();
+
+        var service = new StudyService(context);
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
-        Assert.Equal(3, result.RoadmapModes.Count);
-        Assert.All(result.RoadmapModes, m => Assert.False(m.IsAvailable));
+        Assert.Contains(result.Warnings, w => w.Contains("Không có thẻ phù hợp"));
     }
 }

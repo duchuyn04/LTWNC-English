@@ -1,5 +1,9 @@
 /* Study Hub — Mode Selector */
 
+body {
+    background-color: #FDFBF7;
+}
+
 .study-hub {
     max-width: 1200px;
     margin: 0 auto;
@@ -145,6 +149,19 @@
     border-style: dashed;
 }
 
+.study-hub-estimate {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9375rem;
+    color: var(--text-secondary);
+}
+
+.study-hub-estimate i {
+    font-size: 1.125rem;
+}
+
 .study-hub-cta {
     margin-top: 0.5rem;
 }
@@ -159,7 +176,7 @@
     background: var(--text-primary);
     color: #FFFFFF;
     border: none;
-    border-radius: 10px;
+    border-radius: 6px;
     text-decoration: none;
     font-weight: 600;
     transition: transform 0.1s ease, background 0.2s ease;
@@ -226,7 +243,53 @@
     background: #FFFFFF;
 }
 
-.mode-card-disabled {
+.mode-card-primary {
+    padding: 2rem 1.75rem;
+    border-radius: 16px;
+}
+
+.mode-card-primary .mode-card-icon {
+    width: 64px;
+    height: 64px;
+}
+
+.mode-card-primary .mode-card-icon i {
+    font-size: 2rem;
+}
+
+.mode-card-primary .mode-card-title {
+    font-size: 1.375rem;
+}
+
+.mode-card-secondary {
+    padding: 1.25rem;
+    opacity: 0.85;
+}
+
+.mode-card-secondary:hover {
+    opacity: 1;
+}
+
+.mode-card-secondary .mode-card-icon {
+    width: 48px;
+    height: 48px;
+}
+
+.mode-card-secondary .mode-card-icon i {
+    font-size: 1.5rem;
+}
+
+.mode-card-secondary .mode-card-title {
+    font-size: 1rem;
+}
+
+.mode-card-secondary .mode-card-desc {
+    display: none;
+}
+
+.mode-card-secondary .mode-card-meta {
+    font-size: 0.75rem;
+}
     opacity: 0.6;
     cursor: default;
 }

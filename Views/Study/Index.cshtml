@@ -103,6 +103,11 @@
                     </div>
                 }
 
+                <div class="study-hub-estimate">
+                    <i class="ph ph-clock"></i>
+                    <span>Thờigian dự kiến: ~@(primaryMode != null ? FormatTime(primaryMode.EstimatedSeconds) : "—")</span>
+                </div>
+
                 <div class="study-hub-cta">
                     @if (primaryMode != null && primaryMode.IsAvailable)
                     {
@@ -126,7 +131,7 @@
             <div class="study-hub-modes">
                 @foreach (var mode in Model.Modes)
                 {
-                    <div class="mode-card @(mode.IsRecommended ? "mode-card-recommended" : "") @(mode.IsAvailable ? "" : "mode-card-disabled")"
+                    <div class="mode-card @(mode.IsRecommended ? "mode-card-recommended mode-card-primary" : "mode-card-secondary") @(mode.IsAvailable ? "" : "mode-card-disabled")"
                          @(mode.IsAvailable ? $"data-href=\"{mode.ActionUrl}\"" : "")>
                         <div class="mode-card-icon">
                             <i class="ph @mode.IconClass"></i>
@@ -151,14 +156,7 @@
                             else
                             {
                                 <div class="mode-card-meta mode-card-unavailable">
-                                    @if (mode.Mode == StudyMode.Dictation)
-                                    {
-                                        <span>Không đủ thẻ có câu ví dụ</span>
-                                    }
-                                    else
-                                    {
-                                        <span>Không đủ thẻ</span>
-                                    }
+                                    <span>@(mode.UnavailableReason ?? "Không khả dụng")</span>
                                 </div>
                             }
                         </div>

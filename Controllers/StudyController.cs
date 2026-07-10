@@ -43,10 +43,7 @@ public class StudyController : Controller
         // Cập nhật bộ lọc nhanh nếu user đăng nhập
         if (user != null && (starredOnly.HasValue || unlearnedOnly.HasValue))
         {
-            var settings = await _studyService.GetSettingsAsync(user.Id);
-            if (starredOnly.HasValue) settings.StarredOnly = starredOnly.Value;
-            if (unlearnedOnly.HasValue) settings.UnlearnedOnly = unlearnedOnly.Value;
-            await _studyService.SaveSettingsAsync(user.Id, settings);
+            await _studyService.SaveFilterSettingsAsync(user.Id, starredOnly, unlearnedOnly);
         }
 
         var model = await _studyService.GetStudyModeSelectorDataAsync(setId, user?.Id);
