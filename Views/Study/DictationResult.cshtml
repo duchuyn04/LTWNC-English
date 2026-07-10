@@ -1,0 +1,68 @@
+@model DictationResultViewModel
+@{
+    ViewData["Title"] = "Kết quả nghe chép";
+}
+
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
+<link rel="stylesheet" href="~/css/flashcard.css" asp-append-version="true" />
+
+<div class="completion-view" aria-label="Kết quả nghe chép">
+    <div class="completion-inner">
+        <span class="badge badge-green">Hoàn thành</span>
+        <h2 class="completion-title">Bạn đã hoàn thành tất cả thẻ!</h2>
+
+        <div class="stats-ring">
+            <span class="stats-ring-number">@Model.Score%</span>
+            <span class="stats-ring-label">Độ chính xác</span>
+            <span class="stats-ring-sub">@Model.CorrectCount đúng · @(Model.TotalCards - Model.CorrectCount) cần ôn</span>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <span class="stat-number">@Model.TotalCards</span>
+                <span class="stat-label">Tổng thể</span>
+            </div>
+            <div class="stat-card is-green">
+                <span class="stat-number">@Model.CorrectCount</span>
+                <span class="stat-label">Đã thuộc</span>
+            </div>
+            <div class="stat-card is-red">
+                <span class="stat-number">@(Model.TotalCards - Model.CorrectCount)</span>
+                <span class="stat-label">Cần ôn</span>
+            </div>
+        </div>
+
+        @if (Model.WrongCards.Any())
+        {
+            <div class="wrong-cards glass-card">
+                <h3>@(Model.WrongCards.Count) thẻ cần ôn lại:</h3>
+                <div class="wrong-card-list">
+                    @foreach (var card in Model.WrongCards)
+                    {
+                        <div class="wrong-card-chip">
+                            <span class="wrong-card-term">@card.Term</span>
+                            <span class="wrong-card-pronunciation">@card.Pronunciation</span>
+                            <span class="wrong-card-definition">@card.Definition</span>
+                        </div>
+                    }
+                </div>
+                <p class="wrong-cards-hint">Gợi ý: Ôn lại @(Model.WrongCards.Count) thẻ chưa thuộc trước khi chuyển sang kiểm tra.</p>
+            </div>
+        }
+
+        <div class="completion-actions">
+            <a class="study-button is-red" href="/Study/@Model.SetId/Dictation">
+                Ôn lại @(Model.WrongCards.Count) thẻ cần nhớ
+            </a>
+            <a class="study-button" href="/Study/@Model.SetId/Quiz">
+                Chuyển sang kiểm tra
+            </a>
+            <a class="study-button" href="/Study/@Model.SetId/Dictation">
+                Học lại toàn bộ
+            </a>
+            <a class="primary-dark" href="/Study/@Model.SetId">
+                Về bộ từ vựng
+            </a>
+        </div>
+    </div>
+</div>
