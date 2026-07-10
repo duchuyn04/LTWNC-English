@@ -1,2 +1,0 @@
-[   80574ms] [INFO] Clear-Site-Data header on 'http://localhost:5000/_framework/clear-browser-cache': Cleared data types: "cache". @ http://localhost:5000/:0
-[   90455ms] [INFO] Clear-Site-Data header on 'http://localhost:5000/_framework/clear-browser-cache': Cleared data types: "cache". @ http://localhost:5000/:0
