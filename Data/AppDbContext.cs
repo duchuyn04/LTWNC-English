@@ -82,7 +82,7 @@ public class AppDbContext : IdentityDbContext
         // Cấu hình bảng DictationSessionDetails
         builder.Entity<DictationSessionDetail>(entity =>
         {
-            // Index để lấy nhanh các câu trả lờ của một phiên
+            // Index để lấy nhanh các câu trả lời của một phiên
             entity.HasIndex(e => e.StudySessionId);
 
             // Quan hệ: nhiều detail thuộc về 1 session
@@ -93,7 +93,7 @@ public class AppDbContext : IdentityDbContext
                   .OnDelete(DeleteBehavior.Cascade);
 
             // Quan hệ: nhiều detail thuộc về 1 flashcard
-            // Restrict: không cho xóa thẻ nếu còn lịch sử trả lờ
+            // Restrict: không cho xóa thẻ nếu còn lịch sử trả lời
             entity.HasOne(e => e.Flashcard)
                   .WithMany()
                   .HasForeignKey(e => e.FlashcardId)

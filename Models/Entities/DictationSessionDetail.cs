@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace ltwnc.Models.Entities;
 
-// Lưu chi tiết từng câu trả lờ trong một phiên nghe chép
+// Lưu chi tiết từng câu trả lời trong một phiên nghe chép
 // Một StudySession có nhiều DictationSessionDetail
 public class DictationSessionDetail
 {
@@ -19,13 +19,13 @@ public class DictationSessionDetail
     [Required]
     public int FlashcardId { get; set; }
 
-    // true nếu ngườ dùng trả lờ đúng
+    // true nếu người dùng trả lời đúng
     public bool IsCorrect { get; set; }
 
-    // Nội dung ngườ dùng đã nhập
+    // Nội dung người dùng đã nhập
     public string AnsweredText { get; set; } = string.Empty;
 
-    // Thờ điểm trả lờ
+    // Thời điểm trả lời
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation property đến phiên học

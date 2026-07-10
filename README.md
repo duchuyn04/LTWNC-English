@@ -113,7 +113,7 @@ ltwnc/
 - `FlashcardSets`: bộ thẻ.
 - `Flashcards`: thẻ từ vựng, gồm IPA, loại từ, ví dụ, ảnh, trạng thái sao.
 - `StudySessions`: phiên học đã hoàn thành, gồm mode học và chế độ nghe chép snapshot.
-- `DictationSessionDetails`: chi tiết từng câu trả lờ trong phiên nghe chép.
+- `DictationSessionDetails`: chi tiết từng câu trả lời trong phiên nghe chép.
 - `UserProgresses`: tiến trình từng user theo từng thẻ, unique theo `(UserId, FlashcardId)`.
 - `UserStudySettings`: cài đặt học của từng user, unique theo `UserId`.
 
@@ -234,7 +234,7 @@ Query của `/Study/{setId}` và `/Study/{setId}/Flashcard`:
 
 - File upload được lưu trong `wwwroot/uploads/flashcards/`.
 - Validation ảnh hiện kiểm tra dung lượng, extension và MIME type.
-- Cài đặt học được lưu server-side theo user; ngườ chưa đăng nhập vẫn xem/học bộ công khai nhưng không lưu được settings/progress.
+- Cài đặt học được lưu server-side theo user; người chưa đăng nhập vẫn xem/học bộ công khai nhưng không lưu được settings/progress.
 - Text-to-speech chạy ở trình duyệt, phụ thuộc voice mà hệ điều hành/trình duyệt cung cấp.
 - Nút loa trong flashcard luôn đọc thuật ngữ tiếng Anh (`FrontText`), kể cả khi đang ở mặt sau.
 

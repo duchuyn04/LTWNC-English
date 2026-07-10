@@ -139,7 +139,7 @@ public class DictationService
         return session;
     }
 
-    // Kiểm tra đáp án của ngườ dùng
+    // Kiểm tra đáp án của người dùng
     public async Task<DictationCheckResult> CheckAnswerAsync(
         int sessionId,
         int cardId,
@@ -183,16 +183,16 @@ public class DictationService
             acceptedAnswers.AddRange(synonyms);
         }
 
-        // Chuẩn hóa đáp án ngườ dùng
+        // Chuẩn hóa đáp án người dùng
         var normalizedInput = NormalizeAnswer(answeredText);
 
         // Kiểm tra khớp
         var isCorrect = acceptedAnswers.Any(a => NormalizeAnswer(a) == normalizedInput);
 
-        // Cập nhật tiến trình học của ngườ dùng
+        // Cập nhật tiến trình học của người dùng
         await UpdateUserProgressAsync(userId, cardId, isCorrect);
 
-        // Lưu chi tiết câu trả lờ
+        // Lưu chi tiết câu trả lời
         var detail = new DictationSessionDetail
         {
             StudySessionId = sessionId,
@@ -319,7 +319,7 @@ public class DictationService
         return result;
     }
 
-    // Tạo gợi ý khi trả lờ sai: IPA và nghĩa
+    // Tạo gợi ý khi trả lời sai: IPA và nghĩa
     private static string? BuildHint(Flashcard card)
     {
         var parts = new List<string>();
@@ -330,7 +330,7 @@ public class DictationService
         return parts.Count > 0 ? string.Join(" | ", parts) : null;
     }
 
-    // Cập nhật UserProgress sau mỗi câu trả lờ
+    // Cập nhật UserProgress sau mỗi câu trả lời
     private async Task UpdateUserProgressAsync(string userId, int flashcardId, bool isCorrect)
     {
         var progress = await _context.UserProgresses
