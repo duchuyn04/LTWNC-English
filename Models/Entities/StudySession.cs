@@ -33,6 +33,8 @@ public class StudySession
     // Chế độ học (Flashcard, Quiz, Write, Match)
     public StudyMode Mode { get; set; } = StudyMode.Flashcard;
 
+    public DictationContentMode DictationContentMode { get; set; } = DictationContentMode.Vocabulary;
+
     // Điểm số — chỉ có giá trị với Quiz, Write, Match (null với Flashcard)
     public int? Score { get; set; }
 

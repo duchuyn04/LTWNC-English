@@ -225,6 +225,23 @@ public class StudyController : Controller
         }
     }
 
+    // Xóa bộ lọc StarredOnly/UnlearnedOnly để thoát khỏi trạng thái lọc rỗng
+    [Authorize]
+    [Route("/Study/{setId}/ClearFilters")]
+    public async Task<IActionResult> ClearFilters(int setId)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user != null)
+        {
+            var settings = await _studyService.GetSettingsAsync(user.Id);
+            settings.StarredOnly = false;
+            settings.UnlearnedOnly = false;
+            await _studyService.SaveSettingsAsync(user.Id, settings);
+        }
+
+        return RedirectToAction("Index", new { setId });
+    }
+
     // Hiển thị giao diện học nghe chép
     // Yêu cầu đăng nhập
     [Authorize]
@@ -242,13 +259,23 @@ public class StudyController : Controller
 
         if (!cards.Any())
         {
-            TempData["Message"] = settings.StarredOnly || settings.UnlearnedOnly
-                ? "Không có thẻ phù hợp với bộ lọc hiện tại."
-                : "Bộ thẻ này chưa có thẻ nào.";
+            string message;
+            if (settings.DictationContentMode == DictationContentMode.ExampleSentence &&
+                !await _dictationService.AnyCardHasExampleSentenceAsync(setId))
+            {
+                message = "Bộ thẻ chưa có câu ví dụ để nghe chép.";
+            }
+            else
+            {
+                message = settings.StarredOnly || settings.UnlearnedOnly
+                    ? "Không có thẻ phù hợp với bộ lọc hiện tại."
+                    : "Bộ thẻ này chưa có thẻ nào.";
+            }
+            TempData["Message"] = message;
             return RedirectToAction("Index", new { setId });
         }
 
-        var session = await _dictationService.CreateSessionAsync(user.Id, setId);
+        var session = await _dictationService.CreateSessionAsync(user.Id, setId, settings.DictationContentMode);
 
         var viewModel = new DictationStudyViewModel
         {
@@ -256,11 +283,17 @@ public class StudyController : Controller
             SetTitle = set.Title,
             SessionId = session.Id,
             Settings = settings,
+            ContentMode = session.DictationContentMode,
             Cards = cards.Select(c => new DictationCardViewModel
             {
                 Id = c.Id,
                 Term = c.FrontText,
                 Definition = c.BackText,
+                ExampleSentence = c.ExampleSentence,
+                ExampleMeaning = c.ExampleMeaning,
+                PromptText = session.DictationContentMode == DictationContentMode.ExampleSentence
+                    ? c.ExampleSentence
+                    : c.FrontText,
                 Pronunciation = c.Pronunciation,
                 ImageUrl = !string.IsNullOrWhiteSpace(c.UploadedImagePath) ? c.UploadedImagePath : c.ImageUrl
             }).ToList()
@@ -291,7 +324,14 @@ public class StudyController : Controller
                 success = true,
                 isCorrect = result.IsCorrect,
                 correctAnswer = result.CorrectAnswer,
-                hint = result.Hint
+                hint = result.Hint,
+                exampleMeaning = result.ExampleMeaning,
+                wordComparison = result.WordComparison.Select(word => new
+                {
+                    status = word.Status.ToString(),
+                    answeredWord = word.AnsweredWord,
+                    correctWord = word.CorrectWord
+                })
             });
         }
         catch (KeyNotFoundException)
@@ -347,6 +387,7 @@ public class StudyController : Controller
                 SetId = setId,
                 SetTitle = set.Title,
                 SessionId = sessionId,
+                ContentMode = result.ContentMode,
                 TotalCards = result.TotalCards,
                 CorrectCount = result.CorrectCount,
                 Score = result.Score,
@@ -355,7 +396,9 @@ public class StudyController : Controller
                     Id = c.Id,
                     Term = c.Term,
                     Definition = c.Definition,
-                    Pronunciation = c.Pronunciation
+                    Pronunciation = c.Pronunciation,
+                    ExampleSentence = c.ExampleSentence,
+                    ExampleMeaning = c.ExampleMeaning
                 }).ToList()
             };
 

@@ -5,48 +5,47 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 <link rel="stylesheet" href="~/css/flashcard.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/dictation-redesign.css" asp-append-version="true" />
 
-<div class="study-shell">
+<div class="dictation-shell">
     @Html.AntiForgeryToken()
 
-    <section id="dictation-view" class="study-stage" aria-label="Nghe chép chính tả">
-        <header class="study-header">
-            <a class="exit-link" href="/Study/@Model.SetId" title="Thoát về trang học">
+    <section class="dictation-stage" aria-label="Nghe chép chính tả">
+        <header class="dictation-header">
+            <a class="dictation-back" href="/Study/@Model.SetId" title="Thoát về trang học">
                 <span class="material-symbols-outlined">arrow_back</span>
-                <span class="exit-label">Quay lại</span>
             </a>
 
-            <div class="set-meta">
-                <h1 class="set-title">@Model.SetTitle</h1>
+            <div class="dictation-title-block">
+                <span class="dictation-eyebrow">Nghe chép chính tả</span>
+                <h1 class="dictation-title">@Model.SetTitle</h1>
             </div>
 
-            <button type="button" class="icon-button study-settings-button" onclick="toggleDictationSettings(event)" title="Cài đặt nghe chép">
+            <button type="button" class="dictation-settings-btn" onclick="toggleDictationSettings(event)" title="Cài đặt nghe chép">
                 <span class="material-symbols-outlined">tune</span>
             </button>
         </header>
 
-        <div class="progress-strip">
-            <div class="progress-track" aria-hidden="true">
-                <div id="dictation-progress-fill" class="progress-fill"></div>
+        <div class="dictation-progress">
+            <div class="dictation-progress-track" aria-hidden="true">
+                <div id="dictation-progress-fill" class="dictation-progress-fill"></div>
             </div>
-            <span id="dictation-progress-text" class="progress-text">Câu 1 / @Model.Cards.Count</span>
+            <span id="dictation-progress-text" class="dictation-progress-text">Câu 1 / @Model.Cards.Count</span>
         </div>
 
-        <main class="card-area">
-            <div class="flashcard-frame">
-                <article class="card-face card-front">
-                    <div class="card-topline">
-                        <span class="badge badge-blue">Nghe chép</span>
-                    </div>
+        <div class="dictation-layout">
+            <main class="dictation-main">
+                <div class="dictation-card">
+                    <h2 class="dictation-card-title">Bài tập nghe chép</h2>
 
-                    <div class="card-content">
-                        <button type="button" id="dictation-play-btn" class="card-audio-btn" onclick="playCurrentTerm()" title="Phát âm (Ctrl + 1)">
-                            <span class="material-symbols-outlined" style="font-size: 3rem;">volume_up</span>
+                    <div class="dictation-audio-control">
+                        <button type="button" id="dictation-play-btn" class="dictation-audio-btn" onclick="playCurrentPrompt()" title="Phát âm (Ctrl + 1)">
+                            <span class="material-symbols-outlined">volume_up</span>
                         </button>
-
-                        <div class="dictation-speed-row">
+                        <span class="dictation-audio-label">Phát âm</span>
+                        <div class="dictation-audio-speed">
                             <label for="dictation-speed">Tốc độ</label>
-                            <select id="dictation-speed" class="form-select premium-select" onchange="saveTtsSettings()">
+                            <select id="dictation-speed" onchange="saveTtsSettings()">
                                 <option value="0.5">0.5x</option>
                                 <option value="0.75">0.75x</option>
                                 <option value="1.0" selected>1.0x</option>
@@ -54,136 +53,184 @@
                                 <option value="1.5">1.5x</option>
                             </select>
                         </div>
+                    </div>
 
-                        <div class="dictation-input-wrap" style="margin-top: 1.5rem;">
-                            <textarea id="dictation-answer" class="form-control" rows="2" placeholder="Nhập từ hoặc câu bạn nghe được..."></textarea>
-                        </div>
+                    <label for="dictation-answer" class="dictation-input-label">Điền lại nội dung bạn nghe được</label>
+                    <textarea id="dictation-answer" class="dictation-answer" rows="2" placeholder="Nhập từ hoặc câu bạn nghe được..."></textarea>
 
-                        <div id="dictation-feedback" class="dictation-feedback" hidden style="margin-top: 1rem;">
-                            <div id="dictation-feedback-icon"></div>
-                            <div id="dictation-feedback-answer" class="card-word" style="font-size: 1.25rem;"></div>
-                            <div id="dictation-feedback-hint" class="card-detail-text"></div>
+                    <div id="dictation-feedback" class="dictation-feedback" hidden>
+                        <div id="dictation-feedback-icon" class="dictation-feedback-icon"></div>
+                        <div id="dictation-feedback-answer" class="dictation-feedback-answer"></div>
+                        <div id="dictation-feedback-hint" class="dictation-feedback-hint"></div>
+                        <div id="dictation-feedback-comparison" class="dictation-feedback-comparison" hidden>
+                            <div class="dictation-feedback-row">
+                                <span class="dictation-feedback-label">Bạn đã nhập</span>
+                                <div id="dictation-answered-words" class="dictation-feedback-words"></div>
+                            </div>
+                            <div class="dictation-feedback-row">
+                                <span class="dictation-feedback-label">Câu đúng</span>
+                                <div id="dictation-correct-words" class="dictation-feedback-words"></div>
+                            </div>
+                            <p id="dictation-example-meaning" class="dictation-example-meaning"></p>
+                            <button type="button" id="dictation-replay-correct" class="dictation-feedback-replay" onclick="speak(lastCorrectAnswer)">
+                                <span class="material-symbols-outlined">volume_up</span>
+                                Nghe lại câu đúng
+                            </button>
                         </div>
                     </div>
 
-                    <div class="card-audio-controls" style="position: static; margin-top: 1.5rem;">
-                        <button type="button" id="dictation-check-btn" class="control-btn control-btn-rate control-btn-rate-known" onclick="checkAnswer()">
+                    <div class="dictation-actions">
+                        <button type="button" id="dictation-check-btn" class="dictation-btn dictation-btn-primary" onclick="checkAnswer()">
                             <span class="material-symbols-outlined">check</span>
                             <span>Kiểm tra (Enter)</span>
                         </button>
-                        <button type="button" class="control-btn control-btn-rate control-btn-rate-unknown" onclick="markUnknown()">
+                        <button type="button" id="dictation-dont-know-btn" class="dictation-btn dictation-btn-secondary" onclick="markUnknown()">
                             <span class="material-symbols-outlined">close</span>
                             <span>Tôi không biết</span>
                         </button>
+                        <button type="button" id="dictation-continue-btn" class="dictation-btn dictation-btn-primary" onclick="nextCard()" hidden>
+                            <span class="material-symbols-outlined">arrow_forward</span>
+                            <span>Tiếp tục</span>
+                        </button>
                     </div>
-                </article>
-            </div>
-        </main>
+                </div>
+            </main>
 
-        <p class="keyboard-hint">
-            <span class="keyboard-group"><kbd>Ctrl</kbd> + <kbd>1</kbd> để nghe lại</span>
-        </p>
+            <aside class="dictation-sidebar">
+                <div class="dictation-stat-card">
+                    <h3 class="dictation-stat-title">Tiến độ buổi học</h3>
+                    <div class="dictation-stat-row"><span>Đã hoàn thành</span><span id="stat-completed">0 / @Model.Cards.Count</span></div>
+                    <div class="dictation-stat-row"><span>Tổng số câu hỏi</span><span id="stat-total">@Model.Cards.Count</span></div>
+                    <div class="dictation-stat-row"><span>Tỉ lệ chính xác</span><span id="stat-accuracy">--</span></div>
+                </div>
 
-        <aside class="dictation-sidebar" style="margin-top: 2rem;">
-            <div class="sidebar-card glass-card">
-                <h3>Tiến độ buổi học</h3>
-                <div class="sidebar-row"><span>Đã hoàn thành</span><span id="stat-completed">0 / @Model.Cards.Count</span></div>
-                <div class="sidebar-row"><span>Tổng số câu hỏi</span><span id="stat-total">@Model.Cards.Count</span></div>
-                <div class="sidebar-row"><span>Tỉ lệ chính xác</span><span id="stat-accuracy">--</span></div>
-            </div>
+                @if (Model.StreakDays > 0)
+                {
+                    <div class="dictation-stat-card">
+                        <h3 class="dictation-stat-title">Chuỗi học tập</h3>
+                        <p class="dictation-streak-value"><strong>@Model.StreakDays</strong> ngày liên tiếp</p>
+                    </div>
+                }
 
-            <div class="sidebar-card glass-card">
-                <h3>Chuỗi học tập</h3>
-                <p>12 ngày liên tiếp</p>
-            </div>
+                <div class="dictation-stat-card">
+                    <h3 class="dictation-stat-title">Phím tắt</h3>
+                    <div class="dictation-shortcut-row"><span>Nghe lại</span><span><kbd>Ctrl</kbd> + <kbd>1</kbd></span></div>
+                    <div class="dictation-shortcut-row"><span>Kiểm tra / tiếp tục</span><span><kbd>Enter</kbd></span></div>
+                </div>
 
-            <a class="sidebar-link" href="/Study/@Model.SetId/History">Xem lại lịch sử câu sai</a>
-            <a class="sidebar-link text-danger" href="/Study/@Model.SetId">Kết thúc phiên học</a>
-        </aside>
+                <div class="dictation-links">
+                    <a class="dictation-link" href="/Study/@Model.SetId/History">
+                        <span class="material-symbols-outlined">history</span>
+                        Xem lại lịch sử câu sai
+                    </a>
+                    <a class="dictation-link dictation-link-danger" href="/Study/@Model.SetId">
+                        <span class="material-symbols-outlined">logout</span>
+                        Kết thúc phiên học
+                    </a>
+                </div>
+            </aside>
+        </div>
     </section>
 
-    <aside id="dictation-settings-drawer" class="study-settings-drawer" hidden>
-        <div class="settings-drawer-header">
-            <span class="settings-title">Cài đặt nghe chép</span>
-            <button type="button" class="icon-button" onclick="toggleDictationSettings(event)" title="Đóng">
+    <aside id="dictation-settings-drawer" class="dictation-settings-drawer" hidden>
+        <div class="dictation-settings-header">
+            <span class="dictation-settings-title">Cài đặt nghe chép</span>
+            <button type="button" class="dictation-settings-close" onclick="toggleDictationSettings(event)" title="Đóng">
                 <span class="material-symbols-outlined">close</span>
             </button>
         </div>
-        <div class="settings-drawer-body">
-            <div>
-                <div class="settings-group-title">Lọc từ vựng</div>
-                <label><input type="checkbox" data-setting="StarredOnly"> Chỉ học từ đánh dấu sao</label>
-                <label><input type="checkbox" data-setting="UnlearnedOnly"> Chỉ học từ chưa thuộc</label>
+        <div class="dictation-settings-body">
+            <div class="dictation-settings-group">
+                <div class="dictation-settings-group-title">Lọc từ vựng</div>
+                <label class="dictation-settings-option"><input type="checkbox" data-setting="StarredOnly"> Chỉ học từ đánh dấu sao</label>
+                <label class="dictation-settings-option"><input type="checkbox" data-setting="UnlearnedOnly"> Chỉ học từ chưa thuộc</label>
             </div>
 
-            <div>
-                <div class="settings-group-title">Thứ tự học</div>
-                <label><input type="checkbox" data-setting="DictationShuffle"> Xáo trộn</label>
+            <div class="dictation-settings-group">
+                <div class="dictation-settings-group-title">Thứ tự học</div>
+                <label class="dictation-settings-option"><input type="checkbox" data-setting="DictationShuffle"> Xáo trộn</label>
             </div>
 
-            <div>
-                <div class="settings-group-title">Chế độ trả lờ</div>
-                <label><input type="radio" name="answerMode" value="Term" data-setting="DictationAnswerMode" checked> Trả lờ bằng thuật ngữ</label>
-                <label><input type="radio" name="answerMode" value="Definition" data-setting="DictationAnswerMode"> Trả lờ bằng định nghĩa</label>
+            <div class="dictation-settings-group">
+                <div class="dictation-settings-group-title">Nội dung nghe chép</div>
+                <label class="dictation-settings-option"><input type="radio" name="contentMode" value="Vocabulary" data-setting="DictationContentMode" @(Model.Settings.DictationContentMode == DictationContentMode.Vocabulary ? "checked" : "")> Từ vựng</label>
+                <label class="dictation-settings-option"><input type="radio" name="contentMode" value="ExampleSentence" data-setting="DictationContentMode" @(Model.Settings.DictationContentMode == DictationContentMode.ExampleSentence ? "checked" : "")> Câu ví dụ</label>
             </div>
 
-            <div>
-                <div class="settings-group-title">Tùy chọn trả lờ</div>
-                <label><input type="checkbox" data-setting="DictationAcceptSynonyms"> Chấp nhận từ đồng nghĩa</label>
+            <div id="dictation-answer-mode-group" class="dictation-settings-group">
+                <div class="dictation-settings-group-title">Chế độ trả lời</div>
+                <label class="dictation-settings-option"><input type="radio" name="answerMode" value="Term" data-setting="DictationAnswerMode" @(Model.Settings.DictationAnswerMode == DictationAnswerMode.Term ? "checked" : "")> Trả lời bằng thuật ngữ</label>
+                <label class="dictation-settings-option"><input type="radio" name="answerMode" value="Definition" data-setting="DictationAnswerMode" @(Model.Settings.DictationAnswerMode == DictationAnswerMode.Definition ? "checked" : "")> Trả lời bằng định nghĩa</label>
             </div>
 
-            <div>
-                <div class="settings-group-title">Tùy chọn hành vi</div>
-                <label><input type="checkbox" data-setting="DictationAutoAdvance"> Tự động tiếp tục khi đúng</label>
+            <div id="dictation-synonyms-group" class="dictation-settings-group">
+                <div class="dictation-settings-group-title">Tùy chọn trả lời</div>
+                <label class="dictation-settings-option"><input type="checkbox" data-setting="DictationAcceptSynonyms" @(Model.Settings.DictationAcceptSynonyms ? "checked" : "")> Chấp nhận từ đồng nghĩa</label>
             </div>
 
-            <div>
-                <div class="settings-group-title">Tùy chọn âm thanh</div>
-                <div class="tts-row">
-                    <label for="dictation-voice">Giọng đọc</label>
-                    <select id="dictation-voice" class="form-select premium-select" onchange="saveTtsSettings()"></select>
+            <div class="dictation-settings-group">
+                <div class="dictation-settings-group-title">Tùy chọn hành vi</div>
+                <label class="dictation-settings-option"><input type="checkbox" data-setting="DictationAutoAdvance"> Tự động tiếp tục khi đúng</label>
+            </div>
+
+            <div class="dictation-settings-group">
+                <div class="dictation-settings-group-title">Tùy chọn âm thanh</div>
+                <div class="dictation-settings-field">
+                    <label for="dictation-voice" class="dictation-settings-field-label">Giọng đọc</label>
+                    <select id="dictation-voice" class="dictation-settings-select" onchange="saveTtsSettings()"></select>
                 </div>
             </div>
 
-            <div>
-                <div class="settings-group-title">Gợi ý</div>
-                <label><input type="checkbox" data-setting="DictationShowHint"> Hiện gợi ý khi trả lờ sai</label>
+            <div class="dictation-settings-group">
+                <div class="dictation-settings-group-title">Gợi ý</div>
+                <label class="dictation-settings-option"><input type="checkbox" data-setting="DictationShowHint"> Hiện gợi ý khi trả lời sai</label>
             </div>
         </div>
     </aside>
-    <div id="dictation-settings-backdrop" class="settings-drawer-backdrop" hidden onclick="toggleDictationSettings(event)"></div>
+    <div id="dictation-settings-backdrop" class="dictation-settings-backdrop" hidden onclick="toggleDictationSettings(event)"></div>
 </div>
 
 @section Scripts {
     <script>
-        // Dữ liệu thẻ và cài đặt được render từ server
         const cards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Cards.Select(c => new
         {
             c.Id,
             c.Term,
             c.Definition,
+            c.ExampleSentence,
+            c.ExampleMeaning,
+            c.PromptText,
             c.Pronunciation,
             Image = c.ImageUrl
         })));
-        const initialSettings = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Settings));
+        const initialSettings = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Settings, new System.Text.Json.JsonSerializerOptions
+        {
+            PropertyNamingPolicy = null,
+            Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
+        }));
         const settings = { ...initialSettings };
         const setId = @Model.SetId;
         const sessionId = @Model.SessionId;
+        const contentMode = '@Model.ContentMode';
 
         let currentIndex = 0;
         let answeredCount = 0;
         let correctCount = 0;
         let isAnswered = false;
+        let lastCorrectAnswer = '';
 
         const synth = window.speechSynthesis;
         const voiceSelect = document.getElementById('dictation-voice');
         const speedSelect = document.getElementById('dictation-speed');
         const answerInput = document.getElementById('dictation-answer');
         const feedbackPanel = document.getElementById('dictation-feedback');
+        const continueBtn = document.getElementById('dictation-continue-btn');
+        const checkBtn = document.getElementById('dictation-check-btn');
+        const dontKnowBtn = document.getElementById('dictation-dont-know-btn');
+        const playBtn = document.getElementById('dictation-play-btn');
 
         let voices = [];
 
-        // Tải danh sách giọng đọc tiếng Anh
         function loadVoices() {
             if (!synth || !voiceSelect) return;
             voices = synth.getVoices();
@@ -216,7 +263,6 @@
             loadVoices();
         }
 
-        // Lưu cài đặt TTS vào localStorage
         function saveTtsSettings() {
             const data = {
                 speed: speedSelect.value,
@@ -225,7 +271,6 @@
             localStorage.setItem('ltwnc_dictation_tts', JSON.stringify(data));
         }
 
-        // Khôi phục cài đặt TTS từ localStorage
         function restoreTtsSettings() {
             const raw = localStorage.getItem('ltwnc_dictation_tts');
             if (!raw) return;
@@ -245,14 +290,11 @@
             }
         }
 
-        // Phát âm thuật ngữ hiện tại
-        function playCurrentTerm() {
+        function playCurrentPrompt() {
             if (!synth || cards.length === 0) return;
-            const term = cards[currentIndex].Term;
-            speak(term);
+            speak(cards[currentIndex].PromptText);
         }
 
-        // Phát âm một chuỗi văn bản
         function speak(text) {
             if (!synth || !text) return;
             if (synth.speaking) synth.cancel();
@@ -265,10 +307,13 @@
             const selectedVoice = voices.find(v => v.voiceURI === selectedUri);
             if (selectedVoice) utterance.voice = selectedVoice;
 
+            utterance.onstart = () => playBtn.classList.add('is-playing');
+            utterance.onend = () => playBtn.classList.remove('is-playing');
+            utterance.onerror = () => playBtn.classList.remove('is-playing');
+
             synth.speak(utterance);
         }
 
-        // Kiểm tra đáp án hiện tại
         async function checkAnswer() {
             if (cards.length === 0 || isAnswered) return;
 
@@ -281,7 +326,6 @@
             await submitCheck(value);
         }
 
-        // Gửi đáp án lên server
         async function submitCheck(value) {
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
             const params = new URLSearchParams();
@@ -312,63 +356,109 @@
             }
         }
 
-        // Xử lý kết quả trả về từ server
         function handleCheckResult(data) {
             isAnswered = true;
             answeredCount++;
             if (data.isCorrect) correctCount++;
 
             feedbackPanel.hidden = false;
+            answerInput.readOnly = true;
+            checkBtn.hidden = true;
+            dontKnowBtn.hidden = true;
             const icon = document.getElementById('dictation-feedback-icon');
             const answer = document.getElementById('dictation-feedback-answer');
             const hint = document.getElementById('dictation-feedback-hint');
+            const comparison = document.getElementById('dictation-feedback-comparison');
+            lastCorrectAnswer = data.correctAnswer || '';
+            comparison.hidden = true;
 
             if (data.isCorrect) {
                 feedbackPanel.className = 'dictation-feedback is-correct';
-                icon.innerHTML = '<span class="material-symbols-outlined" style="color: #2f6a37; font-size: 2rem;">check_circle</span>';
+                icon.innerHTML = '<span class="material-symbols-outlined" style="color: var(--dt-success); font-size: 1.75rem;">check_circle</span>';
                 answer.textContent = 'Chính xác!';
                 hint.textContent = '';
             } else {
                 feedbackPanel.className = 'dictation-feedback is-wrong';
-                icon.innerHTML = '<span class="material-symbols-outlined" style="color: #9c3430; font-size: 2rem;">cancel</span>';
-                answer.textContent = `Đáp án đúng: ${data.correctAnswer}`;
-                hint.textContent = settings.DictationShowHint ? (data.hint || '') : '';
+                icon.innerHTML = '<span class="material-symbols-outlined" style="color: var(--dt-error); font-size: 1.75rem;">cancel</span>';
+                if (contentMode === 'ExampleSentence') {
+                    answer.textContent = 'Chưa chính xác';
+                    hint.textContent = '';
+                    comparison.hidden = false;
+                    renderWordComparison(data.wordComparison || []);
+                    document.getElementById('dictation-example-meaning').textContent = data.exampleMeaning
+                        ? `Nghĩa: ${data.exampleMeaning}`
+                        : '';
+                } else {
+                    answer.textContent = `Đáp án đúng: ${data.correctAnswer}`;
+                    hint.textContent = settings.DictationShowHint ? (data.hint || '') : '';
+                }
             }
 
             updateStats();
 
             if (data.isCorrect && settings.DictationAutoAdvance) {
+                continueBtn.hidden = true;
                 setTimeout(nextCard, 1000);
+            } else {
+                continueBtn.hidden = false;
             }
         }
 
-        // Ngườ dùng bấm "Tôi không biết"
+        function renderWordComparison(words) {
+            const answered = document.getElementById('dictation-answered-words');
+            const correct = document.getElementById('dictation-correct-words');
+            answered.replaceChildren();
+            correct.replaceChildren();
+
+            words.forEach(word => {
+                if (word.status !== 'Missing') {
+                    appendFeedbackWord(answered, word.answeredWord, word.status, 'Từ đã nhập');
+                }
+                if (word.status !== 'Extra') {
+                    appendFeedbackWord(correct, word.correctWord, word.status, 'Từ đúng');
+                }
+            });
+
+            if (!answered.hasChildNodes()) answered.textContent = 'Không có câu trả lời';
+        }
+
+        function appendFeedbackWord(container, text, status, label) {
+            const word = document.createElement('span');
+            word.className = `dictation-word is-${status.toLowerCase()}`;
+            word.textContent = text || '';
+            word.setAttribute('aria-label', `${label}: ${text || ''} (${status})`);
+            container.appendChild(word);
+        }
+
         function markUnknown() {
             if (cards.length === 0 || isAnswered) return;
             submitCheck('');
         }
 
-        // Chuyển sang câu tiếp theo
         function nextCard() {
             if (currentIndex < cards.length - 1) {
                 currentIndex++;
                 resetCard();
-                playCurrentTerm();
+                playCurrentPrompt();
             } else {
                 completeSession();
             }
         }
 
-        // Reset trạng thái câu hiện tại
         function resetCard() {
             isAnswered = false;
             answerInput.value = '';
+            answerInput.readOnly = false;
+            lastCorrectAnswer = '';
             feedbackPanel.hidden = true;
+            document.getElementById('dictation-feedback-comparison').hidden = true;
+            continueBtn.hidden = true;
+            checkBtn.hidden = false;
+            dontKnowBtn.hidden = false;
             answerInput.focus();
             updateProgress();
         }
 
-        // Cập nhật thanh tiến độ
         function updateProgress() {
             const total = cards.length;
             const current = currentIndex + 1;
@@ -376,14 +466,12 @@
             document.getElementById('dictation-progress-fill').style.width = `${(current / total) * 100}%`;
         }
 
-        // Cập nhật số liệu sidebar
         function updateStats() {
             document.getElementById('stat-completed').textContent = `${answeredCount} / ${cards.length}`;
             const accuracy = answeredCount === 0 ? '--' : `${Math.round((correctCount / answeredCount) * 100)}%`;
             document.getElementById('stat-accuracy').textContent = accuracy;
         }
 
-        // Hoàn thành phiên và gửi kết quả lên server
         async function completeSession() {
             const score = cards.length === 0 ? 0 : Math.round((correctCount / cards.length) * 100);
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
@@ -411,7 +499,6 @@
             }
         }
 
-        // Mở/đóng modal cài đặt
         function toggleDictationSettings(event) {
             if (event) event.stopPropagation();
             const drawer = document.getElementById('dictation-settings-drawer');
@@ -421,7 +508,6 @@
             backdrop.hidden = isOpen;
         }
 
-        // Liên kết các input cài đặt với đối tượng settings
         function bindSettingsInputs() {
             document.querySelectorAll('[data-setting]').forEach(input => {
                 const key = input.dataset.setting;
@@ -430,7 +516,12 @@
                     input.addEventListener('change', () => {
                         if (input.checked) {
                             settings[key] = input.value;
-                            saveSettings();
+                            updateContentModeSettings();
+                            if (key === 'DictationContentMode') {
+                                saveSettings().then(() => window.location.reload());
+                            } else {
+                                saveSettings();
+                            }
                         }
                     });
                 } else {
@@ -446,16 +537,23 @@
                 }
             });
 
+            updateContentModeSettings();
+
             document.addEventListener('click', (e) => {
                 const drawer = document.getElementById('dictation-settings-drawer');
-                const btn = document.querySelector('.study-settings-button');
+                const btn = document.querySelector('.dictation-settings-btn');
                 if (drawer && !drawer.hidden && !drawer.contains(e.target) && !btn.contains(e.target)) {
                     toggleDictationSettings();
                 }
             });
         }
 
-        // Gửi cài đặt lên server
+        function updateContentModeSettings() {
+            const isSentence = settings.DictationContentMode === 'ExampleSentence';
+            document.getElementById('dictation-answer-mode-group').hidden = isSentence;
+            document.getElementById('dictation-synonyms-group').hidden = isSentence;
+        }
+
         async function saveSettings() {
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
             const params = new URLSearchParams();
@@ -478,7 +576,6 @@
             }
         }
 
-        // Reload trang với bộ lọc mới
         function reloadWithFilters() {
             const url = new URL(window.location.href);
             url.searchParams.set('starredOnly', settings.StarredOnly);
@@ -486,14 +583,17 @@
             window.location.href = url.toString();
         }
 
-        // Bắt phím tắt
         document.addEventListener('keydown', (e) => {
             if (e.ctrlKey && e.key === '1') {
                 e.preventDefault();
-                playCurrentTerm();
+                playCurrentPrompt();
             } else if (e.key === 'Enter' && !e.shiftKey && document.activeElement === answerInput) {
                 e.preventDefault();
-                checkAnswer();
+                if (isAnswered) {
+                    nextCard();
+                } else {
+                    checkAnswer();
+                }
             }
         });
 
@@ -502,10 +602,9 @@
         updateStats();
         answerInput.focus();
 
-        // Phát âm tự động câu đầu tiên sau lần tương tác đầu tiên
         document.body.addEventListener('click', () => {
             if (currentIndex === 0 && !isAnswered) {
-                playCurrentTerm();
+                playCurrentPrompt();
             }
         }, { once: true });
     </script>

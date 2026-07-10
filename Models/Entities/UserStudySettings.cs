@@ -4,13 +4,19 @@ using Microsoft.AspNetCore.Identity;
 
 namespace ltwnc.Models.Entities;
 
-// Chế độ trả lờ trong bài nghe chép
+// Chế độ trả lời trong bài nghe chép
 // Term: đọc thuật ngữ, nhập thuật ngữ
 // Definition: đọc thuật ngữ, nhập nghĩa
 public enum DictationAnswerMode
 {
     Term,
     Definition
+}
+
+public enum DictationContentMode
+{
+    Vocabulary,
+    ExampleSentence
 }
 
 public class UserStudySettings
@@ -43,6 +49,7 @@ public class UserStudySettings
     public bool PronounceBack { get; set; }
 
     // Cài đặt riêng cho chế độ nghe chép
+    public DictationContentMode DictationContentMode { get; set; } = DictationContentMode.Vocabulary;
     public DictationAnswerMode DictationAnswerMode { get; set; } = DictationAnswerMode.Term;
     public bool DictationAutoAdvance { get; set; }
     public float DictationPlaybackSpeed { get; set; } = 1.0f;

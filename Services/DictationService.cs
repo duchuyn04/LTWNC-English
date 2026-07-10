@@ -10,12 +10,30 @@ public class DictationCheckResult
     public bool IsCorrect { get; set; }
     public string CorrectAnswer { get; set; } = string.Empty;
     public string? Hint { get; set; }
+    public string? ExampleMeaning { get; set; }
+    public List<DictationWordComparison> WordComparison { get; set; } = new();
+}
+
+public enum DictationWordStatus
+{
+    Correct,
+    Incorrect,
+    Missing,
+    Extra
+}
+
+public class DictationWordComparison
+{
+    public DictationWordStatus Status { get; set; }
+    public string? AnsweredWord { get; set; }
+    public string? CorrectWord { get; set; }
 }
 
 // Kết quả tổng kết một phiên nghe chép
 public class DictationResult
 {
     public int SessionId { get; set; }
+    public DictationContentMode ContentMode { get; set; }
     public int TotalCards { get; set; }
     public int CorrectCount { get; set; }
     public int Score { get; set; }
@@ -29,6 +47,8 @@ public class DictationResultCard
     public string Term { get; set; } = string.Empty;
     public string Definition { get; set; } = string.Empty;
     public string Pronunciation { get; set; } = string.Empty;
+    public string ExampleSentence { get; set; } = string.Empty;
+    public string ExampleMeaning { get; set; } = string.Empty;
 }
 
 // Service xử lý nghiệp vụ nghe chép chính tả
@@ -46,6 +66,11 @@ public class DictationService
     public async Task<List<Flashcard>> GetCardsForDictationAsync(int setId, string userId, UserStudySettings settings)
     {
         var query = _context.Flashcards.Where(f => f.FlashcardSetId == setId);
+
+        if (settings.DictationContentMode == DictationContentMode.ExampleSentence)
+        {
+            query = query.Where(f => f.ExampleSentence.Trim() != "");
+        }
 
         // Chỉ lấy thẻ đánh dấu sao
         if (settings.StarredOnly)
@@ -73,6 +98,14 @@ public class DictationService
         return cards;
     }
 
+    // Kiểm tra bộ thẻ có bất kỳ thẻ nào có câu ví dụ không (bỏ qua bộ lọc)
+    public async Task<bool> AnyCardHasExampleSentenceAsync(int setId)
+    {
+        return await _context.Flashcards.AnyAsync(f =>
+            f.FlashcardSetId == setId &&
+            f.ExampleSentence.Trim() != "");
+    }
+
     // Xáo trộn danh sách bằng thuật toán Fisher-Yates
     private static List<T> Shuffle<T>(List<T> list)
     {
@@ -87,13 +120,17 @@ public class DictationService
     }
 
     // Tạo phiên học Dictation mới
-    public async Task<StudySession> CreateSessionAsync(string userId, int setId)
+    public async Task<StudySession> CreateSessionAsync(
+        string userId,
+        int setId,
+        DictationContentMode contentMode = DictationContentMode.Vocabulary)
     {
         var session = new StudySession
         {
             UserId = userId,
             FlashcardSetId = setId,
             Mode = StudyMode.Dictation,
+            DictationContentMode = contentMode,
             CompletedAt = DateTime.UtcNow
         };
 
@@ -127,15 +164,20 @@ public class DictationService
             throw new KeyNotFoundException("Thẻ không thuộc bộ thẻ này.");
 
         // Đáp án đúng tùy theo chế độ trả lờ
-        var correctAnswer = mode == DictationAnswerMode.Definition
-            ? card.BackText
-            : card.FrontText;
+        var correctAnswer = session.DictationContentMode == DictationContentMode.ExampleSentence
+            ? card.ExampleSentence
+            : mode == DictationAnswerMode.Definition
+                ? card.BackText
+                : card.FrontText;
 
         // Tập hợp các đáp án được chấp nhận
         var acceptedAnswers = new List<string> { correctAnswer };
 
         // Nếu chấp nhận từ đồng nghĩa và đang ở chế độ thuật ngữ
-        if (acceptSynonyms && mode == DictationAnswerMode.Term && !string.IsNullOrWhiteSpace(card.Synonyms))
+        if (session.DictationContentMode == DictationContentMode.Vocabulary &&
+            acceptSynonyms &&
+            mode == DictationAnswerMode.Term &&
+            !string.IsNullOrWhiteSpace(card.Synonyms))
         {
             var synonyms = card.Synonyms
                 .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
@@ -168,7 +210,13 @@ public class DictationService
         {
             IsCorrect = isCorrect,
             CorrectAnswer = correctAnswer,
-            Hint = isCorrect ? null : BuildHint(card)
+            Hint = isCorrect ? null : BuildHint(card),
+            ExampleMeaning = session.DictationContentMode == DictationContentMode.ExampleSentence
+                ? card.ExampleMeaning
+                : null,
+            WordComparison = session.DictationContentMode == DictationContentMode.ExampleSentence
+                ? BuildWordComparison(answeredText, correctAnswer)
+                : new()
         };
     }
 
@@ -178,15 +226,100 @@ public class DictationService
         if (string.IsNullOrWhiteSpace(input))
             return string.Empty;
 
+        return string.Join(" ", TokenizeWords(input).Select(word => word.Normalized));
+    }
+
+    private sealed record WordToken(string Original, string Normalized);
+
+    private static List<WordToken> TokenizeWords(string? input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return new();
+
         return input
-            .Trim()
+            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
+            .Select(word => new WordToken(word, NormalizeWord(word)))
+            .Where(word => word.Normalized.Length > 0)
+            .ToList();
+    }
+
+    private static string NormalizeWord(string word)
+    {
+        return word
             .ToLowerInvariant()
             .Replace(",", "")
             .Replace(".", "")
             .Replace("!", "")
             .Replace("?", "")
-            .Replace(";", "")
-            .Replace("  ", " ");
+            .Replace(";", "");
+    }
+
+    private static List<DictationWordComparison> BuildWordComparison(string? answeredText, string correctAnswer)
+    {
+        var answered = TokenizeWords(answeredText);
+        var correct = TokenizeWords(correctAnswer);
+        // ponytail: O(n*m) alignment is appropriate for sentences; revisit only for paragraph dictation.
+        var distance = new int[answered.Count + 1, correct.Count + 1];
+
+        for (var i = 0; i <= answered.Count; i++) distance[i, 0] = i;
+        for (var j = 0; j <= correct.Count; j++) distance[0, j] = j;
+
+        for (var i = 1; i <= answered.Count; i++)
+        {
+            for (var j = 1; j <= correct.Count; j++)
+            {
+                var substitution = distance[i - 1, j - 1] +
+                    (answered[i - 1].Normalized == correct[j - 1].Normalized ? 0 : 1);
+                distance[i, j] = Math.Min(substitution,
+                    Math.Min(distance[i - 1, j] + 1, distance[i, j - 1] + 1));
+            }
+        }
+
+        var result = new List<DictationWordComparison>();
+        var answeredIndex = answered.Count;
+        var correctIndex = correct.Count;
+
+        while (answeredIndex > 0 || correctIndex > 0)
+        {
+            if (answeredIndex > 0 && correctIndex > 0)
+            {
+                var matches = answered[answeredIndex - 1].Normalized == correct[correctIndex - 1].Normalized;
+                var substitution = distance[answeredIndex - 1, correctIndex - 1] + (matches ? 0 : 1);
+                if (distance[answeredIndex, correctIndex] == substitution)
+                {
+                    result.Add(new DictationWordComparison
+                    {
+                        Status = matches ? DictationWordStatus.Correct : DictationWordStatus.Incorrect,
+                        AnsweredWord = answered[answeredIndex - 1].Original,
+                        CorrectWord = correct[correctIndex - 1].Original
+                    });
+                    answeredIndex--;
+                    correctIndex--;
+                    continue;
+                }
+            }
+
+            if (answeredIndex > 0 && distance[answeredIndex, correctIndex] == distance[answeredIndex - 1, correctIndex] + 1)
+            {
+                result.Add(new DictationWordComparison
+                {
+                    Status = DictationWordStatus.Extra,
+                    AnsweredWord = answered[answeredIndex - 1].Original
+                });
+                answeredIndex--;
+            }
+            else
+            {
+                result.Add(new DictationWordComparison
+                {
+                    Status = DictationWordStatus.Missing,
+                    CorrectWord = correct[correctIndex - 1].Original
+                });
+                correctIndex--;
+            }
+        }
+
+        result.Reverse();
+        return result;
     }
 
     // Tạo gợi ý khi trả lờ sai: IPA và nghĩa
@@ -271,13 +404,16 @@ public class DictationService
                 Id = d.Flashcard!.Id,
                 Term = d.Flashcard.FrontText,
                 Definition = d.Flashcard.BackText,
-                Pronunciation = d.Flashcard.Pronunciation
+                Pronunciation = d.Flashcard.Pronunciation,
+                ExampleSentence = d.Flashcard.ExampleSentence,
+                ExampleMeaning = d.Flashcard.ExampleMeaning
             })
             .ToList();
 
         return new DictationResult
         {
             SessionId = sessionId,
+            ContentMode = session.DictationContentMode,
             TotalCards = total,
             CorrectCount = correct,
             Score = session.Score ?? 0,

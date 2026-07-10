@@ -13,7 +13,13 @@
 
         @if (TempData["Message"] is string message)
         {
-            <div class="alert alert-info">@message</div>
+            <div class="alert alert-info d-flex align-items-center justify-content-between">
+                <span>@message</span>
+                @if (message.Contains("bộ lọc"))
+                {
+                    <a class="btn btn-sm btn-outline-primary" href="/Study/@setId/ClearFilters">Xóa bộ lọc</a>
+                }
+            </div>
         }
         @if (TempData["Success"] is string success)
         {

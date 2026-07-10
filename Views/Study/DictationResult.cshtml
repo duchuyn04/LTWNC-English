@@ -6,7 +6,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 <link rel="stylesheet" href="~/css/flashcard.css" asp-append-version="true" />
 
-<div class="completion-view" aria-label="Kết quả nghe chép">
+<div class="completion-view" style="display: block;" aria-label="Kết quả nghe chép">
     <div class="completion-inner">
         <span class="badge badge-green">Hoàn thành</span>
         <h2 class="completion-title">Bạn đã hoàn thành tất cả thẻ!</h2>
@@ -41,8 +41,16 @@
                     {
                         <div class="wrong-card-chip">
                             <span class="wrong-card-term">@card.Term</span>
-                            <span class="wrong-card-pronunciation">@card.Pronunciation</span>
-                            <span class="wrong-card-definition">@card.Definition</span>
+                            @if (Model.ContentMode == ltwnc.Models.Entities.DictationContentMode.ExampleSentence)
+                            {
+                                <span class="wrong-card-definition">@card.ExampleSentence</span>
+                                <span class="wrong-card-pronunciation">@card.ExampleMeaning</span>
+                            }
+                            else
+                            {
+                                <span class="wrong-card-pronunciation">@card.Pronunciation</span>
+                                <span class="wrong-card-definition">@card.Definition</span>
+                            }
                         </div>
                     }
                 </div>

@@ -9,6 +9,7 @@ public class DictationStudyViewModel
     public string SetTitle { get; set; } = string.Empty;
     public List<DictationCardViewModel> Cards { get; set; } = new();
     public UserStudySettings Settings { get; set; } = new();
+    public DictationContentMode ContentMode { get; set; }
     public int SessionId { get; set; }
     public int StreakDays { get; set; }
 }

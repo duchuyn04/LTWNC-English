@@ -77,6 +77,15 @@ public class StudyService
         settings.PronounceFront = input.PronounceFront;
         settings.PronounceBack = input.PronounceBack;
 
+        settings.DictationContentMode = input.DictationContentMode;
+        settings.DictationAnswerMode = input.DictationAnswerMode;
+        settings.DictationAutoAdvance = input.DictationAutoAdvance;
+        settings.DictationPlaybackSpeed = input.DictationPlaybackSpeed;
+        settings.DictationVoiceUri = input.DictationVoiceUri;
+        settings.DictationShowHint = input.DictationShowHint;
+        settings.DictationAcceptSynonyms = input.DictationAcceptSynonyms;
+        settings.DictationShuffle = input.DictationShuffle;
+
         await _context.SaveChangesAsync();
         return settings;
     }
