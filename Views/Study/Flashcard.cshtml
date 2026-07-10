@@ -3,8 +3,8 @@
     ViewData["Title"] = "Học flashcard";
 }
 
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 <link rel="stylesheet" href="~/css/flashcard.css" asp-append-version="true" />
-
 
 <div class="study-shell">
     @Html.AntiForgeryToken()
@@ -12,7 +12,7 @@
     <section id="study-view" class="study-stage" aria-label="Học flashcard">
         <header class="study-header">
             <a class="exit-link" href="/Study/@Model.SetId" title="Backspace: thoát về trang học">
-                <i class="ph ph-arrow-left"></i>
+                <span class="material-symbols-outlined">arrow_back</span>
                 <span>Thoát</span>
                 <span class="keycap">Backspace</span>
             </a>
@@ -33,6 +33,40 @@
                 </div>
             </div>
         </header>
+
+        <!-- Learning Modes Grid -->
+        <section class="learning-modes" aria-label="Chế độ học">
+            <div class="row row-cols-2 row-cols-md-4 row-cols-lg-7 g-2">
+                <button type="button" class="btn learning-chip" disabled>
+                    <span class="material-symbols-outlined">chat_bubble</span>
+                    <span>Speaking</span>
+                </button>
+                <button type="button" class="btn learning-chip" disabled>
+                    <span class="material-symbols-outlined">forum</span>
+                    <span>Hội thoại</span>
+                </button>
+                <button type="button" class="btn learning-chip" disabled>
+                    <span class="material-symbols-outlined">menu_book</span>
+                    <span>Ngữ pháp</span>
+                </button>
+                <button type="button" class="btn learning-chip" disabled>
+                    <span class="material-symbols-outlined">article</span>
+                    <span>Đọc hiểu</span>
+                </button>
+                <button type="button" class="btn learning-chip is-active">
+                    <span class="material-symbols-outlined filled">school</span>
+                    <span>Học</span>
+                </button>
+                <button type="button" class="btn learning-chip" disabled>
+                    <span class="material-symbols-outlined">assignment</span>
+                    <span>Kiểm tra</span>
+                </button>
+                <button type="button" class="btn learning-chip" disabled>
+                    <span class="material-symbols-outlined">headphones</span>
+                    <span>Nghe Chép</span>
+                </button>
+            </div>
+        </section>
 
         <main class="card-area">
             <div class="flashcard-frame" onclick="toggleCardFlip()" role="button" tabindex="0" aria-label="Lật thẻ">
@@ -58,18 +92,16 @@
                     <label><input type="checkbox" data-setting="HideImage"> Ẩn ảnh</label>
                     <label><input type="checkbox" data-setting="BlurImage"> Che mờ ảnh</label>
                     <label><input type="checkbox" data-setting="LargeImage"> Ảnh lớn</label>
-
-
                 </div>
 
                 <div id="study-card-core" class="flashcard-core">
                     <button type="button" class="study-settings-button" onclick="toggleSettingsPanel(event)" title="Cài đặt học">
-                        <i class="ph ph-sliders-horizontal"></i>
+                        <span class="material-symbols-outlined">tune</span>
                     </button>
 
                     <article class="card-face card-front">
                         <button type="button" class="card-star-btn" onclick="toggleCurrentCardStar(event)" title="Đánh dấu sao">
-                            <i class="ph ph-star"></i>
+                            <span class="material-symbols-outlined">star</span>
                         </button>
                         <div class="card-topline">
                             <span class="badge badge-blue">English</span>
@@ -80,6 +112,7 @@
                             <p id="card-front-ipa" class="card-detail-text" hidden></p>
                             <p id="card-front-definition" class="card-detail-text" hidden></p>
                             <img id="card-front-image" class="card-study-image" alt="Ảnh minh họa mặt trước" hidden />
+                            <span class="card-flip-hint">Click hoặc Space để lật</span>
                         </div>
                         <div class="card-bottomline">
                             <span>Space để lật nhanh</span>
@@ -90,14 +123,14 @@
                                 <span></span>
                             </label>
                             <button type="button" class="card-audio-btn" onclick="playAudioCurrentCard()" title="Phát giọng đọc (Ctrl)">
-                                <i class="ph ph-speaker-high"></i>
+                                <span class="material-symbols-outlined">volume_up</span>
                             </button>
                         </div>
                     </article>
 
                     <article class="card-face card-back">
                         <button type="button" class="card-star-btn" onclick="toggleCurrentCardStar(event)" title="Đánh dấu sao">
-                            <i class="ph ph-star"></i>
+                            <span class="material-symbols-outlined">star</span>
                         </button>
                         <div class="card-topline">
                             <span class="badge badge-green">Nghĩa Việt</span>
@@ -109,6 +142,7 @@
                             <p id="card-back-ipa" class="card-detail-text" hidden></p>
                             <p id="card-back-example" class="card-detail-text" hidden></p>
                             <img id="card-back-image" class="card-study-image" alt="Ảnh minh họa mặt sau" hidden />
+                            <span class="card-flip-hint">Click để quay lại</span>
                         </div>
                         <div class="card-bottomline">
                             <span>1: chưa biết</span>
@@ -120,7 +154,7 @@
                                 <span></span>
                             </label>
                             <button type="button" class="card-audio-btn" onclick="playAudioCurrentCard()" title="Phát giọng đọc (Ctrl)">
-                                <i class="ph ph-speaker-high"></i>
+                                <span class="material-symbols-outlined">volume_up</span>
                             </button>
                         </div>
                     </article>
@@ -130,29 +164,36 @@
 
         <div class="card-nav-strip">
             <button type="button" id="progress-mode-btn" class="card-nav-btn card-progress-mode-btn" onclick="toggleProgressMode()" title="Bật chế độ đánh giá tiến độ">
-                <i class="ph ph-stack"></i>
+                <span class="material-symbols-outlined">layers</span>
                 <span>Tiến độ</span>
             </button>
             <button type="button" id="nav-left-btn" class="card-nav-btn" onclick="handleLeftAction()" title="Thẻ trước (←)">
-                <i class="ph ph-arrow-left"></i>
+                <span class="material-symbols-outlined">arrow_back</span>
             </button>
             <span id="card-nav-progress" class="card-nav-progress">Thẻ 1 / 1</span>
             <button type="button" id="nav-right-btn" class="card-nav-btn" onclick="handleRightAction()" title="Thẻ tiếp (→)">
-                <i class="ph ph-arrow-right"></i>
+                <span class="material-symbols-outlined">arrow_forward</span>
             </button>
             <button type="button" class="card-nav-btn" onclick="shuffleCards()" title="Trộn thẻ">
-                <i class="ph ph-shuffle"></i>
+                <span class="material-symbols-outlined">shuffle</span>
             </button>
+        </div>
+
+        <div class="shortcut-strip" aria-label="Phím tắt">
+            <span><span class="keycap">Space</span> lật thẻ</span>
+            <span><span class="keycap">←</span> thẻ trước</span>
+            <span><span class="keycap">→</span> thẻ tiếp</span>
+            <span><span class="keycap">Backspace</span> thoát</span>
         </div>
 
         <section class="vocab-panel" aria-label="Danh sách từ vựng">
             <div class="vocab-panel-toolbar">
                 <a class="vocab-edit-link" href="/Set/@Model.SetId/Edit">
-                    <i class="ph ph-pencil-simple-line"></i>
+                    <span class="material-symbols-outlined">edit</span>
                     <span>Chỉnh sửa</span>
                 </a>
 
-                <select id="vocab-sort" class="vocab-sort-select" aria-label="Sắp xếp từ vựng">
+                <select id="vocab-sort" class="form-select vocab-sort-select" aria-label="Sắp xếp từ vựng">
                     <option value="original">Thứ tự gốc</option>
                     <option value="starred">Được đánh dấu sao trước</option>
                     <option value="unlearned">Chưa học trước</option>
@@ -161,21 +202,16 @@
                 </select>
             </div>
 
-            <div class="vocab-list-heading">
-                <h2>Từ vựng trong bộ thẻ</h2>
-                <span id="vocab-count"></span>
-            </div>
-
             <div id="vocab-list" class="vocab-list"></div>
         </section>
 
         <section class="control-dock" aria-label="Điều khiển học">
             <div class="nav-cluster" aria-hidden="true" style="visibility:hidden;">
                 <button type="button" class="icon-button" onclick="prevCard()" title="Thẻ trước">
-                    <i class="ph ph-arrow-left"></i>
+                    <span class="material-symbols-outlined">arrow_back</span>
                 </button>
                 <button type="button" class="icon-button" onclick="nextCard()" title="Thẻ tiếp theo">
-                    <i class="ph ph-arrow-right"></i>
+                    <span class="material-symbols-outlined">arrow_forward</span>
                 </button>
             </div>
 
@@ -184,17 +220,17 @@
             <div class="audio-cluster">
                 <details class="tts-details">
                     <summary class="tts-summary">
-                        <i class="ph ph-sliders-horizontal"></i>
+                        <span class="material-symbols-outlined">tune</span>
                         <span>Giọng đọc</span>
                     </summary>
                     <div class="tts-panel">
                         <div class="tts-row">
                             <label for="tts-voice-select">Giọng EN</label>
-                            <select id="tts-voice-select" class="premium-select"></select>
+                            <select id="tts-voice-select" class="form-select premium-select"></select>
                         </div>
                         <div class="tts-row">
                             <label for="tts-speed">Tốc độ</label>
-                            <select id="tts-speed" class="premium-select">
+                            <select id="tts-speed" class="form-select premium-select">
                                 <option value="0.8">0.8x</option>
                                 <option value="1.0" selected>1.0x</option>
                                 <option value="1.2">1.2x</option>
@@ -204,13 +240,6 @@
                 </details>
             </div>
         </section>
-
-        <div class="shortcut-strip" aria-label="Phím tắt">
-            <span><span class="keycap">Space</span> lật thẻ</span>
-            <span><span class="keycap">←</span> thẻ trước</span>
-            <span><span class="keycap">→</span> thẻ tiếp</span>
-            <span><span class="keycap">Backspace</span> thoát</span>
-        </div>
     </section>
 
     <section id="completion-view" class="completion-view" aria-label="Hoàn thành">
@@ -236,7 +265,7 @@
             <div class="completion-actions">
                 <button type="button" class="study-button is-red" onclick="restartStudy()">
                     <span>Ôn lại</span>
-                    <span class="button-icon"><i class="ph ph-arrow-counter-clockwise"></i></span>
+                    <span class="button-icon"><span class="material-symbols-outlined">refresh</span></span>
                 </button>
                 <button type="button" class="primary-dark" onclick="completeStudySession()">
                     Về trang học
