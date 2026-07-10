@@ -1,76 +1,147 @@
 @model DictationResultViewModel
 @{
     ViewData["Title"] = "Kết quả nghe chép";
+    var wrongCount = Model.TotalCards - Model.CorrectCount;
+    var correctPct = Model.TotalCards > 0 ? (int)Math.Round((double)Model.CorrectCount / Model.TotalCards * 100) : 0;
+    var wrongPct = 100 - correctPct;
+    var isSentence = Model.ContentMode == DictationContentMode.ExampleSentence;
 }
 
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 <link rel="stylesheet" href="~/css/flashcard.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/dictation-result.css" asp-append-version="true" />
 
-<div class="completion-view" style="display: block;" aria-label="Kết quả nghe chép">
-    <div class="completion-inner">
-        <span class="badge badge-green">Hoàn thành</span>
-        <h2 class="completion-title">Bạn đã hoàn thành tất cả thẻ!</h2>
+<div class="result-shell" aria-label="Kết quả nghe chép">
+    <div class="result-container">
+        <header class="result-header">
+            <span class="badge badge-green">Hoàn thành</span>
+            <h1 class="result-title">Tổng kết buổi học</h1>
+            <p class="result-subtitle">@Model.CorrectCount đúng · @wrongCount cần ôn</p>
+        </header>
 
-        <div class="stats-ring">
-            <span class="stats-ring-number">@Model.Score%</span>
-            <span class="stats-ring-label">Độ chính xác</span>
-            <span class="stats-ring-sub">@Model.CorrectCount đúng · @(Model.TotalCards - Model.CorrectCount) cần ôn</span>
-        </div>
+        <section class="result-kpi-grid" aria-label="Chỉ số tổng quan">
+            <article class="result-kpi result-card">
+                <span class="result-kpi-icon" aria-hidden="true">
+                    <span class="material-symbols-outlined">format_list_numbered</span>
+                </span>
+                <div>
+                    <div class="result-kpi-value">@Model.TotalCards</div>
+                    <div class="result-kpi-label">Tổng thể</div>
+                </div>
+            </article>
 
-        <div class="stats-grid">
-            <div class="stat-card">
-                <span class="stat-number">@Model.TotalCards</span>
-                <span class="stat-label">Tổng thể</span>
-            </div>
-            <div class="stat-card is-green">
-                <span class="stat-number">@Model.CorrectCount</span>
-                <span class="stat-label">Đã thuộc</span>
-            </div>
-            <div class="stat-card is-red">
-                <span class="stat-number">@(Model.TotalCards - Model.CorrectCount)</span>
-                <span class="stat-label">Cần ôn</span>
-            </div>
-        </div>
+            <article class="result-kpi result-card">
+                <span class="result-kpi-icon is-success" aria-hidden="true">
+                    <span class="material-symbols-outlined">check_circle</span>
+                </span>
+                <div>
+                    <div class="result-kpi-value">@Model.CorrectCount</div>
+                    <div class="result-kpi-label">Đã thuộc</div>
+                </div>
+            </article>
+
+            <article class="result-kpi result-card">
+                <span class="result-kpi-icon is-error" aria-hidden="true">
+                    <span class="material-symbols-outlined">replay</span>
+                </span>
+                <div>
+                    <div class="result-kpi-value">@wrongCount</div>
+                    <div class="result-kpi-label">Cần ôn</div>
+                </div>
+            </article>
+        </section>
+
+        <section class="result-charts-grid" aria-label="Biểu đồ kết quả">
+            <article class="result-chart-panel result-card">
+                <h2 class="result-chart-title">Độ chính xác</h2>
+                <svg class="result-donut" viewBox="0 0 120 120" role="img" aria-label="Độ chính xác @Model.Score%">
+                    <circle class="result-donut-track" cx="60" cy="60" r="45" pathLength="100"></circle>
+                    <circle class="result-donut-fill" cx="60" cy="60" r="45" pathLength="100" stroke-dasharray="@Model.Score 100"></circle>
+                    <text class="result-donut-text" x="60" y="64" text-anchor="middle">@Model.Score%</text>
+                </svg>
+            </article>
+
+            <article class="result-chart-panel result-card">
+                <h2 class="result-chart-title">Tỷ lệ đúng / sai</h2>
+                <div class="result-stack" role="img" aria-label="Đúng @correctPct%, sai @wrongPct%">
+                    <div class="result-stack-correct" style="width:@correctPct%"></div>
+                    <div class="result-stack-wrong" style="width:@wrongPct%"></div>
+                </div>
+                <div class="result-legend">
+                    <span class="result-legend-item">
+                        <span class="result-legend-dot" style="background:var(--dr-bar-correct);"></span>
+                        Đúng @Model.CorrectCount (@correctPct%)
+                    </span>
+                    <span class="result-legend-item">
+                        <span class="result-legend-dot" style="background:var(--dr-bar-wrong);"></span>
+                        Sai @wrongCount (@wrongPct%)
+                    </span>
+                </div>
+            </article>
+        </section>
 
         @if (Model.WrongCards.Any())
         {
-            <div class="wrong-cards glass-card">
-                <h3>@(Model.WrongCards.Count) thẻ cần ôn lại:</h3>
-                <div class="wrong-card-list">
-                    @foreach (var card in Model.WrongCards)
-                    {
-                        <div class="wrong-card-chip">
-                            <span class="wrong-card-term">@card.Term</span>
-                            @if (Model.ContentMode == ltwnc.Models.Entities.DictationContentMode.ExampleSentence)
+            <section class="result-table-card result-card" aria-label="Danh sách thẻ cần ôn">
+                <h2 class="result-chart-title" id="wrong-cards-heading">@(Model.WrongCards.Count) thẻ cần ôn lại</h2>
+                <table class="result-table" aria-labelledby="wrong-cards-heading">
+                    <caption class="visually-hidden">Danh sách thẻ cần ôn lại</caption>
+                    <thead>
+                        <tr>
+                            <th scope="col">Thuật ngữ</th>
+                            @if (!isSentence)
                             {
-                                <span class="wrong-card-definition">@card.ExampleSentence</span>
-                                <span class="wrong-card-pronunciation">@card.ExampleMeaning</span>
+                                <th scope="col">Phát âm</th>
                             }
-                            else
+                            <th scope="col">@(isSentence ? "Câu ví dụ" : "Nghĩa")</th>
+                            @if (isSentence)
                             {
-                                <span class="wrong-card-pronunciation">@card.Pronunciation</span>
-                                <span class="wrong-card-definition">@card.Definition</span>
+                                <th scope="col">Nghĩa</th>
                             }
-                        </div>
-                    }
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var card in Model.WrongCards)
+                        {
+                            <tr>
+                                <td class="result-table-term">@card.Term</td>
+                                @if (!isSentence)
+                                {
+                                    <td class="result-table-meta">@card.Pronunciation</td>
+                                }
+                                @if (isSentence)
+                                {
+                                    <td class="result-table-meta">@card.ExampleSentence</td>
+                                    <td class="result-table-meta">@card.ExampleMeaning</td>
+                                }
+                                else
+                                {
+                                    <td class="result-table-meta">@card.Definition</td>
+                                }
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+        else
+        {
+            <section class="result-table-card result-card">
+                <div class="result-empty">
+                    <span class="material-symbols-outlined" aria-hidden="true">celebration</span>
+                    Chính xác 100% - không có thẻ nào cần ôn.
                 </div>
-                <p class="wrong-cards-hint">Gợi ý: Ôn lại @(Model.WrongCards.Count) thẻ chưa thuộc trước khi chuyển sang kiểm tra.</p>
-            </div>
+            </section>
         }
 
-        <div class="completion-actions">
-            <a class="study-button is-red" href="/Study/@Model.SetId/Dictation">
-                Ôn lại @(Model.WrongCards.Count) thẻ cần nhớ
-            </a>
-            <a class="study-button" href="/Study/@Model.SetId/Quiz">
-                Chuyển sang kiểm tra
-            </a>
-            <a class="study-button" href="/Study/@Model.SetId/Dictation">
-                Học lại toàn bộ
-            </a>
-            <a class="primary-dark" href="/Study/@Model.SetId">
-                Về bộ từ vựng
-            </a>
-        </div>
+        <nav class="result-actions" aria-label="Hành động tiếp theo">
+            @if (wrongCount > 0)
+            {
+                <a class="study-button is-red" href="/Study/@Model.SetId/Dictation">Ôn lại @wrongCount thẻ cần nhớ</a>
+            }
+            <a class="study-button" href="/Study/@Model.SetId/Quiz">Chuyển sang kiểm tra</a>
+            <a class="study-button" href="/Study/@Model.SetId/Dictation">Học lại toàn bộ</a>
+            <a class="primary-dark" href="/Study/@Model.SetId">Về bộ từ vựng</a>
+        </nav>
     </div>
 </div>
