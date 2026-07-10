@@ -12,13 +12,19 @@ namespace ltwnc.Controllers;
 public class StudyController : Controller
 {
     private readonly StudyService _studyService;
+    private readonly DictationService _dictationService;
     private readonly FlashcardSetService _setService;
     private readonly UserManager<IdentityUser> _userManager;
 
-    // Inject các service: học tập, bộ thẻ, UserManager
-    public StudyController(StudyService studyService, FlashcardSetService setService, UserManager<IdentityUser> userManager)
+    // Inject các service: học tập, nghe chép, bộ thẻ, UserManager
+    public StudyController(
+        StudyService studyService,
+        DictationService dictationService,
+        FlashcardSetService setService,
+        UserManager<IdentityUser> userManager)
     {
         _studyService = studyService;
+        _dictationService = dictationService;
         _setService = setService;
         _userManager = userManager;
     }
@@ -216,6 +222,152 @@ public class StudyController : Controller
         catch (Exception)
         {
             return StatusCode(500, new { success = false, message = "Could not save study settings." });
+        }
+    }
+
+    // Hiển thị giao diện học nghe chép
+    // Yêu cầu đăng nhập
+    [Authorize]
+    [Route("/Study/{setId}/Dictation")]
+    public async Task<IActionResult> Dictation(int setId)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        var set = await _setService.GetAccessibleSetAsync(setId, user.Id);
+        if (set == null) return NotFound();
+
+        var settings = await _studyService.GetSettingsAsync(user.Id);
+        var cards = await _dictationService.GetCardsForDictationAsync(setId, user.Id, settings);
+
+        if (!cards.Any())
+        {
+            TempData["Message"] = settings.StarredOnly || settings.UnlearnedOnly
+                ? "Không có thẻ phù hợp với bộ lọc hiện tại."
+                : "Bộ thẻ này chưa có thẻ nào.";
+            return RedirectToAction("Index", new { setId });
+        }
+
+        var session = await _dictationService.CreateSessionAsync(user.Id, setId);
+
+        var viewModel = new DictationStudyViewModel
+        {
+            SetId = setId,
+            SetTitle = set.Title,
+            SessionId = session.Id,
+            Settings = settings,
+            Cards = cards.Select(c => new DictationCardViewModel
+            {
+                Id = c.Id,
+                Term = c.FrontText,
+                Definition = c.BackText,
+                Pronunciation = c.Pronunciation,
+                ImageUrl = !string.IsNullOrWhiteSpace(c.UploadedImagePath) ? c.UploadedImagePath : c.ImageUrl
+            }).ToList()
+        };
+
+        return View(viewModel);
+    }
+
+    // Kiểm tra đáp án nghe chép qua AJAX
+    [HttpPost]
+    [Route("/Study/{setId}/Dictation/Check")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DictationCheck(int setId, int sessionId, int cardId, string answeredText)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+
+        try
+        {
+            var settings = await _studyService.GetSettingsAsync(user.Id);
+            var result = await _dictationService.CheckAnswerAsync(
+                sessionId, cardId, answeredText, user.Id,
+                settings.DictationAnswerMode,
+                settings.DictationAcceptSynonyms);
+
+            return Json(new
+            {
+                success = true,
+                isCorrect = result.IsCorrect,
+                correctAnswer = result.CorrectAnswer,
+                hint = result.Hint
+            });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+    }
+
+    // Hoàn thành phiên nghe chép
+    [HttpPost]
+    [Route("/Study/{setId}/Dictation/Complete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DictationComplete(int setId, int sessionId, int score)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Unauthorized();
+
+        try
+        {
+            await _dictationService.CompleteSessionAsync(sessionId, score);
+            return Json(new
+            {
+                success = true,
+                redirectUrl = Url.Action("DictationResult", new { setId, sessionId })!
+            });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
+
+    // Hiển thị màn hình tổng kết phiên nghe chép
+    [Authorize]
+    [Route("/Study/{setId}/Dictation/Result/{sessionId}")]
+    public async Task<IActionResult> DictationResult(int setId, int sessionId)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        var set = await _setService.GetAccessibleSetAsync(setId, user.Id);
+        if (set == null) return NotFound();
+
+        try
+        {
+            var result = await _dictationService.GetSessionResultAsync(sessionId, user.Id);
+            var viewModel = new DictationResultViewModel
+            {
+                SetId = setId,
+                SetTitle = set.Title,
+                SessionId = sessionId,
+                TotalCards = result.TotalCards,
+                CorrectCount = result.CorrectCount,
+                Score = result.Score,
+                WrongCards = result.WrongCards.Select(c => new DictationResultCardViewModel
+                {
+                    Id = c.Id,
+                    Term = c.Term,
+                    Definition = c.Definition,
+                    Pronunciation = c.Pronunciation
+                }).ToList()
+            };
+
+            return View(viewModel);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
         }
     }
 }
