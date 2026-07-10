@@ -134,7 +134,7 @@
 .progress-track {
     height: 7px;
     border-radius: 999px;
-    background: #ded9cf;
+    background: var(--fc-line);
     overflow: hidden;
 }
 
@@ -257,7 +257,7 @@
 }
 
 .card-back {
-    background: #f8fbf4;
+    background: var(--fc-soft);
     transform: rotateY(180deg);
 }
 
@@ -293,9 +293,9 @@
 .card-voice-toggle span {
     position: absolute;
     inset: 0;
-    border: 1px solid #c5cbd6;
+    border: 1px solid var(--fc-line);
     border-radius: 999px;
-    background: #e7ebf1;
+    background: var(--fc-soft);
     transition: background-color 160ms ease, border-color 160ms ease;
 }
 
@@ -307,13 +307,13 @@
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: #111827;
+    background: var(--fc-ink);
     transition: transform 160ms ease;
 }
 
 .card-voice-toggle input:checked + span {
-    border-color: #111827;
-    background: #cfd6e3;
+    border-color: var(--fc-ink);
+    background: var(--fc-accent-bg);
 }
 
 .card-voice-toggle input:checked + span::after {
@@ -391,7 +391,7 @@
     border: 1px solid var(--fc-line);
     border-radius: 999px;
     padding: 0.32rem 0.7rem;
-    background: #ffffff;
+    background: var(--fc-paper);
     color: var(--fc-muted);
     font-size: 0.68rem;
     font-weight: 800;
@@ -497,7 +497,7 @@
 }
 
 .card-nav-btn:hover {
-    background: #44403c;
+    background: var(--fc-ink);
     transform: translateY(-1px);
     box-shadow: 0 6px 16px rgba(41, 37, 36, 0.2);
 }
@@ -830,7 +830,7 @@
     padding: 0.9rem;
     border: 1px solid var(--fc-line);
     border-radius: 1rem;
-    background: #ffffff;
+    background: var(--fc-paper);
     box-shadow: 0 18px 48px rgba(0, 0, 0, 0.08);
     display: grid;
     gap: 0.75rem;
@@ -859,7 +859,7 @@
     border: 1px solid var(--fc-line);
     border-radius: 0.65rem;
     padding: 0.48rem 0.65rem;
-    background: #ffffff;
+    background: var(--fc-paper);
     color: var(--fc-ink);
     font-size: 0.82rem;
     outline: none;
@@ -1007,7 +1007,7 @@
     height: 42px;
     border: 1px solid var(--fc-line);
     border-radius: 999px;
-    background: #ffffff;
+    background: var(--fc-paper);
     color: var(--fc-ink);
     cursor: pointer;
     display: inline-flex;
@@ -1034,7 +1034,7 @@
     padding: 1rem;
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 1rem;
-    background: #ffffff;
+    background: var(--fc-paper);
     color: var(--fc-ink);
     box-shadow: 0 22px 60px rgba(0, 0, 0, 0.1);
     text-align: left;
