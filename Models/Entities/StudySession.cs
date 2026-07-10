@@ -10,7 +10,8 @@ public enum StudyMode
     Flashcard, // Lật thẻ
     Quiz,      // Trắc nghiệm
     Write,     // Viết chính tả
-    Match      // Ghép đôi
+    Match,     // Ghép đôi
+    Dictation  // Nghe chép chính tả
 }
 
 // Entity đại diện cho bảng StudySessions — phiên học
