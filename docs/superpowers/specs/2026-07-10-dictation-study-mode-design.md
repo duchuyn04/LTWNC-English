@@ -2,7 +2,7 @@
 
 ## Tóm tắt
 
-Thêm chế độ học **Nghe chép chính tả** vào trang chọn chế độ học `/Study/{setId}`. Ngườ dùng nghe thuật ngữ hoặc câu ví dụ qua Web Speech API, sau đó nhập lại đáp án. Hệ thống kiểm tra ngay, hiển thị phản hồi sau mỗi câu, và có màn hình tổng kết cuối phiên.
+Thêm chế độ học **Nghe chép chính tả** vào trang chọn chế độ học `/Study/{setId}`. Người dùng nghe thuật ngữ tiếng Anh qua Web Speech API, sau đó nhập lại đáp án. Hệ thống kiểm tra ngay, hiển thị phản hồi sau mỗi câu, và có màn hình tổng kết cuối phiên.
 
 ## Quyết định thiết kế
 
@@ -12,7 +12,7 @@ Thêm chế độ học **Nghe chép chính tả** vào trang chọn chế độ
 | Kiến trúc | Razor view + JS nhúng dữ liệu (Cách tiếp cận 1). API chỉ dùng cho check đáp án và hoàn thành phiên. |
 | Nguồn âm thanh | Trình duyệt Web Speech API (`speechSynthesis`). |
 | Yêu cầu đăng nhập | Bắt buộc đăng nhập để lưu tiến trình, câu sai, streak. |
-| Chế độ trả lờ | Có thể chuyển đổi trong cài đặt: trả lờ thuật ngữ hoặc trả lờ định nghĩa. |
+| Chế độ trả lời | Có thể chuyển đổi trong cài đặt: trả lời thuật ngữ hoặc trả lời định nghĩa. |
 | Feedback | Cả feedback ngay sau mỗi câu và màn hình tổng kết cuối phiên. |
 
 ## Thay đổi dữ liệu
@@ -39,10 +39,10 @@ Bổ sung các cột cài đặt riêng cho nghe chép:
 | Tên | Kiểu | Mặc định | Ý nghĩa |
 |-----|------|----------|---------|
 | `DictationAnswerMode` | `DictationAnswerMode` | `Term` | `Term`: đọc thuật ngữ, nhập thuật ngữ. `Definition`: đọc thuật ngữ, nhập nghĩa. |
-| `DictationAutoAdvance` | `bool` | `false` | Tự động chuyển câu khi trả lờ đúng. |
+| `DictationAutoAdvance` | `bool` | `false` | Tự động chuyển câu khi trả lời đúng. |
 | `DictationPlaybackSpeed` | `float` | `1.0` | Tốc độ phát âm: 0.5, 0.75, 1.0, 1.25, 1.5. |
 | `DictationVoiceUri` | `string?` | `null` | URI giọng đọc được chọn từ `speechSynthesis.getVoices()`. |
-| `DictationShowHint` | `bool` | `true` | Hiện gợi ý (IPA, hình ảnh, nghĩa) khi trả lờ sai. |
+| `DictationShowHint` | `bool` | `true` | Hiện gợi ý (IPA, hình ảnh, nghĩa) khi trả lời sai. |
 | `DictationAcceptSynonyms` | `bool` | `true` | Chấp nhận từ đồng nghĩa làm đáp án đúng. |
 | `DictationShuffle` | `bool` | `false` | Xáo trộn thứ tự thẻ. |
 
@@ -97,7 +97,7 @@ public class DictationSessionDetail
 | Phương thức | Chức năng |
 |-------------|-----------|
 | `GetCardsForDictationAsync(int setId, string userId, UserStudySettings settings)` | Lấy danh sách thẻ, áp dụng lọc và xáo trộn. |
-| `CreateSessionAsync(string userId, int setId)` | Tạo `StudySession` với `Mode = Dictation`, `CompletedAt` tạm thờ. |
+| `CreateSessionAsync(string userId, int setId)` | Tạo `StudySession` với `Mode = Dictation`, `CompletedAt` tạm thời. |
 | `CheckAnswerAsync(int sessionId, int cardId, string answeredText, string userId, DictationAnswerMode mode, bool acceptSynonyms)` | Kiểm tra đáp án, cập nhật `UserProgress`, thêm `DictationSessionDetail`. Trả về kết quả. |
 | `CompleteSessionAsync(int sessionId, int score)` | Đóng phiên, ghi `Score`. |
 | `GetSessionResultAsync(int sessionId, string userId)` | Trả dữ liệu màn hình tổng kết. |
@@ -132,13 +132,12 @@ public class DictationCardViewModel
     public string? ImageUrl { get; set; }
     public string? UploadedImagePath { get; set; }
     public string? Synonyms { get; set; }
-    public string ExampleSentence { get; set; } = string.Empty;
 }
 ```
 
 ### Logic kiểm tra đáp án
 
-1. Chuẩn hóa đáp án ngườ dùng: loại bỏ khoảng trắng đầu/cuối, dấu câu thừa, chuyển về chữ thường.
+1. Chuẩn hóa đáp án người dùng: loại bỏ khoảng trắng đầu/cuối, dấu câu thừa, chuyển về chữ thường.
 2. Chuẩn hóa đáp án đúng tương ứng với `DictationAnswerMode`:
    - `Term`: `FrontText`
    - `Definition`: `BackText`
@@ -193,22 +192,22 @@ Giao diện giống ảnh cài đặt đã cung cấp, gồm các nhóm:
    - Học theo thứ tự (không xáo trộn).
    - Xáo trộn.
 
-3. **Chế độ trả lờ**
-   - Trả lờ bằng thuật ngữ (đọc thuật ngữ).
-   - Trả lờ bằng định nghĩa (đọc thuật ngữ).
+3. **Chế độ trả lời**
+   - Trả lời bằng thuật ngữ (đọc thuật ngữ).
+   - Trả lời bằng định nghĩa (đọc thuật ngữ).
 
-4. **Tùy chọn trả lờ**
+4. **Tùy chọn trả lời**
    - Chấp nhận từ đồng nghĩa làm đáp án.
 
 5. **Tùy chọn hành vi**
-   - Tự động tiếp tục khi trả lờ đúng.
+   - Tự động tiếp tục khi trả lời đúng.
 
 6. **Tùy chọn âm thanh**
    - Tốc độ phát âm.
    - Chọn giọng đọc (dropdown từ `speechSynthesis.getVoices()`).
 
 7. **Gợi ý**
-   - Hiện IPA / hình ảnh / nghĩa khi trả lờ sai.
+   - Hiện IPA / hình ảnh / nghĩa khi trả lời sai.
 
 Cài đặt được lưu qua API `/Study/Settings` (mở rộng form binding `UserStudySettings`) và áp dụng ngay.
 
@@ -294,7 +293,7 @@ Cài đặt được lưu qua API `/Study/Settings` (mở rộng form binding `U
 - Thẻ không có `Synonyms`: không lỗi khi tách chuỗi.
 - `Synonyms` có ký tự đặc biệt.
 - Mất kết nối khi check: hiện lỗi, giữ nguyên input.
-- Ngườ dùng reload giữa chừng: phiên chưa complete, có thể bỏ qua hoặc tính là chưa xong.
+- Người dùng reload giữa chừng: phiên chưa complete, có thể bỏ qua hoặc tính là chưa xong.
 
 ## Phạm vi ngoài lần này
 
