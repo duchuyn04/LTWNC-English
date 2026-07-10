@@ -32,7 +32,7 @@ public class StudyController : Controller
     // Hiển thị trang chọn chế độ học (Flashcard, Quiz, Write, Match)
     [AllowAnonymous]
     [Route("/Study/{setId}")]
-    public async Task<IActionResult> Index(int setId)
+    public async Task<IActionResult> Index(int setId, bool? starredOnly = null, bool? unlearnedOnly = null)
     {
         var user = await _userManager.GetUserAsync(User);
 
@@ -40,10 +40,17 @@ public class StudyController : Controller
         var set = await _setService.GetAccessibleSetAsync(setId, user?.Id);
         if (set == null) return NotFound();
 
-        // Truyền thông tin bộ thẻ qua ViewBag
-        ViewBag.SetTitle = set.Title;
-        ViewBag.SetId = setId;
-        return View();
+        // Cập nhật bộ lọc nhanh nếu user đăng nhập
+        if (user != null && (starredOnly.HasValue || unlearnedOnly.HasValue))
+        {
+            var settings = await _studyService.GetSettingsAsync(user.Id);
+            if (starredOnly.HasValue) settings.StarredOnly = starredOnly.Value;
+            if (unlearnedOnly.HasValue) settings.UnlearnedOnly = unlearnedOnly.Value;
+            await _studyService.SaveSettingsAsync(user.Id, settings);
+        }
+
+        var model = await _studyService.GetStudyModeSelectorDataAsync(setId, user?.Id);
+        return View(model);
     }
 
     // Hiển thị giao diện học flashcard

@@ -1,77 +1,194 @@
+@model StudyModeSelectorViewModel
 @{
-    ViewData["Title"] = "Chọn chế độ học";
-    var setId = ViewBag.SetId as int? ?? 0;
-    var setTitle = ViewBag.SetTitle as string ?? "";
+    ViewData["Title"] = $"Học: {Model.SetTitle}";
+
+    string FormatTime(int totalSeconds)
+    {
+        if (totalSeconds <= 0) return "< 1 phút";
+        var minutes = (int)Math.Ceiling(totalSeconds / 60.0);
+        return minutes >= 2 ? $"{minutes} phút" : "1 phút";
+    }
+
+    var primaryMode = Model.Modes.FirstOrDefault(m => m.IsRecommended)
+        ?? Model.Modes.FirstOrDefault(m => m.IsAvailable);
+
+    var signedIn = SignInManager.IsSignedIn(User);
 }
 
-<div class="row justify-content-center fade-in-up">
-    <div class="col-md-8">
-        <div class="text-center mb-5">
-            <h1 class="h3" style="letter-spacing: -0.02em;">@setTitle</h1>
-            <p style="color: #787774;">Chọn chế độ học.</p>
+@section Styles {
+    <link rel="stylesheet" href="~/css/study-mode-selector.css" asp-append-version="true" />
+}
+
+<div class="study-hub fade-in-up">
+    @if (TempData["Message"] is string message)
+    {
+        <div class="alert alert-info d-flex align-items-center justify-content-between mb-4">
+            <span>@message</span>
+            @if (message.Contains("bộ lọc"))
+            {
+                <a class="btn btn-sm btn-outline-dark" href="/Study/@Model.SetId/ClearFilters">Xóa bộ lọc</a>
+            }
+        </div>
+    }
+
+    @foreach (var warning in Model.Warnings)
+    {
+        <div class="study-hub-warning mb-4">
+            <i class="ph ph-warning-circle"></i>
+            <span>@warning</span>
+        </div>
+    }
+
+    <div class="row g-5 align-items-start">
+        <!-- Cột trái: context + CTA -->
+        <div class="col-lg-5">
+            <div class="study-hub-context">
+                <span class="study-hub-eyebrow">Bộ thẻ</span>
+                <h1 class="study-hub-title">@Model.SetTitle</h1>
+                @if (!string.IsNullOrWhiteSpace(Model.SetDescription))
+                {
+                    <p class="study-hub-description">@Model.SetDescription</p>
+                }
+
+                <div class="study-hub-progress">
+                    <div class="d-flex justify-content-between mb-2">
+                        <span class="study-hub-progress-label">Tiến độ</span>
+                        <span class="study-hub-progress-value">@Model.MasteryPercent%</span>
+                    </div>
+                    <div class="progress-custom">
+                        <div class="progress-custom-bar" style="width: @Model.MasteryPercent%"></div>
+                    </div>
+                </div>
+
+                <div class="study-hub-stats">
+                    <div class="study-hub-stat">
+                        <span class="study-hub-stat-value">@Model.TotalCards</span>
+                        <span class="study-hub-stat-label">tổng số từ</span>
+                    </div>
+                    <div class="study-hub-stat">
+                        <span class="study-hub-stat-value">@Model.LearnedCount</span>
+                        <span class="study-hub-stat-label">đã thuộc</span>
+                    </div>
+                    <div class="study-hub-stat">
+                        <span class="study-hub-stat-value">@Model.StarredCount</span>
+                        <span class="study-hub-stat-label">đã sao</span>
+                    </div>
+                    @if (signedIn)
+                    {
+                        <div class="study-hub-stat">
+                            <span class="study-hub-stat-value">@Model.RecentSessionCount</span>
+                            <span class="study-hub-stat-label">lần học/tuần</span>
+                        </div>
+                    }
+                </div>
+
+                @if (signedIn)
+                {
+                    <div class="study-hub-filters">
+                        <span class="study-hub-filters-label">Lọc nhanh:</span>
+                        <a href="@Url.Action("Index", new { setId = Model.SetId, starredOnly = !Model.StarredOnly, unlearnedOnly = Model.UnlearnedOnly })"
+                           class="filter-pill @(Model.StarredOnly ? "active" : "")"
+                           title="@(Model.StarredOnly ? "Tắt" : "Bật")">
+                            <i class="ph ph-star"></i> Chỉ đã sao
+                        </a>
+                        <a href="@Url.Action("Index", new { setId = Model.SetId, starredOnly = Model.StarredOnly, unlearnedOnly = !Model.UnlearnedOnly })"
+                           class="filter-pill @(Model.UnlearnedOnly ? "active" : "")"
+                           title="@(Model.UnlearnedOnly ? "Tắt" : "Bật")">
+                            <i class="ph ph-book-open"></i> Chỉ chưa thuộc
+                        </a>
+                        @if (Model.StarredOnly || Model.UnlearnedOnly)
+                        {
+                            <a class="filter-pill filter-pill-clear" href="/Study/@Model.SetId/ClearFilters">Bỏ lọc</a>
+                        }
+                    </div>
+                }
+
+                <div class="study-hub-cta">
+                    @if (primaryMode != null && primaryMode.IsAvailable)
+                    {
+                        <a href="@primaryMode.ActionUrl" class="btn-study-primary">
+                            <span>Bắt đầu @primaryMode.Name</span>
+                            <span class="btn-study-meta">@primaryMode.CardCount từ · ~@FormatTime(primaryMode.EstimatedSeconds)</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <button class="btn-study-primary" disabled>
+                            <span>Không đủ thẻ để học</span>
+                        </button>
+                    }
+                </div>
+            </div>
         </div>
 
-        @if (TempData["Message"] is string message)
-        {
-            <div class="alert alert-info d-flex align-items-center justify-content-between">
-                <span>@message</span>
-                @if (message.Contains("bộ lọc"))
+        <!-- Cột phải: mode cards -->
+        <div class="col-lg-7">
+            <div class="study-hub-modes">
+                @foreach (var mode in Model.Modes)
                 {
-                    <a class="btn btn-sm btn-outline-primary" href="/Study/@setId/ClearFilters">Xóa bộ lọc</a>
+                    <div class="mode-card @(mode.IsRecommended ? "mode-card-recommended" : "") @(mode.IsAvailable ? "" : "mode-card-disabled")"
+                         @(mode.IsAvailable ? $"data-href=\"{mode.ActionUrl}\"" : "")>
+                        <div class="mode-card-icon">
+                            <i class="ph @mode.IconClass"></i>
+                        </div>
+                        <div class="mode-card-body">
+                            <div class="mode-card-header">
+                                <h5 class="mode-card-title">@mode.Name</h5>
+                                @if (mode.IsRecommended)
+                                {
+                                    <span class="mode-card-badge">Gợi ý</span>
+                                }
+                            </div>
+                            <p class="mode-card-desc">@mode.Description</p>
+                            @if (mode.IsAvailable)
+                            {
+                                <div class="mode-card-meta">
+                                    <span>@mode.CardCount từ</span>
+                                    <span class="mx-1">·</span>
+                                    <span>~@FormatTime(mode.EstimatedSeconds)</span>
+                                </div>
+                            }
+                            else
+                            {
+                                <div class="mode-card-meta mode-card-unavailable">
+                                    @if (mode.Mode == StudyMode.Dictation)
+                                    {
+                                        <span>Không đủ thẻ có câu ví dụ</span>
+                                    }
+                                    else
+                                    {
+                                        <span>Không đủ thẻ</span>
+                                    }
+                                </div>
+                            }
+                        </div>
+                    </div>
                 }
-            </div>
-        }
-        @if (TempData["Success"] is string success)
-        {
-            <div class="alert alert-success">@success</div>
-        }
-
-        <div class="row g-4 justify-content-center">
-            <div class="col-md-6">
-                <a href="/Study/@setId/Flashcard" class="text-decoration-none">
-                    <div class="card-custom text-center py-5">
-                        <i class="ph ph-cards" style="font-size: 3rem;"></i>
-                        <h5 class="mt-3 mb-1" style="font-weight: 600;">Flashcard</h5>
-                        <p style="color: #787774; font-size: 0.875rem; margin: 0;">Lật thẻ và ghi nhớ</p>
-                    </div>
-                </a>
-            </div>
-
-            <div class="col-md-6">
-                <a href="/Study/@setId/Flashcard?starredOnly=true" class="text-decoration-none">
-                    <div class="card-custom text-center py-5">
-                        <i class="ph ph-star" style="font-size: 3rem; color: #B7791F;"></i>
-                        <h5 class="mt-3 mb-1" style="font-weight: 600;">Flashcard đã sao</h5>
-                        <p style="color: #787774; font-size: 0.875rem; margin: 0;">Chỉ học các thẻ quan trọng</p>
-                    </div>
-                </a>
-            </div>
-
-            <div class="col-md-6">
-                <div class="card-custom text-center py-5" style="opacity: 0.5;">
-                    <i class="ph ph-question" style="font-size: 3rem;"></i>
-                    <h5 class="mt-3 mb-1" style="font-weight: 600;">Trắc nghiệm</h5>
-                    <p style="color: #787774; font-size: 0.875rem; margin: 0;">(Sắp ra mắt)</p>
-                </div>
-            </div>
-
-            <div class="col-md-6">
-                <a href="/Study/@setId/Dictation" class="text-decoration-none">
-                    <div class="card-custom text-center py-5">
-                        <i class="ph ph-headphones" style="font-size: 3rem;"></i>
-                        <h5 class="mt-3 mb-1" style="font-weight: 600;">Nghe chép</h5>
-                        <p style="color: #787774; font-size: 0.875rem; margin: 0;">Nghe và viết lại từ</p>
-                    </div>
-                </a>
-            </div>
-
-            <div class="col-md-6">
-                <div class="card-custom text-center py-5" style="opacity: 0.5;">
-                    <i class="ph ph-shuffle" style="font-size: 3rem;"></i>
-                    <h5 class="mt-3 mb-1" style="font-weight: 600;">Ghép đôi</h5>
-                    <p style="color: #787774; font-size: 0.875rem; margin: 0;">(Sắp ra mắt)</p>
-                </div>
             </div>
         </div>
     </div>
+
+    @if (Model.RoadmapModes.Any())
+    {
+        <div class="study-hub-roadmap">
+            <span class="study-hub-roadmap-label">Sắp ra mắt:</span>
+            @foreach (var mode in Model.RoadmapModes)
+            {
+                <span class="roadmap-chip">
+                    <i class="ph @mode.IconClass"></i> @mode.Name
+                </span>
+            }
+        </div>
+    }
 </div>
+
+@section Scripts {
+    <script>
+        document.querySelectorAll('.mode-card[data-href]').forEach(function (card) {
+            card.style.cursor = 'pointer';
+            card.addEventListener('click', function () {
+                window.location.href = card.dataset.href;
+            });
+        });
+    </script>
+}
