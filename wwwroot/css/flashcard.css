@@ -14,6 +14,11 @@
     --fc-error-bg: #fef2f2;
 }
 
+html,
+body {
+    overflow-x: clip;
+}
+
 .study-shell {
     min-height: calc(100dvh - 58px);
     margin: -3rem calc(50% - 50vw);
@@ -184,6 +189,12 @@
 
 .learning-chip .material-symbols-outlined {
     font-size: 1.25rem;
+}
+
+@media (min-width: 992px) {
+    .learning-modes .row > * {
+        width: calc(100% / 7);
+    }
 }
 
 /* Flashcard */
@@ -1179,6 +1190,10 @@
 }
 
 @media (max-width: 575px) {
+    .study-shell {
+        margin: -3rem -0.75rem 0;
+    }
+
     .study-header {
         gap: 0.5rem;
     }
