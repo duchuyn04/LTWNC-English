@@ -82,7 +82,7 @@
 }
 
 .keycap {
-    border: 1px solid #d6d1c7;
+    border: 1px solid var(--fc-line);
     border-bottom-width: 2px;
     border-radius: 6px;
     padding: 0.08rem 0.35rem;
@@ -90,7 +90,7 @@
     font-size: 0.68rem;
     font-weight: 700;
     line-height: 1.2;
-    background: #fffaf2;
+    background: var(--fc-soft);
 }
 
 .set-meta {
@@ -208,6 +208,14 @@
 .flashcard-frame:hover {
     transform: translateY(-2px);
     box-shadow: 0 34px 80px rgba(0, 0, 0, 0.1);
+}
+
+.card-flip-hint {
+    display: block;
+    margin-top: 1.5rem;
+    font-size: 0.875rem;
+    color: var(--fc-muted-light);
+    font-weight: 600;
 }
 
 .flashcard-core {
@@ -370,11 +378,11 @@
 
 .card-star-btn:hover {
     transform: scale(1.15);
-    color: #b7791f;
+    color: var(--fc-accent);
 }
 
 .card-star-btn.is-starred {
-    color: #b7791f;
+    color: var(--fc-accent);
 }
 
 .badge {
@@ -393,13 +401,13 @@
 
 .badge-blue {
     background: var(--fc-accent-bg);
-    border-color: rgba(31, 108, 159, 0.15);
+    border-color: rgba(245, 158, 11, 0.2);
     color: var(--fc-accent);
 }
 
 .badge-green {
     background: var(--fc-success-bg);
-    border-color: rgba(47, 106, 55, 0.15);
+    border-color: rgba(16, 185, 129, 0.2);
     color: var(--fc-success);
 }
 
@@ -480,23 +488,23 @@
     justify-content: center;
     border: 1px solid rgba(0, 0, 0, 0.08);
     border-radius: 12px;
-    background: #1e293b;
+    background: var(--fc-ink);
     color: #ffffff;
     font-size: 1.15rem;
     cursor: pointer;
     transition: transform 120ms ease, background-color 120ms ease, box-shadow 120ms ease;
-    box-shadow: 0 4px 12px rgba(30, 41, 59, 0.12);
+    box-shadow: 0 4px 12px rgba(41, 37, 36, 0.12);
 }
 
 .card-nav-btn:hover {
-    background: #0f172a;
+    background: #44403c;
     transform: translateY(-1px);
-    box-shadow: 0 6px 16px rgba(30, 41, 59, 0.2);
+    box-shadow: 0 6px 16px rgba(41, 37, 36, 0.2);
 }
 
 .card-nav-btn:active {
     transform: translateY(1px);
-    box-shadow: 0 2px 6px rgba(30, 41, 59, 0.12);
+    box-shadow: 0 2px 6px rgba(41, 37, 36, 0.12);
 }
 
 .card-nav-progress {
@@ -524,13 +532,13 @@
 .card-nav-btn.is-danger {
     color: var(--fc-error);
     background: var(--fc-error-bg);
-    border-color: rgba(156, 52, 48, 0.32);
+    border-color: rgba(239, 68, 68, 0.2);
 }
 
 .card-nav-btn.is-success {
     color: var(--fc-success);
     background: var(--fc-success-bg);
-    border-color: rgba(47, 106, 55, 0.32);
+    border-color: rgba(16, 185, 129, 0.2);
 }
 
 /* Shortcut Strip */
@@ -766,13 +774,13 @@
 .study-button.is-red {
     color: var(--fc-error);
     background: var(--fc-error-bg);
-    border-color: rgba(156, 52, 48, 0.16);
+    border-color: rgba(239, 68, 68, 0.2);
 }
 
 .study-button.is-green {
     color: var(--fc-success);
     background: var(--fc-success-bg);
-    border-color: rgba(47, 106, 55, 0.16);
+    border-color: rgba(16, 185, 129, 0.2);
 }
 
 .button-icon {
@@ -907,13 +915,13 @@
 
 .stat-card.is-green {
     background: var(--fc-success-bg);
-    border-color: rgba(47, 106, 55, 0.15);
+    border-color: rgba(16, 185, 129, 0.2);
     color: var(--fc-success);
 }
 
 .stat-card.is-red {
     background: var(--fc-error-bg);
-    border-color: rgba(156, 52, 48, 0.15);
+    border-color: rgba(239, 68, 68, 0.2);
     color: var(--fc-error);
 }
 
