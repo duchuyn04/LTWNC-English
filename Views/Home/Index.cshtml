@@ -264,6 +264,7 @@
         <div class="container">
             <div class="row g-5 align-items-center">
                 <div class="col-lg-6 gsap-from-left">
+                    <div class="home-kicker">Why choose us</div>
                     <h2 class="home-section-title mist-reveal">Ít thao tác, nhiều thời gian học hơn.</h2>
                 </div>
                 <div class="col-lg-6 home-checklist gsap-stagger">
@@ -284,17 +285,17 @@
             </div>
             <div class="home-bento-panel gsap-fade-up">
                 <div class="home-bento-grid-3 gsap-stagger">
-                    <div class="home-bento-card onboarding-card gsap-scale-in">
+                    <div class="home-bento-card onboarding-card">
                         <div class="onboarding-number">01</div>
                         <h3 class="h5">Đăng ký</h3>
                         <p class="home-section-copy mb-0">Tạo tài khoản để lưu bộ thẻ và tiến độ.</p>
                     </div>
-                    <div class="home-bento-card onboarding-card gsap-scale-in">
+                    <div class="home-bento-card onboarding-card">
                         <div class="onboarding-number">02</div>
                         <h3 class="h5">Tạo hoặc chọn bộ thẻ</h3>
                         <p class="home-section-copy mb-0">Tự nhập từ hoặc học từ bộ thẻ công khai.</p>
                     </div>
-                    <div class="home-bento-card onboarding-card gsap-scale-in">
+                    <div class="home-bento-card onboarding-card">
                         <div class="onboarding-number">03</div>
                         <h3 class="h5">Ôn mỗi ngày</h3>
                         <p class="home-section-copy mb-0">Dùng flashcard, voice và trạng thái học để ôn đúng trọng tâm.</p>
@@ -452,8 +453,8 @@
             }
             else
             {
-                <div class="home-bento-panel">
-                    <div class="home-bento-grid-3">
+                <div class="home-bento-panel gsap-fade-up">
+                    <div class="home-bento-grid-3 gsap-stagger">
                         @{ var setIndex = 0; }
                         @foreach (var set in Model.PublicSets.Take(6))
                         {
