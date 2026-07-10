@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication;
 using ltwnc.Services;
 using ltwnc.Models.ViewModels.Account;
 
@@ -37,8 +38,12 @@ public class AccountController : Controller
         var result = await _userManager.CreateAsync(user, model.Password);
         if (result.Succeeded)
         {
-            // Đăng ký thành công → tự động đăng nhập
-            await _signInManager.SignInAsync(user, isPersistent: false);
+            // Đăng ký thành công → tự động đăng nhập (giữ 1 ngày)
+            await _signInManager.SignInAsync(user, new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.AddDays(1)
+            });
             return RedirectToAction("Index", "Home");
         }
 
@@ -69,9 +74,14 @@ public class AccountController : Controller
         var user = await _userManager.FindByEmailAsync(model.Email);
         if (user != null)
         {
-            var result = await _signInManager.PasswordSignInAsync(user, model.Password, model.RememberMe, false);
+            var result = await _signInManager.CheckPasswordSignInAsync(user, model.Password, false);
             if (result.Succeeded)
             {
+                await _signInManager.SignInAsync(user, new AuthenticationProperties
+                {
+                    IsPersistent = true,
+                    ExpiresUtc = DateTimeOffset.UtcNow.Add(model.RememberMe ? TimeSpan.FromDays(30) : TimeSpan.FromDays(1))
+                });
                 return RedirectToAction("Index", "Home");
             }
         }
