@@ -33,6 +33,8 @@ builder.Services.ConfigureApplicationCookie(options =>
 // Add Services
 builder.Services.AddScoped<FlashcardSetService>();
 builder.Services.AddScoped<StudyService>();
+// Service xử lý nghe chép chính tả
+builder.Services.AddScoped<DictationService>();
 
 
 // Add MVC
