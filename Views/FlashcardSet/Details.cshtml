@@ -6,7 +6,7 @@
 <link rel="stylesheet" href="~/css/set-management.css" asp-append-version="true" />
 
 <div class="set-management-shell">
-    <div class="set-detail-hero">
+    <div class="set-detail-hero gsap-fade-up">
         <h2>@Model.Title</h2>
         @if (!string.IsNullOrEmpty(Model.Description))
         {
@@ -47,8 +47,8 @@
 
     @if (Model.Flashcards.Any())
     {
-        <div class="set-detail-list">
-            <div class="set-detail-list-header">
+        <div class="set-detail-list gsap-stagger">
+            <div class="set-detail-list-header gsap-fade-up">
                 <h3>Danh sách từ</h3>
                 @if (Model.IsOwner)
                 {
@@ -69,12 +69,12 @@
     }
     else
     {
-        <div class="set-empty-state">
+        <div class="set-empty-state gsap-fade-up">
             <div class="set-empty-state-icon">📝</div>
             <p style="font-size: 1.1rem; font-weight: 600; color: var(--sm-ink);">Bộ thẻ này chưa có từ nào.</p>
             @if (Model.IsOwner)
             {
-                <a href="/Set/@Model.Id/Edit" class="btn-primary-custom">Thêm từ đầu tiên</a>
+                <a href="/Set/@Model.Id/Edit" class="btn-primary-custom gsap-scale-in">Thêm từ đầu tiên</a>
             }
         </div>
     }

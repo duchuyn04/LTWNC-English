@@ -13,13 +13,13 @@
 
 <div class="result-shell" aria-label="Kết quả nghe chép">
     <div class="result-container">
-        <header class="result-header">
+        <header class="result-header gsap-fade-up">
             <span class="badge badge-green">Hoàn thành</span>
             <h1 class="result-title">Tổng kết buổi học</h1>
             <p class="result-subtitle">@Model.CorrectCount đúng · @wrongCount cần ôn</p>
         </header>
 
-        <section class="result-kpi-grid" aria-label="Chỉ số tổng quan">
+        <section class="result-kpi-grid gsap-stagger" aria-label="Chỉ số tổng quan">
             <article class="result-kpi result-card">
                 <span class="result-kpi-icon" aria-hidden="true">
                     <span class="material-symbols-outlined">format_list_numbered</span>
@@ -52,7 +52,7 @@
         </section>
 
         <section class="result-charts-grid" aria-label="Biểu đồ kết quả">
-            <article class="result-chart-panel result-card">
+            <article class="result-chart-panel result-card gsap-fade-up">
                 <h2 class="result-chart-title">Độ chính xác</h2>
                 <svg class="result-donut" viewBox="0 0 120 120" role="img" aria-label="Độ chính xác @Model.Score%">
                     <circle class="result-donut-track" cx="60" cy="60" r="45" pathLength="100"></circle>
@@ -61,7 +61,7 @@
                 </svg>
             </article>
 
-            <article class="result-chart-panel result-card">
+            <article class="result-chart-panel result-card gsap-fade-up">
                 <h2 class="result-chart-title">Tỷ lệ đúng / sai</h2>
                 <div class="result-stack" role="img" aria-label="Đúng @correctPct%, sai @wrongPct%">
                     <div class="result-stack-correct" style="width:@correctPct%"></div>
@@ -82,7 +82,7 @@
 
         @if (Model.WrongCards.Any())
         {
-            <section class="result-table-card result-card" aria-label="Danh sách thẻ cần ôn">
+            <section class="result-table-card result-card gsap-fade-up" aria-label="Danh sách thẻ cần ôn">
                 <h2 class="result-chart-title" id="wrong-cards-heading">@(Model.WrongCards.Count) thẻ cần ôn lại</h2>
                 <table class="result-table" aria-labelledby="wrong-cards-heading">
                     <caption class="visually-hidden">Danh sách thẻ cần ôn lại</caption>
@@ -126,7 +126,7 @@
         }
         else
         {
-            <section class="result-table-card result-card">
+            <section class="result-table-card result-card gsap-fade-up">
                 <div class="result-empty">
                     <span class="material-symbols-outlined" aria-hidden="true">celebration</span>
                     Chính xác 100% - không có thẻ nào cần ôn.
@@ -134,7 +134,7 @@
             </section>
         }
 
-        <nav class="result-actions" aria-label="Hành động tiếp theo">
+        <nav class="result-actions gsap-fade-up" aria-label="Hành động tiếp theo">
             @if (wrongCount > 0)
             {
                 <a class="study-button is-red" href="/Study/@Model.SetId/Dictation">Ôn lại @wrongCount thẻ cần nhớ</a>

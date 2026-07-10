@@ -8,12 +8,12 @@
 <link rel="stylesheet" href="~/css/edit.css" asp-append-version="true" />
 
 <div class="set-management-shell">
-<div class="row justify-content-center fade-in-up">
+<div class="row justify-content-center gsap-fade-up">
     <div class="col-md-10 col-lg-8">
-        <div class="set-form-card mb-4">
+        <div class="set-form-card mb-4 gsap-scale-in">
             <h1 style="margin: 0 0 0.25rem; font-size: 1.5rem; font-weight: 800; color: var(--sm-ink);">Sửa bộ thẻ</h1>
 
-            <form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="mt-4">
+            <form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="mt-4 gsap-stagger">
                 <div asp-validation-summary="ModelOnly" class="mb-3"></div>
 
                 <div class="mb-3">
@@ -42,8 +42,8 @@
             <div class="alert alert-danger">@error</div>
         }
 
-        <div class="vocab-editor">
-            <aside class="vocab-list">
+        <div class="vocab-editor gsap-fade-up">
+            <aside class="vocab-list gsap-stagger">
                 <div class="vocab-list-header">
                     <h5>Danh sách từ</h5>
                     <a href="#add-card-form" class="btn-primary-custom" style="padding: 0.4rem 0.8rem; font-size: 0.8125rem;">

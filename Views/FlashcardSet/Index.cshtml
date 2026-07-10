@@ -6,28 +6,28 @@
 <link rel="stylesheet" href="~/css/set-management.css" asp-append-version="true" />
 
 <div class="set-management-shell">
-    <div class="set-page-header">
+    <div class="set-page-header gsap-fade-up">
         <div>
             <h1>Bộ thẻ của tôi</h1>
             <p>Quản lý tất cả bộ thẻ bạn đã tạo.</p>
         </div>
-        <a href="/Set/Create" class="btn-primary-custom">
+        <a href="/Set/Create" class="btn-primary-custom gsap-scale-in">
             <i class="ph ph-plus-circle"></i> Tạo bộ thẻ
         </a>
     </div>
 
     @if (!Model.Any())
     {
-        <div class="set-empty-state">
+        <div class="set-empty-state gsap-fade-up">
             <div class="set-empty-state-icon">📚</div>
             <p style="font-size: 1.1rem; font-weight: 600; color: var(--sm-ink);">Bạn chưa có bộ thẻ nào.</p>
             <p style="margin-bottom: 1.5rem;">Tạo bộ thẻ đầu tiên để bắt đầu học.</p>
-            <a href="/Set/Create" class="btn-primary-custom">Tạo bộ thẻ đầu tiên</a>
+            <a href="/Set/Create" class="btn-primary-custom gsap-scale-in">Tạo bộ thẻ đầu tiên</a>
         </div>
     }
     else
     {
-        <div class="row g-4">
+        <div class="row g-4 gsap-stagger">
             @foreach (var set in Model)
             {
                 <div class="col-md-6 col-lg-4">

@@ -19,10 +19,10 @@
     <link rel="stylesheet" href="~/css/study-mode-selector.css" asp-append-version="true" />
 }
 
-<div class="study-hub fade-in-up">
+<div class="study-hub">
     @if (TempData["Message"] is string message)
     {
-        <div class="alert alert-info d-flex align-items-center justify-content-between mb-4">
+        <div class="alert alert-info d-flex align-items-center justify-content-between mb-4 gsap-fade-up">
             <span>@message</span>
             @if (message.Contains("bộ lọc"))
             {
@@ -33,7 +33,7 @@
 
     @foreach (var warning in Model.Warnings)
     {
-        <div class="study-hub-warning mb-4">
+        <div class="study-hub-warning mb-4 gsap-fade-up">
             <i class="ph ph-warning-circle"></i>
             <span>@warning</span>
         </div>
@@ -42,7 +42,7 @@
     <div class="row g-5 align-items-start">
         <!-- Cột trái: context + CTA -->
         <div class="col-lg-5">
-            <div class="study-hub-context">
+            <div class="study-hub-context gsap-fade-up">
                 <span class="study-hub-eyebrow">Bộ thẻ</span>
                 <h1 class="study-hub-title">@Model.SetTitle</h1>
                 @if (!string.IsNullOrWhiteSpace(Model.SetDescription))
@@ -128,7 +128,7 @@
 
         <!-- Cột phải: mode cards -->
         <div class="col-lg-7">
-            <div class="study-hub-modes">
+            <div class="study-hub-modes gsap-stagger">
                 @foreach (var mode in Model.Modes)
                 {
                     <div class="mode-card @(mode.IsRecommended ? "mode-card-recommended mode-card-primary" : "mode-card-secondary") @(mode.IsAvailable ? "" : "mode-card-disabled")"
@@ -168,7 +168,7 @@
 
     @if (Model.RoadmapModes.Any())
     {
-        <div class="study-hub-roadmap">
+        <div class="study-hub-roadmap gsap-fade-up">
             <span class="study-hub-roadmap-label">Sắp ra mắt:</span>
             @foreach (var mode in Model.RoadmapModes)
             {

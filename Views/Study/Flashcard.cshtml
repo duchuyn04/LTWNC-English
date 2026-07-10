@@ -10,7 +10,7 @@
     @Html.AntiForgeryToken()
 
     <section id="study-view" class="study-stage" aria-label="Học flashcard">
-        <header class="study-header">
+        <header class="study-header gsap-fade-up">
             <a class="exit-link" href="/Study/@Model.SetId" title="Backspace: thoát về trang học">
                 <span class="material-symbols-outlined">arrow_back</span>
                 <span class="exit-label">Thoát</span>
@@ -25,14 +25,14 @@
             </button>
         </header>
 
-        <div class="progress-strip">
+        <div class="progress-strip gsap-fade-up">
             <div class="progress-track" aria-hidden="true">
                 <div id="card-progress-fill" class="progress-fill"></div>
             </div>
             <span id="card-progress-text" class="progress-text">Thẻ 1 / 1</span>
         </div>
 
-        <main class="card-area">
+        <main class="card-area gsap-scale-in">
             <div class="flashcard-frame" onclick="toggleCardFlip()" role="button" tabindex="0" aria-label="Lật thẻ">
                 <div id="study-card-core" class="flashcard-core">
                     <article class="card-face card-front">
@@ -79,7 +79,7 @@
             </div>
         </main>
 
-        <div class="control-bar" aria-label="Điều khiển học">
+        <div class="control-bar gsap-fade-up" aria-label="Điều khiển học">
             <button type="button" id="nav-left-btn" class="control-btn control-btn-prev" onclick="handleLeftAction()" title="Thẻ trước (←)">
                 <span class="material-symbols-outlined">arrow_back</span>
             </button>
@@ -107,7 +107,7 @@
             </button>
         </div>
 
-        <p class="keyboard-hint">
+        <p class="keyboard-hint gsap-fade-up">
             <span class="keyboard-group"><kbd>Space</kbd> lật</span>
             <span class="keyboard-divider" aria-hidden="true"></span>
             <span class="keyboard-group"><kbd>←</kbd><kbd>→</kbd> chuyển thẻ</span>
@@ -118,7 +118,7 @@
             <span class="keyboard-group"><kbd>Backspace</kbd> thoát</span>
         </p>
 
-        <details class="study-accordion">
+        <details class="study-accordion gsap-fade-up">
             <summary class="study-accordion-summary">
                 <span class="material-symbols-outlined">school</span>
                 <span>Chế độ học</span>
@@ -158,7 +158,7 @@
             </div>
         </details>
 
-        <details class="study-accordion">
+        <details class="study-accordion gsap-fade-up">
             <summary class="study-accordion-summary">
                 <span class="material-symbols-outlined">menu_book</span>
                 <span>Từ trong bộ (@Model.Flashcards.Count từ)</span>
