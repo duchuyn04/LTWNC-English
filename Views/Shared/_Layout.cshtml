@@ -14,6 +14,13 @@
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
+    <div id="pt-overlay" class="pt-overlay--visible"></div>
+    <noscript>
+        <style>
+            #pt-overlay { display: none !important; }
+        </style>
+    </noscript>
+
     @{
         var hideLayoutChrome = ViewData["HideLayoutChrome"] as bool? == true;
     }
@@ -103,6 +110,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+    <script src="~/js/page-transition.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
