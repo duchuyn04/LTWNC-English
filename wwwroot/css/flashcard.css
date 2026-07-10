@@ -168,18 +168,18 @@
 
 .learning-chip:hover:not(:disabled) {
     background: var(--fc-soft);
-    border-color: rgba(0, 0, 0, 0.15);
+    border-color: var(--fc-line);
 }
 
 .learning-chip:disabled {
-    opacity: 0.65;
+    opacity: 0.6;
     cursor: not-allowed;
 }
 
 .learning-chip.is-active {
     background: var(--fc-ink);
     border-color: var(--fc-ink);
-    color: #ffffff;
+    color: var(--fc-paper);
 }
 
 .learning-chip .material-symbols-outlined {
@@ -639,13 +639,13 @@
     padding: 1rem 1.1rem;
     background: var(--fc-paper);
     border: 1px solid var(--fc-line);
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
     transition: all 0.2s ease;
 }
 
 .vocab-row:hover {
-    border-color: rgba(0, 0, 0, 0.15);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05);
+    border-color: var(--fc-line);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
 }
 
 .vocab-row.mastered-border {
