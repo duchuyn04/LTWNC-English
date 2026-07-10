@@ -494,6 +494,41 @@ body {
     }
 }
 
+/* ==================== PAGE TRANSITION OVERLAY ==================== */
+
+#pt-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: #F7F6F3;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 250ms ease-out;
+}
+
+#pt-overlay.pt-overlay--visible,
+#pt-overlay.pt-overlay--in {
+    opacity: 1;
+    pointer-events: all;
+}
+
+#pt-overlay.pt-overlay--out {
+    opacity: 0;
+    pointer-events: none;
+    transition-duration: 350ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #pt-overlay {
+        transition-duration: 0ms !important;
+    }
+}
+
+/* No-JS fallback */
+noscript #pt-overlay {
+    display: none !important;
+}
+
 /* Details page card rows */
 .details-card-row {
     border-bottom: 1px solid var(--border-default);
