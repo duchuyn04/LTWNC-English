@@ -17,6 +17,7 @@ public class AppDbContext : IdentityDbContext
     public DbSet<StudySession> StudySessions => Set<StudySession>();
     public DbSet<UserProgress> UserProgresses => Set<UserProgress>();
     public DbSet<UserStudySettings> UserStudySettings => Set<UserStudySettings>();
+    public DbSet<DictationSessionDetail> DictationSessionDetails => Set<DictationSessionDetail>();
 
     // Cấu hình model — indexes, relationships, constraints
     protected override void OnModelCreating(ModelBuilder builder)
@@ -76,6 +77,27 @@ public class AppDbContext : IdentityDbContext
         builder.Entity<UserStudySettings>(entity =>
         {
             entity.HasIndex(e => e.UserId).IsUnique();
+        });
+
+        // Cấu hình bảng DictationSessionDetails
+        builder.Entity<DictationSessionDetail>(entity =>
+        {
+            // Index để lấy nhanh các câu trả lờ của một phiên
+            entity.HasIndex(e => e.StudySessionId);
+
+            // Quan hệ: nhiều detail thuộc về 1 session
+            // Cascade xóa: xóa phiên sẽ xóa luôn chi tiết
+            entity.HasOne(e => e.StudySession)
+                  .WithMany()
+                  .HasForeignKey(e => e.StudySessionId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+            // Quan hệ: nhiều detail thuộc về 1 flashcard
+            // Restrict: không cho xóa thẻ nếu còn lịch sử trả lờ
+            entity.HasOne(e => e.Flashcard)
+                  .WithMany()
+                  .HasForeignKey(e => e.FlashcardId)
+                  .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }
