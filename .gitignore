@@ -59,5 +59,8 @@ artifacts/
 .superpowers/
 skills-lock.json
 
+## Tests
+tests/
+
 ## Git worktrees
 .worktrees/
