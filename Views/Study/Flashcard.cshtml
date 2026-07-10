@@ -13,115 +13,42 @@
         <header class="study-header">
             <a class="exit-link" href="/Study/@Model.SetId" title="Backspace: thoát về trang học">
                 <span class="material-symbols-outlined">arrow_back</span>
-                <span>Thoát</span>
-                <span class="keycap">Backspace</span>
+                <span class="exit-label">Thoát</span>
             </a>
 
             <div class="set-meta">
-                <div class="study-eyebrow">Học flashcard</div>
-                <h1 id="set-title-header" class="set-title">@Model.SetTitle</h1>
-                <div class="study-filter-toggle" aria-label="Lọc thẻ học">
-                    <a class="@(!Model.StarredOnly && !Model.UnlearnedOnly ? "is-active" : "")" href="/Study/@Model.SetId/Flashcard?starredOnly=false&unlearnedOnly=false">Tất cả</a>
-                    <a class="@(Model.StarredOnly ? "is-active" : "")" href="/Study/@Model.SetId/Flashcard?starredOnly=true&unlearnedOnly=false">Đã sao</a>
-                </div>
+                <h1 class="set-title">@Model.SetTitle</h1>
             </div>
 
-            <div class="progress-block">
-                <span id="card-progress-text" class="progress-text">Thẻ 1 / 1</span>
-                <div class="progress-track" aria-hidden="true">
-                    <div id="card-progress-fill" class="progress-fill"></div>
-                </div>
-            </div>
+            <button type="button" class="icon-button study-settings-button" onclick="toggleSettingsDrawer(event)" title="Cài đặt học">
+                <span class="material-symbols-outlined">tune</span>
+            </button>
         </header>
 
-        <!-- Learning Modes Grid -->
-        <section class="learning-modes" aria-label="Chế độ học">
-            <div class="row row-cols-2 row-cols-md-4 row-cols-lg-7 g-2">
-                <button type="button" class="btn learning-chip" disabled>
-                    <span class="material-symbols-outlined">chat_bubble</span>
-                    <span>Speaking</span>
-                </button>
-                <button type="button" class="btn learning-chip" disabled>
-                    <span class="material-symbols-outlined">forum</span>
-                    <span>Hội thoại</span>
-                </button>
-                <button type="button" class="btn learning-chip" disabled>
-                    <span class="material-symbols-outlined">menu_book</span>
-                    <span>Ngữ pháp</span>
-                </button>
-                <button type="button" class="btn learning-chip" disabled>
-                    <span class="material-symbols-outlined">article</span>
-                    <span>Đọc hiểu</span>
-                </button>
-                <button type="button" class="btn learning-chip is-active">
-                    <span class="material-symbols-outlined filled">school</span>
-                    <span>Học</span>
-                </button>
-                <button type="button" class="btn learning-chip" disabled>
-                    <span class="material-symbols-outlined">assignment</span>
-                    <span>Kiểm tra</span>
-                </button>
-                <button type="button" class="btn learning-chip" disabled>
-                    <span class="material-symbols-outlined">headphones</span>
-                    <span>Nghe Chép</span>
-                </button>
+        <div class="progress-strip">
+            <div class="progress-track" aria-hidden="true">
+                <div id="card-progress-fill" class="progress-fill"></div>
             </div>
-        </section>
+            <span id="card-progress-text" class="progress-text">Thẻ 1 / 1</span>
+        </div>
 
         <main class="card-area">
             <div class="flashcard-frame" onclick="toggleCardFlip()" role="button" tabindex="0" aria-label="Lật thẻ">
-                <div id="study-settings-panel" class="study-settings-panel" hidden onclick="event.stopPropagation()">
-                    <div class="settings-title">Cài đặt học</div>
-                    <label><input type="checkbox" data-setting="StarredOnly"> Chỉ học từ đánh dấu sao</label>
-                    <label><input type="checkbox" data-setting="UnlearnedOnly"> Chỉ học từ chưa thuộc</label>
-
-                    <div class="settings-group-title">Mặt trước</div>
-                    <label><input type="checkbox" data-setting="ShowFrontTerm"> Hiển thị thuật ngữ</label>
-                    <label><input type="checkbox" data-setting="ShowFrontDefinition"> Hiển thị định nghĩa</label>
-                    <label><input type="checkbox" data-setting="ShowFrontIpa"> Hiển thị IPA</label>
-                    <label><input type="checkbox" data-setting="ShowFrontImage"> Hiển thị ảnh</label>
-
-                    <div class="settings-group-title">Mặt sau</div>
-                    <label><input type="checkbox" data-setting="ShowBackTerm"> Hiển thị thuật ngữ</label>
-                    <label><input type="checkbox" data-setting="ShowBackDefinition"> Hiển thị định nghĩa</label>
-                    <label><input type="checkbox" data-setting="ShowBackIpa"> Hiển thị IPA</label>
-                    <label><input type="checkbox" data-setting="ShowBackExample"> Hiển thị ví dụ</label>
-                    <label><input type="checkbox" data-setting="ShowBackImage"> Hiển thị ảnh</label>
-
-                    <div class="settings-group-title">Ảnh</div>
-                    <label><input type="checkbox" data-setting="HideImage"> Ẩn ảnh</label>
-                    <label><input type="checkbox" data-setting="BlurImage"> Che mờ ảnh</label>
-                    <label><input type="checkbox" data-setting="LargeImage"> Ảnh lớn</label>
-                </div>
-
                 <div id="study-card-core" class="flashcard-core">
-                    <button type="button" class="study-settings-button" onclick="toggleSettingsPanel(event)" title="Cài đặt học">
-                        <span class="material-symbols-outlined">tune</span>
-                    </button>
-
                     <article class="card-face card-front">
                         <button type="button" class="card-star-btn" onclick="toggleCurrentCardStar(event)" title="Đánh dấu sao">
                             <span class="material-symbols-outlined">star</span>
                         </button>
                         <div class="card-topline">
                             <span class="badge badge-blue">English</span>
-                            <span>Click để lật</span>
                         </div>
                         <div class="card-content">
                             <span id="card-front-text" class="card-word card-word-front">Loading...</span>
                             <p id="card-front-ipa" class="card-detail-text" hidden></p>
                             <p id="card-front-definition" class="card-detail-text" hidden></p>
                             <img id="card-front-image" class="card-study-image" alt="Ảnh minh họa mặt trước" hidden />
-                            <span class="card-flip-hint">Click hoặc Space để lật</span>
-                        </div>
-                        <div class="card-bottomline">
-                            <span>Space để lật nhanh</span>
                         </div>
                         <div class="card-audio-controls" onclick="event.stopPropagation()">
-                            <label class="card-voice-toggle" title="Tự động phát khi chuyển sang mặt sau">
-                                <input type="checkbox" id="tts-autoplay" checked>
-                                <span></span>
-                            </label>
                             <button type="button" class="card-audio-btn" onclick="playAudioCurrentCard()" title="Phát giọng đọc (Ctrl)">
                                 <span class="material-symbols-outlined">volume_up</span>
                             </button>
@@ -134,7 +61,6 @@
                         </button>
                         <div class="card-topline">
                             <span class="badge badge-green">Nghĩa Việt</span>
-                            <span>Click để quay lại</span>
                         </div>
                         <div class="card-content">
                             <span id="card-back-text" class="card-word card-word-back">Loading...</span>
@@ -142,17 +68,8 @@
                             <p id="card-back-ipa" class="card-detail-text" hidden></p>
                             <p id="card-back-example" class="card-detail-text" hidden></p>
                             <img id="card-back-image" class="card-study-image" alt="Ảnh minh họa mặt sau" hidden />
-                            <span class="card-flip-hint">Click để quay lại</span>
-                        </div>
-                        <div class="card-bottomline">
-                            <span>1: chưa biết</span>
-                            <span>2: đã biết</span>
                         </div>
                         <div class="card-audio-controls" onclick="event.stopPropagation()">
-                            <label class="card-voice-toggle" title="Tự động phát khi chuyển sang mặt sau">
-                                <input type="checkbox" id="tts-autoplay-back" checked>
-                                <span></span>
-                            </label>
                             <button type="button" class="card-audio-btn" onclick="playAudioCurrentCard()" title="Phát giọng đọc (Ctrl)">
                                 <span class="material-symbols-outlined">volume_up</span>
                             </button>
@@ -162,85 +79,167 @@
             </div>
         </main>
 
-        <div class="card-nav-strip">
-            <button type="button" id="progress-mode-btn" class="card-nav-btn card-progress-mode-btn" onclick="toggleProgressMode()" title="Bật chế độ đánh giá tiến độ">
-                <span class="material-symbols-outlined">layers</span>
-                <span>Tiến độ</span>
-            </button>
-            <button type="button" id="nav-left-btn" class="card-nav-btn" onclick="handleLeftAction()" title="Thẻ trước (←)">
+        <div class="control-bar" aria-label="Điều khiển học">
+            <button type="button" id="nav-left-btn" class="control-btn control-btn-prev" onclick="handleLeftAction()" title="Thẻ trước (←)">
                 <span class="material-symbols-outlined">arrow_back</span>
             </button>
-            <span id="card-nav-progress" class="card-nav-progress">Thẻ 1 / 1</span>
-            <button type="button" id="nav-right-btn" class="card-nav-btn" onclick="handleRightAction()" title="Thẻ tiếp (→)">
+
+            <div class="control-center">
+                <button type="button" id="flip-btn" class="control-btn control-btn-flip" onclick="toggleCardFlip()" title="Lật thẻ (Space)">
+                    <span class="material-symbols-outlined">flip</span>
+                    <span>Lật</span>
+                </button>
+
+                <div id="rating-group" class="rating-group" hidden>
+                    <button type="button" class="control-btn control-btn-rate control-btn-rate-unknown" onclick="markCard(false)" title="Chưa biết (1)">
+                        <span class="material-symbols-outlined">close</span>
+                        <span>Chưa biết</span>
+                    </button>
+                    <button type="button" class="control-btn control-btn-rate control-btn-rate-known" onclick="markCard(true)" title="Đã biết (2)">
+                        <span class="material-symbols-outlined">check</span>
+                        <span>Đã biết</span>
+                    </button>
+                </div>
+            </div>
+
+            <button type="button" id="nav-right-btn" class="control-btn control-btn-next" onclick="handleRightAction()" title="Thẻ tiếp (→)">
                 <span class="material-symbols-outlined">arrow_forward</span>
             </button>
-            <button type="button" class="card-nav-btn" onclick="shuffleCards()" title="Trộn thẻ">
-                <span class="material-symbols-outlined">shuffle</span>
+        </div>
+
+        <p class="keyboard-hint">
+            <span><kbd>Space</kbd> lật</span>
+            <span><kbd>←</kbd> <kbd>→</kbd> chuyển thẻ</span>
+            <span><kbd>1</kbd> chưa biết · <kbd>2</kbd> đã biết</span>
+            <span><kbd>Backspace</kbd> thoát</span>
+        </p>
+
+        <details class="study-accordion">
+            <summary class="study-accordion-summary">
+                <span class="material-symbols-outlined">school</span>
+                <span>Chế độ học</span>
+                <span class="material-symbols-outlined accordion-chevron">expand_more</span>
+            </summary>
+            <div class="study-accordion-body">
+                <div class="learning-modes-grid">
+                    <button type="button" class="btn learning-chip" disabled>
+                        <span class="material-symbols-outlined">chat_bubble</span>
+                        <span>Speaking</span>
+                    </button>
+                    <button type="button" class="btn learning-chip" disabled>
+                        <span class="material-symbols-outlined">forum</span>
+                        <span>Hội thoại</span>
+                    </button>
+                    <button type="button" class="btn learning-chip" disabled>
+                        <span class="material-symbols-outlined">menu_book</span>
+                        <span>Ngữ pháp</span>
+                    </button>
+                    <button type="button" class="btn learning-chip" disabled>
+                        <span class="material-symbols-outlined">article</span>
+                        <span>Đọc hiểu</span>
+                    </button>
+                    <button type="button" class="btn learning-chip is-active">
+                        <span class="material-symbols-outlined filled">school</span>
+                        <span>Học</span>
+                    </button>
+                    <button type="button" class="btn learning-chip" disabled>
+                        <span class="material-symbols-outlined">assignment</span>
+                        <span>Kiểm tra</span>
+                    </button>
+                    <button type="button" class="btn learning-chip" disabled>
+                        <span class="material-symbols-outlined">headphones</span>
+                        <span>Nghe Chép</span>
+                    </button>
+                </div>
+            </div>
+        </details>
+
+        <details class="study-accordion">
+            <summary class="study-accordion-summary">
+                <span class="material-symbols-outlined">menu_book</span>
+                <span>Từ trong bộ (@Model.Flashcards.Count từ)</span>
+                <span class="material-symbols-outlined accordion-chevron">expand_more</span>
+            </summary>
+            <div class="study-accordion-body">
+                <section class="vocab-panel" aria-label="Danh sách từ vựng">
+                    <div class="vocab-panel-toolbar">
+                        <a class="vocab-edit-link" href="/Set/@Model.SetId/Edit">
+                            <span class="material-symbols-outlined">edit</span>
+                            <span>Chỉnh sửa</span>
+                        </a>
+
+                        <select id="vocab-sort" class="form-select vocab-sort-select" aria-label="Sắp xếp từ vựng">
+                            <option value="original">Thứ tự gốc</option>
+                            <option value="starred">Được đánh dấu sao trước</option>
+                            <option value="unlearned">Chưa học trước</option>
+                            <option value="learning">Đang học trước</option>
+                            <option value="mastered">Đã thành thạo trước</option>
+                        </select>
+                    </div>
+
+                    <div id="vocab-list" class="vocab-list"></div>
+                </section>
+            </div>
+        </details>
+    </section>
+
+    <aside id="study-settings-drawer" class="study-settings-drawer" hidden>
+        <div class="settings-drawer-header">
+            <span class="settings-title">Cài đặt học</span>
+            <button type="button" class="icon-button" onclick="toggleSettingsDrawer(event)" title="Đóng">
+                <span class="material-symbols-outlined">close</span>
             </button>
         </div>
+        <div class="settings-drawer-body">
+            <div>
+                <div class="settings-group-title">Bộ lọc</div>
+                <label><input type="checkbox" data-setting="StarredOnly"> Chỉ học từ đánh dấu sao</label>
+                <label><input type="checkbox" data-setting="UnlearnedOnly"> Chỉ học từ chưa thuộc</label>
+            </div>
 
-        <div class="shortcut-strip" aria-label="Phím tắt">
-            <span><span class="keycap">Space</span> lật thẻ</span>
-            <span><span class="keycap">←</span> thẻ trước</span>
-            <span><span class="keycap">→</span> thẻ tiếp</span>
-            <span><span class="keycap">Backspace</span> thoát</span>
+            <div>
+                <div class="settings-group-title">Mặt trước</div>
+                <label><input type="checkbox" data-setting="ShowFrontTerm"> Hiển thị thuật ngữ</label>
+                <label><input type="checkbox" data-setting="ShowFrontDefinition"> Hiển thị định nghĩa</label>
+                <label><input type="checkbox" data-setting="ShowFrontIpa"> Hiển thị IPA</label>
+                <label><input type="checkbox" data-setting="ShowFrontImage"> Hiển thị ảnh</label>
+            </div>
+
+            <div>
+                <div class="settings-group-title">Mặt sau</div>
+                <label><input type="checkbox" data-setting="ShowBackTerm"> Hiển thị thuật ngữ</label>
+                <label><input type="checkbox" data-setting="ShowBackDefinition"> Hiển thị định nghĩa</label>
+                <label><input type="checkbox" data-setting="ShowBackIpa"> Hiển thị IPA</label>
+                <label><input type="checkbox" data-setting="ShowBackExample"> Hiển thị ví dụ</label>
+                <label><input type="checkbox" data-setting="ShowBackImage"> Hiển thị ảnh</label>
+            </div>
+
+            <div>
+                <div class="settings-group-title">Ảnh</div>
+                <label><input type="checkbox" data-setting="HideImage"> Ẩn ảnh</label>
+                <label><input type="checkbox" data-setting="BlurImage"> Che mờ ảnh</label>
+                <label><input type="checkbox" data-setting="LargeImage"> Ảnh lớn</label>
+            </div>
+
+            <div>
+                <div class="settings-group-title">Giọng đọc</div>
+                <div class="tts-row">
+                    <label for="tts-voice-select">Giọng EN</label>
+                    <select id="tts-voice-select" class="form-select premium-select"></select>
+                </div>
+                <div class="tts-row">
+                    <label for="tts-speed">Tốc độ</label>
+                    <select id="tts-speed" class="form-select premium-select">
+                        <option value="0.8">0.8x</option>
+                        <option value="1.0" selected>1.0x</option>
+                        <option value="1.2">1.2x</option>
+                    </select>
+                </div>
+                <label><input type="checkbox" id="tts-autoplay" checked> Tự động phát khi lật</label>
+            </div>
         </div>
-
-        <section class="vocab-panel" aria-label="Danh sách từ vựng">
-            <div class="vocab-panel-toolbar">
-                <a class="vocab-edit-link" href="/Set/@Model.SetId/Edit">
-                    <span class="material-symbols-outlined">edit</span>
-                    <span>Chỉnh sửa</span>
-                </a>
-
-                <select id="vocab-sort" class="form-select vocab-sort-select" aria-label="Sắp xếp từ vựng">
-                    <option value="original">Thứ tự gốc</option>
-                    <option value="starred">Được đánh dấu sao trước</option>
-                    <option value="unlearned">Chưa học trước</option>
-                    <option value="learning">Đang học trước</option>
-                    <option value="mastered">Đã thành thạo trước</option>
-                </select>
-            </div>
-
-            <div id="vocab-list" class="vocab-list"></div>
-        </section>
-
-        <section class="control-dock" aria-label="Điều khiển học">
-            <div class="nav-cluster" aria-hidden="true" style="visibility:hidden;">
-                <button type="button" class="icon-button" onclick="prevCard()" title="Thẻ trước">
-                    <span class="material-symbols-outlined">arrow_back</span>
-                </button>
-                <button type="button" class="icon-button" onclick="nextCard()" title="Thẻ tiếp theo">
-                    <span class="material-symbols-outlined">arrow_forward</span>
-                </button>
-            </div>
-
-            <div></div>
-
-            <div class="audio-cluster">
-                <details class="tts-details">
-                    <summary class="tts-summary">
-                        <span class="material-symbols-outlined">tune</span>
-                        <span>Giọng đọc</span>
-                    </summary>
-                    <div class="tts-panel">
-                        <div class="tts-row">
-                            <label for="tts-voice-select">Giọng EN</label>
-                            <select id="tts-voice-select" class="form-select premium-select"></select>
-                        </div>
-                        <div class="tts-row">
-                            <label for="tts-speed">Tốc độ</label>
-                            <select id="tts-speed" class="form-select premium-select">
-                                <option value="0.8">0.8x</option>
-                                <option value="1.0" selected>1.0x</option>
-                                <option value="1.2">1.2x</option>
-                            </select>
-                        </div>
-                    </div>
-                </details>
-            </div>
-        </section>
-    </section>
+    </aside>
+    <div id="settings-drawer-backdrop" class="settings-drawer-backdrop" hidden onclick="toggleSettingsDrawer(event)"></div>
 
     <section id="completion-view" class="completion-view" aria-label="Hoàn thành">
         <canvas id="fireworksCanvas"></canvas>
@@ -325,7 +324,6 @@
         const synth = window.speechSynthesis;
         const voiceSelect = document.getElementById('tts-voice-select');
         const autoplayCheckbox = document.getElementById('tts-autoplay');
-        const autoplayBackCheckbox = document.getElementById('tts-autoplay-back');
         const speedSelect = document.getElementById('tts-speed');
 
         function exitStudy() {
@@ -383,7 +381,6 @@
             try {
                 const settings = JSON.parse(data);
                 autoplayCheckbox.checked = settings.autoplay;
-                if (autoplayBackCheckbox) autoplayBackCheckbox.checked = settings.autoplay;
                 speedSelect.value = settings.speed || '1.0';
 
                 for (let i = 0; i < voiceSelect.options.length; i++) {
@@ -397,14 +394,7 @@
             }
         }
 
-        function setAutoplay(value) {
-            if (autoplayCheckbox) autoplayCheckbox.checked = value;
-            if (autoplayBackCheckbox) autoplayBackCheckbox.checked = value;
-            saveTtsSettings();
-        }
-
-        autoplayCheckbox?.addEventListener('change', () => setAutoplay(autoplayCheckbox.checked));
-        autoplayBackCheckbox?.addEventListener('change', () => setAutoplay(autoplayBackCheckbox.checked));
+        autoplayCheckbox?.addEventListener('change', saveTtsSettings);
         voiceSelect?.addEventListener('change', saveTtsSettings);
         speedSelect?.addEventListener('change', saveTtsSettings);
 
@@ -582,13 +572,8 @@
             document.getElementById('card-progress-text').textContent = `Thẻ ${currentDisplay} / ${total}`;
             document.getElementById('card-progress-fill').style.width = `${(currentDisplay / total) * 100}%`;
 
-            const cardNavProgress = document.getElementById('card-nav-progress');
-            if (cardNavProgress) {
-                cardNavProgress.textContent = `Thẻ ${currentDisplay} / ${total}`;
-            }
-
             updateStarUI(currentCard.IsStarred);
-            updateProgressModeButtons();
+            updateControlBarForFlip();
         }
 
         function toggleProgressMode() {
@@ -597,40 +582,40 @@
         }
 
         function handleLeftAction() {
-            progressMode ? markCard(false) : prevCard();
+            prevCard();
         }
 
         function handleRightAction() {
-            progressMode ? markCard(true) : nextCard();
+            nextCard();
         }
 
         function updateProgressModeButtons() {
-            const modeBtn = document.getElementById('progress-mode-btn');
-            const leftBtn = document.getElementById('nav-left-btn');
-            const rightBtn = document.getElementById('nav-right-btn');
-            if (!modeBtn || !leftBtn || !rightBtn) return;
+            // Legacy function kept for compatibility; progress mode UI removed.
+        }
 
-            modeBtn.classList.toggle('is-active', progressMode);
-            modeBtn.title = progressMode ? 'Tắt chế độ đánh giá tiến độ' : 'Bật chế độ đánh giá tiến độ';
+        function updateControlBarForFlip() {
+            const flipBtn = document.getElementById('flip-btn');
+            const ratingGroup = document.getElementById('rating-group');
+            if (!flipBtn || !ratingGroup) return;
 
-            leftBtn.classList.toggle('is-danger', progressMode);
-            rightBtn.classList.toggle('is-success', progressMode);
-            leftBtn.title = progressMode ? 'Chưa biết (1)' : 'Thẻ trước (←)';
-            rightBtn.title = progressMode ? 'Đã biết (2)' : 'Thẻ tiếp (→)';
-            leftBtn.innerHTML = progressMode ? '<span class="material-symbols-outlined">close</span>' : '<span class="material-symbols-outlined">arrow_back</span>';
-            rightBtn.innerHTML = progressMode ? '<span class="material-symbols-outlined">check</span>' : '<span class="material-symbols-outlined">arrow_forward</span>';
+            if (isFlipped) {
+                flipBtn.hidden = true;
+                ratingGroup.hidden = false;
+            } else {
+                flipBtn.hidden = false;
+                ratingGroup.hidden = true;
+            }
         }
 
         function toggleCurrentCardStar(event) {
             if (event) {
-                event.stopPropagation(); // Prevents flipping the card when clicking the star!
+                event.stopPropagation();
             }
             if (flashcards.length === 0) return;
 
             const card = flashcards[currentIndex];
             const verificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
 
-            // Optimistic update of UI
             card.IsStarred = !card.IsStarred;
             updateStarUI(card.IsStarred);
             const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
@@ -657,7 +642,6 @@
                     if (vocabCard) vocabCard.IsStarred = card.IsStarred;
                     renderVocabularyPanel();
                 } else {
-                    // Revert if failed
                     card.IsStarred = !card.IsStarred;
                     updateStarUI(card.IsStarred);
                     const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
@@ -667,7 +651,6 @@
             })
             .catch(err => {
                 console.error('AJAX Error:', err);
-                // Revert if failed
                 card.IsStarred = !card.IsStarred;
                 updateStarUI(card.IsStarred);
                 const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
@@ -704,6 +687,8 @@
             isFlipped = !isFlipped;
             cardCore.classList.toggle('flipped', isFlipped);
 
+            updateControlBarForFlip();
+
             if (!isFlipped) {
                 if (synth) synth.cancel();
                 return;
@@ -722,8 +707,17 @@
 
         function nextCard() {
             if (currentIndex < flashcards.length - 1) {
-                currentIndex++;
-                updateUI();
+                const core = document.getElementById('study-card-core');
+                core.classList.add('is-exit-right');
+
+                setTimeout(() => {
+                    currentIndex++;
+                    updateUI();
+                    core.classList.remove('is-exit-right');
+                    core.style.setProperty('--enter-direction', '30px');
+                    core.classList.add('is-enter');
+                    setTimeout(() => core.classList.remove('is-enter'), 260);
+                }, 220);
                 return;
             }
 
@@ -732,8 +726,17 @@
 
         function prevCard() {
             if (currentIndex > 0) {
-                currentIndex--;
-                updateUI();
+                const core = document.getElementById('study-card-core');
+                core.classList.add('is-exit-left');
+
+                setTimeout(() => {
+                    currentIndex--;
+                    updateUI();
+                    core.classList.remove('is-exit-left');
+                    core.style.setProperty('--enter-direction', '-30px');
+                    core.classList.add('is-enter');
+                    setTimeout(() => core.classList.remove('is-enter'), 260);
+                }, 220);
             }
         }
 
@@ -795,7 +798,7 @@
             sessionStats.learned.clear();
             sessionStats.unlearned.clear();
 
-            document.getElementById('study-view').style.display = 'grid';
+            document.getElementById('study-view').style.display = 'flex';
             document.getElementById('completion-view').style.display = 'none';
 
             stopFireworks();
@@ -880,6 +883,15 @@
             }
         });
 
+        function toggleSettingsDrawer(event) {
+            if (event) event.stopPropagation();
+            const drawer = document.getElementById('study-settings-drawer');
+            const backdrop = document.getElementById('settings-drawer-backdrop');
+            const isOpen = !drawer.hidden;
+            drawer.hidden = isOpen;
+            backdrop.hidden = isOpen;
+        }
+
         function bindSettingsInputs() {
             document.querySelectorAll('[data-setting]').forEach(input => {
                 const key = input.dataset.setting;
@@ -899,20 +911,13 @@
                 });
             });
 
-            // Close popover when clicking outside of it
             document.addEventListener('click', (e) => {
-                const panel = document.getElementById('study-settings-panel');
+                const drawer = document.getElementById('study-settings-drawer');
                 const btn = document.querySelector('.study-settings-button');
-                if (panel && !panel.hidden && !panel.contains(e.target) && !btn.contains(e.target)) {
-                    panel.hidden = true;
+                if (drawer && !drawer.hidden && !drawer.contains(e.target) && !btn.contains(e.target)) {
+                    toggleSettingsDrawer();
                 }
             });
-        }
-
-        function toggleSettingsPanel(event) {
-            event.stopPropagation();
-            const panel = document.getElementById('study-settings-panel');
-            panel.hidden = !panel.hidden;
         }
 
         function sideHasImage(side) {
