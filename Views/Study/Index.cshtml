@@ -132,7 +132,7 @@
                 @foreach (var mode in Model.Modes)
                 {
                     <div class="mode-card @(mode.IsRecommended ? "mode-card-recommended mode-card-primary" : "mode-card-secondary") @(mode.IsAvailable ? "" : "mode-card-disabled")"
-                         @(mode.IsAvailable ? $"data-href=\"{mode.ActionUrl}\"" : "")>
+                         data-href="@mode.ActionUrl">
                         <div class="mode-card-icon">
                             <i class="ph @mode.IconClass"></i>
                         </div>
@@ -183,9 +183,11 @@
 @section Scripts {
     <script>
         document.querySelectorAll('.mode-card[data-href]').forEach(function (card) {
+            var href = card.dataset.href;
+            if (!href) return;
             card.style.cursor = 'pointer';
             card.addEventListener('click', function () {
-                window.location.href = card.dataset.href;
+                window.location.href = href;
             });
         });
     </script>
