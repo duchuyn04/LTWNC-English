@@ -145,7 +145,6 @@ public class DictationService
         int cardId,
         string answeredText,
         string userId,
-        DictationAnswerMode mode,
         bool acceptSynonyms)
     {
         var session = await _context.StudySessions.FindAsync(sessionId);
@@ -163,20 +162,18 @@ public class DictationService
         if (card.FlashcardSetId != session.FlashcardSetId)
             throw new KeyNotFoundException("Thẻ không thuộc bộ thẻ này.");
 
-        // Đáp án đúng tùy theo chế độ trả lờ
+        // Đáp án đúng: nội dung ghi chép là câu ví dụ thì nhập lại câu,
+        // còn từ vựng thì luôn nhập thuật ngữ tiếng Anh (bỏ qua chế độ trả lời cũ)
         var correctAnswer = session.DictationContentMode == DictationContentMode.ExampleSentence
             ? card.ExampleSentence
-            : mode == DictationAnswerMode.Definition
-                ? card.BackText
-                : card.FrontText;
+            : card.FrontText;
 
         // Tập hợp các đáp án được chấp nhận
         var acceptedAnswers = new List<string> { correctAnswer };
 
-        // Nếu chấp nhận từ đồng nghĩa và đang ở chế độ thuật ngữ
+        // Nếu chấp nhận từ đồng nghĩa trong chế độ từ vựng
         if (session.DictationContentMode == DictationContentMode.Vocabulary &&
             acceptSynonyms &&
-            mode == DictationAnswerMode.Term &&
             !string.IsNullOrWhiteSpace(card.Synonyms))
         {
             var synonyms = card.Synonyms

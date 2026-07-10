@@ -320,7 +320,6 @@ public class StudyController : Controller
             var settings = await _studyService.GetSettingsAsync(user.Id);
             var result = await _dictationService.CheckAnswerAsync(
                 sessionId, cardId, answeredText, user.Id,
-                settings.DictationAnswerMode,
                 settings.DictationAcceptSynonyms);
 
             return Json(new

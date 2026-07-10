@@ -56,7 +56,7 @@
                     </div>
 
                     <label for="dictation-answer" class="dictation-input-label">Điền lại nội dung bạn nghe được</label>
-                    <textarea id="dictation-answer" class="dictation-answer" rows="2" placeholder="Nhập từ hoặc câu bạn nghe được..."></textarea>
+                    <textarea id="dictation-answer" class="dictation-answer" rows="2" lang="en" placeholder="Nhập từ hoặc câu bạn nghe được..."></textarea>
 
                     <div id="dictation-feedback" class="dictation-feedback" hidden>
                         <div id="dictation-feedback-icon" class="dictation-feedback-icon"></div>
@@ -155,12 +155,6 @@
                 <div class="dictation-settings-group-title">Nội dung nghe chép</div>
                 <label class="dictation-settings-option"><input type="radio" name="contentMode" value="Vocabulary" data-setting="DictationContentMode" @(Model.Settings.DictationContentMode == DictationContentMode.Vocabulary ? "checked" : "")> Từ vựng</label>
                 <label class="dictation-settings-option"><input type="radio" name="contentMode" value="ExampleSentence" data-setting="DictationContentMode" @(Model.Settings.DictationContentMode == DictationContentMode.ExampleSentence ? "checked" : "")> Câu ví dụ</label>
-            </div>
-
-            <div id="dictation-answer-mode-group" class="dictation-settings-group">
-                <div class="dictation-settings-group-title">Chế độ trả lời</div>
-                <label class="dictation-settings-option"><input type="radio" name="answerMode" value="Term" data-setting="DictationAnswerMode" @(Model.Settings.DictationAnswerMode == DictationAnswerMode.Term ? "checked" : "")> Trả lời bằng thuật ngữ</label>
-                <label class="dictation-settings-option"><input type="radio" name="answerMode" value="Definition" data-setting="DictationAnswerMode" @(Model.Settings.DictationAnswerMode == DictationAnswerMode.Definition ? "checked" : "")> Trả lời bằng định nghĩa</label>
             </div>
 
             <div id="dictation-synonyms-group" class="dictation-settings-group">
@@ -550,7 +544,6 @@
 
         function updateContentModeSettings() {
             const isSentence = settings.DictationContentMode === 'ExampleSentence';
-            document.getElementById('dictation-answer-mode-group').hidden = isSentence;
             document.getElementById('dictation-synonyms-group').hidden = isSentence;
         }
 
