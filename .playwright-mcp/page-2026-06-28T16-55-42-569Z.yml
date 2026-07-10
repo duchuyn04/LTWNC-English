@@ -1,0 +1,316 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - navigation [ref=e4]:
+      - generic [ref=e5]:
+        - link " LTWNC English" [ref=e6] [cursor=pointer]:
+          - /url: /
+          - generic [ref=e7]: 
+          - text: LTWNC English
+        - text: 
+        - generic [ref=e8]:
+          - generic [ref=e9]:
+            - link "Lợi ích" [ref=e10] [cursor=pointer]:
+              - /url: "#benefits"
+            - link "Tính năng" [ref=e11] [cursor=pointer]:
+              - /url: "#services"
+            - link "Cách bắt đầu" [ref=e12] [cursor=pointer]:
+              - /url: "#onboarding"
+            - link "Tư vấn học" [ref=e13] [cursor=pointer]:
+              - /url: "#quote"
+          - link " Bắt đầu" [ref=e14] [cursor=pointer]:
+            - /url: /Account/Register
+            - generic [ref=e15]: 
+            - text: Bắt đầu
+    - generic [ref=e17]:
+      - generic [ref=e18]:
+        - strong [ref=e19]: Muốn có lộ trình học từ vựng rõ ràng?
+        - text: Chọn mục tiêu, tạo bộ thẻ, bắt đầu ôn ngay.
+      - link "Bắt đầu lộ trình" [ref=e20] [cursor=pointer]:
+        - /url: /Account/Register
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - generic [ref=e24]:
+          - generic [ref=e25]: Flashcard learning service
+          - heading "Học từ vựng tiếng Anh |" [level=1] [ref=e26]:
+            - text: Học từ vựng tiếng Anh
+            - text: "|"
+          - paragraph [ref=e27]: LTWNC English giúp bạn tạo bộ thẻ, luyện phát âm, đánh dấu từ quan trọng và theo dõi tiến độ học trong một giao diện gọn.
+          - generic [ref=e28]:
+            - link " Tạo bộ thẻ" [ref=e29] [cursor=pointer]:
+              - /url: /Account/Register
+              - generic [ref=e30]: 
+              - text: Tạo bộ thẻ
+            - link " Khám phá" [ref=e31] [cursor=pointer]:
+              - /url: "#featured-sets"
+              - generic [ref=e32]: 
+              - text: Khám phá
+        - generic [ref=e34]:
+          - button "Previous card" [ref=e35] [cursor=pointer]:
+            - generic [ref=e36]: 
+          - generic [ref=e37]:
+            - generic [ref=e40] [cursor=pointer]:
+              - generic [ref=e42]:
+                - generic [ref=e43]: NOUN
+                - heading "consistency" [level=4] [ref=e44]
+                - paragraph [ref=e45]: /kənˈsɪstənsi/
+              - generic [ref=e47]:
+                - heading "sự nhất quán" [level=5] [ref=e48]
+                - paragraph [ref=e49]: Sự kiên định, không thay đổi.
+            - generic [ref=e52] [cursor=pointer]:
+              - generic [ref=e54]:
+                - generic [ref=e55]: NOUN
+                - heading "fluency" [level=4] [ref=e56]
+                - paragraph [ref=e57]: /ˈfluːənsi/
+              - generic [ref=e59]:
+                - heading "sự trôi chảy" [level=5] [ref=e60]
+                - paragraph [ref=e61]: Nói hoặc viết trơn tru, dễ dàng.
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic:
+                      - generic: NOUN
+                      - heading "vocabulary" [level=4]
+                      - paragraph: /vəˈkæbjələri/
+                  - generic:
+                    - generic:
+                      - heading "vốn từ vựng" [level=5]
+                      - paragraph: Tập hợp các từ trong một ngôn ngữ.
+            - generic [ref=e64] [cursor=pointer]:
+              - generic [ref=e66]:
+                - generic [ref=e67]: NOUN
+                - heading "persistence" [level=4] [ref=e68]
+                - paragraph [ref=e69]: /pəˈsɪstəns/
+              - generic [ref=e71]:
+                - heading "sự kiên trì" [level=5] [ref=e72]
+                - paragraph [ref=e73]: Bền bỉ theo đuổi mục tiêu.
+          - button "Next card" [ref=e74] [cursor=pointer]:
+            - generic [ref=e75]: 
+      - generic [ref=e77]:
+        - generic [ref=e78]:
+          - strong [ref=e79]: 0 phút
+          - generic [ref=e80]: Tạo bộ thẻ đầu tiên
+        - generic [ref=e81]:
+          - strong [ref=e82]: 0 chế độ
+          - generic [ref=e83]: Học và ôn tập
+        - generic [ref=e84]:
+          - strong [ref=e85]: 5%
+          - generic [ref=e86]: Theo dõi tiến độ
+    - generic [ref=e88]:
+      - generic [ref=e89]:
+        - generic [ref=e90]: Benefits
+        - heading "Tập trung vào cách bạn ghi nhớ." [level=2] [ref=e91]
+      - generic [ref=e93]:
+        - generic [ref=e94]:
+          - generic [ref=e96]: 
+          - heading "Flashcard rõ ràng" [level=3] [ref=e97]
+          - paragraph [ref=e98]: Mỗi từ có nghĩa, IPA, ví dụ và trạng thái học.
+        - generic [ref=e99]:
+          - generic [ref=e101]: 
+          - heading "Giọng đọc" [level=3] [ref=e102]
+          - paragraph [ref=e103]: Nghe phát âm tiếng Anh ngay khi học thẻ.
+        - generic [ref=e104]:
+          - generic [ref=e106]: 
+          - heading "Đánh dấu sao" [level=3] [ref=e107]
+          - paragraph [ref=e108]: Tách nhóm từ quan trọng để ôn nhanh.
+        - generic [ref=e109]:
+          - generic [ref=e111]: 
+          - heading "Tiến độ học" [level=3] [ref=e112]
+          - paragraph [ref=e113]: Biết từ nào chưa học, đang học, đã thành thạo.
+    - generic [ref=e115]:
+      - generic [ref=e116]:
+        - generic [ref=e117]:
+          - generic [ref=e118]: Services
+          - heading "Dịch vụ học nằm ngay trong app." [level=2] [ref=e119]
+        - paragraph [ref=e121]: "Không thêm quy trình phức tạp: tạo bộ thẻ, học, xem tiến độ."
+      - generic [ref=e123]:
+        - generic [ref=e124]:
+          - generic [ref=e126]: 
+          - heading "Tạo bộ thẻ" [level=3] [ref=e127]
+          - paragraph [ref=e128]: Nhập thuật ngữ, định nghĩa, IPA, ví dụ và ảnh minh họa.
+        - generic [ref=e129]:
+          - generic [ref=e131]: 
+          - heading "Học flashcard" [level=3] [ref=e132]
+          - paragraph [ref=e133]: Lật thẻ, nghe voice, trộn thẻ, đánh dấu đã biết/chưa biết.
+        - generic [ref=e134]:
+          - generic [ref=e136]: 
+          - heading "Theo dõi tiến độ" [level=3] [ref=e137]
+          - paragraph [ref=e138]: Sắp xếp theo trạng thái học để biết nên ôn gì trước.
+    - generic [ref=e142]:
+      - generic [ref=e143]:
+        - generic [ref=e144]: Product
+        - heading "Một workspace học từ vựng gọn." [level=2] [ref=e145]
+        - paragraph [ref=e146]: Từ tạo bộ thẻ đến học flashcard đều nằm trong cùng một luồng.
+      - generic [ref=e149] [cursor=pointer]:
+        - generic [ref=e151]:
+          - generic [ref=e152]: VOCABULARY
+          - heading "debugging" [level=4] [ref=e153]
+          - paragraph [ref=e154]: /ˌdiːˈbʌɡɪŋ/ · Click to flip
+        - generic [ref=e156]:
+          - heading "gỡ lỗi" [level=4] [ref=e157]
+          - paragraph [ref=e158]: Debugging helped identify the cause of the system crash.
+    - generic [ref=e161]:
+      - generic [ref=e162]: Flashcards
+      - generic [ref=e163]: Voice
+      - generic [ref=e164]: Progress
+      - generic [ref=e165]: Images
+      - generic [ref=e166]: Public sets
+    - generic [ref=e169]:
+      - generic [ref=e170]:
+        - generic [ref=e171]: Why choose us
+        - heading "Ít thao tác, nhiều thời gian học hơn." [level=2] [ref=e172]
+      - generic [ref=e173]:
+        - generic [ref=e174]:
+          - generic [ref=e175]: 
+          - generic [ref=e176]: Không cần cài thêm công cụ học rời rạc.
+        - generic [ref=e177]:
+          - generic [ref=e178]: 
+          - generic [ref=e179]: Dữ liệu bộ thẻ nằm trong tài khoản của bạn.
+        - generic [ref=e180]:
+          - generic [ref=e181]: 
+          - generic [ref=e182]: Giao diện học tối giản, tập trung vào từ vựng.
+        - generic [ref=e183]:
+          - generic [ref=e184]: 
+          - generic [ref=e185]: Có thể học từ bộ thẻ cộng đồng.
+    - generic [ref=e187]:
+      - generic [ref=e188]:
+        - generic [ref=e189]: Onboarding
+        - heading "Bắt đầu trong 3 bước." [level=2] [ref=e190]
+      - generic [ref=e192]:
+        - generic [ref=e193]:
+          - generic: "01"
+          - heading "Đăng ký" [level=3] [ref=e194]
+          - paragraph [ref=e195]: Tạo tài khoản để lưu bộ thẻ và tiến độ.
+        - generic [ref=e196]:
+          - generic: "02"
+          - heading "Tạo hoặc chọn bộ thẻ" [level=3] [ref=e197]
+          - paragraph [ref=e198]: Tự nhập từ hoặc học từ bộ thẻ công khai.
+        - generic [ref=e199]:
+          - generic: "03"
+          - heading "Ôn mỗi ngày" [level=3] [ref=e200]
+          - paragraph [ref=e201]: Dùng flashcard, voice và trạng thái học để ôn đúng trọng tâm.
+    - generic [ref=e203]:
+      - generic [ref=e204]:
+        - generic [ref=e205]: Testimonials
+        - heading "Cảm nhận từ học viên." [level=2] [ref=e206]
+      - generic [ref=e208]:
+        - generic [ref=e209]:
+          - generic [ref=e210]:
+            - generic [ref=e211]:
+              - generic [ref=e212]: ﷢
+              - generic [ref=e213]: ﷢
+              - generic [ref=e214]: ﷢
+              - generic [ref=e215]: ﷢
+              - generic [ref=e216]: ﷢
+            - paragraph [ref=e217]: "\"Flashcard rõ, dễ ôn lại từ chưa thuộc.\""
+          - generic [ref=e218]:
+            - img "Neymar" [ref=e219]
+            - generic [ref=e220]:
+              - strong [ref=e221]: Neymar
+              - text: Sinh viên
+        - generic [ref=e222]:
+          - generic [ref=e223]:
+            - generic [ref=e224]:
+              - generic [ref=e225]: ﷢
+              - generic [ref=e226]: ﷢
+              - generic [ref=e227]: ﷢
+              - generic [ref=e228]: ﷢
+              - generic [ref=e229]: ﷢
+            - paragraph [ref=e230]: "\"Tôi thích phần đánh sao và nghe phát âm.\""
+          - generic [ref=e231]:
+            - img "Messi" [ref=e232]
+            - generic [ref=e233]:
+              - strong [ref=e234]: Messi
+              - text: Người tự học
+        - generic [ref=e235]:
+          - generic [ref=e236]:
+            - generic [ref=e237]:
+              - generic [ref=e238]: ﷢
+              - generic [ref=e239]: ﷢
+              - generic [ref=e240]: ﷢
+              - generic [ref=e241]: ﷢
+              - generic [ref=e242]: ﷢
+            - paragraph [ref=e243]: "\"Tạo bộ thẻ cho lớp rất nhanh.\""
+          - generic [ref=e244]:
+            - img "Ronaldo" [ref=e245]
+            - generic [ref=e246]:
+              - strong [ref=e247]: Ronaldo
+              - text: Gia sư
+    - generic [ref=e249]:
+      - generic [ref=e250]:
+        - generic [ref=e251]: Resources
+        - heading "Cẩm nang & Kinh nghiệm học." [level=2] [ref=e252]
+      - generic [ref=e254]:
+        - generic [ref=e255]:
+          - generic [ref=e256]: Blog
+          - heading "Cách nhớ từ theo ngữ cảnh" [level=3] [ref=e257]
+          - paragraph [ref=e258]: Viết ví dụ riêng cho mỗi từ để nhớ lâu hơn.
+        - generic [ref=e259]:
+          - generic [ref=e260]: Guide
+          - heading "Khi nào nên đánh dấu sao?" [level=3] [ref=e261]
+          - paragraph [ref=e262]: Dùng sao cho từ khó, từ hay sai và từ cần ôn trước kỳ kiểm tra.
+        - generic [ref=e263]:
+          - generic [ref=e264]: Tips
+          - heading "Nghe phát âm khi lật thẻ" [level=3] [ref=e265]
+          - paragraph [ref=e266]: Kết hợp nhìn, nghe và ví dụ để học sâu hơn.
+    - generic [ref=e268]:
+      - generic [ref=e269]:
+        - generic [ref=e270]: Philosophy
+        - heading "Triết lý xây dựng sản phẩm." [level=2] [ref=e271]
+      - generic [ref=e273]:
+        - generic [ref=e274]:
+          - generic [ref=e276]: 
+          - heading "Learning design" [level=3] [ref=e277]
+          - paragraph [ref=e278]: Luồng học ngắn, dễ lặp lại.
+        - generic [ref=e279]:
+          - generic [ref=e281]: 
+          - heading "Product build" [level=3] [ref=e282]
+          - paragraph [ref=e283]: Tính năng tập trung vào flashcard thật.
+        - generic [ref=e284]:
+          - generic [ref=e286]: 
+          - heading "Quality" [level=3] [ref=e287]
+          - paragraph [ref=e288]: Không claim chứng nhận giả, chỉ cam kết rõ ràng.
+    - generic [ref=e290]:
+      - generic [ref=e292]:
+        - generic [ref=e293]: Public sets
+        - heading "Bộ thẻ công khai" [level=2] [ref=e294]
+      - generic [ref=e295]:
+        - generic [ref=e296]: 
+        - paragraph [ref=e297]: Chưa có bộ thẻ công khai phù hợp.
+    - generic [ref=e301]:
+      - generic [ref=e302]:
+        - generic [ref=e303]: Quote
+        - heading "Bắt đầu lộ trình học." [level=2] [ref=e304]
+      - generic [ref=e306]:
+        - textbox "Tên của bạn" [ref=e308]
+        - combobox "Mục tiêu học" [ref=e310]:
+          - option "Giao tiếp" [selected]
+          - option "Thi cử"
+          - option "Công việc"
+        - button "Tiếp tục" [ref=e312] [cursor=pointer]
+    - generic [ref=e315]:
+      - generic [ref=e316]:
+        - strong [ref=e317]: LTWNC English
+        - paragraph [ref=e318]: Học tiếng Anh cùng flashcard.
+      - generic [ref=e319]:
+        - strong [ref=e320]: Sản phẩm
+        - link "Tính năng" [ref=e321] [cursor=pointer]:
+          - /url: "#services"
+        - link "Bộ thẻ" [ref=e322] [cursor=pointer]:
+          - /url: "#featured-sets"
+      - generic [ref=e323]:
+        - strong [ref=e324]: Học tập
+        - link "Lợi ích" [ref=e325] [cursor=pointer]:
+          - /url: "#benefits"
+        - link "Bắt đầu" [ref=e326] [cursor=pointer]:
+          - /url: "#onboarding"
+      - generic [ref=e327]:
+        - strong [ref=e328]: Tài khoản
+        - link "Đăng nhập" [ref=e329] [cursor=pointer]:
+          - /url: /Account/Login
+        - link "Đăng ký" [ref=e330] [cursor=pointer]:
+          - /url: /Account/Register
+      - generic [ref=e331]:
+        - strong [ref=e332]: CTA
+        - link "Tạo bộ thẻ" [ref=e333] [cursor=pointer]:
+          - /url: /Account/Register

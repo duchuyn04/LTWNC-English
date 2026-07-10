@@ -514,30 +514,55 @@ body {
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 0.3rem;
+    justify-content: center;
+    gap: 0.35rem;
     font-size: 0.72rem;
     font-weight: 700;
-    transition: all 0.2s ease;
+    cursor: pointer;
+    transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
 }
 
-.learning-chip:hover:not(:disabled) {
-    background: var(--fc-paper);
-    border-color: var(--fc-line);
+.learning-chip:hover:not(:disabled, .is-active) {
+    background: var(--fc-accent-bg);
+    border-color: var(--fc-accent);
+    color: var(--fc-ink);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 14px rgba(245, 158, 11, 0.14);
+}
+
+.learning-chip:focus-visible:not(:disabled) {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.35);
+    border-color: var(--fc-accent);
+}
+
+.learning-chip:active:not(:disabled, .is-active) {
+    transform: translateY(0);
 }
 
 .learning-chip:disabled {
-    opacity: 0.55;
+    opacity: 0.45;
     cursor: not-allowed;
+    pointer-events: none;
 }
 
 .learning-chip.is-active {
     background: var(--fc-ink);
     border-color: var(--fc-ink);
     color: var(--fc-paper);
+    box-shadow: 0 4px 12px rgba(28, 25, 23, 0.18);
+}
+
+.learning-chip.is-active:hover {
+    background: var(--fc-ink);
+    border-color: var(--fc-ink);
+    color: var(--fc-paper);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(28, 25, 23, 0.22);
 }
 
 .learning-chip .material-symbols-outlined {
-    font-size: 1.2rem;
+    font-size: 1.25rem;
 }
 
 /* Vocab panel */
