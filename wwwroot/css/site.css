@@ -503,7 +503,7 @@ body {
     background: #F7F6F3;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 250ms ease-out;
+    transition: opacity 350ms ease-out;
 }
 
 #pt-overlay.pt-overlay--visible,
@@ -515,7 +515,7 @@ body {
 #pt-overlay.pt-overlay--out {
     opacity: 0;
     pointer-events: none;
-    transition-duration: 350ms;
+    transition-duration: 400ms;
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -14,7 +14,7 @@
 - Only intercept same-origin internal links; ignore external links, `target="_blank"`, `download`, modifier-key clicks, and hash-only links.
 - Do not break no-JS users or back/forward cache behavior.
 - Overlay background color: `#F7F6F3`.
-- Fade-in duration: 250 ms; hold before navigation: ~100 ms; fade-out duration: 350 ms.
+- Fade-in duration: 350 ms; hold before navigation: ~150 ms; fade-out duration: 400 ms.
 
 ---
 
@@ -77,7 +77,7 @@
 
         overlay.classList.add(CLASS_OUT);
         overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
-        setTimeout(() => overlay.remove(), 500);
+        setTimeout(() => overlay.remove(), 600);
     }
 
     function fadeInAndNavigate(href) {
@@ -94,7 +94,7 @@
         overlay.classList.add(CLASS_IN);
         setTimeout(() => {
             location.href = href;
-        }, 350);
+        }, 500);
     }
 
     function shouldIntercept(anchor, event) {
@@ -156,7 +156,7 @@ git commit -m "feat(page-transition): add click-intercept fade overlay controlle
     background: #F7F6F3;
     opacity: 0;
     pointer-events: none;
-    transition: opacity 250ms ease-out;
+    transition: opacity 350ms ease-out;
 }
 
 #pt-overlay.pt-overlay--visible,
@@ -168,7 +168,7 @@ git commit -m "feat(page-transition): add click-intercept fade overlay controlle
 #pt-overlay.pt-overlay--out {
     opacity: 0;
     pointer-events: none;
-    transition-duration: 350ms;
+    transition-duration: 400ms;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -286,7 +286,7 @@ If any check fails, fix in the relevant task file and re-run the failed check be
 |------------------|------|
 | Fade overlay on internal navigation | Task 1 + Task 3 |
 | Overlay background `#F7F6F3` | Task 2 |
-| Timing: 250 ms fade-in, ~100 ms hold, 350 ms fade-out | Task 1 (`setTimeout(350)`) + Task 2 (`transition` durations) |
+| Timing: 350 ms fade-in, ~150 ms hold, 400 ms fade-out | Task 1 (`setTimeout(500)`) + Task 2 (`transition` durations) |
 | Respect `prefers-reduced-motion: reduce` | Task 1 (`prefersReducedMotion`) + Task 2 (`@media`) |
 | Ignore external links / modifier keys / hash-only / downloads / `target="_blank"` | Task 1 (`shouldIntercept`) |
 | No-JS fallback | Task 3 (`<noscript>`) + Task 2 (`noscript #pt-overlay`) |

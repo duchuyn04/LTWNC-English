@@ -37,7 +37,7 @@ Implementation approach: **click-intercept + overlay fade** instead of load-only
 4. New page renders with the overlay already visible.
 5. Overlay fades out (opacity 1 → 0), revealing the new content.
 
-Total perceived transition time: ~500–700 ms.
+Total perceived transition time: ~900 ms.
 
 ## Architecture
 
@@ -82,9 +82,9 @@ Everything else (external links, file downloads, new-tab clicks, forms) keeps na
 
 ### Animation timing (default)
 
-- Fade-in duration (old page): 250 ms, `ease-out`.
-- Hold at full opacity: ~100 ms before navigation.
-- Fade-out duration (new page): 350 ms, `ease-out`.
+- Fade-in duration (old page): 350 ms, `ease-out`.
+- Hold at full opacity: ~150 ms before navigation.
+- Fade-out duration (new page): 400 ms, `ease-out`.
 
 If `prefers-reduced-motion: reduce` is active, durations collapse to 0 ms (instant).
 

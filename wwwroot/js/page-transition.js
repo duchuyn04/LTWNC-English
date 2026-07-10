@@ -33,7 +33,7 @@
 
         overlay.classList.add(CLASS_OUT);
         overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
-        setTimeout(() => overlay.remove(), 500);
+        setTimeout(() => overlay.remove(), 600);
     }
 
     function fadeInAndNavigate(href) {
@@ -50,7 +50,7 @@
         overlay.classList.add(CLASS_IN);
         setTimeout(() => {
             location.href = href;
-        }, 350);
+        }, 500);
     }
 
     function shouldIntercept(anchor, event) {
