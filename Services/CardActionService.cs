@@ -16,8 +16,6 @@ public class CardActionService
         _commandFactory = commandFactory;
     }
 
-    public AppDbContext Context => _context;
-
     public async Task<CardActionLog> ExecuteAsync(ICardActionCommand command)
     {
         await using var transaction = await _context.Database.BeginTransactionAsync();

@@ -11,15 +11,18 @@ namespace ltwnc.Controllers;
 public class CardActionsController : Controller
 {
     private readonly CardActionService _cardActionService;
+    private readonly CardActionCommandFactory _commandFactory;
     private readonly FlashcardSetService _setService;
     private readonly UserManager<IdentityUser> _userManager;
 
     public CardActionsController(
         CardActionService cardActionService,
+        CardActionCommandFactory commandFactory,
         FlashcardSetService setService,
         UserManager<IdentityUser> userManager)
     {
         _cardActionService = cardActionService;
+        _commandFactory = commandFactory;
         _setService = setService;
         _userManager = userManager;
     }
@@ -43,13 +46,11 @@ public class CardActionsController : Controller
 
         try
         {
-            ICardActionCommand command = action switch
-            {
-                BatchActionType.Delete => new DeleteCardsCommand(_cardActionService.Context, setId, user.Id, selectedCardIds),
-                BatchActionType.Star => new StarCardsCommand(_cardActionService.Context, setId, user.Id, selectedCardIds),
-                BatchActionType.Unstar => new UnstarCardsCommand(_cardActionService.Context, setId, user.Id, selectedCardIds),
-                _ => throw new InvalidOperationException("Hành động không hợp lệ.")
-            };
+            var command = _commandFactory.Create(
+                action.ToString(),
+                setId,
+                user.Id,
+                selectedCardIds);
 
             var log = await _cardActionService.ExecuteAsync(command);
             TempData["Success"] = $"Đã {Describe(action)} {selectedCardIds.Count} thẻ.";
