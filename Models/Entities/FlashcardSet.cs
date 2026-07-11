@@ -45,6 +45,7 @@ public class FlashcardSet : IPrototype<FlashcardSet>
     public ICollection<Flashcard> Flashcards { get; set; } = new List<Flashcard>();
 
     // Tạo bản sao độc lập của bộ thẻ, bao gồm cả các thẻ con.
+    // Không gán UserId/SourceSetId/IsPublic vì đó là trách nhiệm của service.
     public FlashcardSet Clone()
     {
         var now = DateTime.UtcNow;
@@ -54,11 +55,13 @@ public class FlashcardSet : IPrototype<FlashcardSet>
             Title = Title,
             Description = Description,
             UserId = string.Empty,
-            IsPublic = false,
             SourceSetId = null,
             CreatedAt = now,
             UpdatedAt = now,
-            Flashcards = Flashcards.Select(c => c.Clone()).ToList()
+            Flashcards = Flashcards
+                .OrderBy(card => card.OrderIndex)
+                .Select(card => card.Clone())
+                .ToList()
         };
     }
 }
