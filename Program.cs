@@ -59,6 +59,8 @@ builder.Services.AddScoped<IStudyEventObserver, AchievementStudyObserver>();
 builder.Services.AddScoped<IStudyEventObserver, LoggingStudyObserver>();
 // Service đọc thành tích cho trang UI (không phải observer)
 builder.Services.AddScoped<AchievementService>();
+// Service đếm metric tiến độ huy hiệu (snapshot live)
+builder.Services.AddScoped<AchievementProgressService>();
 
 // Add MVC
 builder.Services.AddControllersWithViews();
