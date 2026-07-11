@@ -42,6 +42,20 @@
             <div class="alert alert-danger">@error</div>
         }
 
+        @if (TempData["Success"] is string success)
+        {
+            <div class="alert alert-success d-flex justify-content-between align-items-center">
+                <span>@success</span>
+                @if (TempData["UndoLogId"] is int undoLogId)
+                {
+                    <form asp-controller="CardActions" asp-action="Undo" asp-route-logId="@undoLogId" method="post" class="m-0">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn btn-sm btn-link">Hoàn tác</button>
+                    </form>
+                }
+            </div>
+        }
+
         <div class="vocab-editor gsap-fade-up">
             <aside class="vocab-list gsap-stagger">
                 <div class="vocab-list-header">
@@ -57,19 +71,37 @@
                 }
                 else
                 {
-                    @foreach (var card in cards.OrderBy(c => c.OrderIndex))
-                    {
-                        <button type="button"
-                                class="vocab-list-item @(card == cards.OrderBy(c => c.OrderIndex).First() ? "is-active" : "")"
-                                data-card-id="@card.Id">
-                            <span class="vocab-star">@(card.IsStarred ? "★" : "☆")</span>
-                            <span class="vocab-list-copy">
-                                <strong>@card.FrontText</strong>
-                                <small>@card.PartOfSpeech · @card.Pronunciation</small>
-                                <span>@card.BackText</span>
-                            </span>
-                        </button>
-                    }
+                    <form asp-controller="CardActions" asp-action="BatchAction" asp-route-setId="@Model.Id" method="post" id="batch-form">
+                        @Html.AntiForgeryToken()
+                        <div class="batch-toolbar mb-3">
+                            <button type="submit" name="action" value="Delete" class="btn-secondary-custom" onclick="return confirm('Xóa các thẻ đã chọn?');">
+                                <i class="ph ph-trash"></i> Xóa đã chọn
+                            </button>
+                            <button type="submit" name="action" value="Star" class="btn-secondary-custom">
+                                <i class="ph ph-star"></i> Đánh sao
+                            </button>
+                            <button type="submit" name="action" value="Unstar" class="btn-secondary-custom">
+                                <i class="ph ph-star-off"></i> Bỏ sao
+                            </button>
+                        </div>
+
+                        @foreach (var card in cards.OrderBy(c => c.OrderIndex))
+                        {
+                            <div class="vocab-list-item-wrapper">
+                                <input type="checkbox" name="selectedCardIds" value="@card.Id" class="card-checkbox" />
+                                <button type="button"
+                                        class="vocab-list-item @(card == cards.OrderBy(c => c.OrderIndex).First() ? "is-active" : "")"
+                                        data-card-id="@card.Id">
+                                    <span class="vocab-star">@(card.IsStarred ? "★" : "☆")</span>
+                                    <span class="vocab-list-copy">
+                                        <strong>@card.FrontText</strong>
+                                        <small>@card.PartOfSpeech · @card.Pronunciation</small>
+                                        <span>@card.BackText</span>
+                                    </span>
+                                </button>
+                            </div>
+                        }
+                    </form>
                 }
             </aside>
 
