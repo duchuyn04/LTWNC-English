@@ -61,7 +61,8 @@ public class Flashcard : IPrototype<Flashcard>
     public FlashcardSet? FlashcardSet { get; set; }
 
     // Tạo bản sao độc lập của thẻ để dùng khi clone bộ thẻ.
-    // UploadedImagePath được để null vì file ảnh upload không được duplicate.
+    // UploadedImagePath để null vì file ảnh upload nội bộ không được duplicate.
+    // IsStarred reset vì đây là trạng thái học cá nhân của chủ bộ nguồn.
     public Flashcard Clone()
     {
         return new Flashcard
@@ -75,7 +76,7 @@ public class Flashcard : IPrototype<Flashcard>
             Synonyms = Synonyms,
             ImageUrl = ImageUrl,
             UploadedImagePath = null,
-            IsStarred = IsStarred,
+            IsStarred = false,
             OrderIndex = OrderIndex
         };
     }
