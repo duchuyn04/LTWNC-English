@@ -86,12 +86,25 @@ public interface ICardActionCommand
 
 Each command owns the actual data change and knows how to reverse it.
 
+### Batch action type
+
+```csharp
+public enum BatchActionType
+{
+    Delete,
+    Star,
+    Unstar
+}
+```
+
+The controller receives this enum from the toolbar and creates the matching command.
+
 ### Commands
 
 #### DeleteCardsCommand
 
 - `ExecuteAsync`: delete the selected cards. Before deleting, capture a snapshot of each card and store it in the command context.
-- `UndoAsync`: re-insert the deleted cards with their original data, including `OrderIndex`.
+- `UndoAsync`: re-insert the deleted cards using the snapshot. Because `Flashcard.Id` is an identity column, re-inserted cards receive new ids. The original ids are kept in `CardIdsJson` for reference only.
 
 #### StarCardsCommand
 
@@ -116,6 +129,7 @@ Add a `CardActionLogs` table:
 | CardIdsJson | string | JSON array of affected card ids |
 | SnapshotJson | string | JSON snapshot needed for undo |
 | ExecutedAt | DateTime | When the action ran |
+| UndoneAt | DateTime? | When the action was undone; null if still undoable |
 
 `SnapshotJson` content depends on `ActionType`:
 
@@ -137,6 +151,9 @@ public class CardActionService
 }
 ```
 
+`GetRecentActionsAsync` returns the most recent logs, optionally filtering to logs where `UndoneAt` is still null so the UI can offer undo.
+```
+
 `ExecuteAsync`:
 1. Calls `command.ExecuteAsync()`.
 2. Serializes the command metadata and snapshot into a `CardActionLog`.
@@ -146,7 +163,7 @@ public class CardActionService
 1. Loads the log by id, verifying ownership (same user, same set).
 2. Rebuilds the correct command from the log data.
 3. Calls `command.UndoAsync()`.
-4. Marks the log as undone or deletes it to prevent double undo.
+4. Sets `UndoneAt = DateTime.UtcNow` to prevent double undo.
 
 ### Controller changes
 
