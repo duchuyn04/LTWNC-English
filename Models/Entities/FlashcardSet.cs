@@ -1,12 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using Microsoft.AspNetCore.Identity;
+using ltwnc.Models;
 
 namespace ltwnc.Models.Entities;
 
 // Entity đại diện cho bảng FlashcardSets — bộ thẻ flashcard
 // Quan hệ: 1 User có nhiều FlashcardSet, 1 FlashcardSet có nhiều Flashcard
-public class FlashcardSet
+public class FlashcardSet : IPrototype<FlashcardSet>
 {
     // Khóa chính, tự động tăng
     [Key]
@@ -42,4 +43,22 @@ public class FlashcardSet
 
     // Navigation property — danh sách thẻ trong bộ
     public ICollection<Flashcard> Flashcards { get; set; } = new List<Flashcard>();
+
+    // Tạo bản sao độc lập của bộ thẻ, bao gồm cả các thẻ con.
+    public FlashcardSet Clone()
+    {
+        var now = DateTime.UtcNow;
+        return new FlashcardSet
+        {
+            Id = 0,
+            Title = Title,
+            Description = Description,
+            UserId = string.Empty,
+            IsPublic = false,
+            SourceSetId = null,
+            CreatedAt = now,
+            UpdatedAt = now,
+            Flashcards = Flashcards.Select(c => c.Clone()).ToList()
+        };
+    }
 }

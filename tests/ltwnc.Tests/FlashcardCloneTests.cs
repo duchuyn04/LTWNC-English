@@ -1,4 +1,3 @@
-using ltwnc.Models;
 using ltwnc.Models.Entities;
 
 namespace ltwnc.Tests;
@@ -25,7 +24,7 @@ public class FlashcardCloneTests
             OrderIndex = 3
         };
 
-        var clone = ((IPrototype<Flashcard>)original).Clone();
+        var clone = original.Clone();
 
         Assert.NotSame(original, clone);
         Assert.Equal(0, clone.Id);
@@ -49,7 +48,7 @@ public class FlashcardCloneTests
             OrderIndex = 3
         };
 
-        var clone = ((IPrototype<Flashcard>)original).Clone();
+        var clone = original.Clone();
 
         Assert.Equal(original.FrontText, clone.FrontText);
         Assert.Equal(original.BackText, clone.BackText);
@@ -73,7 +72,7 @@ public class FlashcardCloneTests
             UploadedImagePath = "/uploads/flashcards/original.png"
         };
 
-        var clone = ((IPrototype<Flashcard>)original).Clone();
+        var clone = original.Clone();
 
         Assert.Null(clone.UploadedImagePath);
     }
@@ -88,7 +87,7 @@ public class FlashcardCloneTests
             IsStarred = false
         };
 
-        var clone = ((IPrototype<Flashcard>)original).Clone();
+        var clone = original.Clone();
         clone.FrontText = "goodbye";
         clone.IsStarred = true;
 
