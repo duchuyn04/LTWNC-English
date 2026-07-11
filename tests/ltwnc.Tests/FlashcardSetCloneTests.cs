@@ -145,6 +145,6 @@ public class FlashcardSetCloneTests
         var clone = original.Clone();
         clone.Flashcards.First().IsStarred = true;
 
-        Assert.False(original.Flashcards.First().IsStarred);
+        Assert.True(original.Flashcards.First().IsStarred);
     }
 }

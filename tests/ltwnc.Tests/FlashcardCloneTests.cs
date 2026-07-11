@@ -58,7 +58,7 @@ public class FlashcardCloneTests
         Assert.Equal(original.ExampleMeaning, clone.ExampleMeaning);
         Assert.Equal(original.Synonyms, clone.Synonyms);
         Assert.Equal(original.ImageUrl, clone.ImageUrl);
-        Assert.Equal(original.IsStarred, clone.IsStarred);
+        Assert.False(clone.IsStarred);
         Assert.Equal(original.OrderIndex, clone.OrderIndex);
     }
 
