@@ -1,78 +1,60 @@
 # LTWNC English
 
-Ứng dụng học từ vựng tiếng Anh bằng flashcard. Xây bằng ASP.NET Core MVC. Ngườ dùng tạo bộ thẻ, thêm từ vựng có IPA, ví dụ và ảnh, chia sẻ công khai, rồi học theo tiến độ cá nhân.
+Ứng dụng học từ vựng tiếng Anh bằng flashcard. Ngườidùng tạo bộ thẻ, thêm từ vựng kèm IPA và ví dụ, chia sẻ bộ công khai, rồi học theo tiến độ cá nhân qua các chế độ Flashcard và Nghe chép.
 
 ## Tính năng chính
 
-- Đăng ký, đăng nhập, đăng xuất bằng ASP.NET Identity.
+- Đăng ký, đăng nhập, đăng xuất với ASP.NET Identity.
 - Tạo, sửa, xóa bộ thẻ công khai hoặc riêng tư.
-- Thêm, sửa, xóa thẻ từ vựng với thuật ngữ, định nghĩa, IPA, loại từ, ví dụ tiếng Anh, nghĩa ví dụ tiếng Việt, từ đồng nghĩa.
-- Ảnh minh họa cho thẻ bằng URL hoặc upload nội bộ JPG/PNG/WebP, tối đa 2 MB.
+- Thêm thẻ với thuật ngữ, định nghĩa, IPA, loại từ, ví dụ tiếng Anh, nghĩa ví dụ tiếng Việt, từ đồng nghĩa.
+- Upload ảnh JPG/PNG/WebP tối đa 2 MB hoặc dùng URL ảnh.
 - Đánh dấu sao thẻ để học riêng.
-- Study Hub: trang chọn chế độ học, hiển thị tiến độ bộ thẻ, gợi ý mode phù hợp, lọc nhanh đã sao/chưa thuộc, liệt kê mode sắp ra mắt.
+- Study Hub: chọn chế độ học, xem tiến độ, gợi ý mode phù hợp, lọc nhanh đã sao/chưa thuộc.
 - Học flashcard với lật thẻ, trộn thẻ, lọc thẻ đã sao hoặc chưa thuộc.
-- Nghe chép chính tả: học theo từ vựng hoặc câu ví dụ, so sánh đáp án từng từ, phát âm qua Web Speech API.
-- Chế độ tiến độ: đổi nút điều hướng thành `Chưa biết` / `Đã biết` và lưu tiến trình học.
-- Cài đặt hiển thị mặt trước/mặt sau: thuật ngữ, định nghĩa, IPA, ví dụ, ảnh, ẩn ảnh, làm mờ ảnh, ảnh lớn.
-- Text-to-speech bằng Web Speech API: chọn giọng, tốc độ, tự đọc khi lật sang mặt sau, nút loa luôn đọc từ tiếng Anh.
-- Phím tắt: `Space` lật thẻ, `←/→` chuyển thẻ, `1/2` đánh dấu chưa biết/đã biết, `Ctrl` đọc từ tiếng Anh, `Backspace` thoát.
-- Màn hình hoàn thành phiên học với thống kê đã biết/cần ôn.
+- Nghe chép chính tả: học theo từ vựng hoặc câu ví dụ, chấm đáp án từng từ, phát âm qua Web Speech API.
+- Lưu tiến trình học qua `UserProgress`.
+- Text-to-speech, phím tắt, cài đặt hiển thị mặt trước/mặt sau.
 
-## Kiến trúc hiện tại
+## Các mẫu thiết kế GoF
 
-Dự án dùng kiến trúc MVC đơn giản:
+Project áp dụng một số mẫu từ sách *Design Patterns: Elements of Reusable Object-Oriented Software* để code dễ mở rộng và dễ test hơn.
 
-```text
-Razor View
-   ↓
-Controller
-   ↓
-Service
-   ↓
-AppDbContext / EF Core
-   ↓
-SQL Server
-```
+### 🧬 Prototype
 
-Các service thao tác trực tiếp với `AppDbContext` để giữ code gọn:
+Dùng khi ngườidùng sao chép một bộ thẻ công khai vào thư viện riêng.
 
-- `AccountController` dùng `UserManager` và `SignInManager` của ASP.NET Identity.
-- `FlashcardSetController` nhận request quản lý bộ thẻ/thẻ và gọi `FlashcardSetService`.
-- `StudyController` xử lý luồng học flashcard, nghe chép, tiến trình, đánh sao, settings và gọi `StudyService`, `DictationService` hoặc `FlashcardSetService`.
-- `FlashcardSetService` quản lý bộ thẻ, thẻ, quyền sở hữu, upload ảnh và đánh dấu sao.
-- `StudyService` quản lý danh sách thẻ để học, tiến trình học, phiên học, cài đặt học và dữ liệu Study Hub.
-- `DictationService` quản lý phiên nghe chép, chấm đáp án, so sánh từng từ và cập nhật tiến trình.
-- `AppDbContext` kế thừa `IdentityDbContext`, chứa bảng domain và bảng Identity.
+`FlashcardSet` và `Flashcard` đều implement `IPrototype<T>`. Khi sao chép, `FlashcardSet.Clone()` tạo một bộ mới với cùng tiêu đề, mô tả và danh sách thẻ đã clone. Mỗi `Flashcard.Clone()` tạo thẻ mới, giữ nội dung học thuật nhưng reset trạng thái cá nhân như `IsStarred` và `UploadedImagePath`.
 
-## Các mẫu thiết kế
+Vì clone tạo object mới hoàn toàn, bộ sao có thể chỉnh sửa riêng mà không ảnh hưởng bộ nguồn.
 
-Dự án dùng một số mẫu để code không rối khi tính năng tăng lên.
+### 🎯 Strategy
 
-### MVC
+Dùng cho các chế độ học trong Study Hub.
 
-ASP.NET Core MVC chia request thành Model (dữ liệu), View (giao diện Razor) và Controller (điều phối). UI và logic vì thế tách ra rõ ràng. Muốn đổi giao diện thì sửa View, muốn đổi luồng thì sửa Controller, không phải lục tung cả hai.
+Mỗi chế độ học là một class implement `IStudyModeStrategy`:
 
-### Dependency Injection
+- `FlashcardModeStrategy` lấy tất cả thẻ đã qua bộ lọc.
+- `DictationModeStrategy` lấy thẻ phù hợp với `DictationContentMode`, ví dụ loại thẻ thiếu câu ví dụ khi chọn ExampleSentence mode.
 
-Các service và `AppDbContext` được đăng ký trong `Program.cs`, sau đó inject vào constructor nơi cần dùng. Không còn `new StudyService(...)` rải rác, nên thay implementation hay mock trong test dễ hơn nhiều.
+`StudyService` không còn hard-code từng mode. Nó iterate các strategy đã đăng ký trong DI, mỗi strategy tự lấy thẻ và tự xây option hiển thị. Muốn thêm mode mới thì tạo class mới implement interface, đăng ký trong `Program.cs`, không cần mở `StudyService`.
 
-### Service Layer
+### 🎮 Command
 
-Controller chỉ nhận request, kiểm tra quyền, rồi gọi service. Logic nghiệp vụ nằm trong `FlashcardSetService`, `StudyService`, `DictationService`. Khi cần sửa quy tắc học tập hay upload ảnh, chỉ cần vào đúng service, không đụng hàng loạt controller.
+Dùng cho các thao tác hàng loạt trên thẻ trong trang sửa bộ thẻ.
 
-### ViewModel
+Các command implement `ICardActionCommand`:
 
-Entity từ EF thường chứa nhiều trường không cần hiển thị. ViewModel chỉ mang đúng dữ liệu view cần, vừa tránh lộ thông tin, vừa khiến Razor gọn hơn. Ví dụ `StudyModeSelectorViewModel` chỉ đưa ra số thẻ, trạng thái khả dụng và URL, không mang cả entity `Flashcard` lên view.
+- `DeleteCardsCommand`
+- `StarCardsCommand`
+- `UnstarCardsCommand`
 
-### Strategy Pattern (Study Modes)
+Mỗi command gói một thao tác kèm dữ liệu cần thiết (setId, userId, danh sách cardId) và khả năng undo. `CardActionService.ExecuteAsync` chạy command, lưu snapshot vào `CardActionLog` để hoàn tác sau này. Controller chỉ việc gọi factory tạo command rồi đưa cho service thực thi.
 
-Trước đây `StudyService.GetStudyModeSelectorDataAsync` dùng switch để xây dựng option cho từng chế độ học. Thêm mode mới là phải mở `StudyService` sửa switch, dễ quên case và khó test riêng từng mode.
+### 🏭 Factory Method
 
-Giờ mỗi chế độ học là một class implement `IStudyModeStrategy`: `FlashcardModeStrategy` lấy tất cả thẻ đã lọc, `DictationModeStrategy` chỉ lấy thẻ có câu ví dụ, và mỗi class tự tính số thẻ cùng thờ gian dự kiến. `StudyService` chỉ cần tìm đúng strategy qua DI. Thêm mode mới = tạo class + đăng ký trong `Program.cs`, không đụng đến service cũ.
+Dùng để tạo command đúng loại từ action mà controller gửi lên.
 
-### Unit of Work (qua EF Core DbContext)
-
-`AppDbContext` theo dõi các thay đổi trong một request và lưu một lần bằng `SaveChangesAsync`. Đỡ gọi database nhiều lần, và đảm bảo khi tạo bộ thẻ kèm nhiều thẻ thì dữ liệu đồng bộ, không bị lưu lửng chừng.
+`CardActionCommandFactory` nhận một chuỗi action type như `"Delete"`, `"Star"`, `"Unstar"` và trả về command tương ứng. Controller không cần biết command cụ thể là class nào, cũng không cần tự viết switch để khởi tạo.
 
 ## Công nghệ
 
@@ -91,67 +73,22 @@ Giờ mỗi chế độ học là một class implement `IStudyModeStrategy`: `F
 ```text
 ltwnc/
 ├── Controllers/              # Nhận request, kiểm tra quyền, trả View/Redirect/JSON
-│   ├── AccountController.cs
-│   ├── HomeController.cs
-│   ├── FlashcardSetController.cs
-│   └── StudyController.cs
-├── Services/                 # Logic nghiệp vụ, thao tác trực tiếp với AppDbContext
-│   ├── FlashcardSetService.cs
-│   ├── StudyService.cs
-│   └── DictationService.cs
-├── Data/                     # EF Core DbContext và cấu hình quan hệ/index
+├── Services/                 # Logic nghiệp vụ và các implementation GoF
+│   ├── CardActions/          # Command pattern
+│   ├── StudyModes/           # Strategy pattern
+│   └── FlashcardSetService.cs
+├── Data/                     # EF Core DbContext
 │   └── AppDbContext.cs
-├── Models/                   # Dữ liệu domain và dữ liệu truyền ra View
-│   ├── Entities/             # Entity map với bảng database
-│   │   ├── Flashcard.cs
-│   │   ├── FlashcardSet.cs
-│   │   ├── StudySession.cs
-│   │   ├── UserProgress.cs
-│   │   └── UserStudySettings.cs
-│   └── ViewModels/           # Model chỉ phục vụ UI/Razor View
-├── Views/                    # Razor Views hiển thị giao diện
-│   ├── Account/
-│   ├── FlashcardSet/
-│   ├── Home/
-│   ├── Shared/
-│   └── Study/
-├── wwwroot/                  # Static files public: CSS, JS, ảnh upload
-│   ├── css/
-│   │   ├── site.css
-│   │   ├── edit.css
-│   │   ├── flashcard.css
-│   │   ├── set-management.css
-│   │   ├── dictation-redesign.css
-│   │   └── study-mode-selector.css
-│   ├── js/
-│   └── uploads/flashcards/
-├── Migrations/               # EF Core migrations tạo/cập nhật database
-├── docs/                     # Specs, ADR, glossary
-│   ├── specs/
-│   ├── adr/
-│   └── CONTEXT.md
+├── Models/                   # Entities và ViewModels
+│   ├── Entities/
+│   └── ViewModels/
+├── Views/                    # Razor Views
+├── wwwroot/                  # Static files
+├── Migrations/               # EF Core migrations
 ├── Program.cs
 ├── appsettings.json
 └── ltwnc.csproj
 ```
-
-## Database
-
-`AppDbContext` quản lý các bảng chính:
-
-- `AspNetUsers`, `AspNetRoles`, ...: bảng của ASP.NET Identity.
-- `FlashcardSets`: bộ thẻ.
-- `Flashcards`: thẻ từ vựng, gồm IPA, loại từ, ví dụ, ảnh, trạng thái sao.
-- `StudySessions`: phiên học đã hoàn thành, gồm mode học và chế độ nghe chép snapshot.
-- `DictationSessionDetails`: chi tiết từng câu trả lời trong phiên nghe chép.
-- `UserProgresses`: tiến trình từng user theo từng thẻ, unique theo `(UserId, FlashcardId)`.
-- `UserStudySettings`: cài đặt học của từng user, unique theo `UserId`.
-
-Quan hệ quan trọng:
-
-- Một `FlashcardSet` có nhiều `Flashcard`, xóa bộ thẻ sẽ xóa thẻ.
-- `StudySession` và `UserProgress` dùng delete restrict, service xóa dữ liệu liên quan trước khi xóa bộ thẻ/thẻ.
-- `Flashcard` có index theo `FlashcardSetId` và `(FlashcardSetId, IsStarred)` để lọc học nhanh hơn.
 
 ## Cài đặt
 
@@ -168,7 +105,7 @@ git clone https://github.com/duchuyn04/LTWNC-English.git
 cd LTWNC-English
 ```
 
-Cài EF tool nếu máy chưa có:
+Cài EF tool nếu chưa có:
 
 ```bash
 dotnet tool install --global dotnet-ef
@@ -212,83 +149,7 @@ dotnet ef database update
 dotnet run
 ```
 
-Mở URL được in ra trong terminal, thường là:
-
-- `https://localhost:5001`
-- `http://localhost:5000`
-
-## Luồng sử dụng
-
-1. Đăng ký hoặc đăng nhập.
-2. Tạo bộ thẻ mới ở `/Set/Create`.
-3. Vào trang sửa bộ thẻ để thêm từ vựng, ảnh và đánh dấu sao nếu cần.
-4. Vào `/Study/{setId}` để xem Study Hub, chọn Flashcard hoặc Nghe chép.
-5. Dùng thanh điều hướng để chuyển thẻ, trộn thẻ hoặc bật `Tiến độ`.
-6. Bật panel cài đặt trên thẻ để chọn mặt trước/mặt sau hiển thị gì.
-7. Hoàn thành phiên học để ghi nhận thống kê.
-
-## Routes chính
-
-| Route | Method | Mô tả |
-| --- | --- | --- |
-| `/` | GET | Trang chủ |
-| `/Account/Register` | GET/POST | Đăng ký |
-| `/Account/Login` | GET/POST | Đăng nhập |
-| `/Account/Logout` | POST | Đăng xuất |
-| `/Set` | GET | Bộ thẻ của tôi |
-| `/Set/Create` | GET/POST | Tạo bộ thẻ |
-| `/Set/{id}` | GET | Chi tiết bộ thẻ |
-| `/Set/{id}/Edit` | GET/POST | Sửa bộ thẻ |
-| `/Set/{id}/Delete` | POST | Xóa bộ thẻ |
-| `/Set/{setId}/Cards/Create` | POST | Thêm thẻ |
-| `/Cards/{id}/Edit` | POST | Sửa thẻ |
-| `/Cards/{id}/Delete` | POST | Xóa thẻ |
-| `/Study/{setId}` | GET | Study Hub: chọn chế độ học |
-| `/Study/{setId}/Flashcard` | GET | Học flashcard |
-| `/Study/{setId}/Flashcard/Mark` | POST | Đánh dấu đã biết/chưa biết |
-| `/Study/{setId}/Flashcard/{cardId}/ToggleStar` | POST | Đổi trạng thái sao |
-| `/Study/{setId}/Dictation` | GET | Nghe chép chính tả |
-| `/Study/{setId}/Dictation/Check` | POST | Kiểm tra đáp án nghe chép |
-| `/Study/{setId}/Dictation/Complete` | POST | Hoàn thành phiên nghe chép |
-| `/Study/{setId}/Dictation/Result/{sessionId}` | GET | Kết quả phiên nghe chép |
-| `/Study/{setId}/Complete` | POST | Hoàn thành phiên học flashcard |
-| `/Study/Settings` | POST | Lưu cài đặt học |
-| `/Study/{setId}/ClearFilters` | GET | Xóa bộ lọc Study Hub |
-
-Query của `/Study/{setId}` và `/Study/{setId}/Flashcard`:
-
-- `starredOnly`: chỉ học thẻ đã sao.
-- `unlearnedOnly`: chỉ học thẻ chưa thuộc.
-
-## Lưu ý kỹ thuật
-
-- File upload được lưu trong `wwwroot/uploads/flashcards/`.
-- Validation ảnh hiện kiểm tra dung lượng, extension và MIME type.
-- Cài đặt học được lưu server-side theo user; người chưa đăng nhập vẫn xem/học bộ công khai nhưng không lưu được settings/progress.
-- Text-to-speech chạy ở trình duyệt, phụ thuộc voice mà hệ điều hành/trình duyệt cung cấp.
-- Nút loa trong flashcard luôn đọc thuật ngữ tiếng Anh (`FrontText`), kể cả khi đang ở mặt sau.
-
-## Lỗi thường gặp
-
-### Lỗi certificate SQL Server
-
-Nếu gặp lỗi SSL/certificate khi kết nối SQL Server, thêm vào connection string:
-
-```text
-TrustServerCertificate=True
-```
-
-### Port đang được dùng
-
-Nếu `dotnet run` báo port đang được dùng, đổi port trong `Properties/launchSettings.json` hoặc tắt process cũ.
-
-### File build bị lock
-
-Nếu build báo `ltwnc.dll` hoặc `ltwnc.exe` đang bị process `ltwnc` khóa, hãy dừng server đang chạy rồi build lại. Khi chỉ cần kiểm compile mà không dừng server, có thể build ra thư mục tạm:
-
-```bash
-dotnet build --no-restore /p:UseAppHost=false /p:OutputPath=C:\tmp\ltwnc-build\
-```
+Mở URL được in trong terminal, thường là `https://localhost:5001` hoặc `http://localhost:5000`.
 
 ## License
 
