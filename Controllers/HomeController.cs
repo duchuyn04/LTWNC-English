@@ -21,6 +21,11 @@ public class HomeController : Controller
     // Tham số q: từ khóa tìm kiếm (nếu có)
     public async Task<IActionResult> Index(string? q)
     {
+        if (User.Identity?.IsAuthenticated == true)
+        {
+            return Redirect("/Set");
+        }
+
         var model = new HomeViewModel();
 
         if (!string.IsNullOrEmpty(q))

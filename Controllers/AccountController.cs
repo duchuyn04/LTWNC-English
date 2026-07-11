@@ -82,7 +82,7 @@ public class AccountController : Controller
                     IsPersistent = true,
                     ExpiresUtc = DateTimeOffset.UtcNow.Add(model.RememberMe ? TimeSpan.FromDays(30) : TimeSpan.FromDays(1))
                 });
-                return RedirectToAction("Index", "Home");
+                return Redirect("/Set");
             }
         }
 

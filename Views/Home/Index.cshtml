@@ -4,6 +4,7 @@
     ViewData["HideLayoutChrome"] = true;
     var primaryCta = User.Identity?.IsAuthenticated == true ? "/Set/Create" : "/Account/Register";
     var secondaryCta = User.Identity?.IsAuthenticated == true ? "/Set" : "#featured-sets";
+    var startCta = User.Identity?.IsAuthenticated == true ? "/Set" : "/Account/Login";
 }
 
 @section FullWidth {
@@ -26,7 +27,7 @@
                     <a href="#onboarding" onclick="closeMobileMenu()">Cách bắt đầu</a>
                     <a href="#quote" onclick="closeMobileMenu()">Tư vấn học</a>
                 </div>
-                <a class="btn-primary-custom" href="@primaryCta">
+                <a class="btn-primary-custom" href="@startCta">
                     <i class="ph ph-arrow-right"></i> Bắt đầu
                 </a>
             </div>
