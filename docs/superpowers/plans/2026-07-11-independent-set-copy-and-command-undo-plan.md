@@ -16,6 +16,7 @@
 - Source deletion must not affect a copy.
 - Delete undo restores cards, `UserProgress`, and `DictationSessionDetails` with their original IDs.
 - Build and tests complete with 0 warnings.
+- Browser verification uses MCP Playwright through the in-app browser skill. Sign in with the test account supplied by the user at execution time; do not store its password in this plan or source control.
 
 ---
 
@@ -149,6 +150,10 @@ git add Services/FlashcardSetService.cs tests/ltwnc.Tests/FlashcardSetCopyTests.
 git commit -m "feat(sets): copy public templates into private libraries"
 ```
 
+- [ ] **Step 5: Check copy logic through the application boundary**
+
+Start the app, sign in with the user-supplied test account through MCP Playwright, and use an existing public set owned by another account as the source. Submit the copy action twice. Verify the first response redirects to a learner-owned `/Study/{copySetId}` and the second opens that same copy; in the database, assert exactly one `FlashcardSet` for the learner has `SourceSetId == sourceSetId` and that every copied card ID differs from the source card IDs.
+
 ### Task 3: Require a private copy before studying
 
 **Files:**
@@ -198,6 +203,16 @@ dotnet test tests/ltwnc.Tests/ltwnc.Tests.csproj
 git add Controllers/FlashcardSetController.cs Controllers/StudyController.cs Models/ViewModels/FlashcardSet/SetDetailViewModel.cs Views/FlashcardSet/Details.cshtml Services/FlashcardSetService.cs tests/
 git commit -m "feat(sets): require private copies before study"
 ```
+
+- [ ] **Step 6: Run responsive UI/UX checks with MCP Playwright**
+
+After signing in with the supplied test account, use a public set not owned by that account and verify these visible states:
+
+1. At `1440x900`, the public detail page shows one actionable **Sao chép và học** control and no direct study control for the source.
+2. Submit the copy form and verify the success message and redirect to the private copy’s study page.
+3. Reload the source detail page; verify **Mở bộ đã sao chép** replaces the copy form.
+4. At `390x844`, verify the CTA remains visible and usable, the cards do not horizontally overflow, and the page reports `document.documentElement.scrollWidth <= document.documentElement.clientWidth`.
+5. Navigate directly to `/Study/{sourceSetId}` and verify the browser returns to the source detail page rather than a study screen.
 
 ### Task 4: Let commands own snapshots
 
@@ -296,6 +311,10 @@ git add Services/CardActions/ tests/
 git commit -m "fix(card-actions): restore progress with delete undo"
 ```
 
+- [ ] **Step 5: Run batch-action UI regression checks with MCP Playwright**
+
+On the learner-owned copy at `1440x900` and `390x844`, select cards, run Star, Unstar, Delete, and Undo. For each action, assert the success/undo affordance is visible, the expected star/card state changes, and no horizontal overflow occurs. After delete undo, refresh the page and verify the restored card remains selectable and its study progress and dictation result still appear.
+
 ### Task 6: End-to-end verification
 
 **Files:** None
@@ -323,6 +342,10 @@ dotnet test tests/ltwnc.Tests/ltwnc.Tests.csproj
 
 Expected: all tests pass; build reports `0 Warning(s)` and `0 Error(s)`.
 
+- [ ] **Step 5: Capture final Playwright evidence**
+
+With the supplied test account logged in, use MCP Playwright to capture one desktop (`1440x900`) and one mobile (`390x844`) screenshot of the copied set detail page and the batch-action edit page. Verify each screenshot shows a readable CTA/toolbar, no clipped controls, and no horizontal overflow. Do not persist credentials in screenshots, logs, or the plan.
+
 ## Spec Coverage
 
 | Requirement | Tasks |
@@ -339,4 +362,3 @@ Plan complete and saved to `docs/superpowers/plans/2026-07-11-independent-set-co
 
 1. Subagent-Driven (recommended) - I dispatch a fresh subagent per task, review between tasks, fast iteration.
 2. Inline Execution - Execute tasks in this session using executing-plans, batch execution with checkpoints.
-
