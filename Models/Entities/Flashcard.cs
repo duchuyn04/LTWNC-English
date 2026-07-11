@@ -1,11 +1,12 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using ltwnc.Models;
 
 namespace ltwnc.Models.Entities;
 
 // Entity đại diện cho bảng Flashcards — một thẻ flashcard
 // Mỗi thẻ có 2 mặt: FrontText (tiếng Anh) và BackText (nghĩa tiếng Việt)
-public class Flashcard
+public class Flashcard : IPrototype<Flashcard>
 {
     // Khóa chính, tự động tăng
     [Key]
@@ -58,4 +59,22 @@ public class Flashcard
     // Navigation property — liên kết đến bộ thẻ chứa thẻ này
     [ForeignKey(nameof(FlashcardSetId))]
     public FlashcardSet? FlashcardSet { get; set; }
+
+    // Tạo bản sao độc lập của thẻ để dùng khi clone bộ thẻ.
+    public Flashcard Clone()
+    {
+        return new Flashcard
+        {
+            FrontText = FrontText,
+            BackText = BackText,
+            Pronunciation = Pronunciation,
+            PartOfSpeech = PartOfSpeech,
+            ExampleSentence = ExampleSentence,
+            ExampleMeaning = ExampleMeaning,
+            Synonyms = Synonyms,
+            ImageUrl = ImageUrl,
+            IsStarred = IsStarred,
+            OrderIndex = OrderIndex
+        };
+    }
 }
