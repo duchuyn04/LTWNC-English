@@ -320,7 +320,9 @@ public class FlashcardSetService
         imageUrl = OptionalText(imageUrl);
         var uploadedImagePath = await SaveImageAsync(imageFile);
 
-        var maxOrder = set.Flashcards.Any() ? set.Flashcards.Max(f => f.OrderIndex) : 0;
+        var nextOrder = set.Flashcards.Any()
+            ? set.Flashcards.Max(card => card.OrderIndex) + 1
+            : 0;
         var card = new Flashcard
         {
             FlashcardSetId = setId,
@@ -334,7 +336,7 @@ public class FlashcardSetService
             ImageUrl = imageUrl,
             UploadedImagePath = uploadedImagePath,
             IsStarred = isStarred,
-            OrderIndex = maxOrder + 1
+            OrderIndex = nextOrder
         };
 
         await _context.Flashcards.AddAsync(card);
