@@ -190,24 +190,26 @@ public class StudyService
 
         var settings = await GetSettingsAsync(userId);
 
-        // Để mỗi strategy tự xác định thẻ khả dụng và option hiển thị
+        // Duyệt qua các mode đã đăng ký, dùng resolver để đảm bảo mỗi mode chỉ có một strategy
         var modes = new List<StudyModeOptionViewModel>();
-        foreach (var strategy in _strategies.OrderBy(s => (int)s.Mode))
+        foreach (var mode in _strategies.Select(s => s.Mode).Distinct().OrderBy(m => (int)m))
         {
+            var strategy = _strategyResolver.Resolve(mode);
             var cards = await strategy.GetCardsAsync(setId, settings, userId);
             modes.Add(strategy.BuildOption(setId, cards, settings));
         }
 
         var warnings = new List<string>();
-        var hasExamples = allCards.Any(c => !string.IsNullOrWhiteSpace(c.ExampleSentence));
-        var recommendedMode = DetermineRecommendedMode(masteryPercent, hasExamples);
+        var recommendedMode = DetermineRecommendedMode(masteryPercent, modes);
 
         if (!modes.Any(m => m.Mode == recommendedMode && m.IsAvailable))
         {
             var fallback = modes.FirstOrDefault(m => m.IsAvailable);
             if (fallback != null)
             {
-                warnings.Add($"{GetModeMetadata(recommendedMode).Name} không khả dụng với bộ lọc hiện tại. Đã chuyển sang {fallback.Name}.");
+                var recommendedName = modes.FirstOrDefault(m => m.Mode == recommendedMode)?.Name
+                    ?? recommendedMode.ToString();
+                warnings.Add($"{recommendedName} không khả dụng với bộ lọc hiện tại. Đã chuyển sang {fallback.Name}.");
                 recommendedMode = fallback.Mode;
             }
             else
@@ -218,11 +220,12 @@ public class StudyService
 
         MarkRecommended(modes, recommendedMode);
 
-        var roadmapModes = new List<StudyModeOptionViewModel>
-        {
-            BuildRoadmapMode(StudyMode.Quiz),
-            BuildRoadmapMode(StudyMode.Match)
-        };
+        // Roadmap chỉ hiển thị các mode chưa được strategy thật triển khai
+        var activeModes = modes.Select(m => m.Mode).ToHashSet();
+        var roadmapModes = new[] { StudyMode.Quiz, StudyMode.Write, StudyMode.Match }
+            .Where(mode => !activeModes.Contains(mode))
+            .Select(BuildRoadmapMode)
+            .ToList();
 
         return new StudyModeSelectorViewModel
         {
@@ -257,12 +260,11 @@ public class StudyService
         };
     }
 
+    // Metadata dự phòng cho các mode chưa có strategy thật (roadmap)
     private static ModeMetadata GetModeMetadata(StudyMode mode)
     {
         return mode switch
         {
-            StudyMode.Flashcard => new ModeMetadata("Flashcard", "Lật thẻ và ghi nhớ", "ph-cards", 15),
-            StudyMode.Dictation => new ModeMetadata("Nghe chép", "Nghe và viết lại từ", "ph-headphones", 25),
             StudyMode.Quiz => new ModeMetadata("Trắc nghiệm", "Chọn đáp án đúng", "ph-question", 30),
             StudyMode.Write => new ModeMetadata("Viết chính tả", "Viết lại từ từ gợi ý", "ph-pencil-simple", 30),
             StudyMode.Match => new ModeMetadata("Ghép đôi", "Ghép từ với nghĩa", "ph-shuffle", 30),
@@ -272,11 +274,16 @@ public class StudyService
 
     private sealed record ModeMetadata(string Name, string Description, string IconClass, int SecondsPerCard);
 
-    private static StudyMode DetermineRecommendedMode(int masteryPercent, bool hasExamples)
+    private static StudyMode DetermineRecommendedMode(
+        int masteryPercent,
+        IReadOnlyList<StudyModeOptionViewModel> modes)
     {
-        if (masteryPercent >= 50 && hasExamples)
-            return StudyMode.Dictation;
-        return StudyMode.Flashcard;
+        var dictationAvailable = modes.Any(m =>
+            m.Mode == StudyMode.Dictation && m.IsAvailable);
+
+        return masteryPercent >= 50 && dictationAvailable
+            ? StudyMode.Dictation
+            : StudyMode.Flashcard;
     }
 
     private static void MarkRecommended(List<StudyModeOptionViewModel> modes, StudyMode recommended)

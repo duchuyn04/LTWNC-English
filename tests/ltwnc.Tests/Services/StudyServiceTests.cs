@@ -146,6 +146,13 @@ public class StudyServiceTests
         await SeedCardAsync(context, 1, "hello", "xin chào", exampleSentence: "");
         await SeedProgressAsync(context, 1, true);
 
+        context.UserStudySettings.Add(new UserStudySettings
+        {
+            UserId = "user-1",
+            DictationContentMode = DictationContentMode.ExampleSentence
+        });
+        await context.SaveChangesAsync();
+
         var (strategies, resolver) = CreateStrategies(context);
         var service = new StudyService(context, strategies, resolver);
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
@@ -200,7 +207,7 @@ public class StudyServiceTests
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(StudyMode.Flashcard, result.RecommendedMode);
-        Assert.Contains(result.Warnings, w => w.Contains("Nghe chép"));
+        Assert.Empty(result.Warnings);
     }
 
     [Fact]
@@ -283,12 +290,19 @@ public class StudyServiceTests
     }
 
     [Fact]
-    public async Task GetStudyModeSelectorDataAsync_DictationRecommendedOnlyWhenMasteryAndExamples()
+    public async Task GetStudyModeSelectorDataAsync_DictationRecommendedOnlyWhenMasteryAndAvailable()
     {
         await using var context = CreateContext();
         await SeedSetAsync(context);
         var card = await SeedCardAsync(context, 1, "hello", "xin chào", exampleSentence: "Hello!");
         await SeedProgressAsync(context, 1, true);
+
+        context.UserStudySettings.Add(new UserStudySettings
+        {
+            UserId = "user-1",
+            DictationContentMode = DictationContentMode.ExampleSentence
+        });
+        await context.SaveChangesAsync();
 
         var (strategies, resolver) = CreateStrategies(context);
         var service = new StudyService(context, strategies, resolver);
@@ -365,7 +379,7 @@ public class StudyServiceTests
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(StudyMode.Flashcard, result.RecommendedMode);
-        Assert.Contains(result.Warnings, w => w.Contains("Nghe chép") && w.Contains("Flashcard"));
+        Assert.Empty(result.Warnings);
     }
 
     [Fact]
@@ -386,6 +400,10 @@ public class StudyServiceTests
         Assert.NotNull(quizOption);
         Assert.Equal("Quiz", quizOption.Name);
         Assert.Equal(1, quizOption.CardCount);
+        Assert.True(quizOption.IsAvailable);
+
+        // Mode đã có strategy thật không được xuất hiện trong roadmap
+        Assert.DoesNotContain(result.RoadmapModes, m => m.Mode == StudyMode.Quiz);
     }
 
     // Strategy giả để kiểm tra khả năng mở rộng mà không cần sửa StudyService
@@ -394,7 +412,18 @@ public class StudyServiceTests
         public StudyMode Mode => StudyMode.Quiz;
 
         public Task<List<Flashcard>> GetCardsAsync(int setId, UserStudySettings settings, string? userId)
-            => Task.FromResult(new List<Flashcard>());
+        {
+            return Task.FromResult(new List<Flashcard>
+            {
+                new()
+                {
+                    Id = 999,
+                    FlashcardSetId = setId,
+                    FrontText = "quiz",
+                    BackText = "test"
+                }
+            });
+        }
 
         public StudyModeOptionViewModel BuildOption(
             int setId,
@@ -408,9 +437,9 @@ public class StudyServiceTests
                 Description = "Test quiz",
                 IconClass = "ph-question",
                 ActionUrl = $"/Study/{setId}/Quiz",
-                IsAvailable = true,
-                CardCount = 1,
-                EstimatedSeconds = 30
+                IsAvailable = cards.Count > 0,
+                CardCount = cards.Count,
+                EstimatedSeconds = cards.Count * 30
             };
         }
     }
