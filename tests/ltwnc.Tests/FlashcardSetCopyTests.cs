@@ -32,7 +32,7 @@ public class FlashcardSetCopyTests : IDisposable
         var set = new FlashcardSet
         {
             Title = title,
-            Description = null,
+            Description = "A public set description",
             UserId = userId,
             IsPublic = true,
             CreatedAt = DateTime.UtcNow,
@@ -52,6 +52,10 @@ public class FlashcardSetCopyTests : IDisposable
                 PartOfSpeech = "noun",
                 ExampleSentence = $"Example {i}",
                 ExampleMeaning = $"Meaning {i}",
+                Synonyms = $"syn{i}",
+                ImageUrl = $"https://example.com/{i}.png",
+                UploadedImagePath = $"/uploads/flashcards/{i}.png",
+                IsStarred = i % 2 == 0,
                 OrderIndex = i
             });
         }
@@ -86,5 +90,36 @@ public class FlashcardSetCopyTests : IDisposable
         Assert.False(copy.IsPublic);
         Assert.Equal(2, copied.Count);
         Assert.DoesNotContain(copied, c => source.Flashcards.Any(sourceCard => sourceCard.Id == c.Id));
+    }
+
+    [Fact]
+    public async Task CopyPublicSetAsync_preserves_content_and_clears_uploaded_image_path()
+    {
+        var source = await SeedPublicSetAsync("author", "Public", cardCount: 2);
+        var copy = await _service.CopyPublicSetAsync(source.Id, "learner");
+        var copied = await _context.Flashcards.Where(c => c.FlashcardSetId == copy.Id).OrderBy(c => c.OrderIndex).ToListAsync();
+
+        Assert.Equal(source.Title, copy.Title);
+        Assert.Equal(source.Description, copy.Description);
+        Assert.Equal(source.Id, copy.SourceSetId);
+        Assert.Equal("learner", copy.UserId);
+        Assert.False(copy.IsPublic);
+
+        Assert.Equal(2, copied.Count);
+        var sourceCards = source.Flashcards.OrderBy(c => c.OrderIndex).ToList();
+        for (var i = 0; i < copied.Count; i++)
+        {
+            Assert.Equal(sourceCards[i].FrontText, copied[i].FrontText);
+            Assert.Equal(sourceCards[i].BackText, copied[i].BackText);
+            Assert.Equal(sourceCards[i].Pronunciation, copied[i].Pronunciation);
+            Assert.Equal(sourceCards[i].PartOfSpeech, copied[i].PartOfSpeech);
+            Assert.Equal(sourceCards[i].ExampleSentence, copied[i].ExampleSentence);
+            Assert.Equal(sourceCards[i].ExampleMeaning, copied[i].ExampleMeaning);
+            Assert.Equal(sourceCards[i].Synonyms, copied[i].Synonyms);
+            Assert.Equal(sourceCards[i].ImageUrl, copied[i].ImageUrl);
+            Assert.Null(copied[i].UploadedImagePath);
+            Assert.Equal(sourceCards[i].IsStarred, copied[i].IsStarred);
+            Assert.Equal(sourceCards[i].OrderIndex, copied[i].OrderIndex);
+        }
     }
 }

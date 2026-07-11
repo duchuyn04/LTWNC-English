@@ -211,31 +211,10 @@ public class FlashcardSetService
         if (existingCopy != null)
             return existingCopy;
 
-        var copy = new FlashcardSet
-        {
-            Title = source.Title,
-            Description = source.Description,
-            UserId = learnerId,
-            IsPublic = false,
-            SourceSetId = source.Id,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-
-        copy.Flashcards = source.Flashcards.Select(c => new Flashcard
-        {
-            FrontText = c.FrontText,
-            BackText = c.BackText,
-            Pronunciation = c.Pronunciation,
-            PartOfSpeech = c.PartOfSpeech,
-            ExampleSentence = c.ExampleSentence,
-            ExampleMeaning = c.ExampleMeaning,
-            Synonyms = c.Synonyms,
-            ImageUrl = c.ImageUrl,
-            UploadedImagePath = c.UploadedImagePath,
-            IsStarred = c.IsStarred,
-            OrderIndex = c.OrderIndex
-        }).ToList();
+        var copy = source.Clone();
+        copy.UserId = learnerId;
+        copy.SourceSetId = source.Id;
+        copy.IsPublic = false;
 
         await using var transaction = await _context.Database.BeginTransactionAsync();
         try

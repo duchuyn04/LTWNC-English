@@ -61,6 +61,7 @@ public class Flashcard : IPrototype<Flashcard>
     public FlashcardSet? FlashcardSet { get; set; }
 
     // Tạo bản sao độc lập của thẻ để dùng khi clone bộ thẻ.
+    // UploadedImagePath được để null vì file ảnh upload không được duplicate.
     public Flashcard Clone()
     {
         return new Flashcard
@@ -73,6 +74,7 @@ public class Flashcard : IPrototype<Flashcard>
             ExampleMeaning = ExampleMeaning,
             Synonyms = Synonyms,
             ImageUrl = ImageUrl,
+            UploadedImagePath = null,
             IsStarred = IsStarred,
             OrderIndex = OrderIndex
         };
