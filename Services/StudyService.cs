@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Study;
+using ltwnc.Services.StudyModes;
 
 namespace ltwnc.Services;
 
@@ -10,11 +11,13 @@ namespace ltwnc.Services;
 public class StudyService
 {
     private readonly AppDbContext _context;
+    private readonly IEnumerable<IStudyModeStrategy> _strategies;
 
-    // Inject AppDbContext
-    public StudyService(AppDbContext context)
+    // Inject AppDbContext và danh sách các strategy chế độ học
+    public StudyService(AppDbContext context, IEnumerable<IStudyModeStrategy> strategies)
     {
         _context = context;
+        _strategies = strategies;
     }
 
     // Lấy danh sách thẻ trong một bộ để học
@@ -188,15 +191,18 @@ public class StudyService
                 s.CompletedAt >= recentCutoff);
 
         var settings = await GetSettingsAsync(userId);
-        var filteredCards = await GetFlashcardsForStudyAsync(setId, settings.StarredOnly, settings.UnlearnedOnly, userId);
 
-        var flashcardOption = BuildModeOption(StudyMode.Flashcard, filteredCards, $"/Study/{setId}/Flashcard");
-        var dictationCards = filteredCards.Where(c => !string.IsNullOrWhiteSpace(c.ExampleSentence)).ToList();
-        var dictationOption = BuildModeOption(StudyMode.Dictation, dictationCards, $"/Study/{setId}/Dictation");
-        if (!dictationOption.IsAvailable)
-        {
-            dictationOption.UnavailableReason = "Không đủ thẻ có câu ví dụ";
-        }
+        // Tìm strategy cho Flashcard và Dictation từ DI
+        var flashcardStrategy = _strategies.First(s => s.Mode == StudyMode.Flashcard);
+        var dictationStrategy = _strategies.First(s => s.Mode == StudyMode.Dictation);
+
+        // Flashcard lấy thẻ theo bộ lọc và tạo option
+        var flashcardCards = await flashcardStrategy.GetCards(setId, settings, userId, _context);
+        var flashcardOption = flashcardStrategy.BuildOption(setId, flashcardCards, settings);
+
+        // Dictation lấy thẻ có câu ví dụ và tạo option
+        var dictationCards = await dictationStrategy.GetCards(setId, settings, userId, _context);
+        var dictationOption = dictationStrategy.BuildOption(setId, dictationCards, settings);
 
         var modes = new List<StudyModeOptionViewModel> { flashcardOption, dictationOption };
 
@@ -242,22 +248,6 @@ public class StudyService
             Modes = modes,
             RoadmapModes = roadmapModes,
             Warnings = warnings
-        };
-    }
-
-    private static StudyModeOptionViewModel BuildModeOption(StudyMode mode, List<Flashcard> cards, string actionUrl)
-    {
-        var metadata = GetModeMetadata(mode);
-        return new StudyModeOptionViewModel
-        {
-            Mode = mode,
-            Name = metadata.Name,
-            Description = metadata.Description,
-            IconClass = metadata.IconClass,
-            ActionUrl = actionUrl,
-            IsAvailable = cards.Any(),
-            CardCount = cards.Count,
-            EstimatedSeconds = cards.Count * metadata.SecondsPerCard
         };
     }
 
