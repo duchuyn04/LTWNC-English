@@ -6,15 +6,17 @@ using ltwnc.Services.StudyModes;
 
 namespace ltwnc.Services;
 
-// Service xử lý nghiệp vụ học tập
-// Quản lý tiến trình học (đã biết/chưa biết), phiên học và điều phối các strategy chế độ học
+// Service xử lý nghiệp vụ học tập.
+// Trách nhiệm chính:
+// - Quản lý settings và tiến trình học (đã biết/chưa biết)
+// - Điều phối các IStudyModeStrategy để lấy thẻ và xây dựng Study Hub
+// - Không chứa logic lọc thẻ — toàn bộ giao cho strategy
 public class StudyService
 {
     private readonly AppDbContext _context;
     private readonly IEnumerable<IStudyModeStrategy> _strategies;
     private readonly IStudyModeStrategyResolver _strategyResolver;
 
-    // Inject AppDbContext, danh sách strategy và resolver
     public StudyService(
         AppDbContext context,
         IEnumerable<IStudyModeStrategy> strategies,
@@ -25,7 +27,8 @@ public class StudyService
         _strategyResolver = strategyResolver;
     }
 
-    // Lấy danh sách thẻ cho một chế độ học cụ thể thông qua strategy tương ứng
+    // Lấy danh sách thẻ cho một chế độ học cụ thể.
+    // Controller gọi method này thay vì tự query hoặc tự resolve strategy.
     public async Task<List<Flashcard>> GetCardsForModeAsync(
         StudyMode mode,
         int setId,
@@ -36,6 +39,7 @@ public class StudyService
         return await strategy.GetCardsAsync(setId, settings, userId);
     }
 
+    // Lấy tiến trình học của user cho từng thẻ trong bộ, dùng để hiển thị trạng thái đã biết/chưa biết
     public async Task<Dictionary<int, UserProgress>> GetProgressByCardIdAsync(int setId, string? userId)
     {
         if (string.IsNullOrWhiteSpace(userId)) return new Dictionary<int, UserProgress>();
@@ -45,6 +49,7 @@ public class StudyService
             .ToDictionaryAsync(p => p.FlashcardId);
     }
 
+    // Lấy settings của user; nếu chưa có thì trả về settings mặc định
     public async Task<UserStudySettings> GetSettingsAsync(string? userId)
     {
         if (string.IsNullOrWhiteSpace(userId)) return new UserStudySettings();
@@ -53,6 +58,7 @@ public class StudyService
         return settings ?? new UserStudySettings { UserId = userId };
     }
 
+    // Lưu toàn bộ settings học tập của user
     public async Task<UserStudySettings> SaveSettingsAsync(string userId, UserStudySettings input)
     {
         var settings = await _context.UserStudySettings.FirstOrDefaultAsync(s => s.UserId == userId);
@@ -62,6 +68,7 @@ public class StudyService
             await _context.UserStudySettings.AddAsync(settings);
         }
 
+        // Cập nhật bộ lọc và cài đặt hiển thị flashcard
         settings.StarredOnly = input.StarredOnly;
         settings.UnlearnedOnly = input.UnlearnedOnly;
         settings.ShowFrontTerm = input.ShowFrontTerm;
@@ -79,6 +86,7 @@ public class StudyService
         settings.PronounceFront = input.PronounceFront;
         settings.PronounceBack = input.PronounceBack;
 
+        // Cập nhật cài đặt riêng của Dictation
         settings.DictationContentMode = input.DictationContentMode;
         settings.DictationAnswerMode = input.DictationAnswerMode;
         settings.DictationAutoAdvance = input.DictationAutoAdvance;
@@ -92,7 +100,7 @@ public class StudyService
         return settings;
     }
 
-    // Cập nhật nhanh các bộ lọc học tập
+    // Cập nhật nhanh hai bộ lọc StarredOnly/UnlearnedOnly từ query string trên URL
     public async Task SaveFilterSettingsAsync(string userId, bool? starredOnly, bool? unlearnedOnly)
     {
         var settings = await GetSettingsAsync(userId);
@@ -101,7 +109,7 @@ public class StudyService
         await SaveSettingsAsync(userId, settings);
     }
 
-    // Đánh dấu thẻ đã biết hoặc chưa biết
+    // Đánh dấu một thẻ là đã biết hoặc chưa biết
     public async Task MarkLearnedAsync(string userId, int setId, int flashcardId, bool learned)
     {
         var set = await _context.FlashcardSets.FindAsync(setId);
@@ -162,24 +170,29 @@ public class StudyService
         await _context.SaveChangesAsync();
     }
 
-    // Lấy dữ liệu cho Study Hub — trang chọn chế độ học
+    // Lấy dữ liệu cho Study Hub — trang chọn chế độ học.
+    // Mỗi strategy tự quyết định thẻ khả dụng và tự xây dựng option hiển thị.
     public async Task<StudyModeSelectorViewModel> GetStudyModeSelectorDataAsync(int setId, string? userId)
     {
+        // Thông tin cơ bản của bộ thẻ
         var set = await _context.FlashcardSets.FindAsync(setId);
         var allCards = await _context.Flashcards
             .Where(f => f.FlashcardSetId == setId)
             .ToListAsync();
 
+        // Tiến trình học của user cho các thẻ trong bộ
         var progresses = string.IsNullOrWhiteSpace(userId)
             ? new Dictionary<int, UserProgress>()
             : await _context.UserProgresses
                 .Where(p => p.UserId == userId && allCards.Select(c => c.Id).Contains(p.FlashcardId))
                 .ToDictionaryAsync(p => p.FlashcardId);
 
+        // Thống kê hiển thị trên Study Hub
         var learnedCount = allCards.Count(c => progresses.TryGetValue(c.Id, out var p) && p.IsLearned);
         var starredCount = allCards.Count(c => c.IsStarred);
         var masteryPercent = allCards.Count > 0 ? learnedCount * 100 / allCards.Count : 0;
 
+        // Số phiên học trong 7 ngày gần nhất
         var recentCutoff = DateTime.UtcNow.AddDays(-7);
         var recentSessionCount = string.IsNullOrWhiteSpace(userId)
             ? 0
@@ -190,7 +203,8 @@ public class StudyService
 
         var settings = await GetSettingsAsync(userId);
 
-        // Duyệt qua các mode đã đăng ký, dùng resolver để đảm bảo mỗi mode chỉ có một strategy
+        // Xây dựng danh sách mode khả dụng từ các strategy đã đăng ký.
+        // Duyệt theo từng mode duy nhất và resolve qua resolver để đảm bảo tính duy nhất.
         var modes = new List<StudyModeOptionViewModel>();
         foreach (var mode in _strategies.Select(s => s.Mode).Distinct().OrderBy(m => (int)m))
         {
@@ -199,9 +213,11 @@ public class StudyService
             modes.Add(strategy.BuildOption(setId, cards, settings));
         }
 
+        // Xác định mode được đề xuất dựa trên mastery và khả năng thực tế của Dictation
         var warnings = new List<string>();
         var recommendedMode = DetermineRecommendedMode(masteryPercent, modes);
 
+        // Nếu mode đề xuất không khả dụng, chuyển sang mode khả dụng đầu tiên và cảnh báo user
         if (!modes.Any(m => m.Mode == recommendedMode && m.IsAvailable))
         {
             var fallback = modes.FirstOrDefault(m => m.IsAvailable);
@@ -220,7 +236,7 @@ public class StudyService
 
         MarkRecommended(modes, recommendedMode);
 
-        // Roadmap chỉ hiển thị các mode chưa được strategy thật triển khai
+        // Roadmap: chỉ hiển thị các mode chưa có strategy thật đăng ký
         var activeModes = modes.Select(m => m.Mode).ToHashSet();
         var roadmapModes = new[] { StudyMode.Quiz, StudyMode.Write, StudyMode.Match }
             .Where(mode => !activeModes.Contains(mode))
@@ -246,6 +262,7 @@ public class StudyService
         };
     }
 
+    // Tạo option cho các mode chưa triển khai ( roadmap )
     private static StudyModeOptionViewModel BuildRoadmapMode(StudyMode mode)
     {
         var metadata = GetModeMetadata(mode);
@@ -274,6 +291,7 @@ public class StudyService
 
     private sealed record ModeMetadata(string Name, string Description, string IconClass, int SecondsPerCard);
 
+    // Đề xuất Dictation khi user đã thuộc >= 50% thẻ VÀ Dictation đang khả dụng với settings hiện tại
     private static StudyMode DetermineRecommendedMode(
         int masteryPercent,
         IReadOnlyList<StudyModeOptionViewModel> modes)
@@ -286,6 +304,7 @@ public class StudyService
             : StudyMode.Flashcard;
     }
 
+    // Đánh dấu mode được đề xuất trên danh sách option
     private static void MarkRecommended(List<StudyModeOptionViewModel> modes, StudyMode recommended)
     {
         foreach (var mode in modes)

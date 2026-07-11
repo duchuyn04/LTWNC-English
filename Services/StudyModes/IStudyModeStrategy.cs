@@ -3,19 +3,23 @@ using ltwnc.Models.ViewModels.Study;
 
 namespace ltwnc.Services.StudyModes;
 
-// Mỗi chế độ học (Flashcard, Dictation...) sẽ có một class riêng thực hiện interface này
+// Contract cho từng chế độ học (Flashcard, Dictation, Quiz...).
+// Mỗi implementation chịu trách nhiệm duy nhất về:
+// - cách lấy danh sách thẻ phù hợp
+// - cách hiển thị option trên Study Hub
 public interface IStudyModeStrategy
 {
-    // Chế độ học mà strategy này phụ trách, ví dụ StudyMode.Flashcard
+    // Mode mà strategy này đại diện (không được trùng lặp trong DI)
     StudyMode Mode { get; }
 
-    // Lấy danh sách thẻ phù hợp với chế độ học và bộ lọc (sao, chưa thuộc...)
+    // Lấy danh sách thẻ cho chế độ học này, áp dụng bộ lọc từ settings.
+    // userId có thể null với user ẩn danh.
     Task<List<Flashcard>> GetCardsAsync(
         int setId,
         UserStudySettings settings,
         string? userId);
 
-    // Tạo thông tin hiển thị trên trang chọn chế độ học (số thẻ, thờ gian dự kiến, có khả dụng không...)
+    // Xây dựng option hiển thị trên Study Hub (tên, mô tả, số thẻ, khả dụng...)
     StudyModeOptionViewModel BuildOption(
         int setId,
         IReadOnlyList<Flashcard> cards,

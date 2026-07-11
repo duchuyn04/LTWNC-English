@@ -65,13 +65,15 @@ public class DictationService
         _strategyResolver = strategyResolver;
     }
 
-    // Lấy danh sách thẻ cho bài nghe chép, dùng chung DictationModeStrategy để nhất quán với Study Hub
+    // Lấy danh sách thẻ cho màn hình Dictation.
+    // Không lặp lại logic lọc — dùng chính DictationModeStrategy để Study Hub và trang Dictation thấy cùng tập thẻ.
+    // Sau đó chỉ xáo trộn theo cài đặt của user.
     public async Task<List<Flashcard>> GetCardsForDictationAsync(int setId, string userId, UserStudySettings settings)
     {
         var strategy = _strategyResolver.Resolve(StudyMode.Dictation);
         var cards = await strategy.GetCardsAsync(setId, settings, userId);
 
-        // Xáo trộn nếu cài đặt bật
+        // Xáo trộn nếu user bật DictationShuffle
         if (settings.DictationShuffle)
         {
             cards = Shuffle(cards);
