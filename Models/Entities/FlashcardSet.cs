@@ -28,7 +28,8 @@ public class FlashcardSet : IPrototype<FlashcardSet>
     // true = mọi người xem được, false = chỉ chủ sở hữu xem
     public bool IsPublic { get; set; } = true;
 
-    // Khóa ngoại đến bộ thẻ nguồn khi bộ này là bản sao của một bộ công khai
+    // ID của bộ thẻ nguồn khi bộ này được sao chép.
+    // Không cấu hình foreign key để bản sao vẫn tồn tại nếu bộ nguồn bị xóa.
     public int? SourceSetId { get; set; }
 
     // Thời gian tạo bộ thẻ
@@ -45,17 +46,16 @@ public class FlashcardSet : IPrototype<FlashcardSet>
     public ICollection<Flashcard> Flashcards { get; set; } = new List<Flashcard>();
 
     // Tạo bản sao độc lập của bộ thẻ, bao gồm cả các thẻ con.
-    // Không gán UserId/SourceSetId/IsPublic vì đó là trách nhiệm của service.
+    // Không giữ thông tin chủ sở hữu và nguồn sao chép cũ.
+    // Service sẽ gán UserId, SourceSetId và trạng thái công khai theo nghiệp vụ.
     public FlashcardSet Clone()
     {
         var now = DateTime.UtcNow;
         return new FlashcardSet
         {
-            Id = 0,
             Title = Title,
             Description = Description,
-            UserId = string.Empty,
-            SourceSetId = null,
+            IsPublic = IsPublic,
             CreatedAt = now,
             UpdatedAt = now,
             Flashcards = Flashcards

@@ -24,8 +24,23 @@ public class FlashcardSetCloneTests
         Assert.NotSame(original, clone);
         Assert.Equal(0, clone.Id);
         Assert.Equal(string.Empty, clone.UserId);
-        Assert.True(clone.IsPublic);
         Assert.Null(clone.SourceSetId);
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void Clone_copies_IsPublic(bool isPublic)
+    {
+        var original = new FlashcardSet
+        {
+            Title = "Set",
+            IsPublic = isPublic
+        };
+
+        var clone = original.Clone();
+
+        Assert.Equal(isPublic, clone.IsPublic);
     }
 
     [Fact]
@@ -138,13 +153,14 @@ public class FlashcardSetCloneTests
             Title = "Set",
             Flashcards =
             [
-                new Flashcard { FrontText = "a", BackText = "b", IsStarred = true }
+                new Flashcard { FrontText = "a", BackText = "b", IsStarred = false }
             ]
         };
 
         var clone = original.Clone();
         clone.Flashcards.First().IsStarred = true;
 
-        Assert.True(original.Flashcards.First().IsStarred);
+        Assert.False(original.Flashcards.First().IsStarred);
+        Assert.True(clone.Flashcards.First().IsStarred);
     }
 }
