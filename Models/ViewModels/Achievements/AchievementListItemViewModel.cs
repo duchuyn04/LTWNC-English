@@ -17,4 +17,19 @@ public class AchievementListItemViewModel
 
     // Lúc mở khóa (null nếu chưa mở)
     public DateTime? UnlockedAt { get; set; }
+
+    // Tiến độ hiện tại (capped ở Target; nếu đã mở thì = Target)
+    public int Current { get; set; }
+
+    // Mốc cần đạt để mở khóa
+    public int Target { get; set; }
+
+    // Phần trăm tiến độ 0–100 (đã mở = 100)
+    public int ProgressPercent { get; set; }
+
+    // Chữ trên nút kêu gọi hành động (CTA) khi chưa mở
+    public string CtaText { get; set; } = string.Empty;
+
+    // Đường dẫn CTA (vd. /Set)
+    public string CtaUrl { get; set; } = string.Empty;
 }

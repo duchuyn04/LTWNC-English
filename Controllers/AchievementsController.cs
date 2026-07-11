@@ -23,7 +23,7 @@ public class AchievementsController : Controller
         _userManager = userManager;
     }
 
-    // GET /Achievements — danh sách huy hiệu đã mở / chưa mở
+    // GET /Achievements — rescan + danh sách huy hiệu đã mở / chưa mở
     [Route("/Achievements")]
     public async Task<IActionResult> Index()
     {
@@ -31,8 +31,16 @@ public class AchievementsController : Controller
         if (user == null)
             return Challenge();
 
-        // Lấy danh mục + trạng thái mở khóa của đúng user này
-        var model = await _achievementService.GetCatalogWithStatusAsync(user.Id);
-        return View(model);
+        // Rescan mở khóa thiếu + lấy progress/CTA cho từng huy hiệu
+        var page = await _achievementService.GetPageAsync(user.Id);
+
+        // Banner một lần (TempData) khi rescan vừa mở huy hiệu mới
+        if (page.NewlyUnlockedTitles.Count > 0)
+        {
+            TempData["AchievementUnlock"] =
+                "Bạn vừa mở: " + string.Join(", ", page.NewlyUnlockedTitles);
+        }
+
+        return View(page.Items);
     }
 }
