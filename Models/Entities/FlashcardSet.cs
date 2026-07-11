@@ -27,6 +27,9 @@ public class FlashcardSet
     // true = mọi người xem được, false = chỉ chủ sở hữu xem
     public bool IsPublic { get; set; } = true;
 
+    // Khóa ngoại đến bộ thẻ nguồn khi bộ này là bản sao của một bộ công khai
+    public int? SourceSetId { get; set; }
+
     // Thời gian tạo bộ thẻ
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

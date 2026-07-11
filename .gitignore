@@ -60,7 +60,8 @@ artifacts/
 skills-lock.json
 
 ## Tests
-tests/
+tests/*
+!tests/ltwnc.Tests/
 
 ## Git worktrees
 .worktrees/

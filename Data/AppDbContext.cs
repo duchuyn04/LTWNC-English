@@ -32,6 +32,9 @@ public class AppDbContext : IdentityDbContext
             entity.HasIndex(e => e.UserId);
             // Index cho IsPublic — tăng tốc truy vấn "lấy bộ thẻ public"
             entity.HasIndex(e => e.IsPublic);
+            entity.HasIndex(e => new { e.UserId, e.SourceSetId })
+                .IsUnique()
+                .HasFilter("[SourceSetId] IS NOT NULL");
         });
 
         // Cấu hình bảng Flashcards
