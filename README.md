@@ -67,9 +67,12 @@ Dùng khi user học xong một việc (đánh dấu thẻ đã thuộc, hoàn t
 - **Subject (trạm phát):** `StudyEventPublisher` — nhận mẩu tin sự kiện và báo cho mọi người theo dõi.
 - **Observer (người theo dõi):** `IStudyEventObserver`.
 - **Concrete observers:**
-  - `AchievementStudyObserver` — mở khóa huy hiệu (lưu bảng `UserAchievements`).
+  - `AchievementStudyObserver` — gọi `AchievementUnlockService` để mở khóa huy hiệu đủ điều kiện (lưu `UserAchievements`).
   - `LoggingStudyObserver` — ghi log hệ thống (chứng minh một sự kiện, nhiều người nghe).
 - **Sự kiện:** `CardProgressChangedEvent`, `StudySessionCompletedEvent`, `DictationAnswerCheckedEvent`.
+- **Tiến độ (live):** `AchievementProgressService` đếm thẻ đã thuộc, buổi học, câu nghe chép đúng… theo user; catalog trong code gắn metric + target.
+- **Mở khóa:** `AchievementUnlockService.SyncEligibleAsync` — dùng khi học (Observer) và khi mở trang `/Achievements` (rescan, bù huy hiệu mới / sự kiện bỏ lỡ).
+- **UI:** thanh tiến độ, `current/target`, CTA sang `/Set`; banner TempData khi rescan vừa mở huy hiệu mới.
 - `StudyService` / `DictationService` chỉ gọi `PublishAsync` sau khi lưu database; **không** biết chi tiết thành tích.
 - Thêm observer mới: tạo class implement `IStudyEventObserver`, đăng ký một dòng DI trong `Program.cs`.
 - Trang xem: `/Achievements` (cần đăng nhập).
