@@ -44,6 +44,36 @@ Các service thao tác trực tiếp với `AppDbContext` để giữ code gọn
 - `DictationService` quản lý phiên nghe chép, chấm đáp án, so sánh từng từ và cập nhật tiến trình.
 - `AppDbContext` kế thừa `IdentityDbContext`, chứa bảng domain và bảng Identity.
 
+## Các mẫu thiết kế
+
+Dự án dùng một số mẫu để code không rối khi tính năng tăng lên.
+
+### MVC
+
+ASP.NET Core MVC chia request thành Model (dữ liệu), View (giao diện Razor) và Controller (điều phối). UI và logic vì thế tách ra rõ ràng. Muốn đổi giao diện thì sửa View, muốn đổi luồng thì sửa Controller, không phải lục tung cả hai.
+
+### Dependency Injection
+
+Các service và `AppDbContext` được đăng ký trong `Program.cs`, sau đó inject vào constructor nơi cần dùng. Không còn `new StudyService(...)` rải rác, nên thay implementation hay mock trong test dễ hơn nhiều.
+
+### Service Layer
+
+Controller chỉ nhận request, kiểm tra quyền, rồi gọi service. Logic nghiệp vụ nằm trong `FlashcardSetService`, `StudyService`, `DictationService`. Khi cần sửa quy tắc học tập hay upload ảnh, chỉ cần vào đúng service, không đụng hàng loạt controller.
+
+### ViewModel
+
+Entity từ EF thường chứa nhiều trường không cần hiển thị. ViewModel chỉ mang đúng dữ liệu view cần, vừa tránh lộ thông tin, vừa khiến Razor gọn hơn. Ví dụ `StudyModeSelectorViewModel` chỉ đưa ra số thẻ, trạng thái khả dụng và URL, không mang cả entity `Flashcard` lên view.
+
+### Strategy Pattern (Study Modes)
+
+Trước đây `StudyService.GetStudyModeSelectorDataAsync` dùng switch để xây dựng option cho từng chế độ học. Thêm mode mới là phải mở `StudyService` sửa switch, dễ quên case và khó test riêng từng mode.
+
+Giờ mỗi chế độ học là một class implement `IStudyModeStrategy`: `FlashcardModeStrategy` lấy tất cả thẻ đã lọc, `DictationModeStrategy` chỉ lấy thẻ có câu ví dụ, và mỗi class tự tính số thẻ cùng thờ gian dự kiến. `StudyService` chỉ cần tìm đúng strategy qua DI. Thêm mode mới = tạo class + đăng ký trong `Program.cs`, không đụng đến service cũ.
+
+### Unit of Work (qua EF Core DbContext)
+
+`AppDbContext` theo dõi các thay đổi trong một request và lưu một lần bằng `SaveChangesAsync`. Đỡ gọi database nhiều lần, và đảm bảo khi tạo bộ thẻ kèm nhiều thẻ thì dữ liệu đồng bộ, không bị lưu lửng chừng.
+
 ## Công nghệ
 
 | Thành phần | Công nghệ |
