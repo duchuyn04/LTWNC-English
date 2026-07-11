@@ -11,4 +11,5 @@ public class SetDetailViewModel
     public string UserId { get; set; } = string.Empty;
     public List<Flashcard> Flashcards { get; set; } = new();
     public bool IsOwner { get; set; }
+    public int? ExistingCopyId { get; set; }
 }

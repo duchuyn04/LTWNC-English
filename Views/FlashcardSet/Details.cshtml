@@ -32,16 +32,40 @@
             </div>
         </div>
 
-        <div class="d-flex gap-2 justify-content-center">
+        <div class="d-flex gap-2 justify-content-center flex-wrap">
             @if (Model.IsOwner)
             {
                 <a href="/Set/@Model.Id/Edit" class="btn-secondary-custom">
                     <i class="ph ph-pencil"></i> Sửa
                 </a>
+                <a href="/Study/@Model.Id" class="btn-primary-custom">
+                    <i class="ph ph-play-circle"></i> Bắt đầu học
+                </a>
             }
-            <a href="/Study/@Model.Id" class="btn-primary-custom">
-                <i class="ph ph-play-circle"></i> Bắt đầu học
-            </a>
+            else if (User.Identity?.IsAuthenticated == true)
+            {
+                if (Model.ExistingCopyId.HasValue)
+                {
+                    <a href="/Study/@Model.ExistingCopyId" class="btn-primary-custom">
+                        <i class="ph ph-play-circle"></i> Mở bộ đã sao chép
+                    </a>
+                }
+                else
+                {
+                    <form asp-action="Copy" asp-route-id="@Model.Id" method="post" class="d-inline">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn-primary-custom">
+                            <i class="ph ph-copy"></i> Sao chép và học
+                        </button>
+                    </form>
+                }
+            }
+            else
+            {
+                <a href="/Account/Login?ReturnUrl=@Uri.EscapeDataString($"/Set/{Model.Id}")" class="btn-primary-custom">
+                    <i class="ph ph-sign-in"></i> Đăng nhập để học
+                </a>
+            }
         </div>
     </div>
 

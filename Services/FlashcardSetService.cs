@@ -178,6 +178,20 @@ public class FlashcardSetService
         return set;
     }
 
+    public async Task<FlashcardSet?> GetOwnedSetAsync(int id, string userId)
+    {
+        var set = await _context.FlashcardSets.FindAsync(id);
+        if (set == null || set.UserId != userId) return null;
+        return set;
+    }
+
+    public async Task<FlashcardSet?> GetExistingCopyAsync(int sourceSetId, string learnerId)
+    {
+        return await _context.FlashcardSets
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.UserId == learnerId && s.SourceSetId == sourceSetId);
+    }
+
     // Sao chép một bộ thẻ công khai vào thư viện riêng của ngườidùng
     public async Task<FlashcardSet> CopyPublicSetAsync(int sourceSetId, string learnerId)
     {

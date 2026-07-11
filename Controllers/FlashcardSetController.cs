@@ -21,15 +21,15 @@ public class FlashcardSetController : Controller
         _userManager = userManager;
     }
 
-    // Hiển thị danh sách bộ thẻ của người dùng hiện tại
+    // Hiển thị danh sách bộ thẻ của ngườidùng hiện tại
     [Route("/Set")]
     public async Task<IActionResult> Index()
     {
-        // Lấy thông tin người dùng đang đăng nhập
+        // Lấy thông tin ngườidùng đang đăng nhập
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
-        // Lấy tất cả bộ thẻ thuộc về người dùng này
+        // Lấy tất cả bộ thẻ thuộc về ngườidùng này
         var sets = await _setService.GetMySetsWithProgressAsync(user.Id);
         return View(sets);
     }
@@ -65,9 +65,16 @@ public class FlashcardSetController : Controller
     {
         var user = await _userManager.GetUserAsync(User);
 
-        // Chỉ cho xem bộ công khai hoặc bộ của chính người dùng hiện tại
+        // Chỉ cho xem bộ công khai hoặc bộ của chính ngườidùng hiện tại
         var set = await _setService.GetAccessibleSetWithCardsAsync(id, user?.Id);
         if (set == null) return NotFound();
+
+        int? existingCopyId = null;
+        if (user != null && user.Id != set.UserId)
+        {
+            var copy = await _setService.GetExistingCopyAsync(set.Id, user.Id);
+            existingCopyId = copy?.Id;
+        }
 
         // Ánh xạ sang ViewModel để hiển thị trên View
         var model = new SetDetailViewModel
@@ -78,9 +85,35 @@ public class FlashcardSetController : Controller
             IsPublic = set.IsPublic,
             UserId = set.UserId,
             Flashcards = set.Flashcards.ToList(),
-            IsOwner = user?.Id == set.UserId // Kiểm tra người xem có phải chủ sở hữu không
+            IsOwner = user?.Id == set.UserId, // Kiểm tra ngườixem có phải chủ sở hữu không
+            ExistingCopyId = existingCopyId
         };
         return View(model);
+    }
+
+    // Sao chép một bộ thẻ công khai vào thư viện của ngườidùng hiện tại
+    [HttpPost]
+    [Route("/Set/{id}/Copy")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Copy(int id)
+    {
+        var user = await _userManager.GetUserAsync(User);
+        if (user == null) return Challenge();
+
+        try
+        {
+            var copy = await _setService.CopyPublicSetAsync(id, user.Id);
+            TempData["Success"] = "Đã sao chép bộ thẻ vào thư viện của bạn.";
+            return RedirectToAction("Index", "Study", new { setId = copy.Id });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     // Hiển thị form chỉnh sửa bộ thẻ (bao gồm danh sách thẻ)

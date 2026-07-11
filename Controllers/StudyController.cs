@@ -36,9 +36,9 @@ public class StudyController : Controller
     {
         var user = await _userManager.GetUserAsync(User);
 
-        // Kiểm tra bộ thẻ có tồn tại và người dùng có quyền học không
-        var set = await _setService.GetAccessibleSetAsync(setId, user?.Id);
-        if (set == null) return NotFound();
+        // Chỉ cho phép học bộ thẻ thuộc sở hữu của ngườidùng
+        var set = await _setService.GetOwnedSetAsync(setId, user?.Id!);
+        if (set == null) return RedirectToAction("Details", "FlashcardSet", new { id = setId });
 
         // Cập nhật bộ lọc nhanh nếu user đăng nhập
         if (user != null && (starredOnly.HasValue || unlearnedOnly.HasValue))
@@ -65,13 +65,13 @@ public class StudyController : Controller
         settings.StarredOnly = effectiveStarredOnly; // ponytail: sync so JS initialSettings matches effective filter
         settings.UnlearnedOnly = effectiveUnlearnedOnly;
 
-        // Kiểm tra bộ thẻ có tồn tại và người dùng có quyền học không
-        var set = await _setService.GetAccessibleSetAsync(setId, user?.Id);
-        if (set == null) return NotFound();
+        // Chỉ cho phép học bộ thẻ thuộc sở hữu của ngườidùng
+        var set = await _setService.GetOwnedSetAsync(setId, user?.Id!);
+        if (set == null) return RedirectToAction("Details", "FlashcardSet", new { id = setId });
 
         // Lấy danh sách thẻ để học
         var cards = await _studyService.GetFlashcardsForStudyAsync(setId, effectiveStarredOnly, effectiveUnlearnedOnly, user?.Id);
-        
+
         var vocabularyCards = await _studyService.GetFlashcardsForStudyAsync(setId, false, false, user?.Id);
         var progressByCardId = await _studyService.GetProgressByCardIdAsync(setId, user?.Id);
 
@@ -255,8 +255,8 @@ public class StudyController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
-        var set = await _setService.GetAccessibleSetAsync(setId, user.Id);
-        if (set == null) return NotFound();
+        var set = await _setService.GetOwnedSetAsync(setId, user.Id);
+        if (set == null) return RedirectToAction("Details", "FlashcardSet", new { id = setId });
 
         var settings = await _studyService.GetSettingsAsync(user.Id);
         var cards = await _dictationService.GetCardsForDictationAsync(setId, user.Id, settings);
@@ -379,8 +379,8 @@ public class StudyController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
-        var set = await _setService.GetAccessibleSetAsync(setId, user.Id);
-        if (set == null) return NotFound();
+        var set = await _setService.GetOwnedSetAsync(setId, user.Id);
+        if (set == null) return RedirectToAction("Details", "FlashcardSet", new { id = setId });
 
         try
         {
