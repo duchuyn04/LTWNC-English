@@ -24,7 +24,7 @@ public class FlashcardSetCloneTests
         Assert.NotSame(original, clone);
         Assert.Equal(0, clone.Id);
         Assert.Equal(string.Empty, clone.UserId);
-        Assert.False(clone.IsPublic);
+        Assert.True(clone.IsPublic);
         Assert.Null(clone.SourceSetId);
     }
 
@@ -94,5 +94,57 @@ public class FlashcardSetCloneTests
         var clone = original.Clone();
 
         Assert.Empty(clone.Flashcards);
+    }
+
+    [Fact]
+    public void Clone_resets_IsStarred()
+    {
+        var original = new FlashcardSet
+        {
+            Title = "Set",
+            Flashcards =
+            [
+                new Flashcard { FrontText = "a", BackText = "b", IsStarred = true }
+            ]
+        };
+
+        var clone = original.Clone();
+
+        Assert.All(clone.Flashcards, c => Assert.False(c.IsStarred));
+    }
+
+    [Fact]
+    public void Clone_clears_uploaded_image_path()
+    {
+        var original = new FlashcardSet
+        {
+            Title = "Set",
+            Flashcards =
+            [
+                new Flashcard { FrontText = "a", BackText = "b", UploadedImagePath = "/uploads/x.png" }
+            ]
+        };
+
+        var clone = original.Clone();
+
+        Assert.All(clone.Flashcards, c => Assert.Null(c.UploadedImagePath));
+    }
+
+    [Fact]
+    public void Clone_modifying_clone_does_not_change_source_star_state()
+    {
+        var original = new FlashcardSet
+        {
+            Title = "Set",
+            Flashcards =
+            [
+                new Flashcard { FrontText = "a", BackText = "b", IsStarred = true }
+            ]
+        };
+
+        var clone = original.Clone();
+        clone.Flashcards.First().IsStarred = true;
+
+        Assert.False(original.Flashcards.First().IsStarred);
     }
 }
