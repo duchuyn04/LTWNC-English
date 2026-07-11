@@ -5,6 +5,7 @@ using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Study;
 using ltwnc.Services;
+using ltwnc.Services.StudyModes;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -56,9 +57,17 @@ public class StudyControllerDictationTests
         var environment = new Mock<IWebHostEnvironment>();
         environment.Setup(e => e.WebRootPath).Returns(Path.Combine(Path.GetTempPath(), "ltwnc-tests"));
 
+        var queryService = new StudyCardQueryService(context);
+        var strategies = new List<IStudyModeStrategy>
+        {
+            new FlashcardModeStrategy(queryService),
+            new DictationModeStrategy(queryService)
+        };
+        var resolver = new StudyModeStrategyResolver(strategies);
+
         var setService = new FlashcardSetService(context, environment.Object);
-        var studyService = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
-        var dictationService = new DictationService(context);
+        var studyService = new StudyService(context, strategies, resolver);
+        var dictationService = new DictationService(context, resolver);
 
         var controller = new StudyController(studyService, dictationService, setService, userManager.Object)
         {

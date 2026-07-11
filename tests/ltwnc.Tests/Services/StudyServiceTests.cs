@@ -2,6 +2,7 @@ using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Study;
 using ltwnc.Services;
+using ltwnc.Services.StudyModes;
 using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Tests.Services;
@@ -14,6 +15,18 @@ public class StudyServiceTests
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         return new AppDbContext(options);
+    }
+
+    private (List<IStudyModeStrategy> Strategies, IStudyModeStrategyResolver Resolver) CreateStrategies(AppDbContext context)
+    {
+        var queryService = new StudyCardQueryService(context);
+        var strategies = new List<IStudyModeStrategy>
+        {
+            new FlashcardModeStrategy(queryService),
+            new DictationModeStrategy(queryService)
+        };
+        var resolver = new StudyModeStrategyResolver(strategies);
+        return (strategies, resolver);
     }
 
     private async Task<FlashcardSet> SeedSetAsync(AppDbContext context, int id = 1)
@@ -76,7 +89,8 @@ public class StudyServiceTests
         await using var context = CreateContext();
         await SeedSetAsync(context);
 
-        var service = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(context, strategies, resolver);
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(0, result.TotalCards);
@@ -93,7 +107,8 @@ public class StudyServiceTests
         await SeedSetAsync(context);
         await SeedCardAsync(context, 1, "hello", "xin chào");
 
-        var service = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(context, strategies, resolver);
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(StudyMode.Flashcard, result.RecommendedMode);
@@ -111,7 +126,8 @@ public class StudyServiceTests
         await SeedProgressAsync(context, 1, true);
         await SeedProgressAsync(context, 2, true);
 
-        var service = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(context, strategies, resolver);
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(100, result.MasteryPercent);
@@ -130,7 +146,8 @@ public class StudyServiceTests
         await SeedCardAsync(context, 1, "hello", "xin chào", exampleSentence: "");
         await SeedProgressAsync(context, 1, true);
 
-        var service = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(context, strategies, resolver);
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(StudyMode.Flashcard, result.RecommendedMode);
@@ -151,7 +168,8 @@ public class StudyServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(context, strategies, resolver);
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         var flashcard = result.Modes.Single(m => m.Mode == StudyMode.Flashcard);
@@ -172,11 +190,13 @@ public class StudyServiceTests
         context.UserStudySettings.Add(new UserStudySettings
         {
             UserId = "user-1",
-            StarredOnly = true
+            StarredOnly = true,
+            DictationContentMode = DictationContentMode.ExampleSentence
         });
         await context.SaveChangesAsync();
 
-        var service = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(context, strategies, resolver);
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(StudyMode.Flashcard, result.RecommendedMode);
@@ -197,7 +217,8 @@ public class StudyServiceTests
         );
         await context.SaveChangesAsync();
 
-        var service = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(context, strategies, resolver);
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(1, result.RecentSessionCount);
@@ -209,7 +230,8 @@ public class StudyServiceTests
         await using var context = CreateContext();
         await SeedSetAsync(context);
 
-        var service = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(context, strategies, resolver);
         await service.SaveFilterSettingsAsync("user-1", starredOnly: true, unlearnedOnly: false);
 
         var settings = await context.UserStudySettings.FirstAsync(s => s.UserId == "user-1");
@@ -233,7 +255,8 @@ public class StudyServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(context, strategies, resolver);
         var result = await service.GetStudyModeSelectorDataAsync(1, userId: null);
 
         Assert.Equal(1, result.TotalCards);
@@ -252,7 +275,8 @@ public class StudyServiceTests
         await SeedCardAsync(context, 3, "c", "3");
         await SeedProgressAsync(context, 1, true);
 
-        var service = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(context, strategies, resolver);
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(33, result.MasteryPercent);
@@ -266,7 +290,8 @@ public class StudyServiceTests
         var card = await SeedCardAsync(context, 1, "hello", "xin chào", exampleSentence: "Hello!");
         await SeedProgressAsync(context, 1, true);
 
-        var service = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(context, strategies, resolver);
 
         var withExample = await service.GetStudyModeSelectorDataAsync(1, "user-1");
         Assert.Equal(StudyMode.Dictation, withExample.RecommendedMode);
@@ -296,7 +321,8 @@ public class StudyServiceTests
         });
         await context.SaveChangesAsync();
 
-        var service = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(context, strategies, resolver);
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         var flashcard = result.Modes.Single(m => m.Mode == StudyMode.Flashcard);
@@ -309,7 +335,8 @@ public class StudyServiceTests
         await using var context = CreateContext();
         await SeedSetAsync(context);
 
-        var service = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(context, strategies, resolver);
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.All(result.RoadmapModes, m => Assert.Equal("Sắp ra mắt", m.UnavailableReason));
@@ -328,14 +355,63 @@ public class StudyServiceTests
         context.UserStudySettings.Add(new UserStudySettings
         {
             UserId = "user-1",
-            StarredOnly = true
+            StarredOnly = true,
+            DictationContentMode = DictationContentMode.ExampleSentence
         });
         await context.SaveChangesAsync();
 
-        var service = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(context, strategies, resolver);
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(StudyMode.Flashcard, result.RecommendedMode);
         Assert.Contains(result.Warnings, w => w.Contains("Nghe chép") && w.Contains("Flashcard"));
+    }
+
+    [Fact]
+    public async Task GetStudyModeSelectorDataAsync_NewStrategy_IsProcessedWithoutHardCodedSwitch()
+    {
+        await using var context = CreateContext();
+        await SeedSetAsync(context);
+        await SeedCardAsync(context, 1, "hello", "xin chào");
+
+        var (baseStrategies, _) = CreateStrategies(context);
+        baseStrategies.Add(new FakeQuizStrategy());
+        var resolver = new StudyModeStrategyResolver(baseStrategies);
+
+        var service = new StudyService(context, baseStrategies, resolver);
+        var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
+
+        var quizOption = result.Modes.SingleOrDefault(m => m.Mode == StudyMode.Quiz);
+        Assert.NotNull(quizOption);
+        Assert.Equal("Quiz", quizOption.Name);
+        Assert.Equal(1, quizOption.CardCount);
+    }
+
+    // Strategy giả để kiểm tra khả năng mở rộng mà không cần sửa StudyService
+    private sealed class FakeQuizStrategy : IStudyModeStrategy
+    {
+        public StudyMode Mode => StudyMode.Quiz;
+
+        public Task<List<Flashcard>> GetCardsAsync(int setId, UserStudySettings settings, string? userId)
+            => Task.FromResult(new List<Flashcard>());
+
+        public StudyModeOptionViewModel BuildOption(
+            int setId,
+            IReadOnlyList<Flashcard> cards,
+            UserStudySettings settings)
+        {
+            return new StudyModeOptionViewModel
+            {
+                Mode = StudyMode.Quiz,
+                Name = "Quiz",
+                Description = "Test quiz",
+                IconClass = "ph-question",
+                ActionUrl = $"/Study/{setId}/Quiz",
+                IsAvailable = true,
+                CardCount = 1,
+                EstimatedSeconds = 30
+            };
+        }
     }
 }

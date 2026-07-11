@@ -7,35 +7,33 @@ using ltwnc.Services.StudyModes;
 namespace ltwnc.Services;
 
 // Service xử lý nghiệp vụ học tập
-// Quản lý tiến trình học (đã biết/chưa biết) và phiên học
+// Quản lý tiến trình học (đã biết/chưa biết), phiên học và điều phối các strategy chế độ học
 public class StudyService
 {
     private readonly AppDbContext _context;
     private readonly IEnumerable<IStudyModeStrategy> _strategies;
+    private readonly IStudyModeStrategyResolver _strategyResolver;
 
-    // Inject AppDbContext và danh sách các strategy chế độ học
-    public StudyService(AppDbContext context, IEnumerable<IStudyModeStrategy> strategies)
+    // Inject AppDbContext, danh sách strategy và resolver
+    public StudyService(
+        AppDbContext context,
+        IEnumerable<IStudyModeStrategy> strategies,
+        IStudyModeStrategyResolver strategyResolver)
     {
         _context = context;
         _strategies = strategies;
+        _strategyResolver = strategyResolver;
     }
 
-    // Lấy danh sách thẻ trong một bộ để học
-    public async Task<List<Flashcard>> GetFlashcardsForStudyAsync(int setId, bool starredOnly = false, bool unlearnedOnly = false, string? userId = null)
+    // Lấy danh sách thẻ cho một chế độ học cụ thể thông qua strategy tương ứng
+    public async Task<List<Flashcard>> GetCardsForModeAsync(
+        StudyMode mode,
+        int setId,
+        UserStudySettings settings,
+        string? userId)
     {
-        var query = _context.Flashcards.Where(f => f.FlashcardSetId == setId);
-
-        if (starredOnly)
-        {
-            query = query.Where(f => f.IsStarred);
-        }
-
-        if (unlearnedOnly && !string.IsNullOrWhiteSpace(userId))
-        {
-            query = query.Where(f => !_context.UserProgresses.Any(p => p.UserId == userId && p.FlashcardId == f.Id && p.IsLearned));
-        }
-
-        return await query.OrderBy(f => f.OrderIndex).ToListAsync();
+        var strategy = _strategyResolver.Resolve(mode);
+        return await strategy.GetCardsAsync(setId, settings, userId);
     }
 
     public async Task<Dictionary<int, UserProgress>> GetProgressByCardIdAsync(int setId, string? userId)
@@ -192,19 +190,13 @@ public class StudyService
 
         var settings = await GetSettingsAsync(userId);
 
-        // Tìm strategy cho Flashcard và Dictation từ DI
-        var flashcardStrategy = _strategies.First(s => s.Mode == StudyMode.Flashcard);
-        var dictationStrategy = _strategies.First(s => s.Mode == StudyMode.Dictation);
-
-        // Flashcard lấy thẻ theo bộ lọc và tạo option
-        var flashcardCards = await flashcardStrategy.GetCards(setId, settings, userId, _context);
-        var flashcardOption = flashcardStrategy.BuildOption(setId, flashcardCards, settings);
-
-        // Dictation lấy thẻ có câu ví dụ và tạo option
-        var dictationCards = await dictationStrategy.GetCards(setId, settings, userId, _context);
-        var dictationOption = dictationStrategy.BuildOption(setId, dictationCards, settings);
-
-        var modes = new List<StudyModeOptionViewModel> { flashcardOption, dictationOption };
+        // Để mỗi strategy tự xác định thẻ khả dụng và option hiển thị
+        var modes = new List<StudyModeOptionViewModel>();
+        foreach (var strategy in _strategies.OrderBy(s => (int)s.Mode))
+        {
+            var cards = await strategy.GetCardsAsync(setId, settings, userId);
+            modes.Add(strategy.BuildOption(setId, cards, settings));
+        }
 
         var warnings = new List<string>();
         var hasExamples = allCards.Any(c => !string.IsNullOrWhiteSpace(c.ExampleSentence));

@@ -41,6 +41,8 @@ builder.Services.AddScoped<CardActionService>();
 builder.Services.AddScoped<CardActionCommandFactory>();
 
 // Study mode strategies
+builder.Services.AddScoped<IStudyCardQueryService, StudyCardQueryService>();
+builder.Services.AddScoped<IStudyModeStrategyResolver, StudyModeStrategyResolver>();
 builder.Services.AddScoped<IStudyModeStrategy, FlashcardModeStrategy>();
 builder.Services.AddScoped<IStudyModeStrategy, DictationModeStrategy>();
 

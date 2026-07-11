@@ -4,6 +4,7 @@ using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Study;
 using ltwnc.Services;
+using ltwnc.Services.StudyModes;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -23,6 +24,18 @@ public class StudyControllerIndexTests
         }, "TestAuth"));
     }
 
+    private (List<IStudyModeStrategy> Strategies, IStudyModeStrategyResolver Resolver) CreateStrategies(AppDbContext context)
+    {
+        var queryService = new StudyCardQueryService(context);
+        var strategies = new List<IStudyModeStrategy>
+        {
+            new FlashcardModeStrategy(queryService),
+            new DictationModeStrategy(queryService)
+        };
+        var resolver = new StudyModeStrategyResolver(strategies);
+        return (strategies, resolver);
+    }
+
     private StudyController CreateController(AppDbContext context, string? userId)
     {
         var userStore = new Mock<IUserStore<IdentityUser>>();
@@ -35,9 +48,10 @@ public class StudyControllerIndexTests
         var environment = new Mock<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
         environment.Setup(e => e.WebRootPath).Returns(Path.Combine(Path.GetTempPath(), "ltwnc-tests"));
 
+        var (strategies, resolver) = CreateStrategies(context);
         var setService = new FlashcardSetService(context, environment.Object);
-        var studyService = new StudyService(context, Enumerable.Empty<IStudyModeStrategy>());
-        var dictationService = new DictationService(context);
+        var studyService = new StudyService(context, strategies, resolver);
+        var dictationService = new DictationService(context, resolver);
 
         var httpContext = userId == null
             ? new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) }
@@ -103,14 +117,16 @@ public class StudyControllerIndexTests
     }
 
     [Fact]
-    public async Task Index_UnknownSet_ReturnsNotFound()
+    public async Task Index_UnknownSet_RedirectsToDetails()
     {
         await using var context = CreateContext();
 
         var controller = CreateController(context, "user-1");
         var result = await controller.Index(999);
 
-        Assert.IsType<NotFoundResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Details", redirect.ActionName);
+        Assert.Equal("FlashcardSet", redirect.ControllerName);
     }
 
     [Fact]

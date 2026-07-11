@@ -69,10 +69,12 @@ public class StudyController : Controller
         var set = await _setService.GetOwnedSetAsync(setId, user?.Id!);
         if (set == null) return RedirectToAction("Details", "FlashcardSet", new { id = setId });
 
-        // Lấy danh sách thẻ để học
-        var cards = await _studyService.GetFlashcardsForStudyAsync(setId, effectiveStarredOnly, effectiveUnlearnedOnly, user?.Id);
+        // Lấy danh sách thẻ để học từ strategy Flashcard
+        var cards = await _studyService.GetCardsForModeAsync(StudyMode.Flashcard, setId, settings, user?.Id);
 
-        var vocabularyCards = await _studyService.GetFlashcardsForStudyAsync(setId, false, false, user?.Id);
+        // Danh sách từ vựng đầy đủ (không áp dụng bộ lọc) dùng cho một số tính năng UI
+        var vocabularySettings = new UserStudySettings { StarredOnly = false, UnlearnedOnly = false };
+        var vocabularyCards = await _studyService.GetCardsForModeAsync(StudyMode.Flashcard, setId, vocabularySettings, user?.Id);
         var progressByCardId = await _studyService.GetProgressByCardIdAsync(setId, user?.Id);
 
         if (!cards.Any())

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
+using ltwnc.Services.StudyModes;
 
 namespace ltwnc.Services;
 
@@ -55,39 +56,20 @@ public class DictationResultCard
 public class DictationService
 {
     private readonly AppDbContext _context;
+    private readonly IStudyModeStrategyResolver _strategyResolver;
 
-    // Inject DbContext qua constructor
-    public DictationService(AppDbContext context)
+    // Inject DbContext và strategy resolver qua constructor
+    public DictationService(AppDbContext context, IStudyModeStrategyResolver strategyResolver)
     {
         _context = context;
+        _strategyResolver = strategyResolver;
     }
 
-    // Lấy danh sách thẻ cho bài nghe chép, áp dụng lọc và xáo trộn
+    // Lấy danh sách thẻ cho bài nghe chép, dùng chung DictationModeStrategy để nhất quán với Study Hub
     public async Task<List<Flashcard>> GetCardsForDictationAsync(int setId, string userId, UserStudySettings settings)
     {
-        var query = _context.Flashcards.Where(f => f.FlashcardSetId == setId);
-
-        if (settings.DictationContentMode == DictationContentMode.ExampleSentence)
-        {
-            query = query.Where(f => f.ExampleSentence.Trim() != "");
-        }
-
-        // Chỉ lấy thẻ đánh dấu sao
-        if (settings.StarredOnly)
-        {
-            query = query.Where(f => f.IsStarred);
-        }
-
-        // Chỉ lấy thẻ chưa thuộc
-        if (settings.UnlearnedOnly)
-        {
-            query = query.Where(f => !_context.UserProgresses.Any(p =>
-                p.UserId == userId &&
-                p.FlashcardId == f.Id &&
-                p.IsLearned));
-        }
-
-        var cards = await query.OrderBy(f => f.OrderIndex).ToListAsync();
+        var strategy = _strategyResolver.Resolve(StudyMode.Dictation);
+        var cards = await strategy.GetCardsAsync(setId, settings, userId);
 
         // Xáo trộn nếu cài đặt bật
         if (settings.DictationShuffle)

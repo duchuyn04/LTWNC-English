@@ -1,5 +1,4 @@
 using Microsoft.EntityFrameworkCore;
-using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Study;
 
@@ -8,44 +7,37 @@ namespace ltwnc.Services.StudyModes;
 // Strategy cho chế độ học Dictation: nghe câu ví dụ và viết lại từ
 public class DictationModeStrategy : IStudyModeStrategy
 {
+    private readonly IStudyCardQueryService _queryService;
+
+    public DictationModeStrategy(IStudyCardQueryService queryService)
+    {
+        _queryService = queryService;
+    }
+
     // Chế độ này phụ trách Dictation
     public StudyMode Mode => StudyMode.Dictation;
 
-    // Lấy thẻ trong bộ, lọc theo sao / chưa thuộc,
-    // sau đó chỉ giữ lại thẻ có câu ví dụ để nghe chép
-    public async Task<List<Flashcard>> GetCards(
+    // Lấy thẻ trong bộ đã qua bộ lọc chung, sau đó áp dụng quy tắc theo DictationContentMode
+    public async Task<List<Flashcard>> GetCardsAsync(
         int setId,
         UserStudySettings settings,
-        string? userId,
-        AppDbContext context)
+        string? userId)
     {
-        var query = context.Flashcards.Where(f => f.FlashcardSetId == setId);
+        var query = _queryService.CreateFilteredQuery(setId, settings, userId);
 
-        // Chỉ lấy thẻ đã gắn sao nếu ngườ dùng chọn "Chỉ đã sao"
-        if (settings.StarredOnly)
+        // ExampleSentence mode cần thẻ có câu ví dụ; Vocabulary mode dùng cả thẻ không có ví dụ
+        if (settings.DictationContentMode == DictationContentMode.ExampleSentence)
         {
-            query = query.Where(f => f.IsStarred);
+            query = query.Where(f => !string.IsNullOrWhiteSpace(f.ExampleSentence));
         }
 
-        // Chỉ lấy thẻ chưa thuộc nếu ngườ dùng chọn "Chỉ chưa thuộc"
-        if (settings.UnlearnedOnly && !string.IsNullOrWhiteSpace(userId))
-        {
-            query = query.Where(f => !context.UserProgresses.Any(p =>
-                p.UserId == userId &&
-                p.FlashcardId == f.Id &&
-                p.IsLearned));
-        }
-
-        var cards = await query.OrderBy(f => f.OrderIndex).ToListAsync();
-
-        // Dictation cần câu ví dụ để phát âm, nên loại thẻ không có câu ví dụ
-        return cards.Where(c => !string.IsNullOrWhiteSpace(c.ExampleSentence)).ToList();
+        return await query.OrderBy(f => f.OrderIndex).ToListAsync();
     }
 
     // Tạo thông tin hiển thị chế độ Dictation trên Study Hub
     public StudyModeOptionViewModel BuildOption(
         int setId,
-        List<Flashcard> cards,
+        IReadOnlyList<Flashcard> cards,
         UserStudySettings settings)
     {
         var option = new StudyModeOptionViewModel
@@ -55,15 +47,16 @@ public class DictationModeStrategy : IStudyModeStrategy
             Description = "Nghe và viết lại từ",
             IconClass = "ph-headphones",
             ActionUrl = $"/Study/{setId}/Dictation",
-            IsAvailable = cards.Any(),            // Có ít nhất 1 thẻ có câu ví dụ
-            CardCount = cards.Count,              // Số thẻ có câu ví dụ sau lọc
-            EstimatedSeconds = cards.Count * 25   // Ước tính 25 giây/thẻ
+            IsAvailable = cards.Count > 0,
+            CardCount = cards.Count,
+            EstimatedSeconds = cards.Count * 25
         };
 
-        // Nếu không có thẻ nào khả dụng, giải thích lý do
         if (!option.IsAvailable)
         {
-            option.UnavailableReason = "Không đủ thẻ có câu ví dụ";
+            option.UnavailableReason = settings.DictationContentMode == DictationContentMode.ExampleSentence
+                ? "Không có thẻ có câu ví dụ phù hợp."
+                : "Không có thẻ phù hợp với bộ lọc hiện tại.";
         }
 
         return option;
