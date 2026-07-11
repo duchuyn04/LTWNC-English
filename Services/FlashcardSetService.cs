@@ -196,6 +196,7 @@ public class FlashcardSetService
     public async Task<FlashcardSet> CopyPublicSetAsync(int sourceSetId, string learnerId)
     {
         var source = await _context.FlashcardSets
+            .AsNoTracking()
             .Include(s => s.Flashcards.OrderBy(f => f.OrderIndex))
             .FirstOrDefaultAsync(s => s.Id == sourceSetId);
 
