@@ -118,8 +118,24 @@ public class FlashcardSetCopyTests : IDisposable
             Assert.Equal(sourceCards[i].Synonyms, copied[i].Synonyms);
             Assert.Equal(sourceCards[i].ImageUrl, copied[i].ImageUrl);
             Assert.Null(copied[i].UploadedImagePath);
-            Assert.Equal(sourceCards[i].IsStarred, copied[i].IsStarred);
+            Assert.False(copied[i].IsStarred);
             Assert.Equal(sourceCards[i].OrderIndex, copied[i].OrderIndex);
         }
+    }
+
+    [Fact]
+    public async Task CopyPublicSetAsync_resets_IsStarred_for_all_cards()
+    {
+        var source = await SeedPublicSetAsync("author", "Public", cardCount: 3);
+        foreach (var card in source.Flashcards)
+            card.IsStarred = true;
+        await _context.SaveChangesAsync();
+
+        var copy = await _service.CopyPublicSetAsync(source.Id, "learner");
+        var copied = await _context.Flashcards
+            .Where(c => c.FlashcardSetId == copy.Id)
+            .ToListAsync();
+
+        Assert.All(copied, c => Assert.False(c.IsStarred));
     }
 }
