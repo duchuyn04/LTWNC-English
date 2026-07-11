@@ -151,16 +151,26 @@ public class DeleteCardsCommand : ICardActionCommand
         var provider = _context.Database.ProviderName;
         if (provider?.Contains("SqlServer") == true)
         {
-            var tableName = _context.Model.FindEntityType(typeof(TEntity))?.GetTableName()
-                ?? throw new InvalidOperationException($"Could not resolve table name for {typeof(TEntity).Name}.");
-            await _context.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT [{0}] ON", tableName);
+            var tableName = typeof(TEntity).Name switch
+            {
+                nameof(Flashcard) => "Flashcards",
+                nameof(UserProgress) => "UserProgresses",
+                nameof(DictationSessionDetail) => "DictationSessionDetails",
+                _ => throw new InvalidOperationException($"Unknown entity type {typeof(TEntity).Name}.")
+            };
+
+#pragma warning disable EF1002 // Risk of SQL injection is negligible because tableName is controlled by the model mapping above.
+            await _context.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT [{tableName}] ON");
+#pragma warning restore EF1002
             try
             {
                 await _context.SaveChangesAsync();
             }
             finally
             {
-                await _context.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT [{0}] OFF", tableName);
+#pragma warning disable EF1002
+                await _context.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT [{tableName}] OFF");
+#pragma warning restore EF1002
             }
         }
         else
