@@ -1,4 +1,4 @@
-@model List<ltwnc.Models.Entities.FlashcardSet>
+@model List<ltwnc.Models.ViewModels.FlashcardSet.FlashcardSetListItemViewModel>
 @{
     ViewData["Title"] = "Bộ thẻ của tôi";
 }
@@ -28,28 +28,28 @@
     else
     {
         <div class="row g-4 gsap-stagger">
-            @foreach (var set in Model)
+            @foreach (var item in Model)
             {
                 <div class="col-md-6 col-lg-4">
                     <div class="set-card">
                         <div class="set-card-header">
-                            <h5 class="set-card-title">@set.Title</h5>
-                            <span class="set-tag @(set.IsPublic ? "set-tag-public" : "set-tag-private")">
-                                @(set.IsPublic ? "Công khai" : "Riêng tư")
+                            <h5 class="set-card-title">@item.Set.Title</h5>
+                            <span class="set-tag @(item.Set.IsPublic ? "set-tag-public" : "set-tag-private")">
+                                @(item.Set.IsPublic ? "Công khai" : "Riêng tư")
                             </span>
                         </div>
-                        @if (!string.IsNullOrEmpty(set.Description))
+                        @if (!string.IsNullOrEmpty(item.Set.Description))
                         {
-                            <p style="color: #78716c; font-size: 0.875rem; margin: 0 0 0.75rem;">@set.Description</p>
+                            <p style="color: #78716c; font-size: 0.875rem; margin: 0 0 0.75rem;">@item.Set.Description</p>
                         }
-                        <p class="set-card-meta">@set.Flashcards.Count từ · Đã học 0%</p>
+                        <p class="set-card-meta">@item.TotalCards từ · Đã học @item.MasteryPercent%</p>
                         <div class="set-card-progress">
-                            <div class="set-card-progress-bar" style="width: 0%;"></div>
+                            <div class="set-card-progress-bar" style="width: @item.MasteryPercent%;"></div>
                         </div>
                         <div class="set-card-actions">
-                            <a href="/Study/@set.Id" class="btn-sm-primary"><i class="ph ph-book-open"></i> Học</a>
-                            <a href="/Set/@set.Id/Edit" class="btn-sm-secondary">Sửa</a>
-                            <form asp-action="Delete" asp-route-id="@set.Id" method="post" class="d-inline" onsubmit="return confirm('Xóa bộ thẻ này?');">
+                            <a href="/Study/@item.Set.Id" class="btn-sm-primary"><i class="ph ph-book-open"></i> Học</a>
+                            <a href="/Set/@item.Set.Id/Edit" class="btn-sm-secondary">Sửa</a>
+                            <form asp-action="Delete" asp-route-id="@item.Set.Id" method="post" class="d-inline" onsubmit="return confirm('Xóa bộ thẻ này?');">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="btn-sm-danger">Xóa</button>
                             </form>

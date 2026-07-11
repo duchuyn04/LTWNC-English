@@ -30,7 +30,7 @@ public class FlashcardSetController : Controller
         if (user == null) return Challenge();
 
         // Lấy tất cả bộ thẻ thuộc về người dùng này
-        var sets = await _setService.GetMySetsAsync(user.Id);
+        var sets = await _setService.GetMySetsWithProgressAsync(user.Id);
         return View(sets);
     }
 

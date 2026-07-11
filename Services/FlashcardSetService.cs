@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
+using ltwnc.Models.ViewModels.FlashcardSet;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using System;
@@ -91,6 +92,38 @@ public class FlashcardSetService
             .Where(s => s.UserId == userId)
             .OrderByDescending(s => s.UpdatedAt)
             .ToListAsync();
+    }
+
+    // Lấy tất cả bộ thẻ thuộc về một ngườidùng kèm tiến trình học
+    public async Task<List<FlashcardSetListItemViewModel>> GetMySetsWithProgressAsync(string userId)
+    {
+        var sets = await _context.FlashcardSets
+            .Include(s => s.Flashcards)
+            .Where(s => s.UserId == userId)
+            .OrderByDescending(s => s.UpdatedAt)
+            .ToListAsync();
+
+        var flashcardIds = sets.SelectMany(s => s.Flashcards).Select(f => f.Id).ToList();
+
+        var learnedCardIds = await _context.UserProgresses
+            .Where(p => p.UserId == userId && flashcardIds.Contains(p.FlashcardId) && p.IsLearned)
+            .Select(p => p.FlashcardId)
+            .ToListAsync();
+
+        var learnedSet = new HashSet<int>(learnedCardIds);
+
+        return sets.Select(s =>
+        {
+            var total = s.Flashcards.Count;
+            var learned = s.Flashcards.Count(f => learnedSet.Contains(f.Id));
+            return new FlashcardSetListItemViewModel
+            {
+                Set = s,
+                TotalCards = total,
+                LearnedCount = learned,
+                MasteryPercent = total > 0 ? learned * 100 / total : 0
+            };
+        }).ToList();
     }
 
     // Lấy danh sách bộ thẻ public (mới nhất)
