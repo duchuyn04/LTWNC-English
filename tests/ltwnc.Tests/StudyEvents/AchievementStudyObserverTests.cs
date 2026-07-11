@@ -1,11 +1,12 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
+using ltwnc.Services;
 using ltwnc.Services.StudyEvents;
 using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Tests.StudyEvents;
 
-// Kiểm tra observer thành tích mở đúng huy hiệu, không trùng
+// Kiểm tra observer thành tích (thin) ủy quyền unlock service mở đúng huy hiệu
 public class AchievementStudyObserverTests : IDisposable
 {
     private readonly AppDbContext _context;
@@ -18,7 +19,10 @@ public class AchievementStudyObserverTests : IDisposable
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         _context = new AppDbContext(options);
-        _observer = new AchievementStudyObserver(_context);
+        // Observer chỉ inject UnlockService; Progress + context dùng chung InMemory
+        var progress = new AchievementProgressService(_context);
+        var unlock = new AchievementUnlockService(_context, progress);
+        _observer = new AchievementStudyObserver(unlock);
     }
 
     public void Dispose()
@@ -65,6 +69,20 @@ public class AchievementStudyObserverTests : IDisposable
         }
 
         await _context.SaveChangesAsync();
+    }
+
+    // Tạo bộ thẻ dùng cho StudySession (metric session đọc từ DB)
+    private async Task<FlashcardSet> SeedSetAsync(string userId, string title)
+    {
+        var set = new FlashcardSet
+        {
+            Title = title,
+            UserId = userId,
+            IsPublic = true
+        };
+        _context.FlashcardSets.Add(set);
+        await _context.SaveChangesAsync();
+        return set;
     }
 
     // Đánh dấu thuộc thẻ đầu tiên → mở huy hiệu first_card_mastered
@@ -117,10 +135,22 @@ public class AchievementStudyObserverTests : IDisposable
     [Fact]
     public async Task Flashcard_session_completed_unlocks_first_flashcard_session()
     {
+        // Progress service đếm từ StudySessions trong DB, không từ event
+        var set = await SeedSetAsync("u2", "Flash set");
+        _context.StudySessions.Add(new StudySession
+        {
+            UserId = "u2",
+            FlashcardSetId = set.Id,
+            Mode = StudyMode.Flashcard,
+            Score = null,
+            CompletedAt = DateTime.UtcNow
+        });
+        await _context.SaveChangesAsync();
+
         await _observer.OnStudyEventAsync(new StudySessionCompletedEvent(
             "u2",
             DateTime.UtcNow,
-            SetId: 5,
+            SetId: set.Id,
             SessionId: 10,
             Mode: StudyMode.Flashcard,
             Score: null));
@@ -134,10 +164,22 @@ public class AchievementStudyObserverTests : IDisposable
     [Fact]
     public async Task Perfect_dictation_unlocks_session_and_perfect_badges()
     {
+        // Snapshot cần có session Dictation Score=100 trong DB
+        var set = await SeedSetAsync("u3", "Dictation set");
+        _context.StudySessions.Add(new StudySession
+        {
+            UserId = "u3",
+            FlashcardSetId = set.Id,
+            Mode = StudyMode.Dictation,
+            Score = 100,
+            CompletedAt = DateTime.UtcNow
+        });
+        await _context.SaveChangesAsync();
+
         await _observer.OnStudyEventAsync(new StudySessionCompletedEvent(
             "u3",
             DateTime.UtcNow,
-            SetId: 1,
+            SetId: set.Id,
             SessionId: 2,
             Mode: StudyMode.Dictation,
             Score: 100));

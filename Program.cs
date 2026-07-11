@@ -61,6 +61,9 @@ builder.Services.AddScoped<IStudyEventObserver, LoggingStudyObserver>();
 builder.Services.AddScoped<AchievementService>();
 // Service đếm metric tiến độ huy hiệu (snapshot live)
 builder.Services.AddScoped<AchievementProgressService>();
+// Service đồng bộ mở khóa huy hiệu đủ điều kiện (Observer + rescan trang)
+builder.Services.AddScoped<AchievementUnlockService>();
+
 
 // Add MVC
 builder.Services.AddControllersWithViews();
