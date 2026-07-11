@@ -93,7 +93,7 @@ public class StudyServiceTests
         await SeedSetAsync(context);
 
         var (strategies, resolver) = CreateStrategies(context);
-        var service = new StudyService(context, strategies, resolver);
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(0, result.TotalCards);
@@ -112,7 +112,7 @@ public class StudyServiceTests
         await SeedCardAsync(context, 1, "hello", "xin chào");
 
         var (strategies, resolver) = CreateStrategies(context);
-        var service = new StudyService(context, strategies, resolver);
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(StudyMode.Flashcard, result.RecommendedMode);
@@ -132,7 +132,7 @@ public class StudyServiceTests
         await SeedProgressAsync(context, 2, true);
 
         var (strategies, resolver) = CreateStrategies(context);
-        var service = new StudyService(context, strategies, resolver);
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(100, result.MasteryPercent);
@@ -160,7 +160,7 @@ public class StudyServiceTests
         await context.SaveChangesAsync();
 
         var (strategies, resolver) = CreateStrategies(context);
-        var service = new StudyService(context, strategies, resolver);
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(StudyMode.Flashcard, result.RecommendedMode);
@@ -183,7 +183,7 @@ public class StudyServiceTests
         await context.SaveChangesAsync();
 
         var (strategies, resolver) = CreateStrategies(context);
-        var service = new StudyService(context, strategies, resolver);
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         var flashcard = result.Modes.Single(m => m.Mode == StudyMode.Flashcard);
@@ -211,7 +211,7 @@ public class StudyServiceTests
         await context.SaveChangesAsync();
 
         var (strategies, resolver) = CreateStrategies(context);
-        var service = new StudyService(context, strategies, resolver);
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(StudyMode.Flashcard, result.RecommendedMode);
@@ -234,7 +234,7 @@ public class StudyServiceTests
         await context.SaveChangesAsync();
 
         var (strategies, resolver) = CreateStrategies(context);
-        var service = new StudyService(context, strategies, resolver);
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(1, result.RecentSessionCount);
@@ -248,7 +248,7 @@ public class StudyServiceTests
         await SeedSetAsync(context);
 
         var (strategies, resolver) = CreateStrategies(context);
-        var service = new StudyService(context, strategies, resolver);
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         await service.SaveFilterSettingsAsync("user-1", starredOnly: true, unlearnedOnly: false);
 
         var settings = await context.UserStudySettings.FirstAsync(s => s.UserId == "user-1");
@@ -274,7 +274,7 @@ public class StudyServiceTests
         await context.SaveChangesAsync();
 
         var (strategies, resolver) = CreateStrategies(context);
-        var service = new StudyService(context, strategies, resolver);
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, userId: null);
 
         Assert.Equal(1, result.TotalCards);
@@ -295,7 +295,7 @@ public class StudyServiceTests
         await SeedProgressAsync(context, 1, true);
 
         var (strategies, resolver) = CreateStrategies(context);
-        var service = new StudyService(context, strategies, resolver);
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(33, result.MasteryPercent);
@@ -318,7 +318,7 @@ public class StudyServiceTests
         await context.SaveChangesAsync();
 
         var (strategies, resolver) = CreateStrategies(context);
-        var service = new StudyService(context, strategies, resolver);
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
 
         var withExample = await service.GetStudyModeSelectorDataAsync(1, "user-1");
         Assert.Equal(StudyMode.Dictation, withExample.RecommendedMode);
@@ -350,7 +350,7 @@ public class StudyServiceTests
         await context.SaveChangesAsync();
 
         var (strategies, resolver) = CreateStrategies(context);
-        var service = new StudyService(context, strategies, resolver);
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         var flashcard = result.Modes.Single(m => m.Mode == StudyMode.Flashcard);
@@ -365,7 +365,7 @@ public class StudyServiceTests
         await SeedSetAsync(context);
 
         var (strategies, resolver) = CreateStrategies(context);
-        var service = new StudyService(context, strategies, resolver);
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.All(result.RoadmapModes, m => Assert.Equal("Sắp ra mắt", m.UnavailableReason));
@@ -391,7 +391,7 @@ public class StudyServiceTests
         await context.SaveChangesAsync();
 
         var (strategies, resolver) = CreateStrategies(context);
-        var service = new StudyService(context, strategies, resolver);
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         Assert.Equal(StudyMode.Flashcard, result.RecommendedMode);
@@ -410,7 +410,7 @@ public class StudyServiceTests
         baseStrategies.Add(new FakeQuizStrategy());
         var resolver = new StudyModeStrategyResolver(baseStrategies);
 
-        var service = new StudyService(context, baseStrategies, resolver);
+        var service = new StudyService(context, baseStrategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
         var quizOption = result.Modes.SingleOrDefault(m => m.Mode == StudyMode.Quiz);

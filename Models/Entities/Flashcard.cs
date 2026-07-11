@@ -60,9 +60,10 @@ public class Flashcard : IPrototype<Flashcard>
     [ForeignKey(nameof(FlashcardSetId))]
     public FlashcardSet? FlashcardSet { get; set; }
 
-    // Tạo bản sao độc lập của thẻ để dùng khi clone bộ thẻ.
-    // UploadedImagePath để null vì file ảnh upload nội bộ không được duplicate.
-    // IsStarred reset vì đây là trạng thái học cá nhân của chủ bộ nguồn.
+    // Tạo bản sao độc lập của thẻ (dùng khi FlashcardSet.Clone deep-copy thẻ con).
+    // Giữ nội dung học: FrontText, BackText, phát âm, loại từ, ví dụ, synonyms, ImageUrl, OrderIndex.
+    // Reset identity (Id, FlashcardSetId để EF gán mới), IsStarred, UploadedImagePath
+    // (file upload nội bộ không được nhân bản trên đĩa).
     public Flashcard Clone()
     {
         return new Flashcard

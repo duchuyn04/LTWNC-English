@@ -51,8 +51,8 @@ public class StudyControllerIndexTests
 
         var (strategies, resolver) = CreateStrategies(context);
         var setService = new FlashcardSetService(context, environment.Object);
-        var studyService = new StudyService(context, strategies, resolver);
-        var dictationService = new DictationService(context, resolver);
+        var studyService = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
+        var dictationService = new DictationService(context, resolver, TestStudyEvents.NoOpPublisher());
 
         // Tạo HttpContext tương ứng với user đã đăng nhập hoặc ẩn danh
         var httpContext = userId == null

@@ -27,14 +27,15 @@ public class FlashcardSetCloneTests
         Assert.Equal(0, clone.Id);
         Assert.Equal(string.Empty, clone.UserId);
         Assert.Null(clone.SourceSetId);
+        // Bản clone không mang chính sách công khai của nguồn
+        Assert.False(clone.IsPublic);
     }
 
-    // Trạng thái công khai phải được giữ nguyên
+    // Bản clone luôn private; service sẽ gán lại ownership và lineage sau
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    // Clone giữ nguyên trạng thái công khai
-    public void Clone_copies_IsPublic(bool isPublic)
+    public void Clone_resets_IsPublic_to_false(bool isPublic)
     {
         var original = new FlashcardSet
         {
@@ -44,7 +45,7 @@ public class FlashcardSetCloneTests
 
         var clone = original.Clone();
 
-        Assert.Equal(isPublic, clone.IsPublic);
+        Assert.False(clone.IsPublic);
     }
 
     // Tiêu đề và mô tả phải được bảo toàn

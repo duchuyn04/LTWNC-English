@@ -3,6 +3,7 @@ using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Study;
 using ltwnc.Services.StudyModes;
+using ltwnc.Services.StudyEvents;
 
 namespace ltwnc.Services;
 
@@ -11,20 +12,27 @@ namespace ltwnc.Services;
 // - Quản lý settings và tiến trình học (đã biết/chưa biết)
 // - Điều phối các IStudyModeStrategy để lấy thẻ và xây dựng Study Hub
 // - Không chứa logic lọc thẻ — toàn bộ giao cho strategy
+// - Sau khi lưu tiến độ / phiên học, báo tin cho Observer (thành tích, log...)
+//   qua IStudyEventPublisher — service này không tự mở huy hiệu
 public class StudyService
 {
     private readonly AppDbContext _context;
     private readonly IEnumerable<IStudyModeStrategy> _strategies;
     private readonly IStudyModeStrategyResolver _strategyResolver;
 
+    // Trạm phát sự kiện (Subject trong mẫu Observer)
+    private readonly IStudyEventPublisher _studyEvents;
+
     public StudyService(
         AppDbContext context,
         IEnumerable<IStudyModeStrategy> strategies,
-        IStudyModeStrategyResolver strategyResolver)
+        IStudyModeStrategyResolver strategyResolver,
+        IStudyEventPublisher studyEvents)
     {
         _context = context;
         _strategies = strategies;
         _strategyResolver = strategyResolver;
+        _studyEvents = studyEvents;
     }
 
     // Lấy danh sách thẻ cho một chế độ học cụ thể.
@@ -147,7 +155,18 @@ public class StudyService
         }
         progress.LastReviewed = DateTime.UtcNow;
 
+        // Lưu tiến độ xong trước — observer đọc database sẽ thấy dữ liệu mới
         await _context.SaveChangesAsync();
+
+        // Báo cho tất cả "người theo dõi" biết user vừa cập nhật một thẻ
+        // (ví dụ: mở huy hiệu "thẻ đầu tiên đã thuộc", ghi log hệ thống)
+        await _studyEvents.PublishAsync(new CardProgressChangedEvent(
+            UserId: userId,
+            OccurredAtUtc: DateTime.UtcNow,
+            SetId: setId,
+            FlashcardId: flashcardId,
+            IsLearned: learned,
+            Status: progress.Status));
     }
 
     // Ghi nhận hoàn thành một phiên học
@@ -168,6 +187,15 @@ public class StudyService
         };
         await _context.StudySessions.AddAsync(session);
         await _context.SaveChangesAsync();
+
+        // Báo buổi học đã xong — observer có thể mở huy hiệu "buổi Flashcard đầu tiên"...
+        await _studyEvents.PublishAsync(new StudySessionCompletedEvent(
+            UserId: userId,
+            OccurredAtUtc: DateTime.UtcNow,
+            SetId: setId,
+            SessionId: session.Id,
+            Mode: mode,
+            Score: session.Score));
     }
 
     // Lấy dữ liệu cho Study Hub — trang chọn chế độ học.

@@ -66,8 +66,8 @@ public class StudyControllerDictationTests
         var resolver = new StudyModeStrategyResolver(strategies);
 
         var setService = new FlashcardSetService(context, environment.Object);
-        var studyService = new StudyService(context, strategies, resolver);
-        var dictationService = new DictationService(context, resolver);
+        var studyService = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
+        var dictationService = new DictationService(context, resolver, TestStudyEvents.NoOpPublisher());
 
         var controller = new StudyController(studyService, dictationService, setService, userManager.Object)
         {

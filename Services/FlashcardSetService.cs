@@ -219,9 +219,22 @@ public class FlashcardSetService
         if (existingCopy != null)
             return existingCopy;
 
+        // Guard: Clone() chỉ nhân bản thẻ đang có trên object.
+        // So khớp với số thẻ trong database để tránh bản sao rỗng im lặng khi quên Include.
+        var cardCountInDatabase = await _context.Flashcards
+            .CountAsync(f => f.FlashcardSetId == source.Id);
+        if (cardCountInDatabase != source.Flashcards.Count)
+        {
+            throw new InvalidOperationException(
+                "Không thể sao chép bộ thẻ: danh sách thẻ trên object không khớp số thẻ trong database. " +
+                "Navigation Flashcards có thể chưa được load đủ trước khi Clone.");
+        }
+
+        // Prototype: nhân bản nội dung học; ownership và lineage gán ngay bên dưới.
         var copy = source.Clone();
         copy.UserId = learnerId;
         copy.SourceSetId = source.Id;
+        // Chốt nghiệp vụ: bản sao vào thư viện riêng luôn private (defense in depth).
         copy.IsPublic = false;
 
         await using var transaction = await _context.Database.BeginTransactionAsync();

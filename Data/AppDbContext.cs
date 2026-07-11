@@ -20,6 +20,9 @@ public class AppDbContext : IdentityDbContext
     public DbSet<DictationSessionDetail> DictationSessionDetails => Set<DictationSessionDetail>();
     public DbSet<CardActionLog> CardActionLogs => Set<CardActionLog>();
 
+    // Bảng thành tích (huy hiệu) user đã mở khóa — do Observer ghi khi có sự kiện học
+    public DbSet<UserAchievement> UserAchievements => Set<UserAchievement>();
+
     // Cấu hình model — indexes, relationships, constraints
     protected override void OnModelCreating(ModelBuilder builder)
     {
@@ -86,6 +89,13 @@ public class AppDbContext : IdentityDbContext
         builder.Entity<CardActionLog>(entity =>
         {
             entity.HasIndex(e => new { e.SetId, e.UserId, e.UndoneAt });
+        });
+
+        // Mỗi user chỉ nhận mỗi mã huy hiệu một lần (không trùng)
+        builder.Entity<UserAchievement>(entity =>
+        {
+            entity.HasIndex(e => new { e.UserId, e.Code }).IsUnique();
+            entity.HasIndex(e => e.UserId);
         });
 
         // Cấu hình bảng DictationSessionDetails

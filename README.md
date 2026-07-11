@@ -17,13 +17,17 @@
 
 ## Các mẫu thiết kế GoF
 
-Project áp dụng một số mẫu từ sách *Design Patterns: Elements of Reusable Object-Oriented Software* để code dễ mở rộng và dễ test hơn.
+Project áp dụng một số mẫu từ sách _Design Patterns: Elements of Reusable Object-Oriented Software_ để code dễ mở rộng và dễ test hơn.
 
 ### 🧬 Prototype
 
-Dùng khi ngườidùng sao chép một bộ thẻ công khai vào thư viện riêng.
+Dùng khi người dùng sao chép một bộ thẻ công khai vào thư viện riêng.
 
-`FlashcardSet` và `Flashcard` đều implement `IPrototype<T>`. Khi sao chép, `FlashcardSet.Clone()` tạo một bộ mới với cùng tiêu đề, mô tả và danh sách thẻ đã clone. Mỗi `Flashcard.Clone()` tạo thẻ mới, giữ nội dung học thuật nhưng reset trạng thái cá nhân như `IsStarred` và `UploadedImagePath`.
+`FlashcardSet` và `Flashcard` đều implement `IPrototype<T>`.
+
+- `FlashcardSet.Clone()` giữ tiêu đề, mô tả và deep-clone danh sách thẻ. Reset `Id`, `UserId`, `SourceSetId`, và đặt `IsPublic = false` (bản clone không mang chính sách công khai của nguồn). Caller phải đảm bảo `Flashcards` đã load đủ trước khi clone.
+- `Flashcard.Clone()` giữ nội dung học (từ, nghĩa, IPA, ví dụ, ảnh URL…) nhưng reset trạng thái cá nhân: `IsStarred = false`, `UploadedImagePath = null`.
+- `FlashcardSetService.CopyPublicSetAsync` load bộ nguồn kèm thẻ, kiểm tra số thẻ trên object khớp database, gọi `Clone()`, rồi gán `UserId`, `SourceSetId`, và khẳng định bản sao là private.
 
 Vì clone tạo object mới hoàn toàn, bộ sao có thể chỉnh sửa riêng mà không ảnh hưởng bộ nguồn.
 
@@ -56,17 +60,33 @@ Dùng để tạo command đúng loại từ action mà controller gửi lên.
 
 `CardActionCommandFactory` nhận một chuỗi action type như `"Delete"`, `"Star"`, `"Unstar"` và trả về command tương ứng. Controller không cần biết command cụ thể là class nào, cũng không cần tự viết switch để khởi tạo.
 
+### 👀 Observer
+
+Dùng khi user học xong một việc (đánh dấu thẻ đã thuộc, hoàn thành buổi học, trả lời nghe chép) và **nhiều phần khác** cần phản ứng độc lập.
+
+- **Subject (trạm phát):** `StudyEventPublisher` — nhận mẩu tin sự kiện và báo cho mọi người theo dõi.
+- **Observer (người theo dõi):** `IStudyEventObserver`.
+- **Concrete observers:**
+  - `AchievementStudyObserver` — mở khóa huy hiệu (lưu bảng `UserAchievements`).
+  - `LoggingStudyObserver` — ghi log hệ thống (chứng minh một sự kiện, nhiều người nghe).
+- **Sự kiện:** `CardProgressChangedEvent`, `StudySessionCompletedEvent`, `DictationAnswerCheckedEvent`.
+- `StudyService` / `DictationService` chỉ gọi `PublishAsync` sau khi lưu database; **không** biết chi tiết thành tích.
+- Thêm observer mới: tạo class implement `IStudyEventObserver`, đăng ký một dòng DI trong `Program.cs`.
+- Trang xem: `/Achievements` (cần đăng nhập).
+
+Trong ASP.NET, danh sách observer đăng ký qua DI (tương đương `Attach` trong sách GoF).
+
 ## Công nghệ
 
-| Thành phần | Công nghệ |
-| --- | --- |
-| Framework | ASP.NET Core MVC (.NET 10.0) |
-| Database | SQL Server |
-| ORM | Entity Framework Core |
-| Xác thực | ASP.NET Identity |
-| UI | Razor Views, Bootstrap, CSS riêng |
-| Icons | Phosphor Icons |
-| TTS | Web Speech API |
+| Thành phần | Công nghệ                         |
+| ---------- | --------------------------------- |
+| Framework  | ASP.NET Core MVC (.NET 10.0)      |
+| Database   | SQL Server                        |
+| ORM        | Entity Framework Core             |
+| Xác thực   | ASP.NET Identity                  |
+| UI         | Razor Views, Bootstrap, CSS riêng |
+| Icons      | Phosphor Icons                    |
+| TTS        | Web Speech API                    |
 
 ## Cấu trúc thư mục
 
@@ -76,6 +96,7 @@ ltwnc/
 ├── Services/                 # Logic nghiệp vụ và các implementation GoF
 │   ├── CardActions/          # Command pattern
 │   ├── StudyModes/           # Strategy pattern
+│   ├── StudyEvents/          # Observer pattern (sự kiện học + thành tích)
 │   └── FlashcardSetService.cs
 ├── Data/                     # EF Core DbContext
 │   └── AppDbContext.cs
@@ -131,11 +152,11 @@ Mở `appsettings.json` và chỉnh connection string:
 
 Một số giá trị `Server` thường dùng:
 
-| SQL Server | Server |
-| --- | --- |
+| SQL Server         | Server                                       |
+| ------------------ | -------------------------------------------- |
 | SQL Server Express | `localhost\\SQLEXPRESS` hoặc `.\\SQLEXPRESS` |
-| LocalDB | `(localdb)\\mssqllocaldb` |
-| Default instance | `localhost` hoặc `.` |
+| LocalDB            | `(localdb)\\mssqllocaldb`                    |
+| Default instance   | `localhost` hoặc `.`                         |
 
 Tạo/cập nhật database:
 

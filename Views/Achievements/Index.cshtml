@@ -1,0 +1,81 @@
+@model IReadOnlyList<ltwnc.Models.ViewModels.Achievements.AchievementListItemViewModel>
+@{
+    // Trang danh sách huy hiệu: cái đã mở và cái còn khóa
+    ViewData["Title"] = "Thành tích";
+    var unlockedCount = Model.Count(a => a.IsUnlocked);
+}
+
+@section Styles {
+    <style>
+        .ach-page { max-width: 720px; margin: 0 auto; padding: 2rem 1rem 3rem; }
+        .ach-hero { margin-bottom: 1.75rem; }
+        .ach-hero h1 { font-size: 1.75rem; font-weight: 700; color: #111; letter-spacing: -0.02em; margin-bottom: 0.35rem; }
+        .ach-hero p { color: #787774; margin: 0; }
+        .ach-grid { display: flex; flex-direction: column; gap: 0.75rem; }
+        .ach-card {
+            border: 1px solid #EAEAEA;
+            border-radius: 12px;
+            padding: 1rem 1.15rem;
+            background: #fff;
+            display: flex;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+        .ach-card.is-locked { opacity: 0.55; background: #FAFAFA; }
+        .ach-icon {
+            width: 44px; height: 44px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.35rem; flex-shrink: 0;
+            background: #111; color: #fff;
+        }
+        .ach-card.is-locked .ach-icon { background: #EAEAEA; color: #787774; }
+        .ach-title { font-weight: 600; color: #111; margin: 0 0 0.25rem; }
+        .ach-desc { color: #787774; font-size: 0.92rem; margin: 0 0 0.35rem; }
+        .ach-meta { font-size: 0.8rem; color: #9B9A97; margin: 0; }
+        .ach-empty {
+            border: 1px dashed #EAEAEA; border-radius: 12px;
+            padding: 2rem; text-align: center; color: #787774;
+        }
+    </style>
+}
+
+<div class="ach-page">
+    <div class="ach-hero">
+        <h1><i class="ph ph-trophy"></i> Thành tích</h1>
+        <p>Bạn đã mở @unlockedCount / @Model.Count huy hiệu. Học flashcard hoặc nghe chép để mở thêm.</p>
+    </div>
+
+    @if (Model.Count == 0)
+    {
+        <div class="ach-empty">
+            Chưa có huy hiệu nào trong hệ thống.
+        </div>
+    }
+    else
+    {
+        <div class="ach-grid">
+            @foreach (var item in Model)
+            {
+                <div class="ach-card @(item.IsUnlocked ? "" : "is-locked")">
+                    <div class="ach-icon">
+                        <i class="ph @(item.IsUnlocked ? "ph-medal" : "ph-lock-simple")"></i>
+                    </div>
+                    <div>
+                        <p class="ach-title">@item.Title</p>
+                        <p class="ach-desc">@item.Description</p>
+                        @if (item.IsUnlocked && item.UnlockedAt.HasValue)
+                        {
+                            <p class="ach-meta">
+                                Đã mở lúc @item.UnlockedAt.Value.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                            </p>
+                        }
+                        else
+                        {
+                            <p class="ach-meta">Chưa mở khóa</p>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

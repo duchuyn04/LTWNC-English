@@ -167,7 +167,7 @@ public class DictationModeStrategyTests
             new DictationModeStrategy(queryService)
         };
         var resolver = new StudyModeStrategyResolver(strategies);
-        var dictationService = new DictationService(context, resolver);
+        var dictationService = new DictationService(context, resolver, TestStudyEvents.NoOpPublisher());
 
         var settings = new UserStudySettings
         {

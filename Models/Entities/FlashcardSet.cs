@@ -45,9 +45,12 @@ public class FlashcardSet : IPrototype<FlashcardSet>
     // Navigation property — danh sách thẻ trong bộ
     public ICollection<Flashcard> Flashcards { get; set; } = new List<Flashcard>();
 
-    // Tạo bản sao độc lập của bộ thẻ, bao gồm cả các thẻ con.
-    // Không giữ thông tin chủ sở hữu và nguồn sao chép cũ.
-    // Service sẽ gán UserId, SourceSetId và trạng thái công khai theo nghiệp vụ.
+    // Tạo bản sao độc lập của bộ thẻ, bao gồm deep-clone các thẻ con.
+    // Tiền điều kiện: Flashcards phải là danh sách thẻ đầy đủ muốn nhân bản.
+    // Nếu object lấy từ EF, caller phải Include navigation trước khi gọi Clone.
+    // Giữ: Title, Description, và nội dung từng thẻ (qua Flashcard.Clone).
+    // Reset: Id, UserId, SourceSetId, IsPublic (luôn private), timestamps.
+    // Service gán lại UserId, SourceSetId và có thể khẳng định lại IsPublic theo nghiệp vụ.
     public FlashcardSet Clone()
     {
         var now = DateTime.UtcNow;
@@ -55,7 +58,8 @@ public class FlashcardSet : IPrototype<FlashcardSet>
         {
             Title = Title,
             Description = Description,
-            IsPublic = IsPublic,
+            // Không mang chính sách công khai của nguồn; bản clone mặc định private.
+            IsPublic = false,
             CreatedAt = now,
             UpdatedAt = now,
             Flashcards = Flashcards

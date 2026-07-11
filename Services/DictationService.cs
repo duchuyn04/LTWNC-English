@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.StudyModes;
+using ltwnc.Services.StudyEvents;
 
 namespace ltwnc.Services;
 
@@ -52,17 +53,26 @@ public class DictationResultCard
     public string ExampleMeaning { get; set; } = string.Empty;
 }
 
-// Service xử lý nghiệp vụ nghe chép chính tả
+// Service xử lý nghiệp vụ nghe chép chính tả.
+// Sau khi chấm bài / đóng phiên, phát sự kiện cho Observer (thành tích, log)
+// — DictationService không tự tính huy hiệu.
 public class DictationService
 {
     private readonly AppDbContext _context;
     private readonly IStudyModeStrategyResolver _strategyResolver;
 
-    // Inject DbContext và strategy resolver qua constructor
-    public DictationService(AppDbContext context, IStudyModeStrategyResolver strategyResolver)
+    // Trạm phát sự kiện (Subject trong mẫu Observer)
+    private readonly IStudyEventPublisher _studyEvents;
+
+    // Inject DbContext, strategy resolver và trạm phát sự kiện
+    public DictationService(
+        AppDbContext context,
+        IStudyModeStrategyResolver strategyResolver,
+        IStudyEventPublisher studyEvents)
     {
         _context = context;
         _strategyResolver = strategyResolver;
+        _studyEvents = studyEvents;
     }
 
     // Lấy danh sách thẻ cho màn hình Dictation.
@@ -186,6 +196,16 @@ public class DictationService
         };
         await _context.DictationSessionDetails.AddAsync(detail);
         await _context.SaveChangesAsync();
+
+        // Báo cho observer: user vừa trả lời một câu nghe chép (đúng/sai)
+        // Người theo dõi thành tích có thể mở huy hiệu nếu câu trả lời đúng
+        await _studyEvents.PublishAsync(new DictationAnswerCheckedEvent(
+            UserId: userId,
+            OccurredAtUtc: DateTime.UtcNow,
+            SetId: session.FlashcardSetId,
+            SessionId: sessionId,
+            FlashcardId: cardId,
+            IsCorrect: isCorrect));
 
         return new DictationCheckResult
         {
@@ -353,6 +373,16 @@ public class DictationService
         session.Score = score;
         session.CompletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
+
+        // Báo buổi nghe chép đã xong — có thể mở huy hiệu buổi Dictation / điểm 100
+        await _studyEvents.PublishAsync(new StudySessionCompletedEvent(
+            UserId: session.UserId,
+            OccurredAtUtc: DateTime.UtcNow,
+            SetId: session.FlashcardSetId,
+            SessionId: session.Id,
+            Mode: StudyMode.Dictation,
+            Score: score));
+
         return session;
     }
 

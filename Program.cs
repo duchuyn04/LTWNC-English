@@ -4,6 +4,7 @@ using ltwnc.Data;
 using ltwnc.Services;
 using ltwnc.Services.CardActions;
 using ltwnc.Services.StudyModes;
+using ltwnc.Services.StudyEvents;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -48,6 +49,16 @@ builder.Services.AddScoped<IStudyModeStrategyResolver, StudyModeStrategyResolver
 builder.Services.AddScoped<IStudyModeStrategy, FlashcardModeStrategy>();
 builder.Services.AddScoped<IStudyModeStrategy, DictationModeStrategy>();
 
+// ============================================================
+// Mẫu Observer — đăng ký "trạm phát" và các "người theo dõi"
+// Thêm observer mới: tạo class implement IStudyEventObserver + một dòng AddScoped dưới đây.
+// Không cần sửa StudyService hay DictationService.
+// ============================================================
+builder.Services.AddScoped<IStudyEventPublisher, StudyEventPublisher>();
+builder.Services.AddScoped<IStudyEventObserver, AchievementStudyObserver>();
+builder.Services.AddScoped<IStudyEventObserver, LoggingStudyObserver>();
+// Service đọc thành tích cho trang UI (không phải observer)
+builder.Services.AddScoped<AchievementService>();
 
 // Add MVC
 builder.Services.AddControllersWithViews();
