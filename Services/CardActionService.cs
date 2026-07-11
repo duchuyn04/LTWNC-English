@@ -15,6 +15,7 @@ public class CardActionService
 
     public async Task<CardActionLog> ExecuteAsync(ICardActionCommand command)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
         await command.ExecuteAsync();
 
         var snapshot = command switch
@@ -37,11 +38,13 @@ public class CardActionService
 
         _context.CardActionLogs.Add(log);
         await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
         return log;
     }
 
     public async Task UndoAsync(int logId, string userId)
     {
+        await using var transaction = await _context.Database.BeginTransactionAsync();
         var log = await GetLogByIdAsync(logId, userId)
                   ?? throw new KeyNotFoundException("Không tìm thấy hành động để hoàn tác.");
 
@@ -73,6 +76,7 @@ public class CardActionService
         await command.UndoAsync();
         log.UndoneAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
+        await transaction.CommitAsync();
     }
 
     public async Task<IReadOnlyList<CardActionLog>> GetUndoableLogsAsync(int setId, string userId, int limit = 5)

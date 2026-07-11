@@ -28,6 +28,9 @@ public class DeleteCardsCommand : ICardActionCommand
         var cards = await _context.Flashcards
             .Where(f => f.FlashcardSetId == SetId && CardIds.Contains(f.Id))
             .ToListAsync();
+        var details = await _context.DictationSessionDetails
+            .Where(d => CardIds.Contains(d.FlashcardId))
+            .ToListAsync();
 
         _snapshots.Clear();
         _snapshots.AddRange(cards.Select(c => new FlashcardSnapshot
@@ -44,17 +47,30 @@ public class DeleteCardsCommand : ICardActionCommand
             ImageUrl = c.ImageUrl,
             UploadedImagePath = c.UploadedImagePath,
             IsStarred = c.IsStarred,
-            OrderIndex = c.OrderIndex
+            OrderIndex = c.OrderIndex,
+            DictationSessionDetails = details
+                .Where(d => d.FlashcardId == c.Id)
+                .Select(d => new DictationSessionDetailSnapshot
+                {
+                    Id = d.Id,
+                    StudySessionId = d.StudySessionId,
+                    FlashcardId = d.FlashcardId,
+                    IsCorrect = d.IsCorrect,
+                    AnsweredText = d.AnsweredText,
+                    CreatedAt = d.CreatedAt
+                })
+                .ToList()
         }));
 
         await _context.UserProgresses
             .Where(p => CardIds.Contains(p.FlashcardId))
             .ExecuteDeleteAsync();
+        _context.DictationSessionDetails.RemoveRange(details);
         _context.Flashcards.RemoveRange(cards);
         await _context.SaveChangesAsync();
     }
 
-    public Task UndoAsync()
+    public async Task UndoAsync()
     {
         foreach (var snapshot in _snapshots)
         {
@@ -76,7 +92,23 @@ public class DeleteCardsCommand : ICardActionCommand
             });
         }
 
-        return _context.SaveChangesAsync();
+        if (_snapshots.Count > 0)
+            await SaveFlashcardsWithIdentityAsync();
+
+        var details = _snapshots.SelectMany(snapshot =>
+            snapshot.DictationSessionDetails.Select(detail => new DictationSessionDetail
+            {
+                Id = detail.Id,
+                StudySessionId = detail.StudySessionId,
+                FlashcardId = detail.FlashcardId,
+                IsCorrect = detail.IsCorrect,
+                AnsweredText = detail.AnsweredText,
+                CreatedAt = detail.CreatedAt
+            }))
+            .ToList();
+        _context.DictationSessionDetails.AddRange(details);
+        if (details.Count > 0)
+            await SaveDictationDetailsWithIdentityAsync();
     }
 
     public string GetSnapshotJson() => JsonSerializer.Serialize(_snapshots);
@@ -85,5 +117,31 @@ public class DeleteCardsCommand : ICardActionCommand
     {
         _snapshots.Clear();
         _snapshots.AddRange(JsonSerializer.Deserialize<List<FlashcardSnapshot>>(json) ?? []);
+    }
+
+    private async Task SaveFlashcardsWithIdentityAsync()
+    {
+        await _context.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT [Flashcards] ON");
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        finally
+        {
+            await _context.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT [Flashcards] OFF");
+        }
+    }
+
+    private async Task SaveDictationDetailsWithIdentityAsync()
+    {
+        await _context.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT [DictationSessionDetails] ON");
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        finally
+        {
+            await _context.Database.ExecuteSqlRawAsync("SET IDENTITY_INSERT [DictationSessionDetails] OFF");
+        }
     }
 }

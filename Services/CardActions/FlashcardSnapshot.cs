@@ -15,4 +15,15 @@ public class FlashcardSnapshot
     public string? UploadedImagePath { get; set; }
     public bool IsStarred { get; set; }
     public int OrderIndex { get; set; }
+    public List<DictationSessionDetailSnapshot> DictationSessionDetails { get; set; } = [];
+}
+
+public class DictationSessionDetailSnapshot
+{
+    public int Id { get; set; }
+    public int StudySessionId { get; set; }
+    public int FlashcardId { get; set; }
+    public bool IsCorrect { get; set; }
+    public string AnsweredText { get; set; } = string.Empty;
+    public DateTime CreatedAt { get; set; }
 }
