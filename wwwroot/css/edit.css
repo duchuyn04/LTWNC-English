@@ -107,6 +107,24 @@
     font-weight: 600;
 }
 
+.batch-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.vocab-list-item-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.card-checkbox {
+    width: 1.25rem;
+    height: 1.25rem;
+    flex-shrink: 0;
+}
+
 @media (max-width: 900px) {
     .vocab-editor {
         grid-template-columns: 1fr;

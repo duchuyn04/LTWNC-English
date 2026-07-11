@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using ltwnc.Data;
 using ltwnc.Services;
+using ltwnc.Services.CardActions;
 using ltwnc.Services.StudyModes;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -36,6 +37,7 @@ builder.Services.AddScoped<FlashcardSetService>();
 builder.Services.AddScoped<StudyService>();
 // Service xử lý nghe chép chính tả
 builder.Services.AddScoped<DictationService>();
+builder.Services.AddScoped<CardActionService>();
 
 // Study mode strategies
 builder.Services.AddScoped<IStudyModeStrategy, FlashcardModeStrategy>();

@@ -18,6 +18,7 @@ public class AppDbContext : IdentityDbContext
     public DbSet<UserProgress> UserProgresses => Set<UserProgress>();
     public DbSet<UserStudySettings> UserStudySettings => Set<UserStudySettings>();
     public DbSet<DictationSessionDetail> DictationSessionDetails => Set<DictationSessionDetail>();
+    public DbSet<CardActionLog> CardActionLogs => Set<CardActionLog>();
 
     // Cấu hình model — indexes, relationships, constraints
     protected override void OnModelCreating(ModelBuilder builder)
@@ -80,6 +81,11 @@ public class AppDbContext : IdentityDbContext
         builder.Entity<UserStudySettings>(entity =>
         {
             entity.HasIndex(e => e.UserId).IsUnique();
+        });
+
+        builder.Entity<CardActionLog>(entity =>
+        {
+            entity.HasIndex(e => new { e.SetId, e.UserId, e.UndoneAt });
         });
 
         // Cấu hình bảng DictationSessionDetails
