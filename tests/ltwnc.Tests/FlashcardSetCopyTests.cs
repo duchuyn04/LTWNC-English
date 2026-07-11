@@ -15,6 +15,7 @@ public class FlashcardSetCopyTests : IDisposable
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
+            .ConfigureWarnings(b => b.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
             .Options;
         _context = new AppDbContext(options);
         _service = new FlashcardSetService(_context, null!);
@@ -73,5 +74,17 @@ public class FlashcardSetCopyTests : IDisposable
         Assert.Equal(first.Id, second.Id);
         Assert.False(first.IsPublic);
         Assert.Equal(source.Id, first.SourceSetId);
+    }
+
+    [Fact]
+    public async Task CopyPublicSetAsync_creates_private_cards_with_new_ids()
+    {
+        var source = await SeedPublicSetAsync("author", "Public", cardCount: 2);
+        var copy = await _service.CopyPublicSetAsync(source.Id, "learner");
+        var copied = await _context.Flashcards.Where(c => c.FlashcardSetId == copy.Id).ToListAsync();
+
+        Assert.False(copy.IsPublic);
+        Assert.Equal(2, copied.Count);
+        Assert.DoesNotContain(copied, c => source.Flashcards.Any(sourceCard => sourceCard.Id == c.Id));
     }
 }

@@ -178,6 +178,74 @@ public class FlashcardSetService
         return set;
     }
 
+    // Sao chép một bộ thẻ công khai vào thư viện riêng của ngườidùng
+    public async Task<FlashcardSet> CopyPublicSetAsync(int sourceSetId, string learnerId)
+    {
+        var source = await _context.FlashcardSets
+            .Include(s => s.Flashcards.OrderBy(f => f.OrderIndex))
+            .FirstOrDefaultAsync(s => s.Id == sourceSetId);
+
+        if (source == null || !source.IsPublic)
+            throw new KeyNotFoundException("Bộ thẻ nguồn không tồn tại.");
+
+        if (source.UserId == learnerId)
+            throw new UnauthorizedAccessException("Không thể sao chép bộ thẻ của chính mình.");
+
+        var existingCopy = await _context.FlashcardSets
+            .AsNoTracking()
+            .FirstOrDefaultAsync(s => s.UserId == learnerId && s.SourceSetId == sourceSetId);
+        if (existingCopy != null)
+            return existingCopy;
+
+        var copy = new FlashcardSet
+        {
+            Title = source.Title,
+            Description = source.Description,
+            UserId = learnerId,
+            IsPublic = false,
+            SourceSetId = source.Id,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+
+        copy.Flashcards = source.Flashcards.Select(c => new Flashcard
+        {
+            FrontText = c.FrontText,
+            BackText = c.BackText,
+            Pronunciation = c.Pronunciation,
+            PartOfSpeech = c.PartOfSpeech,
+            ExampleSentence = c.ExampleSentence,
+            ExampleMeaning = c.ExampleMeaning,
+            Synonyms = c.Synonyms,
+            ImageUrl = c.ImageUrl,
+            UploadedImagePath = c.UploadedImagePath,
+            IsStarred = c.IsStarred,
+            OrderIndex = c.OrderIndex
+        }).ToList();
+
+        await using var transaction = await _context.Database.BeginTransactionAsync();
+        try
+        {
+            _context.FlashcardSets.Add(copy);
+            await _context.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return copy;
+        }
+        catch (DbUpdateException)
+        {
+            await transaction.RollbackAsync();
+            foreach (var entry in _context.ChangeTracker.Entries().ToList())
+                entry.State = EntityState.Detached;
+
+            var recovered = await _context.FlashcardSets
+                .FirstOrDefaultAsync(s => s.UserId == learnerId && s.SourceSetId == sourceSetId);
+            if (recovered != null)
+                return recovered;
+
+            throw;
+        }
+    }
+
     // Tạo bộ thẻ mới
     public async Task<FlashcardSet> CreateSetAsync(string title, string? description, bool isPublic, string userId)
     {
