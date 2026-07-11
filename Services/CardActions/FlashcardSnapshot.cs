@@ -15,6 +15,7 @@ public class FlashcardSnapshot
     public string? UploadedImagePath { get; set; }
     public bool IsStarred { get; set; }
     public int OrderIndex { get; set; }
+    public List<UserProgressSnapshot> UserProgresses { get; set; } = [];
     public List<DictationSessionDetailSnapshot> DictationSessionDetails { get; set; } = [];
 }
 
