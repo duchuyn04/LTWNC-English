@@ -38,6 +38,7 @@ builder.Services.AddScoped<StudyService>();
 // Service xử lý nghe chép chính tả
 builder.Services.AddScoped<DictationService>();
 builder.Services.AddScoped<CardActionService>();
+builder.Services.AddScoped<CardActionCommandFactory>();
 
 // Study mode strategies
 builder.Services.AddScoped<IStudyModeStrategy, FlashcardModeStrategy>();

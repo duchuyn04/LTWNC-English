@@ -9,4 +9,7 @@ public interface ICardActionCommand
 
     Task ExecuteAsync();
     Task UndoAsync();
+
+    string GetSnapshotJson();
+    void LoadSnapshot(string json);
 }

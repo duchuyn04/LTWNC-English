@@ -8,8 +8,13 @@ namespace ltwnc.Services.CardActions;
 public class CardActionService
 {
     private readonly AppDbContext _context;
+    private readonly CardActionCommandFactory _commandFactory;
 
-    public CardActionService(AppDbContext context) => _context = context;
+    public CardActionService(AppDbContext context, CardActionCommandFactory commandFactory)
+    {
+        _context = context;
+        _commandFactory = commandFactory;
+    }
 
     public AppDbContext Context => _context;
 
@@ -18,13 +23,7 @@ public class CardActionService
         await using var transaction = await _context.Database.BeginTransactionAsync();
         await command.ExecuteAsync();
 
-        var snapshot = command switch
-        {
-            DeleteCardsCommand delete => delete.GetSnapshotJson(),
-            StarCardsCommand star => star.GetSnapshotJson(),
-            UnstarCardsCommand unstar => unstar.GetSnapshotJson(),
-            _ => throw new InvalidOperationException("Unknown command type.")
-        };
+        var snapshot = command.GetSnapshotJson();
 
         var log = new CardActionLog
         {
@@ -52,26 +51,8 @@ public class CardActionService
             throw new InvalidOperationException("Hành động này đã được hoàn tác.");
 
         var cardIds = JsonSerializer.Deserialize<List<int>>(log.CardIdsJson) ?? [];
-        ICardActionCommand command = log.ActionType switch
-        {
-            "Delete" => new DeleteCardsCommand(_context, log.SetId, userId, cardIds),
-            "Star" => new StarCardsCommand(_context, log.SetId, userId, cardIds),
-            "Unstar" => new UnstarCardsCommand(_context, log.SetId, userId, cardIds),
-            _ => throw new InvalidOperationException("Unknown action type.")
-        };
-
-        switch (command)
-        {
-            case DeleteCardsCommand delete:
-                delete.LoadSnapshot(log.SnapshotJson);
-                break;
-            case StarCardsCommand star:
-                star.LoadSnapshot(log.SnapshotJson);
-                break;
-            case UnstarCardsCommand unstar:
-                unstar.LoadSnapshot(log.SnapshotJson);
-                break;
-        }
+        var command = _commandFactory.Create(log.ActionType, log.SetId, userId, cardIds);
+        command.LoadSnapshot(log.SnapshotJson);
 
         await command.UndoAsync();
         log.UndoneAt = DateTime.UtcNow;
