@@ -2,6 +2,7 @@ using ltwnc.Models.Entities;
 
 namespace ltwnc.Services.CardActions;
 
+// Snapshot lưu tiến trình học của một thẻ trước khi bị xóa
 public class UserProgressSnapshot
 {
     public int Id { get; set; }

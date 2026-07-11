@@ -7,10 +7,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Tests.Services;
 
+// Kiểm tra StudyService: gợi ý chế độ học, lọc thẻ, đếm phiên học, lưu cài đặt
 public class StudyServiceTests
 {
     private AppDbContext CreateContext()
     {
+        // Mỗi test dùng database in-memory riêng để tránh ảnh hưởng lẫn nhau
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
@@ -84,6 +86,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // Bộ thẻ rỗng: thống kê bằng 0 và chỉ đề xuất Flashcard
     public async Task GetStudyModeSelectorDataAsync_EmptySet_ReturnsZeroStatsAndFlashcardRecommended()
     {
         await using var context = CreateContext();
@@ -101,6 +104,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // Tất cả thẻ chưa biết: đề xuất bắt đầu với Flashcard
     public async Task GetStudyModeSelectorDataAsync_AllCardsUnlearned_RecommendsFlashcard()
     {
         await using var context = CreateContext();
@@ -117,6 +121,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // Thành thạo cao và có câu ví dụ: đề xuất Dictation
     public async Task GetStudyModeSelectorDataAsync_HighMasteryWithExamples_RecommendsDictation()
     {
         await using var context = CreateContext();
@@ -139,6 +144,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // Thành thạo nhưng thiếu câu ví dụ: không đề xuất Dictation, giữ Flashcard
     public async Task GetStudyModeSelectorDataAsync_HighMasteryNoExamples_RecommendsFlashcard()
     {
         await using var context = CreateContext();
@@ -161,6 +167,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // Bộ lọc chỉ thẻ đánh sao phải loại bỏ thẻ chưa đánh sao
     public async Task GetStudyModeSelectorDataAsync_StarredOnlyFilter_ExcludesUnstarred()
     {
         await using var context = CreateContext();
@@ -185,6 +192,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // Khi Dictation không khả dụng do bộ lọc, fallback về Flashcard
     public async Task GetStudyModeSelectorDataAsync_DictationNotAvailableWithFilter_FallbackToFlashcardAndWarning()
     {
         await using var context = CreateContext();
@@ -211,6 +219,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // Chỉ đếm các phiên học trong 7 ngày gần nhất của đúng user và đúng bộ thẻ
     public async Task GetStudyModeSelectorDataAsync_CountsRecentSessions()
     {
         await using var context = CreateContext();
@@ -232,6 +241,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // Lưu cài đặt bộ lọc vào database
     public async Task SaveFilterSettingsAsync_UpdatesStarredAndUnlearnedOnly()
     {
         await using var context = CreateContext();
@@ -247,6 +257,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // User ẩn danh dùng cài đặt mặc định và không có phiên học
     public async Task GetStudyModeSelectorDataAsync_AnonymousUser_UsesDefaultSettingsAndZeroSessions()
     {
         await using var context = CreateContext();
@@ -273,6 +284,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // Tỷ lệ thành thạo làm tròn xuống
     public async Task GetStudyModeSelectorDataAsync_MasteryPercent_RoundsDown()
     {
         await using var context = CreateContext();
@@ -290,6 +302,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // Dictation chỉ được đề xuất khi vừa thành thạo vừa có nội dung phù hợp
     public async Task GetStudyModeSelectorDataAsync_DictationRecommendedOnlyWhenMasteryAndAvailable()
     {
         await using var context = CreateContext();
@@ -318,6 +331,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // Lọc kết hợp StarredOnly và UnlearnedOnly: chỉ giữ thẻ đánh sao và chưa biết
     public async Task GetStudyModeSelectorDataAsync_StarredAndUnlearnedIntersection()
     {
         await using var context = CreateContext();
@@ -344,6 +358,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // Các chế độ chưa triển khai hiển thị lý do "Sắp ra mắt"
     public async Task GetStudyModeSelectorDataAsync_RoadmapModes_HaveCorrectUnavailableReason()
     {
         await using var context = CreateContext();
@@ -357,6 +372,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // Fallback từ Dictation về Flashcard khi Dictation không khả dụng
     public async Task GetStudyModeSelectorDataAsync_Fallback_WarningNamesActualFallbackMode()
     {
         await using var context = CreateContext();
@@ -383,6 +399,7 @@ public class StudyServiceTests
     }
 
     [Fact]
+    // Strategy mới được tự động nhận diện mà không cần sửa code StudyService
     public async Task GetStudyModeSelectorDataAsync_NewStrategy_IsProcessedWithoutHardCodedSwitch()
     {
         await using var context = CreateContext();

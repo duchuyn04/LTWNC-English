@@ -1,5 +1,7 @@
 namespace ltwnc.Services.CardActions;
 
+// Interface cho các command xử lý hành động hàng loạt trên thẻ
+// Mỗi command phải biết thực thi, hoàn tác và tạo/khôi phục snapshot
 public interface ICardActionCommand
 {
     string ActionType { get; }

@@ -4,6 +4,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Services.CardActions;
 
+// Command bỏ sao nhiều thẻ cùng lúc
+// Snapshot lưu trạng thái IsStarred cũ để hoàn tác về đúng trạng thái ban đầu
+// Command bỏ sao nhiều thẻ, lưu trạng thái cũ để hoàn tác
 public class UnstarCardsCommand : ICardActionCommand
 {
     private readonly AppDbContext _context;
@@ -28,6 +31,7 @@ public class UnstarCardsCommand : ICardActionCommand
             .Where(f => f.FlashcardSetId == SetId && CardIds.Contains(f.Id))
             .ToListAsync();
 
+        // Ghi nhớ trạng thái cũ trước khi bỏ sao
         _previousStates.Clear();
         foreach (var card in cards)
         {
@@ -44,6 +48,7 @@ public class UnstarCardsCommand : ICardActionCommand
             .Where(f => f.FlashcardSetId == SetId && CardIds.Contains(f.Id))
             .ToListAsync();
 
+        // Khôi phục trạng thái sao cũ
         foreach (var card in cards)
             if (_previousStates.TryGetValue(card.Id, out var oldState)) card.IsStarred = oldState;
 

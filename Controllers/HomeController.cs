@@ -21,6 +21,7 @@ public class HomeController : Controller
     // Tham số q: từ khóa tìm kiếm (nếu có)
     public async Task<IActionResult> Index(string? q)
     {
+        // Ngườidùng đã đăng nhập thì chuyển thẳng đến thư viện cá nhân
         if (User.Identity?.IsAuthenticated == true)
         {
             return Redirect("/Set");

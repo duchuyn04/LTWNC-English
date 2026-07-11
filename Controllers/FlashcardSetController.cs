@@ -69,6 +69,7 @@ public class FlashcardSetController : Controller
         var set = await _setService.GetAccessibleSetWithCardsAsync(id, user?.Id);
         if (set == null) return NotFound();
 
+        // Kiểm tra xem ngườidùng đã sao chép bộ thẻ công khai này trước đó chưa
         int? existingCopyId = null;
         if (user != null && user.Id != set.UserId)
         {
@@ -260,7 +261,7 @@ public class FlashcardSetController : Controller
 
         try
         {
-            // Cập nhật nội dung thẻ, trả về setId để redirect
+            // Cập nhật nội dung thẻ; flag removeUploadedImage giúp xóa ảnh đã tải lên nếu user yêu cầu
             var updatedSetId = await _setService.UpdateCardAsync(
                 id,
                 frontText,

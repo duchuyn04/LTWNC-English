@@ -2,8 +2,10 @@ using ltwnc.Models.Entities;
 
 namespace ltwnc.Tests;
 
+// Kiểm tra phương thức Clone của Flashcard khi sao chép bộ thẻ
 public class FlashcardCloneTests
 {
+    // Clone phải tạo instance mới và reset các khóa chính / khóa ngoại
     [Fact]
     public void Clone_creates_new_instance_with_reset_identity()
     {
@@ -31,6 +33,7 @@ public class FlashcardCloneTests
         Assert.Equal(0, clone.FlashcardSetId);
     }
 
+    // Nội dung học tập phải được giữ nguyên, nhưng trạng thái cá nhân phải được reset
     [Fact]
     public void Clone_preserves_study_content()
     {
@@ -62,6 +65,7 @@ public class FlashcardCloneTests
         Assert.Equal(original.OrderIndex, clone.OrderIndex);
     }
 
+    // Ảnh upload nội bộ không được duplicate sang bản sao
     [Fact]
     public void Clone_clears_uploaded_image_path()
     {
@@ -77,6 +81,7 @@ public class FlashcardCloneTests
         Assert.Null(clone.UploadedImagePath);
     }
 
+    // Thay đổi trên bản sao không được ảnh hưởng đến bản gốc
     [Fact]
     public void Clone_is_independent_from_source()
     {

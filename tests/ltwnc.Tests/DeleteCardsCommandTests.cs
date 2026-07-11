@@ -6,6 +6,7 @@ using Xunit;
 
 namespace ltwnc.Tests;
 
+// Kiểm tra command xóa thẻ: khi undo phải khôi phục đúng thẻ, tiến trình học và lịch sử nghe chép.
 public class DeleteCardsCommandTests : IDisposable
 {
     private readonly SqliteConnection _connection;
@@ -19,6 +20,7 @@ public class DeleteCardsCommandTests : IDisposable
 
     public DeleteCardsCommandTests()
     {
+        // Dùng SQLite in-memory với foreign key bật để kiểm tra ràng buộc giống production
         _connection = new SqliteConnection("DataSource=:memory:");
         _connection.Open();
 
@@ -44,6 +46,7 @@ public class DeleteCardsCommandTests : IDisposable
         _context.Users.Add(owner);
         _context.SaveChanges();
 
+        // Chuẩn bị một bộ thẻ có 1 thẻ và các dữ liệu liên quan
         _set = new FlashcardSet
         {
             Title = "Set",
@@ -106,6 +109,7 @@ public class DeleteCardsCommandTests : IDisposable
         GC.SuppressFinalize(this);
     }
 
+    // Sau khi xóa rồi undo, toàn bộ dữ liệu liên quan đến thẻ phải được khôi phục
     [Fact]
     public async Task UndoAsync_restores_cards_progress_and_dictation_details()
     {

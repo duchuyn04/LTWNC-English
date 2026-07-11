@@ -212,6 +212,7 @@ public class StudyController : Controller
         }
     }
 
+    // Lưu cài đặt học tập (bộ lọc, chế độ nghe chép...) qua AJAX
     [HttpPost]
     [Route("/Study/Settings")]
     [ValidateAntiForgeryToken]

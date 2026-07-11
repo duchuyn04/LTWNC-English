@@ -33,12 +33,12 @@ public class AccountController : Controller
         // Kiểm tra dữ liệu đầu vào hợp lệ
         if (!ModelState.IsValid) return View(model);
 
-        // Tạo tài khoản mới bằng UserManager
+        // Ánh xạ dữ liệu từ form sang đối tượng IdentityUser để tạo tài khoản
         var user = new IdentityUser { UserName = model.Username, Email = model.Email };
         var result = await _userManager.CreateAsync(user, model.Password);
         if (result.Succeeded)
         {
-            // Đăng ký thành công → tự động đăng nhập (giữ 1 ngày)
+            // Giữ trạng thái đăng nhập trong 1 ngày sau khi đăng ký thành công
             await _signInManager.SignInAsync(user, new AuthenticationProperties
             {
                 IsPersistent = true,
@@ -47,7 +47,7 @@ public class AccountController : Controller
             return RedirectToAction("Index", "Home");
         }
 
-        // Nếu có lỗi (email trùng, mật khẩu yếu...) → hiển thị lỗi
+        // Đẩy các lỗi từ Identity (email trùng, mật khẩu yếu...) vào ModelState để hiển thị
         foreach (var error in result.Errors)
         {
             ModelState.AddModelError(string.Empty, error.Description);

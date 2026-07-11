@@ -23,6 +23,7 @@ public class FlashcardSetService
         _environment = environment;
     }
 
+    // Kiểm tra và làm sạch trường bắt buộc; ném lỗi nếu để trống
     private static string RequiredText(string? value, string fieldName)
     {
         var trimmed = value?.Trim() ?? string.Empty;
@@ -33,6 +34,7 @@ public class FlashcardSetService
         return trimmed;
     }
 
+    // Kiểm tra trường bắt buộc có giới hạn độ dài
     private static string RequiredText(string? value, string fieldName, int maxLength)
     {
         var trimmed = RequiredText(value, fieldName);
@@ -43,6 +45,7 @@ public class FlashcardSetService
         return trimmed;
     }
 
+    // Làm sạch trường tùy chọn; trả về null nếu chỉ có khoảng trắng
     private static string? OptionalText(string? value)
     {
         var trimmed = value?.Trim();
@@ -59,6 +62,7 @@ public class FlashcardSetService
         "image/jpeg", "image/png", "image/webp"
     };
 
+    // Lưu ảnh tải lên với tên ngẫu nhiên; kiểm tra định dạng và kích thước trước khi ghi đĩa
     private async Task<string?> SaveImageAsync(IFormFile? imageFile)
     {
         if (imageFile == null || imageFile.Length == 0) return null;
@@ -152,6 +156,7 @@ public class FlashcardSetService
         return await _context.FlashcardSets.FindAsync(id);
     }
 
+    // Lấy bộ thẻ nếu user có quyền truy cập (public hoặc chính chủ)
     public async Task<FlashcardSet?> GetAccessibleSetAsync(int id, string? userId)
     {
         var set = await _context.FlashcardSets.FindAsync(id);
@@ -178,6 +183,7 @@ public class FlashcardSetService
         return set;
     }
 
+    // Lấy bộ thẻ chỉ khi user là chủ sở hữu
     public async Task<FlashcardSet?> GetOwnedSetAsync(int id, string userId)
     {
         var set = await _context.FlashcardSets.FindAsync(id);
@@ -185,6 +191,7 @@ public class FlashcardSetService
         return set;
     }
 
+    // Kiểm tra user đã sao chép bộ thẻ nguồn này trước đó chưa
     public async Task<FlashcardSet?> GetExistingCopyAsync(int sourceSetId, string learnerId)
     {
         return await _context.FlashcardSets

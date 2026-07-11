@@ -8,6 +8,7 @@ using Xunit;
 
 namespace ltwnc.Tests;
 
+// Kiểm tra sao chép bộ thẻ trên SQLite in-memory, bao gồm ràng buộc unique index và foreign key
 public class FlashcardSetCopySqliteTests : IDisposable
 {
     private readonly SqliteConnection _connection;
@@ -19,6 +20,7 @@ public class FlashcardSetCopySqliteTests : IDisposable
 
     public FlashcardSetCopySqliteTests()
     {
+        // Mỗi test dùng SQLite in-memory riêng, bật foreign key để kiểm tra ràng buộc đúng
         _connection = new SqliteConnection("DataSource=:memory:");
         _connection.Open();
 
@@ -96,6 +98,7 @@ public class FlashcardSetCopySqliteTests : IDisposable
     }
 
     [Fact]
+    // Sao chép tạo bản sao riêng tư với UserId và SourceSetId đúng
     public async Task CopyPublicSetAsync_creates_private_copy_in_sqlite()
     {
         var source = await SeedPublicSetAsync(OwnerId, "Public", cardCount: 2);
@@ -113,6 +116,7 @@ public class FlashcardSetCopySqliteTests : IDisposable
     }
 
     [Fact]
+    // Sao chép lần hai trả về bản sao đã có, không tạo duplicate
     public async Task CopyPublicSetAsync_returns_existing_copy_without_duplicate_in_sqlite()
     {
         var source = await SeedPublicSetAsync(OwnerId, "Public", cardCount: 1);
@@ -129,6 +133,7 @@ public class FlashcardSetCopySqliteTests : IDisposable
     }
 
     [Fact]
+    // Bản sao tồn tại độc lập với bộ thẻ nguồn vì SourceSetId không phải khóa ngoại
     public async Task Copy_survives_source_deletion_because_SourceSetId_is_not_foreign_key()
     {
         var source = await SeedPublicSetAsync(OwnerId, "Public", cardCount: 1);
@@ -143,6 +148,7 @@ public class FlashcardSetCopySqliteTests : IDisposable
     }
 
     [Fact]
+    // Unique index (UserId, SourceSetId) ngăn một ngườidùng có hai bản sao cùng nguồn
     public async Task Unique_index_prevents_two_copies_for_same_learner_in_sqlite()
     {
         var source = await SeedPublicSetAsync(OwnerId, "Public");

@@ -14,6 +14,7 @@ using Moq;
 
 namespace ltwnc.Tests.Controllers;
 
+// Kiểm tra StudyController: trang chọn chế độ học, lưu bộ lọc, xóa bộ lọc
 public class StudyControllerIndexTests
 {
     private ClaimsPrincipal CreateUser(string userId)
@@ -53,6 +54,7 @@ public class StudyControllerIndexTests
         var studyService = new StudyService(context, strategies, resolver);
         var dictationService = new DictationService(context, resolver);
 
+        // Tạo HttpContext tương ứng với user đã đăng nhập hoặc ẩn danh
         var httpContext = userId == null
             ? new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) }
             : new DefaultHttpContext { User = CreateUser(userId) };
@@ -101,6 +103,7 @@ public class StudyControllerIndexTests
     }
 
     [Fact]
+    // Index trả về view với StudyModeSelectorViewModel chứa thông tin bộ thẻ
     public async Task Index_ReturnsViewWithStudyModeSelectorViewModel()
     {
         await using var context = CreateContext();
@@ -117,6 +120,7 @@ public class StudyControllerIndexTests
     }
 
     [Fact]
+    // Bộ thẻ không tồn tại hoặc không thuộc về user: redirect về trang chi tiết
     public async Task Index_UnknownSet_RedirectsToDetails()
     {
         await using var context = CreateContext();
@@ -130,6 +134,7 @@ public class StudyControllerIndexTests
     }
 
     [Fact]
+    // User đăng nhập: tham số bộ lọc được lưu vào cài đặt
     public async Task Index_WithFilterParams_PersistsSettingsForAuthenticatedUser()
     {
         await using var context = CreateContext();
@@ -144,6 +149,7 @@ public class StudyControllerIndexTests
     }
 
     [Fact]
+    // User ẩn danh: tham số bộ lọc không được lưu
     public async Task Index_WithFilterParams_DoesNotPersistForAnonymousUser()
     {
         await using var context = CreateContext();
@@ -156,6 +162,7 @@ public class StudyControllerIndexTests
     }
 
     [Fact]
+    // ClearFilters xóa bộ lọc và redirect về Index
     public async Task ClearFilters_ResetsFiltersAndRedirectsToIndex()
     {
         await using var context = CreateContext();

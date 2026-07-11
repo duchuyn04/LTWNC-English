@@ -6,6 +6,7 @@ using Xunit;
 
 namespace ltwnc.Tests.Services;
 
+// Kiểm tra logic tính OrderIndex khi thêm thẻ mới vào bộ
 public class FlashcardSetServiceAddCardTests : IDisposable
 {
     private readonly AppDbContext _context;
@@ -13,6 +14,7 @@ public class FlashcardSetServiceAddCardTests : IDisposable
 
     public FlashcardSetServiceAddCardTests()
     {
+        // Mỗi test dùng database in-memory riêng để tránh ảnh hưởng lẫn nhau
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
@@ -27,6 +29,7 @@ public class FlashcardSetServiceAddCardTests : IDisposable
     }
 
     [Fact]
+    // Thẻ đầu tiên phải có OrderIndex = 0
     public async Task AddCardAsync_first_card_has_OrderIndex_zero()
     {
         var set = new FlashcardSet
@@ -56,6 +59,7 @@ public class FlashcardSetServiceAddCardTests : IDisposable
     }
 
     [Fact]
+    // Thẻ tiếp theo phải có OrderIndex tăng thêm 1 so với thẻ cuối cùng hiện có
     public async Task AddCardAsync_second_card_increments_OrderIndex()
     {
         var set = new FlashcardSet

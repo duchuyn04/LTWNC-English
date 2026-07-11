@@ -7,6 +7,7 @@ using Xunit;
 
 namespace ltwnc.Tests.StudyModes;
 
+// Kiểm tra DictationModeStrategy: lọc thẻ theo nội dung, bộ lọc sao/chưa biết, thứ tự hiển thị
 public class DictationModeStrategyTests
 {
     private AppDbContext CreateContext()
@@ -42,6 +43,7 @@ public class DictationModeStrategyTests
     }
 
     [Fact]
+    // Chế độ từ vựng lấy tất cả thẻ, kể cả không có câu ví dụ
     public async Task GetCardsAsync_vocabulary_mode_includes_cards_without_example_sentence()
     {
         await using var context = CreateContext();
@@ -55,6 +57,7 @@ public class DictationModeStrategyTests
     }
 
     [Fact]
+    // Chế độ câu ví dụ chỉ lấy thẻ có câu ví dụ
     public async Task GetCardsAsync_example_sentence_mode_excludes_cards_without_example_sentence()
     {
         await using var context = CreateContext();
@@ -69,6 +72,7 @@ public class DictationModeStrategyTests
     }
 
     [Fact]
+    // Lọc chỉ lấy thẻ đã đánh sao
     public async Task GetCardsAsync_applies_starred_only_filter()
     {
         await using var context = CreateContext();
@@ -87,6 +91,7 @@ public class DictationModeStrategyTests
     }
 
     [Fact]
+    // Lọc chỉ lấy thẻ chưa biết
     public async Task GetCardsAsync_applies_unlearned_only_filter()
     {
         await using var context = CreateContext();
@@ -107,6 +112,7 @@ public class DictationModeStrategyTests
     }
 
     [Fact]
+    // Thẻ trả về được sắp xếp theo OrderIndex
     public async Task GetCardsAsync_orders_by_OrderIndex()
     {
         await using var context = CreateContext();
@@ -120,6 +126,7 @@ public class DictationModeStrategyTests
     }
 
     [Fact]
+    // Không có thẻ phù hợp trong chế độ từ vựng: hiển thị lý do chung
     public void BuildOption_vocabulary_mode_shows_generic_unavailable_reason()
     {
         using var context = CreateContext();
@@ -133,6 +140,7 @@ public class DictationModeStrategyTests
     }
 
     [Fact]
+    // Không có thẻ phù hợp trong chế độ câu ví dụ: hiển thị lý do riêng
     public void BuildOption_example_sentence_mode_shows_example_unavailable_reason()
     {
         using var context = CreateContext();
@@ -146,6 +154,7 @@ public class DictationModeStrategyTests
     }
 
     [Fact]
+    // DictationService và DictationModeStrategy phải trả về cùng tập thẻ với cùng settings
     public async Task DictationService_and_strategy_return_same_card_ids_for_same_settings()
     {
         await using var context = CreateContext();

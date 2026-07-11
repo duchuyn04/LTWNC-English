@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Services.CardActions;
 
+// Command xóa nhiều thẻ cùng lúc; snapshot gồm thẻ, tiến trình học và chi tiết dictation để khôi phục đầy đủ khi Undo
 public class DeleteCardsCommand : ICardActionCommand
 {
     private readonly AppDbContext _context;
@@ -25,6 +26,7 @@ public class DeleteCardsCommand : ICardActionCommand
 
     public async Task ExecuteAsync()
     {
+        // Lấy thẻ cùng dữ liệu liên quan cần sao lưu trước khi xóa
         var cards = await _context.Flashcards
             .Where(f => f.FlashcardSetId == SetId && CardIds.Contains(f.Id))
             .ToListAsync();
@@ -35,6 +37,7 @@ public class DeleteCardsCommand : ICardActionCommand
             .Where(d => CardIds.Contains(d.FlashcardId))
             .ToListAsync();
 
+        // Tạo snapshot đầy đủ để khôi phục sau này
         _snapshots.Clear();
         _snapshots.AddRange(cards.Select(c => new FlashcardSnapshot
         {
@@ -79,6 +82,7 @@ public class DeleteCardsCommand : ICardActionCommand
                 .ToList()
         }));
 
+        // Xóa dữ liệu liên quan trước rồi mới xóa thẻ (do foreign key constraints)
         _context.UserProgresses.RemoveRange(progresses);
         _context.DictationSessionDetails.RemoveRange(details);
         _context.Flashcards.RemoveRange(cards);
@@ -87,6 +91,7 @@ public class DeleteCardsCommand : ICardActionCommand
 
     public async Task UndoAsync()
     {
+        // Khôi phục thẻ với đúng Id cũ bằng IDENTITY_INSERT trên SQL Server
         var cards = _snapshots.Select(s => new Flashcard
         {
             Id = s.Id,
@@ -146,6 +151,7 @@ public class DeleteCardsCommand : ICardActionCommand
         _snapshots.AddRange(JsonSerializer.Deserialize<List<FlashcardSnapshot>>(json) ?? []);
     }
 
+    // Bật IDENTITY_INSERT trên SQL Server để khôi phục đúng ID cũ khi Undo xóa thẻ
     private async Task SaveWithIdentityInsertAsync<TEntity>() where TEntity : class
     {
         var provider = _context.Database.ProviderName;

@@ -23,6 +23,8 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
 .AddEntityFrameworkStores<AppDbContext>()
 .AddDefaultTokenProviders();
 
+// Cấu hình cookie xác thực: đường dẫn login/logout và thờigian hiệu lực 30 ngày
+// Cấu hình cookie xác thực: đường dẫn login/logout, thờihạn 30 ngày, gia hạn tự động
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";
@@ -52,6 +54,8 @@ builder.Services.AddControllersWithViews();
 
 var app = builder.Build();
 
+// Cấu hình middleware pipeline
+// Cấu hình pipeline middleware
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Home/Error");

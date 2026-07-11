@@ -6,6 +6,7 @@ using Xunit;
 
 namespace ltwnc.Tests;
 
+// Kiểm tra sao chép bộ thẻ public trong FlashcardSetService (in-memory)
 public class FlashcardSetCopyTests : IDisposable
 {
     private readonly AppDbContext _context;
@@ -13,6 +14,7 @@ public class FlashcardSetCopyTests : IDisposable
 
     public FlashcardSetCopyTests()
     {
+        // Mỗi test dùng database in-memory riêng, bỏ qua cảnh báo transaction không được hỗ trợ
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(databaseName: Guid.NewGuid().ToString())
             .ConfigureWarnings(b => b.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.InMemoryEventId.TransactionIgnoredWarning))
@@ -69,6 +71,7 @@ public class FlashcardSetCopyTests : IDisposable
     }
 
     [Fact]
+    // Sao chép lặp lại cho cùng learner trả về bản sao đã tồn tại
     public async Task CopyPublicSetAsync_returns_the_existing_copy_for_the_same_learner()
     {
         var source = await SeedPublicSetAsync("author", "Public");
@@ -81,6 +84,7 @@ public class FlashcardSetCopyTests : IDisposable
     }
 
     [Fact]
+    // Bản sao tạo thẻ mới với Id khác, không trùng Id thẻ nguồn
     public async Task CopyPublicSetAsync_creates_private_cards_with_new_ids()
     {
         var source = await SeedPublicSetAsync("author", "Public", cardCount: 2);
@@ -93,6 +97,7 @@ public class FlashcardSetCopyTests : IDisposable
     }
 
     [Fact]
+    // Nội dung thẻ được giữ nguyên, nhưng ảnh upload nội bộ và trạng thái sao bị xóa
     public async Task CopyPublicSetAsync_preserves_content_and_clears_uploaded_image_path()
     {
         var source = await SeedPublicSetAsync("author", "Public", cardCount: 2);
@@ -124,6 +129,7 @@ public class FlashcardSetCopyTests : IDisposable
     }
 
     [Fact]
+    // Tất cả thẻ trong bản sao đều bị bỏ sao
     public async Task CopyPublicSetAsync_resets_IsStarred_for_all_cards()
     {
         var source = await SeedPublicSetAsync("author", "Public", cardCount: 3);

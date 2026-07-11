@@ -19,6 +19,9 @@ public enum DictationContentMode
     ExampleSentence
 }
 
+// Entity lưu cài đặt học tập của từng ngườidùng
+// Mỗi user chỉ có một bản ghi cài đặt (unique theo UserId)
+// Entity lưu cài đặt học tập cá nhân của từng ngườidùng
 public class UserStudySettings
 {
     [Key]
@@ -27,24 +30,29 @@ public class UserStudySettings
     [Required]
     public string UserId { get; set; } = string.Empty;
 
+    // Bộ lọc thẻ: chỉ học thẻ đã đánh sao hoặc thẻ chưa thuộc
     public bool StarredOnly { get; set; }
     public bool UnlearnedOnly { get; set; }
 
+    // Cấu hình hiển thị mặt trước thẻ
     public bool ShowFrontTerm { get; set; } = true;
     public bool ShowFrontDefinition { get; set; }
     public bool ShowFrontIpa { get; set; } = true;
     public bool ShowFrontImage { get; set; }
 
+    // Cấu hình hiển thị mặt sau thẻ
     public bool ShowBackTerm { get; set; }
     public bool ShowBackDefinition { get; set; } = true;
     public bool ShowBackIpa { get; set; }
     public bool ShowBackExample { get; set; } = true;
     public bool ShowBackImage { get; set; } = true;
 
+    // Tùy chọn hiển thị hình ảnh
     public bool HideImage { get; set; }
     public bool BlurImage { get; set; }
     public bool LargeImage { get; set; }
 
+    // Tùy chọn phát âm khi lật thẻ
     public bool PronounceFront { get; set; } = true;
     public bool PronounceBack { get; set; }
 

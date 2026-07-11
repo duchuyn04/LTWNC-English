@@ -2,6 +2,8 @@ using ltwnc.Models.Entities;
 
 namespace ltwnc.Models.ViewModels.FlashcardSet;
 
+// Dữ liệu truyền cho trang chi tiết bộ thẻ (xem bộ thẻ công khai hoặc của mình)
+// Dữ liệu truyền cho trang chi tiết bộ thẻ (xem / sao chép)
 public class SetDetailViewModel
 {
     public int Id { get; set; }

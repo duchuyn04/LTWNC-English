@@ -6,6 +6,7 @@ using Xunit;
 
 namespace ltwnc.Tests.StudyModes;
 
+// Kiểm tra FlashcardModeStrategy: lấy thẻ đúng bộ, lọc sao/chưa biết, sắp xếp, xây dựng option
 public class FlashcardModeStrategyTests
 {
     private AppDbContext CreateContext()
@@ -41,6 +42,7 @@ public class FlashcardModeStrategyTests
     }
 
     [Fact]
+    // Chỉ trả về thẻ thuộc đúng bộ thẻ
     public async Task GetCardsAsync_returns_only_cards_in_set()
     {
         await using var context = CreateContext();
@@ -56,6 +58,7 @@ public class FlashcardModeStrategyTests
     }
 
     [Fact]
+    // Thẻ sắp xếp theo OrderIndex
     public async Task GetCardsAsync_orders_by_OrderIndex()
     {
         await using var context = CreateContext();
@@ -68,6 +71,7 @@ public class FlashcardModeStrategyTests
     }
 
     [Fact]
+    // Lọc chỉ lấy thẻ đã đánh sao
     public async Task GetCardsAsync_starred_only_filter_returns_starred_cards()
     {
         await using var context = CreateContext();
@@ -82,6 +86,7 @@ public class FlashcardModeStrategyTests
     }
 
     [Fact]
+    // Lọc chỉ lấy thẻ chưa biết, loại thẻ đã biết
     public async Task GetCardsAsync_unlearned_only_filter_excludes_learned_cards()
     {
         await using var context = CreateContext();
@@ -97,6 +102,7 @@ public class FlashcardModeStrategyTests
     }
 
     [Fact]
+    // User ẩn danh không áp dụng bộ lọc UnlearnedOnly
     public async Task GetCardsAsync_null_userId_does_not_apply_unlearned_filter()
     {
         await using var context = CreateContext();
@@ -109,6 +115,7 @@ public class FlashcardModeStrategyTests
     }
 
     [Fact]
+    // BuildOption trả về thông tin đúng khi có thẻ
     public void BuildOption_returns_correct_values()
     {
         using var context = CreateContext();
@@ -130,6 +137,7 @@ public class FlashcardModeStrategyTests
     }
 
     [Fact]
+    // BuildOption đánh dấu không khả dụng khi bộ thẻ rỗng
     public void BuildOption_with_no_cards_is_unavailable()
     {
         using var context = CreateContext();

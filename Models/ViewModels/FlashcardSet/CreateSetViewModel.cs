@@ -2,6 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ltwnc.Models.ViewModels.FlashcardSet;
 
+// Dữ liệu form tạo bộ thẻ mới
+// Dữ liệu form tạo bộ thẻ mới
 public class CreateSetViewModel
 {
     [Required(ErrorMessage = "Tiêu đề không được để trống.")]

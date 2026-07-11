@@ -1,5 +1,7 @@
 namespace ltwnc.Services.CardActions;
 
+// Snapshot lưu toàn bộ dữ liệu của một thẻ trước khi bị xóa
+// Dùng để khôi phục thẻ cùng tiến trình học và lịch sử dictation khi Undo
 public class FlashcardSnapshot
 {
     public int Id { get; set; }

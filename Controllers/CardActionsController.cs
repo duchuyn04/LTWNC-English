@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Controllers;
 
+// Controller xử lý các thao tác hàng loạt trên thẻ: xóa, đánh sao, bỏ sao, hoàn tác
+// Mọi action đều yêu cầu đăng nhập và kiểm tra quyền chủ sở hữu bộ thẻ
 [Authorize]
 public class CardActionsController : Controller
 {
@@ -27,6 +29,7 @@ public class CardActionsController : Controller
         _userManager = userManager;
     }
 
+    // Thực hiện hành động hàng loạt trên các thẻ đã chọn (xóa / đánh sao / bỏ sao)
     [HttpPost]
     [Route("/Set/{setId}/BatchAction")]
     [ValidateAntiForgeryToken]
@@ -35,6 +38,7 @@ public class CardActionsController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
+        // Chỉ chủ sở hữu bộ thẻ mới được thao tác
         var set = await _setService.GetSetByIdAsync(setId);
         if (set == null || set.UserId != user.Id) return Forbid();
 
@@ -46,6 +50,7 @@ public class CardActionsController : Controller
 
         try
         {
+            // Tạo command tương ứng và thực thi trong transaction
             var command = _commandFactory.Create(
                 action.ToString(),
                 setId,
@@ -64,6 +69,7 @@ public class CardActionsController : Controller
         return RedirectToAction("Edit", "FlashcardSet", new { id = setId });
     }
 
+    // Hoàn tác một hành động hàng loạt dựa trên log đã ghi
     [HttpPost]
     [Route("/CardActions/Undo/{logId}")]
     [ValidateAntiForgeryToken]
@@ -72,6 +78,7 @@ public class CardActionsController : Controller
         var user = await _userManager.GetUserAsync(User);
         if (user == null) return Challenge();
 
+        // Chỉ cho phép hoàn tác log của chính user hiện tại
         var log = await _cardActionService.GetLogByIdAsync(logId, user.Id);
         if (log == null) return NotFound();
 
@@ -88,6 +95,7 @@ public class CardActionsController : Controller
         return RedirectToAction("Edit", "FlashcardSet", new { id = log.SetId });
     }
 
+    // Chuyển action enum thành động từ tiếng Việt để hiển thị thông báo
     private static string Describe(BatchActionType action) => action switch
     {
         BatchActionType.Delete => "xóa",

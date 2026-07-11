@@ -4,6 +4,7 @@ using Xunit;
 
 namespace ltwnc.Tests.StudyModes;
 
+// Kiểm tra resolver tìm đúng strategy theo StudyMode và xử lý lỗi đăng ký
 public class StudyModeStrategyResolverTests
 {
     private static IStudyModeStrategy CreateFake(StudyMode mode)
@@ -12,6 +13,7 @@ public class StudyModeStrategyResolverTests
     }
 
     [Fact]
+    // Resolver trả về strategy khớp với mode yêu cầu
     public void Resolve_returns_matching_strategy()
     {
         var strategies = new List<IStudyModeStrategy>
@@ -27,6 +29,7 @@ public class StudyModeStrategyResolverTests
     }
 
     [Fact]
+    // Ném lỗi khi không có strategy nào cho mode
     public void Resolve_throws_when_no_strategy_registered()
     {
         var resolver = new StudyModeStrategyResolver(Array.Empty<IStudyModeStrategy>());
@@ -36,6 +39,7 @@ public class StudyModeStrategyResolverTests
     }
 
     [Fact]
+    // Ném lỗi khi đăng ký trùng strategy cho cùng một mode
     public void Resolve_throws_when_multiple_strategies_for_same_mode()
     {
         var strategies = new List<IStudyModeStrategy>

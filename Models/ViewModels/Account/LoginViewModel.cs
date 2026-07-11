@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ltwnc.Models.ViewModels.Account;
 
+// Dữ liệu form đăng nhập
 public class LoginViewModel
 {
     [Required(ErrorMessage = "Email không được để trống.")]

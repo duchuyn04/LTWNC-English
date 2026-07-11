@@ -32,9 +32,9 @@ public class FakeUrlHelper : IUrlHelper
     public ActionContext ActionContext { get; } = new ActionContext();
 }
 
+// Kiểm tra StudyController: các action liên quan đến chế độ học nghe chép
 public class StudyControllerDictationTests
 {
-    // Tạo user giả lập cho Controller
     private ClaimsPrincipal CreateUser(string userId)
     {
         return new ClaimsPrincipal(new ClaimsIdentity(new[]
@@ -43,7 +43,7 @@ public class StudyControllerDictationTests
         }, "TestAuth"));
     }
 
-    // Tạo controller với các dependency in-memory
+    // Khởi tạo controller với dependency giả lập (in-memory database, mock UserManager, fake URL helper)
     private StudyController CreateController(AppDbContext context, string userId)
     {
         var userStore = new Mock<IUserStore<IdentityUser>>();
@@ -117,6 +117,7 @@ public class StudyControllerDictationTests
     }
 
     [Fact]
+    // GET Dictation trả về view với model học nghe chép
     public async Task Dictation_Get_ReturnsViewWithModel()
     {
         await using var context = CreateContext();
@@ -130,6 +131,7 @@ public class StudyControllerDictationTests
     }
 
     [Fact]
+    // Kiểm tra đáp án đúng trả về success và isCorrect = true
     public async Task DictationCheck_Post_CorrectAnswer_ReturnsSuccess()
     {
         await using var context = CreateContext();
@@ -148,6 +150,7 @@ public class StudyControllerDictationTests
     }
 
     [Fact]
+    // Hoàn thành phiên Dictation trả về URL redirect đến trang kết quả
     public async Task DictationComplete_Post_ReturnsRedirectUrl()
     {
         await using var context = CreateContext();
@@ -166,6 +169,7 @@ public class StudyControllerDictationTests
     }
 
     [Fact]
+    // GET DictationResult trả về kết quả phiên học
     public async Task DictationResult_Get_ReturnsViewWithModel()
     {
         await using var context = CreateContext();
@@ -186,6 +190,7 @@ public class StudyControllerDictationTests
     }
 
     [Fact]
+    // Chế độ câu ví dụ: PromptText là câu ví dụ và session ghi nhận đúng mode
     public async Task Dictation_Get_ExampleSentenceMode_UsesSentencePromptAndSnapshotsMode()
     {
         await using var context = CreateContext();
@@ -209,6 +214,7 @@ public class StudyControllerDictationTests
     }
 
     [Fact]
+    // Sau khi đổi cài đặt, session Dictation vẫn dùng mode đã snapshot khi kiểm tra đáp án
     public async Task DictationCheck_ExampleSentenceSession_UsesSnapshotAfterSettingChanges()
     {
         await using var context = CreateContext();
@@ -238,6 +244,7 @@ public class StudyControllerDictationTests
     }
 
     [Fact]
+    // Sau khi đổi cài đặt, trang kết quả vẫn hiển thị đúng mode đã snapshot
     public async Task DictationResult_ExampleSentenceSession_UsesSnapshotAfterSettingChanges()
     {
         await using var context = CreateContext();
@@ -270,6 +277,7 @@ public class StudyControllerDictationTests
     }
 
     [Fact]
+    // Khi bộ lọc khiến không có thẻ phù hợp, ưu tiên thông báo lỗi bộ lọc
     public async Task Dictation_Get_ExampleSentenceMode_WithFilters_ShowsFilterMessageNotMissingSentenceMessage()
     {
         await using var context = CreateContext();
@@ -296,6 +304,7 @@ public class StudyControllerDictationTests
     }
 
     [Fact]
+    // Khi bộ thẻ không có câu ví dụ, hiển thị thông báo thiếu câu ví dụ
     public async Task Dictation_Get_ExampleSentenceMode_NoSentences_ShowsMissingSentenceMessage()
     {
         await using var context = CreateContext();

@@ -2,6 +2,8 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ltwnc.Models.ViewModels.FlashcardSet;
 
+// Dữ liệu form chỉnh sửa thông tin bộ thẻ
+// Dữ liệu form chỉnh sửa thông tin bộ thẻ
 public class EditSetViewModel
 {
     public int Id { get; set; }

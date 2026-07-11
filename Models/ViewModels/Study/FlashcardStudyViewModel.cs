@@ -2,6 +2,7 @@ using ltwnc.Models.Entities;
 
 namespace ltwnc.Models.ViewModels.Study;
 
+// Dữ liệu truyền cho view học flashcard (lật thẻ)
 public class FlashcardStudyViewModel
 {
     public int SetId { get; set; }
