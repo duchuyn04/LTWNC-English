@@ -5,20 +5,19 @@ using ltwnc.Models;
 
 namespace ltwnc.Models.Entities;
 
-// Entity đại diện cho bảng FlashcardSets — bộ thẻ flashcard
-// Quan hệ: 1 User có nhiều FlashcardSet, 1 FlashcardSet có nhiều Flashcard
+// Bảng FlashcardSets: bộ thẻ. 1 User nhiều set; 1 set nhiều Flashcard.
 public class FlashcardSet : IPrototype<FlashcardSet>
 {
-    // Khóa chính, tự động tăng
+    // PK tự tăng
     [Key]
     public int Id { get; set; }
 
-    // Tiêu đề bộ thẻ — bắt buộc, tối đa 200 ký tự
+    // Tiêu đề, bắt buộc, max 200
     [Required]
     [MaxLength(200)]
     public string Title { get; set; } = string.Empty;
 
-    // Mô tả bộ thẻ — không bắt buộc
+    // Mô tả, optional
     public string? Description { get; set; }
 
     // Khóa ngoại đến người tạo bộ thẻ (bảng AspNetUsers)
@@ -38,11 +37,11 @@ public class FlashcardSet : IPrototype<FlashcardSet>
     // Thời gian cập nhật gần nhất
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation property — liên kết đến người tạo
+    // Owner (AspNetUsers)
     [ForeignKey(nameof(UserId))]
     public IdentityUser? User { get; set; }
 
-    // Navigation property — danh sách thẻ trong bộ
+    // Thẻ trong bộ (cần Include trước Clone)
     public ICollection<Flashcard> Flashcards { get; set; } = new List<Flashcard>();
 
     // Tạo bản sao độc lập của bộ thẻ, bao gồm deep-clone các thẻ con.

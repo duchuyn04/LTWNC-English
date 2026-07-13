@@ -1,21 +1,17 @@
 namespace ltwnc.Services.StudyEvents;
 
-// ============================================================
-// "Danh mục huy hiệu" — định nghĩa sẵn các thành tích trong app.
-// Code (mã) giữ cố định để lưu database và không trùng.
-// Title / Description hiện ra cho user đọc trên trang Thành tích.
-// Metric + Target dùng để tính tiến độ (current/target) và mở khóa.
-// ============================================================
+// Danh mục huy hiệu tĩnh trong code.
+// Code cố định (lưu DB). Title/Description hiện UI. Metric+Target tính progress và unlock.
 public static class AchievementCatalog
 {
-    // ----- Mã thành tích cũ (giữ nguyên chuỗi để không vỡ dữ liệu) -----
+    // Mã cũ: giữ nguyên chuỗi để không vỡ dữ liệu đã unlock
     public const string FirstCardMastered = "first_card_mastered";
     public const string CardsMastered10 = "cards_mastered_10";
     public const string FirstFlashcardSession = "first_flashcard_session";
     public const string FirstDictationSession = "first_dictation_session";
     public const string DictationPerfectSession = "dictation_perfect_session";
 
-    // ----- Mã thành tích mới (medium-scope count tiers) -----
+    // Mã tier thêm sau (25/50/100 thẻ, nhiều buổi...)
     public const string CardsMastered25 = "cards_mastered_25";
     public const string CardsMastered50 = "cards_mastered_50";
     public const string CardsMastered100 = "cards_mastered_100";
@@ -26,22 +22,33 @@ public static class AchievementCatalog
     public const string DictationCorrect10 = "dictation_correct_10";
     public const string DictationCorrect50 = "dictation_correct_50";
 
-    // CTA mặc định theo nhóm metric
+    // Text nút CTA nhóm "thẻ thuộc"
     private const string CardCtaText = "Học tiếp trong thư viện bộ thẻ";
+
+    // Text nút CTA nhóm "buổi học"
     private const string SessionCtaText = "Chọn bộ thẻ để học tiếp";
+
+    // Đường dẫn CTA chung
     private const string DefaultCtaPath = "/Set";
 
-    // Một mục trong danh mục: mã + tên + mô tả + metric/target + CTA
+    // Một huy hiệu: mã, UI, metric đo, mốc Target, CTA
     public sealed record Definition(
+        // Khóa lưu UserAchievement.Code
         string Code,
+        // Tên hiện UI
         string Title,
+        // Mô tả điều kiện
         string Description,
+        // Loại metric so với snapshot
         AchievementMetricKind Metric,
+        // Cần đạt bao nhiêu
         int Target,
+        // Nhãn nút CTA
         string CtaText,
+        // URL CTA
         string CtaPath);
 
-    // Danh sách đầy đủ các huy hiệu app đang hỗ trợ (medium scope)
+    // Toàn bộ huy hiệu app hỗ trợ (thứ tự catalog, UI có thể sort lại)
     public static IReadOnlyList<Definition> All { get; } =
     [
         // --- Thẻ đã thuộc ---

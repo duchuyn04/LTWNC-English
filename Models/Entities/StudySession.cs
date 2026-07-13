@@ -14,8 +14,7 @@ public enum StudyMode
     Dictation  // Nghe chép chính tả
 }
 
-// Entity đại diện cho bảng StudySessions — phiên học
-// Ghi nhận mỗi lần người dùng hoàn thành một buổi học
+// Bảng StudySessions: một buổi học đã hoàn thành.
 public class StudySession
 {
     // Khóa chính, tự động tăng
@@ -30,22 +29,23 @@ public class StudySession
     [Required]
     public int FlashcardSetId { get; set; }
 
-    // Chế độ học (Flashcard, Quiz, Write, Match)
+    // Mode buổi học
     public StudyMode Mode { get; set; } = StudyMode.Flashcard;
 
+    // Chỉ meaningful khi Mode = Dictation
     public DictationContentMode DictationContentMode { get; set; } = DictationContentMode.Vocabulary;
 
-    // Điểm số — chỉ có giá trị với Quiz, Write, Match (null với Flashcard)
+    // Điểm: Dictation/Quiz...; Flashcard thường null
     public int? Score { get; set; }
 
     // Thời gian hoàn thành phiên học
     public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
 
-    // Navigation property — liên kết đến người học
+    // Người học
     [ForeignKey(nameof(UserId))]
     public IdentityUser? User { get; set; }
 
-    // Navigation property — liên kết đến bộ thẻ đã học
+    // Bộ thẻ của buổi học
     [ForeignKey(nameof(FlashcardSetId))]
     public FlashcardSet? FlashcardSet { get; set; }
 }

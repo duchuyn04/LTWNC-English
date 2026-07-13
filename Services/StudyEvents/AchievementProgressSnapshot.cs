@@ -1,35 +1,41 @@
 namespace ltwnc.Services.StudyEvents;
 
-// ============================================================
-// Ảnh chụp tiến độ các chỉ số thành tích của một người dùng tại một thời điểm.
-// Service đọc các bảng học (progress, session, dictation detail) rồi đổ vào đây
-// để trang Thành tích / unlock service dùng lại, không query lặp từng huy hiệu.
-// ============================================================
+// Ảnh chụp metric thành tích của user tại một thời điểm.
+// Progress service đếm xong đổ vào đây; unlock / UI đọc lại, không query lặp.
 public sealed class AchievementProgressSnapshot
 {
-    // Số thẻ đã đánh dấu thuộc (IsLearned)
+    // Số thẻ IsLearned
     public int CardsMastered { get; init; }
 
-    // Số buổi học Flashcard đã hoàn thành
+    // Số buổi mode Flashcard
     public int FlashcardSessions { get; init; }
 
-    // Số buổi nghe chép đã hoàn thành
+    // Số buổi mode Dictation
     public int DictationSessions { get; init; }
 
-    // Tổng số câu nghe chép trả lời đúng
+    // Tổng câu nghe chép đúng
     public int DictationCorrectAnswers { get; init; }
 
-    // Số buổi nghe chép đạt điểm 100
+    // Số buổi Dictation điểm 100
     public int DictationPerfectSessions { get; init; }
 
-    // Lấy giá trị metric theo loại — dùng khi so với Target trong catalog
-    public int GetValue(AchievementMetricKind kind) => kind switch
+    // Map enum metric -> số đếm tương ứng (so với Target trong catalog)
+    public int GetValue(AchievementMetricKind kind)
     {
-        AchievementMetricKind.CardsMastered => CardsMastered,
-        AchievementMetricKind.FlashcardSessions => FlashcardSessions,
-        AchievementMetricKind.DictationSessions => DictationSessions,
-        AchievementMetricKind.DictationCorrectAnswers => DictationCorrectAnswers,
-        AchievementMetricKind.DictationPerfectSessions => DictationPerfectSessions,
-        _ => 0
-    };
+        switch (kind)
+        {
+            case AchievementMetricKind.CardsMastered:
+                return CardsMastered;
+            case AchievementMetricKind.FlashcardSessions:
+                return FlashcardSessions;
+            case AchievementMetricKind.DictationSessions:
+                return DictationSessions;
+            case AchievementMetricKind.DictationCorrectAnswers:
+                return DictationCorrectAnswers;
+            case AchievementMetricKind.DictationPerfectSessions:
+                return DictationPerfectSessions;
+            default:
+                return 0;
+        }
+    }
 }

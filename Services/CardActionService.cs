@@ -5,29 +5,34 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Services.CardActions;
 
-// Service thực thi và hoàn tác các hành động hàng loạt trên thẻ
-// Mỗi hành động được ghi log kèm snapshot để có thể Undo sau này
+// Chạy command batch và ghi CardActionLog; Undo từ log + snapshot.
 public class CardActionService
 {
+    // Lưu log và transaction
     private readonly AppDbContext _context;
+
+    // Tái tạo command khi Undo theo ActionType trong log
     private readonly CardActionCommandFactory _commandFactory;
 
+    // Inject DbContext và factory command
     public CardActionService(AppDbContext context, CardActionCommandFactory commandFactory)
     {
         _context = context;
         _commandFactory = commandFactory;
     }
 
-    // Thực thi command, lưu snapshot và ghi log trong một transaction
+    // Execute command trong transaction, ghi log kèm snapshot, trả về log vừa tạo
     public async Task<CardActionLog> ExecuteAsync(ICardActionCommand command)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
+            await _context.Database.BeginTransactionAsync();
+
         await command.ExecuteAsync();
 
-        // Snapshot lưu trạng thái trước khi thay đổi, dùng để hoàn tác
-        var snapshot = command.GetSnapshotJson();
+        // Snapshot trạng thái trước/sau tùy command (thường là trước khi đổi)
+        string snapshot = command.GetSnapshotJson();
 
-        var log = new CardActionLog
+        CardActionLog log = new CardActionLog
         {
             UserId = command.UserId,
             SetId = command.SetId,
@@ -43,20 +48,35 @@ public class CardActionService
         return log;
     }
 
-    // Hoàn tác một hành động đã ghi log bằng cách khôi phục snapshot
+    // Load log của user, chặn Undo lần 2, nạp snapshot rồi gọi command.UndoAsync
     public async Task UndoAsync(int logId, string userId)
     {
-        await using var transaction = await _context.Database.BeginTransactionAsync();
-        var log = await GetLogByIdAsync(logId, userId)
-                  ?? throw new KeyNotFoundException("Không tìm thấy hành động để hoàn tác.");
+        await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
+            await _context.Database.BeginTransactionAsync();
 
-        // Tránh hoàn tác một log hai lần
+        CardActionLog? log = await GetLogByIdAsync(logId, userId);
+        if (log == null)
+        {
+            throw new KeyNotFoundException("Không tìm thấy hành động để hoàn tác.");
+        }
+
         if (log.UndoneAt.HasValue)
+        {
             throw new InvalidOperationException("Hành động này đã được hoàn tác.");
+        }
 
-        // Tạo lại command từ log, nạp snapshot và thực hiện undo
-        var cardIds = JsonSerializer.Deserialize<List<int>>(log.CardIdsJson) ?? [];
-        var command = _commandFactory.Create(log.ActionType, log.SetId, userId, cardIds);
+        List<int>? cardIds = JsonSerializer.Deserialize<List<int>>(log.CardIdsJson);
+        if (cardIds == null)
+        {
+            cardIds = new List<int>();
+        }
+
+        ICardActionCommand command = _commandFactory.Create(
+            log.ActionType,
+            log.SetId,
+            userId,
+            cardIds);
+
         command.LoadSnapshot(log.SnapshotJson);
 
         await command.UndoAsync();
@@ -65,15 +85,30 @@ public class CardActionService
         await transaction.CommitAsync();
     }
 
-    // Lấy các log chưa hoàn tác của một bộ thẻ, mới nhất trước
-    public async Task<IReadOnlyList<CardActionLog>> GetUndoableLogsAsync(int setId, string userId, int limit = 5)
-        => await _context.CardActionLogs
-            .Where(l => l.SetId == setId && l.UserId == userId && !l.UndoneAt.HasValue)
-            .OrderByDescending(l => l.ExecutedAt)
+    // Log chưa Undo của một bộ thẻ, mới nhất trước, giới hạn limit
+    public async Task<IReadOnlyList<CardActionLog>> GetUndoableLogsAsync(
+        int setId,
+        string userId,
+        int limit = 5)
+    {
+        List<CardActionLog> logs = await _context.CardActionLogs
+            .Where(log =>
+                log.SetId == setId
+                && log.UserId == userId
+                && !log.UndoneAt.HasValue)
+            .OrderByDescending(log => log.ExecutedAt)
             .Take(limit)
             .ToListAsync();
 
-    // Lấy log theo id — chỉ trả về nếu thuộc về user hiện tại
-    public Task<CardActionLog?> GetLogByIdAsync(int logId, string userId)
-        => _context.CardActionLogs.FirstOrDefaultAsync(l => l.Id == logId && l.UserId == userId);
+        return logs;
+    }
+
+    // Log theo id, chỉ khi đúng user
+    public async Task<CardActionLog?> GetLogByIdAsync(int logId, string userId)
+    {
+        CardActionLog? log = await _context.CardActionLogs
+            .FirstOrDefaultAsync(row => row.Id == logId && row.UserId == userId);
+
+        return log;
+    }
 }

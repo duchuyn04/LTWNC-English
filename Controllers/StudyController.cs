@@ -7,16 +7,23 @@ using ltwnc.Models.Entities;
 
 namespace ltwnc.Controllers;
 
-// Controller xử lý chức năng học flashcard — yêu cầu đăng nhập
+// Học: Study Hub, Flashcard, Dictation, settings. Class [Authorize]; vài GET AllowAnonymous.
 [Authorize]
 public class StudyController : Controller
 {
+    // Settings, progress, hub, mark learned, complete flashcard session
     private readonly StudyService _studyService;
+
+    // Lấy thẻ / chấm / complete / result dictation
     private readonly DictationService _dictationService;
+
+    // Kiểm tra owner set, toggle star
     private readonly FlashcardSetService _setService;
+
+    // User cookie
     private readonly UserManager<IdentityUser> _userManager;
 
-    // Inject các service: học tập, nghe chép, bộ thẻ, UserManager
+    // Inject study, dictation, set, UserManager
     public StudyController(
         StudyService studyService,
         DictationService dictationService,
@@ -29,72 +36,100 @@ public class StudyController : Controller
         _userManager = userManager;
     }
 
-    // Hiển thị trang chọn chế độ học (Flashcard, Quiz, Write, Match)
+    // GET Study Hub: chỉ set của owner; query filter ghi settings nếu đã login
     [AllowAnonymous]
     [Route("/Study/{setId}")]
-    public async Task<IActionResult> Index(int setId, bool? starredOnly = null, bool? unlearnedOnly = null)
+    public async Task<IActionResult> Index(
+        int setId,
+        bool? starredOnly = null,
+        bool? unlearnedOnly = null)
     {
-        var user = await _userManager.GetUserAsync(User);
+        IdentityUser? user = await _userManager.GetUserAsync(User);
 
-        // Chỉ cho phép học bộ thẻ thuộc sở hữu của ngườidùng
-        var set = await _setService.GetOwnedSetAsync(setId, user?.Id!);
-        if (set == null) return RedirectToAction("Details", "FlashcardSet", new { id = setId });
+        FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, user?.Id!);
+        if (set == null)
+        {
+            return RedirectToAction("Details", "FlashcardSet", new { id = setId });
+        }
 
-        // Cập nhật bộ lọc nhanh nếu user đăng nhập
         if (user != null && (starredOnly.HasValue || unlearnedOnly.HasValue))
         {
             await _studyService.SaveFilterSettingsAsync(user.Id, starredOnly, unlearnedOnly);
         }
 
-        var model = await _studyService.GetStudyModeSelectorDataAsync(setId, user?.Id);
+        StudyModeSelectorViewModel model =
+            await _studyService.GetStudyModeSelectorDataAsync(setId, user?.Id);
         return View(model);
     }
 
-    // Hiển thị giao diện học flashcard
-    // Tham số index: vị trí thẻ hiện tại (mặc định = 0)
+    // GET màn flashcard: gộp filter query + settings; empty -> hub + TempData
     [AllowAnonymous]
     [Route("/Study/{setId}/Flashcard")]
-    public async Task<IActionResult> Flashcard(int setId, int index = 0, bool? starredOnly = null, bool? unlearnedOnly = null)
+    public async Task<IActionResult> Flashcard(
+        int setId,
+        int index = 0,
+        bool? starredOnly = null,
+        bool? unlearnedOnly = null)
     {
-        var user = await _userManager.GetUserAsync(User);
+        IdentityUser? user = await _userManager.GetUserAsync(User);
 
-        // Đọc settings và kết hợp bộ lọc
-        var settings = await _studyService.GetSettingsAsync(user?.Id);
-        var effectiveStarredOnly = starredOnly ?? settings.StarredOnly;
-        var effectiveUnlearnedOnly = unlearnedOnly ?? settings.UnlearnedOnly;
-        settings.StarredOnly = effectiveStarredOnly; // ponytail: sync so JS initialSettings matches effective filter
+        UserStudySettings settings = await _studyService.GetSettingsAsync(user?.Id);
+
+        // Query string thắng settings đã lưu (JS initialSettings cũng dùng bộ này)
+        bool effectiveStarredOnly = starredOnly ?? settings.StarredOnly;
+        bool effectiveUnlearnedOnly = unlearnedOnly ?? settings.UnlearnedOnly;
+        settings.StarredOnly = effectiveStarredOnly;
         settings.UnlearnedOnly = effectiveUnlearnedOnly;
 
-        // Chỉ cho phép học bộ thẻ thuộc sở hữu của ngườidùng
-        var set = await _setService.GetOwnedSetAsync(setId, user?.Id!);
-        if (set == null) return RedirectToAction("Details", "FlashcardSet", new { id = setId });
+        FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, user?.Id!);
+        if (set == null)
+        {
+            return RedirectToAction("Details", "FlashcardSet", new { id = setId });
+        }
 
-        // Lấy danh sách thẻ để học từ strategy Flashcard
-        var cards = await _studyService.GetCardsForModeAsync(StudyMode.Flashcard, setId, settings, user?.Id);
+        List<Flashcard> cards = await _studyService.GetCardsForModeAsync(
+            StudyMode.Flashcard,
+            setId,
+            settings,
+            user?.Id);
 
-        // Danh sách từ vựng đầy đủ (không áp dụng bộ lọc) dùng cho một số tính năng UI
-        var vocabularySettings = new UserStudySettings { StarredOnly = false, UnlearnedOnly = false };
-        var vocabularyCards = await _studyService.GetCardsForModeAsync(StudyMode.Flashcard, setId, vocabularySettings, user?.Id);
-        var progressByCardId = await _studyService.GetProgressByCardIdAsync(setId, user?.Id);
+        // List đầy đủ (không filter) cho UI phụ
+        UserStudySettings vocabularySettings = new UserStudySettings
+        {
+            StarredOnly = false,
+            UnlearnedOnly = false
+        };
+        List<Flashcard> vocabularyCards = await _studyService.GetCardsForModeAsync(
+            StudyMode.Flashcard,
+            setId,
+            vocabularySettings,
+            user?.Id);
+
+        Dictionary<int, UserProgress> progressByCardId =
+            await _studyService.GetProgressByCardIdAsync(setId, user?.Id);
 
         if (!cards.Any())
         {
-            // Bộ thẻ chưa có thẻ nào → quay lại trang chọn chế độ
-            TempData["Message"] = effectiveStarredOnly || effectiveUnlearnedOnly
-                ? "Không có thẻ phù hợp với bộ lọc hiện tại."
-                : "Bộ thẻ này chưa có thẻ nào.";
+            if (effectiveStarredOnly || effectiveUnlearnedOnly)
+            {
+                TempData["Message"] = "Không có thẻ phù hợp với bộ lọc hiện tại.";
+            }
+            else
+            {
+                TempData["Message"] = "Bộ thẻ này chưa có thẻ nào.";
+            }
+
             return RedirectToAction("Index", new { setId });
         }
 
-        // Tạo ViewModel cho trang học flashcard
-        var model = new FlashcardStudyViewModel
+        FlashcardStudyViewModel model = new FlashcardStudyViewModel
         {
             SetId = setId,
             SetTitle = set.Title,
             Flashcards = cards,
             VocabularyCards = vocabularyCards,
             ProgressByCardId = progressByCardId,
-            CurrentIndex = Math.Clamp(index, 0, cards.Count - 1), // Giới hạn index hợp lệ
+            CurrentIndex = Math.Clamp(index, 0, cards.Count - 1),
             StarredOnly = effectiveStarredOnly,
             Settings = settings,
             IsAuthenticated = user != null,
@@ -104,26 +139,25 @@ public class StudyController : Controller
         return View(model);
     }
 
-    // Xử lý đánh dấu thẻ đã biết hoặc chưa biết
-    // learned = true: đã biết, learned = false: chưa biết
+    // POST đánh dấu đã biết / chưa biết; AJAX -> JSON, form -> redirect Flashcard
     [HttpPost]
     [Route("/Study/{setId}/Flashcard/Mark")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkLearned(int setId, int cardId, bool learned)
     {
-        var user = await _userManager.GetUserAsync(User);
+        IdentityUser? user = await _userManager.GetUserAsync(User);
         if (user == null)
         {
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            if (IsAjaxRequest())
             {
                 return Unauthorized();
             }
+
             return Challenge();
         }
 
         try
         {
-            // Lưu tiến trình học vào database
             await _studyService.MarkLearnedAsync(user.Id, setId, cardId, learned);
         }
         catch (KeyNotFoundException)
@@ -135,35 +169,34 @@ public class StudyController : Controller
             return Forbid();
         }
 
-        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        if (IsAjaxRequest())
         {
             return Json(new { success = true });
         }
 
-        // Quay lại trang flashcard hiện tại
         return RedirectToAction("Flashcard", new { setId });
     }
 
-    // Xử lý hoàn thành buổi học
+    // POST hoàn thành buổi Flashcard; AJAX kèm redirectUrl hub
     [HttpPost]
     [Route("/Study/{setId}/Complete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Complete(int setId)
     {
-        var user = await _userManager.GetUserAsync(User);
+        IdentityUser? user = await _userManager.GetUserAsync(User);
         if (user == null)
         {
-            if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+            if (IsAjaxRequest())
             {
                 return Unauthorized();
             }
+
             return Challenge();
         }
 
         try
         {
-            // Ghi nhận phiên học hoàn thành
-            await _studyService.CompleteSessionAsync(user.Id, setId, Models.Entities.StudyMode.Flashcard);
+            await _studyService.CompleteSessionAsync(user.Id, setId, StudyMode.Flashcard);
         }
         catch (KeyNotFoundException)
         {
@@ -174,28 +207,34 @@ public class StudyController : Controller
             return Forbid();
         }
 
-        if (Request.Headers["X-Requested-With"] == "XMLHttpRequest")
+        if (IsAjaxRequest())
         {
-            return Json(new { success = true, redirectUrl = Url.Action("Index", new { setId }) });
+            return Json(new
+            {
+                success = true,
+                redirectUrl = Url.Action("Index", new { setId })
+            });
         }
 
-        // Hiển thị thông báo thành công
         TempData["Success"] = "Hoàn thành buổi học!";
         return RedirectToAction("Index", new { setId });
     }
 
-    // Xử lý đánh dấu sao thẻ bằng AJAX
+    // POST AJAX toggle sao thẻ (owner)
     [HttpPost]
     [Route("/Study/{setId}/Flashcard/{cardId}/ToggleStar")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleStar(int setId, int cardId)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Unauthorized();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized();
+        }
 
         try
         {
-            var isStarred = await _setService.ToggleStarAsync(cardId, user.Id);
+            bool isStarred = await _setService.ToggleStarAsync(cardId, user.Id);
             return Json(new { success = true, isStarred = isStarred });
         }
         catch (KeyNotFoundException)
@@ -212,18 +251,21 @@ public class StudyController : Controller
         }
     }
 
-    // Lưu cài đặt học tập (bộ lọc, chế độ nghe chép...) qua AJAX
+    // POST AJAX lưu toàn bộ UserStudySettings
     [HttpPost]
     [Route("/Study/Settings")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveSettings([FromForm] UserStudySettings settings)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Unauthorized();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized();
+        }
 
         try
         {
-            var saved = await _studyService.SaveSettingsAsync(user.Id, settings);
+            UserStudySettings saved = await _studyService.SaveSettingsAsync(user.Id, settings);
             return Json(new { success = true, settings = saved });
         }
         catch (Exception)
@@ -232,15 +274,15 @@ public class StudyController : Controller
         }
     }
 
-    // Xóa bộ lọc StarredOnly/UnlearnedOnly để thoát khỏi trạng thái lọc rỗng
+    // GET tắt StarredOnly + UnlearnedOnly rồi về hub (thoát lọc rỗng)
     [Authorize]
     [Route("/Study/{setId}/ClearFilters")]
     public async Task<IActionResult> ClearFilters(int setId)
     {
-        var user = await _userManager.GetUserAsync(User);
+        IdentityUser? user = await _userManager.GetUserAsync(User);
         if (user != null)
         {
-            var settings = await _studyService.GetSettingsAsync(user.Id);
+            UserStudySettings settings = await _studyService.GetSettingsAsync(user.Id);
             settings.StarredOnly = false;
             settings.UnlearnedOnly = false;
             await _studyService.SaveSettingsAsync(user.Id, settings);
@@ -249,81 +291,139 @@ public class StudyController : Controller
         return RedirectToAction("Index", new { setId });
     }
 
-    // Hiển thị giao diện học nghe chép
-    // Yêu cầu đăng nhập
+    // GET màn Dictation: tạo session, map thẻ -> view model; empty -> hub
     [Authorize]
     [Route("/Study/{setId}/Dictation")]
     public async Task<IActionResult> Dictation(int setId)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Challenge();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Challenge();
+        }
 
-        var set = await _setService.GetOwnedSetAsync(setId, user.Id);
-        if (set == null) return RedirectToAction("Details", "FlashcardSet", new { id = setId });
+        FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, user.Id);
+        if (set == null)
+        {
+            return RedirectToAction("Details", "FlashcardSet", new { id = setId });
+        }
 
-        var settings = await _studyService.GetSettingsAsync(user.Id);
-        var cards = await _dictationService.GetCardsForDictationAsync(setId, user.Id, settings);
+        UserStudySettings settings = await _studyService.GetSettingsAsync(user.Id);
+        List<Flashcard> cards = await _dictationService.GetCardsForDictationAsync(
+            setId,
+            user.Id,
+            settings);
 
         if (!cards.Any())
         {
             string message;
-            if (settings.DictationContentMode == DictationContentMode.ExampleSentence &&
-                !await _dictationService.AnyCardHasExampleSentenceAsync(setId))
+
+            bool exampleMode = settings.DictationContentMode == DictationContentMode.ExampleSentence;
+            bool anyExampleInSet = exampleMode
+                && await _dictationService.AnyCardHasExampleSentenceAsync(setId);
+
+            if (exampleMode && !anyExampleInSet)
             {
                 message = "Bộ thẻ chưa có câu ví dụ để nghe chép.";
             }
+            else if (settings.StarredOnly || settings.UnlearnedOnly)
+            {
+                message = "Không có thẻ phù hợp với bộ lọc hiện tại.";
+            }
             else
             {
-                message = settings.StarredOnly || settings.UnlearnedOnly
-                    ? "Không có thẻ phù hợp với bộ lọc hiện tại."
-                    : "Bộ thẻ này chưa có thẻ nào.";
+                message = "Bộ thẻ này chưa có thẻ nào.";
             }
+
             TempData["Message"] = message;
             return RedirectToAction("Index", new { setId });
         }
 
-        var session = await _dictationService.CreateSessionAsync(user.Id, setId, settings.DictationContentMode);
+        StudySession session = await _dictationService.CreateSessionAsync(
+            user.Id,
+            setId,
+            settings.DictationContentMode);
 
-        var viewModel = new DictationStudyViewModel
+        List<DictationCardViewModel> cardViewModels = new List<DictationCardViewModel>();
+        foreach (Flashcard card in cards)
+        {
+            // Prompt: câu ví dụ hoặc term tùy content mode
+            string promptText;
+            if (session.DictationContentMode == DictationContentMode.ExampleSentence)
+            {
+                promptText = card.ExampleSentence;
+            }
+            else
+            {
+                promptText = card.FrontText;
+            }
+
+            // Ưu tiên ảnh upload nội bộ, không thì URL ngoài
+            string? imageUrl = card.ImageUrl;
+            if (!string.IsNullOrWhiteSpace(card.UploadedImagePath))
+            {
+                imageUrl = card.UploadedImagePath;
+            }
+
+            cardViewModels.Add(new DictationCardViewModel
+            {
+                Id = card.Id,
+                Term = card.FrontText,
+                Definition = card.BackText,
+                ExampleSentence = card.ExampleSentence,
+                ExampleMeaning = card.ExampleMeaning,
+                PromptText = promptText,
+                Pronunciation = card.Pronunciation,
+                ImageUrl = imageUrl
+            });
+        }
+
+        DictationStudyViewModel viewModel = new DictationStudyViewModel
         {
             SetId = setId,
             SetTitle = set.Title,
             SessionId = session.Id,
             Settings = settings,
             ContentMode = session.DictationContentMode,
-            Cards = cards.Select(c => new DictationCardViewModel
-            {
-                Id = c.Id,
-                Term = c.FrontText,
-                Definition = c.BackText,
-                ExampleSentence = c.ExampleSentence,
-                ExampleMeaning = c.ExampleMeaning,
-                PromptText = session.DictationContentMode == DictationContentMode.ExampleSentence
-                    ? c.ExampleSentence
-                    : c.FrontText,
-                Pronunciation = c.Pronunciation,
-                ImageUrl = !string.IsNullOrWhiteSpace(c.UploadedImagePath) ? c.UploadedImagePath : c.ImageUrl
-            }).ToList()
+            Cards = cardViewModels
         };
 
         return View(viewModel);
     }
 
-    // Kiểm tra đáp án nghe chép qua AJAX
+    // POST AJAX chấm một câu; trả isCorrect, hint, wordComparison...
     [HttpPost]
     [Route("/Study/{setId}/Dictation/Check")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DictationCheck(int setId, int sessionId, int cardId, string answeredText)
+    public async Task<IActionResult> DictationCheck(
+        int setId,
+        int sessionId,
+        int cardId,
+        string answeredText)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Unauthorized();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized();
+        }
 
         try
         {
-            var settings = await _studyService.GetSettingsAsync(user.Id);
-            var result = await _dictationService.CheckAnswerAsync(
-                sessionId, cardId, answeredText, user.Id,
+            UserStudySettings settings = await _studyService.GetSettingsAsync(user.Id);
+            DictationCheckResult result = await _dictationService.CheckAnswerAsync(
+                sessionId,
+                cardId,
+                answeredText,
+                user.Id,
                 settings.DictationAcceptSynonyms);
+
+            // Serialize word comparison cho JS highlight
+            var wordComparison = result.WordComparison.Select(word => new
+            {
+                status = word.Status.ToString(),
+                answeredWord = word.AnsweredWord,
+                correctWord = word.CorrectWord
+            });
 
             return Json(new
             {
@@ -332,12 +432,7 @@ public class StudyController : Controller
                 correctAnswer = result.CorrectAnswer,
                 hint = result.Hint,
                 exampleMeaning = result.ExampleMeaning,
-                wordComparison = result.WordComparison.Select(word => new
-                {
-                    status = word.Status.ToString(),
-                    answeredWord = word.AnsweredWord,
-                    correctWord = word.CorrectWord
-                })
+                wordComparison = wordComparison
             });
         }
         catch (KeyNotFoundException)
@@ -350,14 +445,17 @@ public class StudyController : Controller
         }
     }
 
-    // Hoàn thành phiên nghe chép
+    // POST AJAX đóng phiên + điểm; JSON redirectUrl màn result
     [HttpPost]
     [Route("/Study/{setId}/Dictation/Complete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DictationComplete(int setId, int sessionId, int score)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Unauthorized();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Unauthorized();
+        }
 
         try
         {
@@ -374,21 +472,42 @@ public class StudyController : Controller
         }
     }
 
-    // Hiển thị màn hình tổng kết phiên nghe chép
+    // GET tổng kết phiên nghe chép (owner set + owner session)
     [Authorize]
     [Route("/Study/{setId}/Dictation/Result/{sessionId}")]
     public async Task<IActionResult> DictationResult(int setId, int sessionId)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Challenge();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Challenge();
+        }
 
-        var set = await _setService.GetOwnedSetAsync(setId, user.Id);
-        if (set == null) return RedirectToAction("Details", "FlashcardSet", new { id = setId });
+        FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, user.Id);
+        if (set == null)
+        {
+            return RedirectToAction("Details", "FlashcardSet", new { id = setId });
+        }
 
         try
         {
-            var result = await _dictationService.GetSessionResultAsync(sessionId, user.Id);
-            var viewModel = new DictationResultViewModel
+            DictationResult result = await _dictationService.GetSessionResultAsync(sessionId, user.Id);
+
+            List<DictationResultCardViewModel> wrongCards = new List<DictationResultCardViewModel>();
+            foreach (DictationResultCard card in result.WrongCards)
+            {
+                wrongCards.Add(new DictationResultCardViewModel
+                {
+                    Id = card.Id,
+                    Term = card.Term,
+                    Definition = card.Definition,
+                    Pronunciation = card.Pronunciation,
+                    ExampleSentence = card.ExampleSentence,
+                    ExampleMeaning = card.ExampleMeaning
+                });
+            }
+
+            DictationResultViewModel viewModel = new DictationResultViewModel
             {
                 SetId = setId,
                 SetTitle = set.Title,
@@ -397,15 +516,7 @@ public class StudyController : Controller
                 TotalCards = result.TotalCards,
                 CorrectCount = result.CorrectCount,
                 Score = result.Score,
-                WrongCards = result.WrongCards.Select(c => new DictationResultCardViewModel
-                {
-                    Id = c.Id,
-                    Term = c.Term,
-                    Definition = c.Definition,
-                    Pronunciation = c.Pronunciation,
-                    ExampleSentence = c.ExampleSentence,
-                    ExampleMeaning = c.ExampleMeaning
-                }).ToList()
+                WrongCards = wrongCards
             };
 
             return View(viewModel);
@@ -418,5 +529,11 @@ public class StudyController : Controller
         {
             return Forbid();
         }
+    }
+
+    // Header X-Requested-With = XMLHttpRequest (fetch/jQuery)
+    private bool IsAjaxRequest()
+    {
+        return Request.Headers["X-Requested-With"] == "XMLHttpRequest";
     }
 }

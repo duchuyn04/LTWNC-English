@@ -2,27 +2,18 @@ using Microsoft.Extensions.Logging;
 
 namespace ltwnc.Services.StudyEvents;
 
-// ============================================================
-// SUBJECT cụ thể: trạm phát sự kiện học tập (mẫu Observer).
-//
-// Cách hoạt động bằng lời thường:
-// 1. Khi app khởi động, hệ thống đăng ký sẵn danh sách "người theo dõi"
-//    (ví dụ: người mở thành tích, người ghi log).
-// 2. Mỗi lần có sự kiện, trạm phát gõ cửa từng người theo dõi.
-// 3. Nếu một người theo dõi bị lỗi, các người khác vẫn nhận tin
-//    — việc học của user không bị hỏng vì lỗi phụ (thành tích/log).
-//
-// Trong ASP.NET, danh sách observer lấy từ DI (hộp đăng ký dịch vụ),
-// tương đương việc "subscribe" trong sách GoF.
-// ============================================================
+// Subject cụ thể: phát sự kiện học cho mọi observer.
+// Observer lấy từ DI lúc startup (tương đương Attach trong sách GoF).
+// Một observer lỗi chỉ log, không dừng chuỗi và không phá buổi học.
 public class StudyEventPublisher : IStudyEventPublisher
 {
-    // Danh sách tất cả "người theo dõi" đã đăng ký
+    // Danh sách observer đã AddScoped trong Program.cs
     private readonly IEnumerable<IStudyEventObserver> _observers;
 
-    // Ghi nhật ký lỗi nếu một observer xử lý hỏng
+    // Log khi một observer throw
     private readonly ILogger<StudyEventPublisher> _logger;
 
+    // Inject observers + logger
     public StudyEventPublisher(
         IEnumerable<IStudyEventObserver> observers,
         ILogger<StudyEventPublisher> logger)
@@ -31,10 +22,10 @@ public class StudyEventPublisher : IStudyEventPublisher
         _logger = logger;
     }
 
-    // Báo tin cho từng observer, lần lượt, không dừng cả chuỗi nếu một người lỗi
+    // Gọi OnStudyEventAsync từng observer; catch từng cái
     public async Task PublishAsync(StudyEvent studyEvent, CancellationToken cancellationToken = default)
     {
-        foreach (var observer in _observers)
+        foreach (IStudyEventObserver observer in _observers)
         {
             try
             {
@@ -42,7 +33,7 @@ public class StudyEventPublisher : IStudyEventPublisher
             }
             catch (Exception ex)
             {
-                // Lỗi phụ (thành tích/log) không được làm hỏng buổi học chính
+                // Thành tích / log hỏng không được rollback buổi học đã Save
                 _logger.LogError(
                     ex,
                     "Observer {ObserverType} lỗi khi xử lý sự kiện {EventType} của user {UserId}.",

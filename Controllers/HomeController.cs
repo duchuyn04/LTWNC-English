@@ -6,54 +6,57 @@ using ltwnc.Models.ViewModels.Home;
 
 namespace ltwnc.Controllers;
 
-// Controller xử lý trang chủ và tìm kiếm
+// Trang chủ (khách) và trang lỗi. User đã login vào /Set luôn.
 public class HomeController : Controller
 {
+    // Lấy / tìm bộ thẻ public
     private readonly FlashcardSetService _setService;
 
-    // Inject service xử lý bộ thẻ flashcard
+    // Inject service bộ thẻ
     public HomeController(FlashcardSetService setService)
     {
         _setService = setService;
     }
 
-    // Hiển thị trang chủ với danh sách bộ thẻ public
-    // Tham số q: từ khóa tìm kiếm (nếu có)
+    // GET / : nếu đã login redirect /Set; không thì list public hoặc search theo q
     public async Task<IActionResult> Index(string? q)
     {
-        // Ngườidùng đã đăng nhập thì chuyển thẳng đến thư viện cá nhân
         if (User.Identity?.IsAuthenticated == true)
         {
             return Redirect("/Set");
         }
 
-        var model = new HomeViewModel();
+        HomeViewModel model = new HomeViewModel();
 
         if (!string.IsNullOrEmpty(q))
         {
-            // Có từ khóa → tìm kiếm bộ thẻ theo tiêu đề
+            // Có từ khóa: tìm theo tiêu đề
             model.SearchQuery = q;
             model.PublicSets = await _setService.SearchPublicSetsAsync(q);
         }
         else
         {
-            // Không có từ khóa → hiển thị bộ thẻ public mới nhất
+            // Không có q: vài bộ public mới nhất
             model.PublicSets = await _setService.GetPublicSetsAsync();
         }
 
         return View(model);
     }
 
-    // Trang chính sách bảo mật
+    // GET Privacy
     public IActionResult Privacy()
     {
         return View();
     }
 
-    // Trang lỗi chung — không cache để luôn hiển thị lỗi mới nhất
+    // GET Error: không cache, gắn RequestId để debug
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
-        return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
+        ErrorViewModel model = new ErrorViewModel
+        {
+            RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier
+        };
+        return View(model);
     }
 }

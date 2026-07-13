@@ -1,22 +1,32 @@
 using System.Text.Json;
 using ltwnc.Data;
+using ltwnc.Models.Entities;
 using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Services.CardActions;
 
-// Command bỏ sao nhiều thẻ cùng lúc
-// Snapshot lưu trạng thái IsStarred cũ để hoàn tác về đúng trạng thái ban đầu
-// Command bỏ sao nhiều thẻ, lưu trạng thái cũ để hoàn tác
+// Command bỏ sao nhiều thẻ. Snapshot giữ IsStarred cũ để Undo.
 public class UnstarCardsCommand : ICardActionCommand
 {
+    // Query / update Flashcards
     private readonly AppDbContext _context;
+
+    // cardId -> IsStarred trước khi Execute
     private readonly Dictionary<int, bool> _previousStates = new();
 
+    // Cố định "Unstar"
     public string ActionType => "Unstar";
+
+    // Bộ thẻ đang thao tác
     public int SetId { get; }
+
+    // User thực hiện
     public string UserId { get; }
+
+    // Id thẻ cần bỏ sao
     public IReadOnlyList<int> CardIds { get; }
 
+    // Tạo command với set, user và danh sách card id
     public UnstarCardsCommand(AppDbContext context, int setId, string userId, IEnumerable<int> cardIds)
     {
         _context = context;
@@ -25,15 +35,18 @@ public class UnstarCardsCommand : ICardActionCommand
         CardIds = cardIds.ToList().AsReadOnly();
     }
 
+    // Chụp IsStarred cũ rồi set false
     public async Task ExecuteAsync()
     {
-        var cards = await _context.Flashcards
-            .Where(f => f.FlashcardSetId == SetId && CardIds.Contains(f.Id))
+        List<Flashcard> cards = await _context.Flashcards
+            .Where(flashcard =>
+                flashcard.FlashcardSetId == SetId
+                && CardIds.Contains(flashcard.Id))
             .ToListAsync();
 
-        // Ghi nhớ trạng thái cũ trước khi bỏ sao
         _previousStates.Clear();
-        foreach (var card in cards)
+
+        foreach (Flashcard card in cards)
         {
             _previousStates[card.Id] = card.IsStarred;
             card.IsStarred = false;
@@ -42,25 +55,48 @@ public class UnstarCardsCommand : ICardActionCommand
         await _context.SaveChangesAsync();
     }
 
+    // Khôi phục IsStarred theo snapshot
     public async Task UndoAsync()
     {
-        var cards = await _context.Flashcards
-            .Where(f => f.FlashcardSetId == SetId && CardIds.Contains(f.Id))
+        List<Flashcard> cards = await _context.Flashcards
+            .Where(flashcard =>
+                flashcard.FlashcardSetId == SetId
+                && CardIds.Contains(flashcard.Id))
             .ToListAsync();
 
-        // Khôi phục trạng thái sao cũ
-        foreach (var card in cards)
-            if (_previousStates.TryGetValue(card.Id, out var oldState)) card.IsStarred = oldState;
+        foreach (Flashcard card in cards)
+        {
+            if (_previousStates.TryGetValue(card.Id, out bool oldState))
+            {
+                card.IsStarred = oldState;
+            }
+        }
 
         await _context.SaveChangesAsync();
     }
 
-    public string GetSnapshotJson() => JsonSerializer.Serialize(_previousStates);
+    // JSON dictionary cardId -> IsStarred cũ
+    public string GetSnapshotJson()
+    {
+        return JsonSerializer.Serialize(_previousStates);
+    }
 
+    // Nạp snapshot từ log
     public void LoadSnapshot(string json)
     {
         _previousStates.Clear();
-        foreach (var (id, state) in JsonSerializer.Deserialize<Dictionary<int, bool>>(json) ?? [])
-            _previousStates[id] = state;
+
+        Dictionary<int, bool>? loaded =
+            JsonSerializer.Deserialize<Dictionary<int, bool>>(json);
+
+        if (loaded == null)
+        {
+            return;
+        }
+
+        foreach (KeyValuePair<int, bool> pair in loaded)
+        {
+            _previousStates[pair.Key] = pair.Value;
+        }
     }
 }

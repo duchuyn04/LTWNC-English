@@ -5,16 +5,17 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Controllers;
 
-// ============================================================
-// Trang xem thành tích (huy hiệu) của user đang đăng nhập.
-// Chỉ người đã login mới vào được — khách sẽ bị chuyển sang đăng nhập.
-// ============================================================
+// Trang huy hiệu user đang login. Khách bị Challenge sang đăng nhập.
 [Authorize]
 public class AchievementsController : Controller
 {
+    // Rescan unlock + map list view model
     private readonly AchievementService _achievementService;
+
+    // User hiện tại từ cookie
     private readonly UserManager<IdentityUser> _userManager;
 
+    // Inject service thành tích và UserManager
     public AchievementsController(
         AchievementService achievementService,
         UserManager<IdentityUser> userManager)
@@ -23,18 +24,19 @@ public class AchievementsController : Controller
         _userManager = userManager;
     }
 
-    // GET /Achievements — rescan + danh sách huy hiệu đã mở / chưa mở
+    // GET /Achievements: rescan, banner TempData nếu vừa mở huy hiệu, render list
     [Route("/Achievements")]
     public async Task<IActionResult> Index()
     {
-        var user = await _userManager.GetUserAsync(User);
+        IdentityUser? user = await _userManager.GetUserAsync(User);
         if (user == null)
+        {
             return Challenge();
+        }
 
-        // Rescan mở khóa thiếu + lấy progress/CTA cho từng huy hiệu
-        var page = await _achievementService.GetPageAsync(user.Id);
+        AchievementPageModel page = await _achievementService.GetPageAsync(user.Id);
 
-        // Banner một lần (TempData) khi rescan vừa mở huy hiệu mới
+        // Banner một lần khi rescan vừa mở huy hiệu mới
         if (page.NewlyUnlockedTitles.Count > 0)
         {
             TempData["AchievementUnlock"] =

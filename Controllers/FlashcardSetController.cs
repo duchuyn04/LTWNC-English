@@ -2,83 +2,104 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
 using ltwnc.Services;
+using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.FlashcardSet;
 using Microsoft.AspNetCore.Http;
 
 namespace ltwnc.Controllers;
 
-// Controller quản lý bộ thẻ flashcard - yêu cầu đăng nhập
+// CRUD bộ thẻ / thẻ, copy public set. Hầu hết action cần login; Details cho khách.
 [Authorize]
 public class FlashcardSetController : Controller
 {
+    // Nghiệp vụ set + card + copy
     private readonly FlashcardSetService _setService;
+
+    // User hiện tại
     private readonly UserManager<IdentityUser> _userManager;
 
-    // Inject service bộ thẻ và UserManager
-    public FlashcardSetController(FlashcardSetService setService, UserManager<IdentityUser> userManager)
+    // Inject set service và UserManager
+    public FlashcardSetController(
+        FlashcardSetService setService,
+        UserManager<IdentityUser> userManager)
     {
         _setService = setService;
         _userManager = userManager;
     }
 
-    // Hiển thị danh sách bộ thẻ của ngườidùng hiện tại
+    // GET /Set: thư viện cá nhân kèm progress
     [Route("/Set")]
     public async Task<IActionResult> Index()
     {
-        // Lấy thông tin ngườidùng đang đăng nhập
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Challenge();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Challenge();
+        }
 
-        // Lấy tất cả bộ thẻ thuộc về ngườidùng này
-        var sets = await _setService.GetMySetsWithProgressAsync(user.Id);
+        List<FlashcardSetListItemViewModel> sets =
+            await _setService.GetMySetsWithProgressAsync(user.Id);
         return View(sets);
     }
 
-    // Hiển thị form tạo bộ thẻ mới
+    // GET form tạo bộ thẻ
     [Route("/Set/Create")]
     public IActionResult Create()
     {
         return View();
     }
 
-    // Xử lý dữ liệu tạo bộ thẻ từ form
+    // POST tạo set, redirect Edit để thêm thẻ
     [HttpPost]
     [Route("/Set/Create")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreateSetViewModel model)
     {
-        // Kiểm tra dữ liệu đầu vào hợp lệ
-        if (!ModelState.IsValid) return View(model);
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
 
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Challenge();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Challenge();
+        }
 
-        // Tạo bộ thẻ mới → chuyển sang trang chỉnh sửa để thêm thẻ
-        var set = await _setService.CreateSetAsync(model.Title, model.Description, model.IsPublic, user.Id);
+        FlashcardSet set = await _setService.CreateSetAsync(
+            model.Title,
+            model.Description,
+            model.IsPublic,
+            user.Id);
+
         return RedirectToAction("Edit", new { id = set.Id });
     }
 
-    // Hiển thị chi tiết bộ thẻ (ai cũng xem được nếu là public)
+    // GET /Set/{id}: public hoặc owner; map SetDetailViewModel + ExistingCopyId
     [Route("/Set/{id}")]
-    [AllowAnonymous] // Cho phép truy cập không cần đăng nhập
+    [AllowAnonymous]
     public async Task<IActionResult> Details(int id)
     {
-        var user = await _userManager.GetUserAsync(User);
+        IdentityUser? user = await _userManager.GetUserAsync(User);
 
-        // Chỉ cho xem bộ công khai hoặc bộ của chính ngườidùng hiện tại
-        var set = await _setService.GetAccessibleSetWithCardsAsync(id, user?.Id);
-        if (set == null) return NotFound();
+        FlashcardSet? set = await _setService.GetAccessibleSetWithCardsAsync(id, user?.Id);
+        if (set == null)
+        {
+            return NotFound();
+        }
 
-        // Kiểm tra xem ngườidùng đã sao chép bộ thẻ công khai này trước đó chưa
+        // User khác owner: xem đã copy set này chưa (nút "Vào bản sao")
         int? existingCopyId = null;
         if (user != null && user.Id != set.UserId)
         {
-            var copy = await _setService.GetExistingCopyAsync(set.Id, user.Id);
-            existingCopyId = copy?.Id;
+            FlashcardSet? copy = await _setService.GetExistingCopyAsync(set.Id, user.Id);
+            if (copy != null)
+            {
+                existingCopyId = copy.Id;
+            }
         }
 
-        // Ánh xạ sang ViewModel để hiển thị trên View
-        var model = new SetDetailViewModel
+        SetDetailViewModel model = new SetDetailViewModel
         {
             Id = set.Id,
             Title = set.Title,
@@ -86,24 +107,28 @@ public class FlashcardSetController : Controller
             IsPublic = set.IsPublic,
             UserId = set.UserId,
             Flashcards = set.Flashcards.ToList(),
-            IsOwner = user?.Id == set.UserId, // Kiểm tra ngườixem có phải chủ sở hữu không
+            IsOwner = user?.Id == set.UserId,
             ExistingCopyId = existingCopyId
         };
+
         return View(model);
     }
 
-    // Sao chép một bộ thẻ công khai vào thư viện của ngườidùng hiện tại
+    // POST copy public set vào thư viện; về Study hub của bản sao
     [HttpPost]
     [Route("/Set/{id}/Copy")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Copy(int id)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Challenge();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Challenge();
+        }
 
         try
         {
-            var copy = await _setService.CopyPublicSetAsync(id, user.Id);
+            FlashcardSet copy = await _setService.CopyPublicSetAsync(id, user.Id);
             TempData["Success"] = "Đã sao chép bộ thẻ vào thư viện của bạn.";
             return RedirectToAction("Index", "Study", new { setId = copy.Id });
         }
@@ -117,19 +142,23 @@ public class FlashcardSetController : Controller
         }
     }
 
-    // Hiển thị form chỉnh sửa bộ thẻ (bao gồm danh sách thẻ)
+    // GET Edit: form meta set + ViewBag.Cards (chỉ owner)
     [Route("/Set/{id}/Edit")]
     public async Task<IActionResult> Edit(int id)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Challenge();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Challenge();
+        }
 
-        // Lấy bộ thẻ kèm danh sách thẻ — chỉ chủ sở hữu mới sửa được
-        var set = await _setService.GetSetWithCardsAsync(id, user.Id);
-        if (set == null) return NotFound();
+        FlashcardSet? set = await _setService.GetSetWithCardsAsync(id, user.Id);
+        if (set == null)
+        {
+            return NotFound();
+        }
 
-        // Ánh xạ dữ liệu sang ViewModel
-        var model = new EditSetViewModel
+        EditSetViewModel model = new EditSetViewModel
         {
             Id = set.Id,
             Title = set.Title,
@@ -137,48 +166,58 @@ public class FlashcardSetController : Controller
             IsPublic = set.IsPublic
         };
 
-        // Truyền danh sách thẻ qua ViewBag để hiển thị trên form
+        // Danh sách thẻ hiển thị trên form (batch actions cũng ở đây)
         ViewBag.Cards = set.Flashcards.ToList();
         return View(model);
     }
 
-    // Xử lý cập nhật bộ thẻ từ form
+    // POST cập nhật title/description/public
     [HttpPost]
     [Route("/Set/{id}/Edit")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, EditSetViewModel model)
     {
-        // Kiểm tra dữ liệu đầu vào hợp lệ
-        if (!ModelState.IsValid) return View(model);
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
 
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Challenge();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Challenge();
+        }
 
         try
         {
-            // Cập nhật thông tin bộ thẻ
-            await _setService.UpdateSetAsync(id, model.Title, model.Description, model.IsPublic, user.Id);
+            await _setService.UpdateSetAsync(
+                id,
+                model.Title,
+                model.Description,
+                model.IsPublic,
+                user.Id);
             return RedirectToAction("Edit", new { id });
         }
         catch (UnauthorizedAccessException)
         {
-            // Không phải chủ sở hữu → cấm truy cập
             return Forbid();
         }
     }
 
-    // Xử lý xóa bộ thẻ
+    // POST xóa cả bộ thẻ, về /Set
     [HttpPost]
     [Route("/Set/{id}/Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Challenge();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Challenge();
+        }
 
         try
         {
-            // Xóa bộ thẻ và tất cả thẻ bên trong
             await _setService.DeleteSetAsync(id, user.Id);
             return RedirectToAction("Index");
         }
@@ -188,7 +227,7 @@ public class FlashcardSetController : Controller
         }
     }
 
-    // Xử lý thêm thẻ mới vào bộ thẻ
+    // POST thêm thẻ vào set; validation lỗi -> TempData Error
     [HttpPost]
     [Route("/Set/{setId}/Cards/Create")]
     [ValidateAntiForgeryToken]
@@ -205,12 +244,14 @@ public class FlashcardSetController : Controller
         IFormFile? imageFile,
         bool isStarred = false)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Challenge();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Challenge();
+        }
 
         try
         {
-            // Thêm thẻ mới vào bộ
             await _setService.AddCardAsync(
                 setId,
                 frontText,
@@ -237,7 +278,7 @@ public class FlashcardSetController : Controller
         }
     }
 
-    // Xử lý chỉnh sửa thẻ
+    // POST sửa thẻ; removeUploadedImage xóa path ảnh upload nếu user bật
     [HttpPost]
     [Route("/Cards/{id}/Edit")]
     [ValidateAntiForgeryToken]
@@ -256,13 +297,15 @@ public class FlashcardSetController : Controller
         bool removeUploadedImage = false,
         bool isStarred = false)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Challenge();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Challenge();
+        }
 
         try
         {
-            // Cập nhật nội dung thẻ; flag removeUploadedImage giúp xóa ảnh đã tải lên nếu user yêu cầu
-            var updatedSetId = await _setService.UpdateCardAsync(
+            int updatedSetId = await _setService.UpdateCardAsync(
                 id,
                 frontText,
                 backText,
@@ -293,19 +336,21 @@ public class FlashcardSetController : Controller
         }
     }
 
-    // Xử lý xóa thẻ khỏi bộ
+    // POST xóa một thẻ, redirect Edit set
     [HttpPost]
     [Route("/Cards/{id}/Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteCard(int id)
     {
-        var user = await _userManager.GetUserAsync(User);
-        if (user == null) return Challenge();
+        IdentityUser? user = await _userManager.GetUserAsync(User);
+        if (user == null)
+        {
+            return Challenge();
+        }
 
         try
         {
-            // Xóa thẻ, trả về setId để redirect
-            var setId = await _setService.DeleteCardAsync(id, user.Id);
+            int setId = await _setService.DeleteCardAsync(id, user.Id);
             return RedirectToAction("Edit", new { id = setId });
         }
         catch (KeyNotFoundException)

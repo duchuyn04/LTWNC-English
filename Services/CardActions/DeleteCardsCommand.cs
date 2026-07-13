@@ -5,17 +5,28 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Services.CardActions;
 
-// Command xóa nhiều thẻ cùng lúc; snapshot gồm thẻ, tiến trình học và chi tiết dictation để khôi phục đầy đủ khi Undo
+// Command xóa nhiều thẻ. Snapshot gồm thẻ + progress + dictation detail để Undo đủ.
 public class DeleteCardsCommand : ICardActionCommand
 {
+    // Query / xóa / restore entity
     private readonly AppDbContext _context;
+
+    // Snapshot từng thẻ sau Execute (hoặc sau LoadSnapshot)
     private readonly List<FlashcardSnapshot> _snapshots = new();
 
+    // Cố định "Delete"
     public string ActionType => "Delete";
+
+    // Bộ thẻ chứa thẻ bị xóa
     public int SetId { get; }
+
+    // User thực hiện
     public string UserId { get; }
+
+    // Id thẻ cần xóa
     public IReadOnlyList<int> CardIds { get; }
 
+    // Tạo command với set, user và danh sách card id
     public DeleteCardsCommand(AppDbContext context, int setId, string userId, IEnumerable<int> cardIds)
     {
         _context = context;
@@ -24,164 +35,239 @@ public class DeleteCardsCommand : ICardActionCommand
         CardIds = cardIds.ToList().AsReadOnly();
     }
 
+    // Chụp thẻ + progress + dictation detail rồi xóa (FK: xóa con trước)
     public async Task ExecuteAsync()
     {
-        // Lấy thẻ cùng dữ liệu liên quan cần sao lưu trước khi xóa
-        var cards = await _context.Flashcards
-            .Where(f => f.FlashcardSetId == SetId && CardIds.Contains(f.Id))
-            .ToListAsync();
-        var progresses = await _context.UserProgresses
-            .Where(p => CardIds.Contains(p.FlashcardId))
-            .ToListAsync();
-        var details = await _context.DictationSessionDetails
-            .Where(d => CardIds.Contains(d.FlashcardId))
+        List<Flashcard> cards = await _context.Flashcards
+            .Where(flashcard =>
+                flashcard.FlashcardSetId == SetId
+                && CardIds.Contains(flashcard.Id))
             .ToListAsync();
 
-        // Tạo snapshot đầy đủ để khôi phục sau này
+        List<UserProgress> progresses = await _context.UserProgresses
+            .Where(progress => CardIds.Contains(progress.FlashcardId))
+            .ToListAsync();
+
+        List<DictationSessionDetail> details = await _context.DictationSessionDetails
+            .Where(detail => CardIds.Contains(detail.FlashcardId))
+            .ToListAsync();
+
         _snapshots.Clear();
-        _snapshots.AddRange(cards.Select(c => new FlashcardSnapshot
-        {
-            Id = c.Id,
-            FlashcardSetId = c.FlashcardSetId,
-            FrontText = c.FrontText,
-            BackText = c.BackText,
-            Pronunciation = c.Pronunciation,
-            PartOfSpeech = c.PartOfSpeech,
-            ExampleSentence = c.ExampleSentence,
-            ExampleMeaning = c.ExampleMeaning,
-            Synonyms = c.Synonyms,
-            ImageUrl = c.ImageUrl,
-            UploadedImagePath = c.UploadedImagePath,
-            IsStarred = c.IsStarred,
-            OrderIndex = c.OrderIndex,
-            UserProgresses = progresses
-                .Where(p => p.FlashcardId == c.Id)
-                .Select(p => new UserProgressSnapshot
-                {
-                    Id = p.Id,
-                    UserId = p.UserId,
-                    FlashcardId = p.FlashcardId,
-                    IsLearned = p.IsLearned,
-                    Status = p.Status,
-                    CorrectCount = p.CorrectCount,
-                    WrongCount = p.WrongCount,
-                    LastReviewed = p.LastReviewed
-                })
-                .ToList(),
-            DictationSessionDetails = details
-                .Where(d => d.FlashcardId == c.Id)
-                .Select(d => new DictationSessionDetailSnapshot
-                {
-                    Id = d.Id,
-                    StudySessionId = d.StudySessionId,
-                    FlashcardId = d.FlashcardId,
-                    IsCorrect = d.IsCorrect,
-                    AnsweredText = d.AnsweredText,
-                    CreatedAt = d.CreatedAt
-                })
-                .ToList()
-        }));
 
-        // Xóa dữ liệu liên quan trước rồi mới xóa thẻ (do foreign key constraints)
+        foreach (Flashcard card in cards)
+        {
+            // Progress thuộc đúng thẻ này
+            List<UserProgressSnapshot> progressSnapshots = new List<UserProgressSnapshot>();
+            foreach (UserProgress progress in progresses)
+            {
+                if (progress.FlashcardId != card.Id)
+                {
+                    continue;
+                }
+
+                progressSnapshots.Add(new UserProgressSnapshot
+                {
+                    Id = progress.Id,
+                    UserId = progress.UserId,
+                    FlashcardId = progress.FlashcardId,
+                    IsLearned = progress.IsLearned,
+                    Status = progress.Status,
+                    CorrectCount = progress.CorrectCount,
+                    WrongCount = progress.WrongCount,
+                    LastReviewed = progress.LastReviewed
+                });
+            }
+
+            // Detail dictation thuộc đúng thẻ này
+            List<DictationSessionDetailSnapshot> detailSnapshots = new List<DictationSessionDetailSnapshot>();
+            foreach (DictationSessionDetail detail in details)
+            {
+                if (detail.FlashcardId != card.Id)
+                {
+                    continue;
+                }
+
+                detailSnapshots.Add(new DictationSessionDetailSnapshot
+                {
+                    Id = detail.Id,
+                    StudySessionId = detail.StudySessionId,
+                    FlashcardId = detail.FlashcardId,
+                    IsCorrect = detail.IsCorrect,
+                    AnsweredText = detail.AnsweredText,
+                    CreatedAt = detail.CreatedAt
+                });
+            }
+
+            _snapshots.Add(new FlashcardSnapshot
+            {
+                Id = card.Id,
+                FlashcardSetId = card.FlashcardSetId,
+                FrontText = card.FrontText,
+                BackText = card.BackText,
+                Pronunciation = card.Pronunciation,
+                PartOfSpeech = card.PartOfSpeech,
+                ExampleSentence = card.ExampleSentence,
+                ExampleMeaning = card.ExampleMeaning,
+                Synonyms = card.Synonyms,
+                ImageUrl = card.ImageUrl,
+                UploadedImagePath = card.UploadedImagePath,
+                IsStarred = card.IsStarred,
+                OrderIndex = card.OrderIndex,
+                UserProgresses = progressSnapshots,
+                DictationSessionDetails = detailSnapshots
+            });
+        }
+
         _context.UserProgresses.RemoveRange(progresses);
         _context.DictationSessionDetails.RemoveRange(details);
         _context.Flashcards.RemoveRange(cards);
         await _context.SaveChangesAsync();
     }
 
+    // Restore thẻ / progress / detail với đúng Id cũ (SQL Server: IDENTITY_INSERT)
     public async Task UndoAsync()
     {
-        // Khôi phục thẻ với đúng Id cũ bằng IDENTITY_INSERT trên SQL Server
-        var cards = _snapshots.Select(s => new Flashcard
+        List<Flashcard> cards = new List<Flashcard>();
+        foreach (FlashcardSnapshot snapshot in _snapshots)
         {
-            Id = s.Id,
-            FlashcardSetId = s.FlashcardSetId,
-            FrontText = s.FrontText,
-            BackText = s.BackText,
-            Pronunciation = s.Pronunciation,
-            PartOfSpeech = s.PartOfSpeech,
-            ExampleSentence = s.ExampleSentence,
-            ExampleMeaning = s.ExampleMeaning,
-            Synonyms = s.Synonyms,
-            ImageUrl = s.ImageUrl,
-            UploadedImagePath = s.UploadedImagePath,
-            IsStarred = s.IsStarred,
-            OrderIndex = s.OrderIndex
-        }).ToList();
+            cards.Add(new Flashcard
+            {
+                Id = snapshot.Id,
+                FlashcardSetId = snapshot.FlashcardSetId,
+                FrontText = snapshot.FrontText,
+                BackText = snapshot.BackText,
+                Pronunciation = snapshot.Pronunciation,
+                PartOfSpeech = snapshot.PartOfSpeech,
+                ExampleSentence = snapshot.ExampleSentence,
+                ExampleMeaning = snapshot.ExampleMeaning,
+                Synonyms = snapshot.Synonyms,
+                ImageUrl = snapshot.ImageUrl,
+                UploadedImagePath = snapshot.UploadedImagePath,
+                IsStarred = snapshot.IsStarred,
+                OrderIndex = snapshot.OrderIndex
+            });
+        }
+
         _context.Flashcards.AddRange(cards);
         if (cards.Count > 0)
+        {
             await SaveWithIdentityInsertAsync<Flashcard>();
+        }
 
-        var progresses = _snapshots.SelectMany(s =>
-            s.UserProgresses.Select(p => new UserProgress
+        List<UserProgress> progresses = new List<UserProgress>();
+        foreach (FlashcardSnapshot snapshot in _snapshots)
+        {
+            foreach (UserProgressSnapshot progressSnapshot in snapshot.UserProgresses)
             {
-                Id = p.Id,
-                UserId = p.UserId,
-                FlashcardId = p.FlashcardId,
-                IsLearned = p.IsLearned,
-                Status = p.Status,
-                CorrectCount = p.CorrectCount,
-                WrongCount = p.WrongCount,
-                LastReviewed = p.LastReviewed
-            })).ToList();
+                progresses.Add(new UserProgress
+                {
+                    Id = progressSnapshot.Id,
+                    UserId = progressSnapshot.UserId,
+                    FlashcardId = progressSnapshot.FlashcardId,
+                    IsLearned = progressSnapshot.IsLearned,
+                    Status = progressSnapshot.Status,
+                    CorrectCount = progressSnapshot.CorrectCount,
+                    WrongCount = progressSnapshot.WrongCount,
+                    LastReviewed = progressSnapshot.LastReviewed
+                });
+            }
+        }
+
         _context.UserProgresses.AddRange(progresses);
         if (progresses.Count > 0)
+        {
             await SaveWithIdentityInsertAsync<UserProgress>();
+        }
 
-        var details = _snapshots.SelectMany(s =>
-            s.DictationSessionDetails.Select(d => new DictationSessionDetail
+        List<DictationSessionDetail> details = new List<DictationSessionDetail>();
+        foreach (FlashcardSnapshot snapshot in _snapshots)
+        {
+            foreach (DictationSessionDetailSnapshot detailSnapshot in snapshot.DictationSessionDetails)
             {
-                Id = d.Id,
-                StudySessionId = d.StudySessionId,
-                FlashcardId = d.FlashcardId,
-                IsCorrect = d.IsCorrect,
-                AnsweredText = d.AnsweredText,
-                CreatedAt = d.CreatedAt
-            })).ToList();
+                details.Add(new DictationSessionDetail
+                {
+                    Id = detailSnapshot.Id,
+                    StudySessionId = detailSnapshot.StudySessionId,
+                    FlashcardId = detailSnapshot.FlashcardId,
+                    IsCorrect = detailSnapshot.IsCorrect,
+                    AnsweredText = detailSnapshot.AnsweredText,
+                    CreatedAt = detailSnapshot.CreatedAt
+                });
+            }
+        }
+
         _context.DictationSessionDetails.AddRange(details);
         if (details.Count > 0)
+        {
             await SaveWithIdentityInsertAsync<DictationSessionDetail>();
+        }
     }
 
-    public string GetSnapshotJson() => JsonSerializer.Serialize(_snapshots);
+    // Serialize list FlashcardSnapshot
+    public string GetSnapshotJson()
+    {
+        return JsonSerializer.Serialize(_snapshots);
+    }
 
+    // Deserialize list FlashcardSnapshot vào _snapshots
     public void LoadSnapshot(string json)
     {
         _snapshots.Clear();
-        _snapshots.AddRange(JsonSerializer.Deserialize<List<FlashcardSnapshot>>(json) ?? []);
+
+        List<FlashcardSnapshot>? loaded =
+            JsonSerializer.Deserialize<List<FlashcardSnapshot>>(json);
+
+        if (loaded != null)
+        {
+            _snapshots.AddRange(loaded);
+        }
     }
 
-    // Bật IDENTITY_INSERT trên SQL Server để khôi phục đúng ID cũ khi Undo xóa thẻ
+    // SQL Server: bật IDENTITY_INSERT theo bảng entity rồi SaveChanges, tắt trong finally.
+    // Provider khác: SaveChanges thường (test SQLite).
     private async Task SaveWithIdentityInsertAsync<TEntity>() where TEntity : class
     {
-        var provider = _context.Database.ProviderName;
-        if (provider?.Contains("SqlServer") == true)
-        {
-            var tableName = typeof(TEntity).Name switch
-            {
-                nameof(Flashcard) => "Flashcards",
-                nameof(UserProgress) => "UserProgresses",
-                nameof(DictationSessionDetail) => "DictationSessionDetails",
-                _ => throw new InvalidOperationException($"Unknown entity type {typeof(TEntity).Name}.")
-            };
+        string? provider = _context.Database.ProviderName;
+        bool isSqlServer = provider != null && provider.Contains("SqlServer");
 
-#pragma warning disable EF1002 // Risk of SQL injection is negligible because tableName is controlled by the model mapping above.
-            await _context.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT [{tableName}] ON");
-#pragma warning restore EF1002
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            finally
-            {
-#pragma warning disable EF1002
-                await _context.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT [{tableName}] OFF");
-#pragma warning restore EF1002
-            }
+        if (!isSqlServer)
+        {
+            await _context.SaveChangesAsync();
+            return;
+        }
+
+        string tableName;
+        string entityName = typeof(TEntity).Name;
+
+        if (entityName == nameof(Flashcard))
+        {
+            tableName = "Flashcards";
+        }
+        else if (entityName == nameof(UserProgress))
+        {
+            tableName = "UserProgresses";
+        }
+        else if (entityName == nameof(DictationSessionDetail))
+        {
+            tableName = "DictationSessionDetails";
         }
         else
         {
+            throw new InvalidOperationException($"Unknown entity type {entityName}.");
+        }
+
+#pragma warning disable EF1002 // tableName chỉ map từ tên entity cố định, không nhận input user
+        await _context.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT [{tableName}] ON");
+#pragma warning restore EF1002
+        try
+        {
             await _context.SaveChangesAsync();
+        }
+        finally
+        {
+#pragma warning disable EF1002
+            await _context.Database.ExecuteSqlRawAsync($"SET IDENTITY_INSERT [{tableName}] OFF");
+#pragma warning restore EF1002
         }
     }
 }

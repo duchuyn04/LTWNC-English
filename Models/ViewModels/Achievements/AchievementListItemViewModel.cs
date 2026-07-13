@@ -1,35 +1,35 @@
 namespace ltwnc.Models.ViewModels.Achievements;
 
-// Dữ liệu một huy hiệu để hiển thị trên trang Thành tích
+// Một huy hiệu trên trang /Achievements (progress bar + CTA)
 public class AchievementListItemViewModel
 {
-    // Mã kỹ thuật (không hiện cho user, dùng nội bộ)
+    // Mã catalog (nội bộ, sort/key)
     public string Code { get; set; } = string.Empty;
 
-    // Tên huy hiệu đẹp
+    // Tên hiện UI
     public string Title { get; set; } = string.Empty;
 
-    // Giải thích vì sao được / làm sao để được
+    // Mô tả điều kiện / ý nghĩa
     public string Description { get; set; } = string.Empty;
 
-    // true = user đã mở khóa; false = vẫn đang khóa
+    // true = đã mở khóa
     public bool IsUnlocked { get; set; }
 
-    // Lúc mở khóa (null nếu chưa mở)
+    // Lúc mở (UTC); null nếu chưa mở
     public DateTime? UnlockedAt { get; set; }
 
-    // Tiến độ hiện tại (capped ở Target; nếu đã mở thì = Target)
+    // Tiến độ hiện tại (đã mở thì = Target)
     public int Current { get; set; }
 
-    // Mốc cần đạt để mở khóa
+    // Mốc Target từ catalog
     public int Target { get; set; }
 
-    // Phần trăm tiến độ 0–100 (đã mở = 100)
+    // 0-100; đã mở = 100
     public int ProgressPercent { get; set; }
 
-    // Chữ trên nút kêu gọi hành động (CTA) khi chưa mở
+    // Nhãn nút CTA khi chưa mở
     public string CtaText { get; set; } = string.Empty;
 
-    // Đường dẫn CTA (vd. /Set)
+    // URL CTA (thường /Set)
     public string CtaUrl { get; set; } = string.Empty;
 }

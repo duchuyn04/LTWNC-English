@@ -4,27 +4,26 @@ using ltwnc.Models;
 
 namespace ltwnc.Models.Entities;
 
-// Entity đại diện cho bảng Flashcards — một thẻ flashcard
-// Mỗi thẻ có 2 mặt: FrontText (tiếng Anh) và BackText (nghĩa tiếng Việt)
+// Bảng Flashcards: một thẻ (FrontText EN, BackText VI).
 public class Flashcard : IPrototype<Flashcard>
 {
-    // Khóa chính, tự động tăng
+    // PK tự tăng
     [Key]
     public int Id { get; set; }
 
-    // Khóa ngoại đến bộ thẻ chứa thẻ này
+    // FK bộ thẻ
     [Required]
     public int FlashcardSetId { get; set; }
 
-    // Nội dung mặt trước (tiếng Anh) — bắt buộc
+    // Mặt trước (thuật ngữ EN)
     [Required]
     public string FrontText { get; set; } = string.Empty;
 
-    // Nội dung mặt sau (nghĩa tiếng Việt) — bắt buộc
+    // Mặt sau (nghĩa VI)
     [Required]
     public string BackText { get; set; } = string.Empty;
 
-    // IPA hoặc phát âm của thuật ngữ — bắt buộc với thẻ mới
+    // IPA
     [Required]
     public string Pronunciation { get; set; } = string.Empty;
 
@@ -56,7 +55,7 @@ public class Flashcard : IPrototype<Flashcard>
     // Thứ tự hiển thị trong bộ thẻ (0, 1, 2, ...)
     public int OrderIndex { get; set; }
 
-    // Navigation property — liên kết đến bộ thẻ chứa thẻ này
+    // Bộ thẻ cha
     [ForeignKey(nameof(FlashcardSetId))]
     public FlashcardSet? FlashcardSet { get; set; }
 

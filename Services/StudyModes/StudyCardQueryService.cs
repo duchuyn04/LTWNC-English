@@ -3,42 +3,42 @@ using ltwnc.Models.Entities;
 
 namespace ltwnc.Services.StudyModes;
 
-// Thực hiện bộ lọc dùng chung cho mọi chế độ học:
-// - thuộc đúng bộ thẻ
-// - chỉ thẻ đánh sao (nếu bật)
-// - chỉ thẻ chưa thuộc (nếu bật và có userId)
-// Không thực hiện query sớm — trả về IQueryable để mỗi strategy thêm điều kiện riêng.
+// Lọc thẻ chung: đúng bộ, có thể chỉ sao / chỉ chưa thuộc.
+// Không ToList ở đây; strategy tự thêm điều kiện rồi materialize.
 public class StudyCardQueryService : IStudyCardQueryService
 {
+    // Nguồn Flashcards và UserProgresses
     private readonly AppDbContext _context;
 
+    // Inject DbContext
     public StudyCardQueryService(AppDbContext context)
     {
         _context = context;
     }
 
+    // Bắt đầu từ thẻ của setId, gắn StarredOnly / UnlearnedOnly nếu bật
     public IQueryable<Flashcard> CreateFilteredQuery(
         int setId,
         UserStudySettings settings,
         string? userId)
     {
-        // Bắt đầu từ toàn bộ thẻ của bộ thẻ chỉ định
-        var query = _context.Flashcards.Where(f => f.FlashcardSetId == setId);
+        IQueryable<Flashcard> query = _context.Flashcards
+            .Where(flashcard => flashcard.FlashcardSetId == setId);
 
-        // Lọc "Chỉ đã sao": bỏ thẻ chưa gắn sao
+        // Chỉ thẻ đã gắn sao
         if (settings.StarredOnly)
         {
-            query = query.Where(f => f.IsStarred);
+            query = query.Where(flashcard => flashcard.IsStarred);
         }
 
-        // Lọc "Chỉ chưa thuộc": bỏ thẻ đã có UserProgress.IsLearned = true
-        // Chỉ áp dụng khi biết userId; user ẩn danh không có tiến trình cá nhân
+        // Chỉ thẻ chưa thuộc: loại thẻ có progress IsLearned = true của user này
         if (settings.UnlearnedOnly && !string.IsNullOrWhiteSpace(userId))
         {
-            query = query.Where(f => !_context.UserProgresses.Any(p =>
-                p.UserId == userId &&
-                p.FlashcardId == f.Id &&
-                p.IsLearned));
+            query = query.Where(flashcard =>
+                !_context.UserProgresses.Any(progress =>
+                    progress.UserId == userId
+                    && progress.FlashcardId == flashcard.Id
+                    && progress.IsLearned));
         }
 
         return query;

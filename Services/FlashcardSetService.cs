@@ -9,14 +9,17 @@ using System.IO;
 
 namespace ltwnc.Services;
 
-// Service xử lý nghiệp vụ bộ thẻ flashcard
-// Phân quyền: chỉ chủ sở hữu mới được sửa/xóa bộ thẻ và thẻ
+// CRUD bộ thẻ / thẻ, copy public set, upload ảnh.
+// Sửa/xóa chỉ chủ sở hữu.
 public class FlashcardSetService
 {
+    // FlashcardSets, Flashcards, progress liên quan
     private readonly AppDbContext _context;
+
+    // WebRootPath cho thư mục uploads/flashcards
     private readonly IWebHostEnvironment _environment;
 
-    // Inject AppDbContext
+    // Inject DbContext và hosting (đường dẫn upload)
     public FlashcardSetService(AppDbContext context, IWebHostEnvironment environment)
     {
         _context = context;
@@ -26,37 +29,49 @@ public class FlashcardSetService
     // Kiểm tra và làm sạch trường bắt buộc; ném lỗi nếu để trống
     private static string RequiredText(string? value, string fieldName)
     {
-        var trimmed = value?.Trim() ?? string.Empty;
+        string trimmed = value?.Trim() ?? string.Empty;
+
         if (string.IsNullOrWhiteSpace(trimmed))
         {
             throw new ArgumentException($"{fieldName} không được để trống.");
         }
+
         return trimmed;
     }
 
     // Kiểm tra trường bắt buộc có giới hạn độ dài
     private static string RequiredText(string? value, string fieldName, int maxLength)
     {
-        var trimmed = RequiredText(value, fieldName);
+        string trimmed = RequiredText(value, fieldName);
+
         if (trimmed.Length > maxLength)
         {
             throw new ArgumentException($"{fieldName} tối đa {maxLength} ký tự.");
         }
+
         return trimmed;
     }
 
     // Làm sạch trường tùy chọn; trả về null nếu chỉ có khoảng trắng
     private static string? OptionalText(string? value)
     {
-        var trimmed = value?.Trim();
-        return string.IsNullOrWhiteSpace(trimmed) ? null : trimmed;
+        string? trimmed = value?.Trim();
+
+        if (string.IsNullOrWhiteSpace(trimmed))
+        {
+            return null;
+        }
+
+        return trimmed;
     }
 
+    // Extension file upload cho phép
     private static readonly HashSet<string> AllowedImageExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
         ".jpg", ".jpeg", ".png", ".webp"
     };
 
+    // Content-Type HTTP cho phép (đối chiếu thêm ngoài extension)
     private static readonly HashSet<string> AllowedImageContentTypes = new(StringComparer.OrdinalIgnoreCase)
     {
         "image/jpeg", "image/png", "image/webp"
@@ -65,24 +80,38 @@ public class FlashcardSetService
     // Lưu ảnh tải lên với tên ngẫu nhiên; kiểm tra định dạng và kích thước trước khi ghi đĩa
     private async Task<string?> SaveImageAsync(IFormFile? imageFile)
     {
-        if (imageFile == null || imageFile.Length == 0) return null;
-        if (imageFile.Length > 2 * 1024 * 1024)
-            throw new ArgumentException("Ảnh tối đa 2 MB.");
+        if (imageFile == null || imageFile.Length == 0)
+        {
+            return null;
+        }
 
-        var extension = Path.GetExtension(imageFile.FileName);
+        const long maxBytes = 2 * 1024 * 1024;
+        if (imageFile.Length > maxBytes)
+        {
+            throw new ArgumentException("Ảnh tối đa 2 MB.");
+        }
+
+        string extension = Path.GetExtension(imageFile.FileName);
         if (!AllowedImageExtensions.Contains(extension))
+        {
             throw new ArgumentException("Ảnh chỉ hỗ trợ JPG, PNG hoặc WebP.");
+        }
 
         if (!AllowedImageContentTypes.Contains(imageFile.ContentType))
+        {
             throw new ArgumentException("Ảnh chỉ hỗ trợ JPG, PNG hoặc WebP.");
+        }
 
-        var uploadRoot = Path.Combine(_environment.WebRootPath, "uploads", "flashcards");
+        string uploadRoot = Path.Combine(_environment.WebRootPath, "uploads", "flashcards");
         Directory.CreateDirectory(uploadRoot);
 
-        var fileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
-        var absolutePath = Path.Combine(uploadRoot, fileName);
-        await using var stream = File.Create(absolutePath);
-        await imageFile.CopyToAsync(stream);
+        string fileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+        string absolutePath = Path.Combine(uploadRoot, fileName);
+
+        await using (FileStream stream = File.Create(absolutePath))
+        {
+            await imageFile.CopyToAsync(stream);
+        }
 
         return $"/uploads/flashcards/{fileName}";
     }
@@ -90,139 +119,221 @@ public class FlashcardSetService
     // Lấy tất cả bộ thẻ thuộc về một người dùng
     public async Task<List<FlashcardSet>> GetMySetsAsync(string userId)
     {
-        return await _context.FlashcardSets
-            // ponytail: load cards for the existing view model; project counts if set sizes grow large.
-            .Include(s => s.Flashcards)
-            .Where(s => s.UserId == userId)
-            .OrderByDescending(s => s.UpdatedAt)
+        List<FlashcardSet> sets = await _context.FlashcardSets
+            // Load cards for the existing view model; project counts if set sizes grow large.
+            .Include(set => set.Flashcards)
+            .Where(set => set.UserId == userId)
+            .OrderByDescending(set => set.UpdatedAt)
             .ToListAsync();
+
+        return sets;
     }
 
-    // Lấy tất cả bộ thẻ thuộc về một ngườidùng kèm tiến trình học
+    // Lấy tất cả bộ thẻ thuộc về một người dùng kèm tiến trình học
     public async Task<List<FlashcardSetListItemViewModel>> GetMySetsWithProgressAsync(string userId)
     {
-        var sets = await _context.FlashcardSets
-            .Include(s => s.Flashcards)
-            .Where(s => s.UserId == userId)
-            .OrderByDescending(s => s.UpdatedAt)
+        List<FlashcardSet> sets = await _context.FlashcardSets
+            .Include(set => set.Flashcards)
+            .Where(set => set.UserId == userId)
+            .OrderByDescending(set => set.UpdatedAt)
             .ToListAsync();
 
-        var flashcardIds = sets.SelectMany(s => s.Flashcards).Select(f => f.Id).ToList();
-
-        var learnedCardIds = await _context.UserProgresses
-            .Where(p => p.UserId == userId && flashcardIds.Contains(p.FlashcardId) && p.IsLearned)
-            .Select(p => p.FlashcardId)
-            .ToListAsync();
-
-        var learnedSet = new HashSet<int>(learnedCardIds);
-
-        return sets.Select(s =>
+        List<int> flashcardIds = new List<int>();
+        foreach (FlashcardSet set in sets)
         {
-            var total = s.Flashcards.Count;
-            var learned = s.Flashcards.Count(f => learnedSet.Contains(f.Id));
-            return new FlashcardSetListItemViewModel
+            foreach (Flashcard flashcard in set.Flashcards)
             {
-                Set = s,
-                TotalCards = total,
-                LearnedCount = learned,
-                MasteryPercent = total > 0 ? learned * 100 / total : 0
-            };
-        }).ToList();
+                flashcardIds.Add(flashcard.Id);
+            }
+        }
+
+        List<int> learnedCardIds = await _context.UserProgresses
+            .Where(progress =>
+                progress.UserId == userId
+                && flashcardIds.Contains(progress.FlashcardId)
+                && progress.IsLearned)
+            .Select(progress => progress.FlashcardId)
+            .ToListAsync();
+
+        HashSet<int> learnedCardIdSet = new HashSet<int>(learnedCardIds);
+
+        List<FlashcardSetListItemViewModel> items = new List<FlashcardSetListItemViewModel>();
+
+        foreach (FlashcardSet set in sets)
+        {
+            int totalCards = set.Flashcards.Count;
+            int learnedCount = 0;
+
+            foreach (Flashcard flashcard in set.Flashcards)
+            {
+                if (learnedCardIdSet.Contains(flashcard.Id))
+                {
+                    learnedCount++;
+                }
+            }
+
+            int masteryPercent = 0;
+            if (totalCards > 0)
+            {
+                masteryPercent = learnedCount * 100 / totalCards;
+            }
+
+            items.Add(new FlashcardSetListItemViewModel
+            {
+                Set = set,
+                TotalCards = totalCards,
+                LearnedCount = learnedCount,
+                MasteryPercent = masteryPercent
+            });
+        }
+
+        return items;
     }
 
     // Lấy danh sách bộ thẻ public (mới nhất)
     public async Task<List<FlashcardSet>> GetPublicSetsAsync()
     {
-        return await _context.FlashcardSets
-            .Where(s => s.IsPublic)
-            .OrderByDescending(s => s.UpdatedAt)
+        List<FlashcardSet> sets = await _context.FlashcardSets
+            .Where(set => set.IsPublic)
+            .OrderByDescending(set => set.UpdatedAt)
             .Take(20)
             .ToListAsync();
+
+        return sets;
     }
 
     // Tìm kiếm bộ thẻ public theo tiêu đề
     public async Task<List<FlashcardSet>> SearchPublicSetsAsync(string query)
     {
-        return await _context.FlashcardSets
-            .Where(s => s.IsPublic && s.Title.Contains(query))
-            .OrderByDescending(s => s.UpdatedAt)
+        List<FlashcardSet> sets = await _context.FlashcardSets
+            .Where(set => set.IsPublic && set.Title.Contains(query))
+            .OrderByDescending(set => set.UpdatedAt)
             .Take(20)
             .ToListAsync();
+
+        return sets;
     }
 
     // Lấy bộ thẻ theo id (không kèm thẻ)
     public async Task<FlashcardSet?> GetSetByIdAsync(int id)
     {
-        return await _context.FlashcardSets.FindAsync(id);
+        FlashcardSet? set = await _context.FlashcardSets.FindAsync(id);
+        return set;
     }
 
     // Lấy bộ thẻ nếu user có quyền truy cập (public hoặc chính chủ)
     public async Task<FlashcardSet?> GetAccessibleSetAsync(int id, string? userId)
     {
-        var set = await _context.FlashcardSets.FindAsync(id);
-        if (set == null || (!set.IsPublic && set.UserId != userId)) return null;
+        FlashcardSet? set = await _context.FlashcardSets.FindAsync(id);
+
+        if (set == null)
+        {
+            return null;
+        }
+
+        bool canAccess = set.IsPublic || set.UserId == userId;
+        if (!canAccess)
+        {
+            return null;
+        }
+
         return set;
     }
 
-    // Lấy bộ thẻ kèm danh sách thẻ — chỉ trả về nếu người yêu cầu là chủ sở hữu
+    // Lấy bộ thẻ kèm thẻ; chỉ khi requester là chủ
     public async Task<FlashcardSet?> GetSetWithCardsAsync(int id, string userId)
     {
-        var set = await _context.FlashcardSets
-            .Include(s => s.Flashcards.OrderBy(f => f.OrderIndex))
-            .FirstOrDefaultAsync(s => s.Id == id);
-        if (set == null || set.UserId != userId) return null;
+        FlashcardSet? set = await _context.FlashcardSets
+            .Include(row => row.Flashcards.OrderBy(flashcard => flashcard.OrderIndex))
+            .FirstOrDefaultAsync(row => row.Id == id);
+
+        if (set == null || set.UserId != userId)
+        {
+            return null;
+        }
+
         return set;
     }
 
     public async Task<FlashcardSet?> GetAccessibleSetWithCardsAsync(int id, string? userId)
     {
-        var set = await _context.FlashcardSets
-            .Include(s => s.Flashcards.OrderBy(f => f.OrderIndex))
-            .FirstOrDefaultAsync(s => s.Id == id);
-        if (set == null || (!set.IsPublic && set.UserId != userId)) return null;
+        FlashcardSet? set = await _context.FlashcardSets
+            .Include(row => row.Flashcards.OrderBy(flashcard => flashcard.OrderIndex))
+            .FirstOrDefaultAsync(row => row.Id == id);
+
+        if (set == null)
+        {
+            return null;
+        }
+
+        bool canAccess = set.IsPublic || set.UserId == userId;
+        if (!canAccess)
+        {
+            return null;
+        }
+
         return set;
     }
 
     // Lấy bộ thẻ chỉ khi user là chủ sở hữu
     public async Task<FlashcardSet?> GetOwnedSetAsync(int id, string userId)
     {
-        var set = await _context.FlashcardSets.FindAsync(id);
-        if (set == null || set.UserId != userId) return null;
+        FlashcardSet? set = await _context.FlashcardSets.FindAsync(id);
+
+        if (set == null || set.UserId != userId)
+        {
+            return null;
+        }
+
         return set;
     }
 
     // Kiểm tra user đã sao chép bộ thẻ nguồn này trước đó chưa
     public async Task<FlashcardSet?> GetExistingCopyAsync(int sourceSetId, string learnerId)
     {
-        return await _context.FlashcardSets
+        FlashcardSet? existingCopy = await _context.FlashcardSets
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.UserId == learnerId && s.SourceSetId == sourceSetId);
+            .FirstOrDefaultAsync(set =>
+                set.UserId == learnerId
+                && set.SourceSetId == sourceSetId);
+
+        return existingCopy;
     }
 
-    // Sao chép một bộ thẻ công khai vào thư viện riêng của ngườidùng
+    // Sao chép một bộ thẻ công khai vào thư viện riêng của người dùng
     public async Task<FlashcardSet> CopyPublicSetAsync(int sourceSetId, string learnerId)
     {
-        var source = await _context.FlashcardSets
+        FlashcardSet? source = await _context.FlashcardSets
             .AsNoTracking()
-            .Include(s => s.Flashcards.OrderBy(f => f.OrderIndex))
-            .FirstOrDefaultAsync(s => s.Id == sourceSetId);
+            .Include(set => set.Flashcards.OrderBy(flashcard => flashcard.OrderIndex))
+            .FirstOrDefaultAsync(set => set.Id == sourceSetId);
 
         if (source == null || !source.IsPublic)
+        {
             throw new KeyNotFoundException("Bộ thẻ nguồn không tồn tại.");
+        }
 
         if (source.UserId == learnerId)
+        {
             throw new UnauthorizedAccessException("Không thể sao chép bộ thẻ của chính mình.");
+        }
 
-        var existingCopy = await _context.FlashcardSets
+        FlashcardSet? existingCopy = await _context.FlashcardSets
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.UserId == learnerId && s.SourceSetId == sourceSetId);
+            .FirstOrDefaultAsync(set =>
+                set.UserId == learnerId
+                && set.SourceSetId == sourceSetId);
+
         if (existingCopy != null)
+        {
             return existingCopy;
+        }
 
         // Guard: Clone() chỉ nhân bản thẻ đang có trên object.
         // So khớp với số thẻ trong database để tránh bản sao rỗng im lặng khi quên Include.
-        var cardCountInDatabase = await _context.Flashcards
-            .CountAsync(f => f.FlashcardSetId == source.Id);
+        int cardCountInDatabase = await _context.Flashcards
+            .CountAsync(flashcard => flashcard.FlashcardSetId == source.Id);
+
         if (cardCountInDatabase != source.Flashcards.Count)
         {
             throw new InvalidOperationException(
@@ -231,13 +342,15 @@ public class FlashcardSetService
         }
 
         // Prototype: nhân bản nội dung học; ownership và lineage gán ngay bên dưới.
-        var copy = source.Clone();
+        FlashcardSet copy = source.Clone();
         copy.UserId = learnerId;
         copy.SourceSetId = source.Id;
         // Chốt nghiệp vụ: bản sao vào thư viện riêng luôn private (defense in depth).
         copy.IsPublic = false;
 
-        await using var transaction = await _context.Database.BeginTransactionAsync();
+        await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
+            await _context.Database.BeginTransactionAsync();
+
         try
         {
             _context.FlashcardSets.Add(copy);
@@ -248,22 +361,35 @@ public class FlashcardSetService
         catch (DbUpdateException)
         {
             await transaction.RollbackAsync();
-            foreach (var entry in _context.ChangeTracker.Entries().ToList())
-                entry.State = EntityState.Detached;
 
-            var recovered = await _context.FlashcardSets
-                .FirstOrDefaultAsync(s => s.UserId == learnerId && s.SourceSetId == sourceSetId);
+            foreach (Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry
+                     in _context.ChangeTracker.Entries().ToList())
+            {
+                entry.State = EntityState.Detached;
+            }
+
+            FlashcardSet? recovered = await _context.FlashcardSets
+                .FirstOrDefaultAsync(set =>
+                    set.UserId == learnerId
+                    && set.SourceSetId == sourceSetId);
+
             if (recovered != null)
+            {
                 return recovered;
+            }
 
             throw;
         }
     }
 
     // Tạo bộ thẻ mới
-    public async Task<FlashcardSet> CreateSetAsync(string title, string? description, bool isPublic, string userId)
+    public async Task<FlashcardSet> CreateSetAsync(
+        string title,
+        string? description,
+        bool isPublic,
+        string userId)
     {
-        var set = new FlashcardSet
+        FlashcardSet set = new FlashcardSet
         {
             Title = title,
             Description = description,
@@ -272,21 +398,32 @@ public class FlashcardSetService
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
+
         await _context.FlashcardSets.AddAsync(set);
         await _context.SaveChangesAsync();
         return set;
     }
 
     // Cập nhật thông tin bộ thẻ
-    public async Task UpdateSetAsync(int id, string title, string? description, bool isPublic, string userId)
+    public async Task UpdateSetAsync(
+        int id,
+        string title,
+        string? description,
+        bool isPublic,
+        string userId)
     {
-        var set = await _context.FlashcardSets.FindAsync(id);
+        FlashcardSet? set = await _context.FlashcardSets.FindAsync(id);
+
         if (set == null || set.UserId != userId)
+        {
             throw new UnauthorizedAccessException("Không có quyền sửa bộ thẻ này.");
+        }
+
         set.Title = title;
         set.Description = description;
         set.IsPublic = isPublic;
         set.UpdatedAt = DateTime.UtcNow;
+
         _context.FlashcardSets.Update(set);
         await _context.SaveChangesAsync();
     }
@@ -294,16 +431,19 @@ public class FlashcardSetService
     // Xóa bộ thẻ
     public async Task DeleteSetAsync(int id, string userId)
     {
-        var set = await _context.FlashcardSets.FindAsync(id);
+        FlashcardSet? set = await _context.FlashcardSets.FindAsync(id);
+
         if (set == null || set.UserId != userId)
+        {
             throw new UnauthorizedAccessException("Không có quyền xóa bộ thẻ này.");
+        }
 
         await _context.UserProgresses
-            .Where(p => p.Flashcard!.FlashcardSetId == id)
+            .Where(progress => progress.Flashcard!.FlashcardSetId == id)
             .ExecuteDeleteAsync();
 
         await _context.StudySessions
-            .Where(s => s.FlashcardSetId == id)
+            .Where(session => session.FlashcardSetId == id)
             .ExecuteDeleteAsync();
 
         _context.FlashcardSets.Remove(set);
@@ -325,11 +465,14 @@ public class FlashcardSetService
         bool isStarred,
         string userId)
     {
-        var set = await _context.FlashcardSets
-            .Include(s => s.Flashcards)
-            .FirstOrDefaultAsync(s => s.Id == setId);
+        FlashcardSet? set = await _context.FlashcardSets
+            .Include(row => row.Flashcards)
+            .FirstOrDefaultAsync(row => row.Id == setId);
+
         if (set == null || set.UserId != userId)
+        {
             throw new UnauthorizedAccessException("Không có quyền thêm thẻ.");
+        }
 
         frontText = RequiredText(frontText, "Thuật ngữ");
         backText = RequiredText(backText, "Định nghĩa");
@@ -339,12 +482,15 @@ public class FlashcardSetService
         exampleMeaning = RequiredText(exampleMeaning, "Nghĩa câu ví dụ tiếng Việt");
         synonyms = OptionalText(synonyms);
         imageUrl = OptionalText(imageUrl);
-        var uploadedImagePath = await SaveImageAsync(imageFile);
+        string? uploadedImagePath = await SaveImageAsync(imageFile);
 
-        var nextOrder = set.Flashcards.Any()
-            ? set.Flashcards.Max(card => card.OrderIndex) + 1
-            : 0;
-        var card = new Flashcard
+        int nextOrder = 0;
+        if (set.Flashcards.Any())
+        {
+            nextOrder = set.Flashcards.Max(card => card.OrderIndex) + 1;
+        }
+
+        Flashcard card = new Flashcard
         {
             FlashcardSetId = setId,
             FrontText = frontText,
@@ -381,13 +527,19 @@ public class FlashcardSetService
         bool isStarred,
         string userId)
     {
-        var card = await _context.Flashcards.FindAsync(cardId);
-        if (card == null) throw new KeyNotFoundException("Thẻ không tồn tại.");
+        Flashcard? card = await _context.Flashcards.FindAsync(cardId);
+        if (card == null)
+        {
+            throw new KeyNotFoundException("Thẻ không tồn tại.");
+        }
 
-        var setId = card.FlashcardSetId;
-        var set = await _context.FlashcardSets.FindAsync(setId);
+        int setId = card.FlashcardSetId;
+        FlashcardSet? set = await _context.FlashcardSets.FindAsync(setId);
+
         if (set == null || set.UserId != userId)
+        {
             throw new UnauthorizedAccessException("Không có quyền sửa thẻ này.");
+        }
 
         card.FrontText = RequiredText(frontText, "Thuật ngữ");
         card.BackText = RequiredText(backText, "Định nghĩa");
@@ -403,7 +555,7 @@ public class FlashcardSetService
             card.UploadedImagePath = null;
         }
 
-        var newUpload = await SaveImageAsync(imageFile);
+        string? newUpload = await SaveImageAsync(imageFile);
         if (newUpload != null)
         {
             card.UploadedImagePath = newUpload;
@@ -419,15 +571,22 @@ public class FlashcardSetService
     // Xóa thẻ khỏi bộ
     public async Task<int> DeleteCardAsync(int cardId, string userId)
     {
-        var card = await _context.Flashcards.FindAsync(cardId);
-        if (card == null) throw new KeyNotFoundException("Thẻ không tồn tại.");
-        var setId = card.FlashcardSetId;
-        var set = await _context.FlashcardSets.FindAsync(setId);
+        Flashcard? card = await _context.Flashcards.FindAsync(cardId);
+        if (card == null)
+        {
+            throw new KeyNotFoundException("Thẻ không tồn tại.");
+        }
+
+        int setId = card.FlashcardSetId;
+        FlashcardSet? set = await _context.FlashcardSets.FindAsync(setId);
+
         if (set == null || set.UserId != userId)
+        {
             throw new UnauthorizedAccessException("Không có quyền xóa thẻ này.");
+        }
 
         await _context.UserProgresses
-            .Where(p => p.FlashcardId == cardId)
+            .Where(progress => progress.FlashcardId == cardId)
             .ExecuteDeleteAsync();
 
         _context.Flashcards.Remove(card);
@@ -438,12 +597,18 @@ public class FlashcardSetService
     // Đổi trạng thái đánh sao của thẻ
     public async Task<bool> ToggleStarAsync(int cardId, string userId)
     {
-        var card = await _context.Flashcards.FindAsync(cardId);
-        if (card == null) throw new KeyNotFoundException("Thẻ không tồn tại.");
+        Flashcard? card = await _context.Flashcards.FindAsync(cardId);
+        if (card == null)
+        {
+            throw new KeyNotFoundException("Thẻ không tồn tại.");
+        }
 
-        var set = await _context.FlashcardSets.FindAsync(card.FlashcardSetId);
+        FlashcardSet? set = await _context.FlashcardSets.FindAsync(card.FlashcardSetId);
+
         if (set == null || set.UserId != userId)
+        {
             throw new UnauthorizedAccessException("Không có quyền chỉnh sửa thẻ này.");
+        }
 
         card.IsStarred = !card.IsStarred;
         _context.Flashcards.Update(card);

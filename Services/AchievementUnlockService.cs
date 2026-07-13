@@ -5,66 +5,71 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Services;
 
-// ============================================================
-// Service đồng bộ mở khóa huy hiệu theo metric hiện tại của user.
-// Dùng chung cho Observer (khi có sự kiện học) và rescan trang Thành tích.
-// Chỉ chèn UserAchievement còn thiếu; trả về danh sách vừa mới mở trong lần gọi này.
-// ============================================================
+// So metric hiện tại với catalog, chèn UserAchievement còn thiếu.
+// Observer gọi khi có sự kiện học; trang Thành tích cũng gọi để rescan.
 public class AchievementUnlockService
 {
+    // Ghi / đọc bảng UserAchievements
     private readonly AppDbContext _context;
+
+    // Lấy snapshot metric để so với Target từng huy hiệu
     private readonly AchievementProgressService _progress;
 
+    // Inject DbContext và service đếm metric
     public AchievementUnlockService(AppDbContext context, AchievementProgressService progress)
     {
         _context = context;
         _progress = progress;
     }
 
-    // Quét catalog: metric đủ Target và chưa có code → ghi UserAchievement
+    // Duyệt catalog: đủ Target và chưa có code thì ghi bản ghi mới; trả về list vừa mở lần này
     public async Task<IReadOnlyList<AchievementCatalog.Definition>> SyncEligibleAsync(
         string userId,
         CancellationToken cancellationToken = default)
     {
-        // 1. Ảnh chụp metric hiện tại (đếm một lần)
-        var snapshot = await _progress.GetSnapshotAsync(userId, cancellationToken);
+        // Metric hiện tại (đếm một lần)
+        AchievementProgressSnapshot snapshot =
+            await _progress.GetSnapshotAsync(userId, cancellationToken);
 
-        // 2. Các mã huy hiệu user đã có — tránh mở trùng
-        var already = await _context.UserAchievements
-            .Where(a => a.UserId == userId)
-            .Select(a => a.Code)
+        // Code đã mở, tránh chèn trùng
+        List<string> existingCodes = await _context.UserAchievements
+            .Where(achievement => achievement.UserId == userId)
+            .Select(achievement => achievement.Code)
             .ToListAsync(cancellationToken);
-        var have = already.ToHashSet();
 
-        // 3. Duyệt toàn bộ danh mục, chèn những cái đủ điều kiện
-        var newly = new List<AchievementCatalog.Definition>();
+        HashSet<string> unlockedCodes = existingCodes.ToHashSet();
 
-        foreach (var def in AchievementCatalog.All)
+        // Định nghĩa vừa mở trong lần gọi này (để UI hiện banner)
+        List<AchievementCatalog.Definition> newlyUnlocked = new();
+
+        foreach (AchievementCatalog.Definition definition in AchievementCatalog.All)
         {
-            // Đã có mã này rồi → bỏ qua
-            if (have.Contains(def.Code))
+            if (unlockedCodes.Contains(definition.Code))
+            {
                 continue;
+            }
 
-            // Metric chưa đạt Target → bỏ qua
-            var value = snapshot.GetValue(def.Metric);
-            if (value < def.Target)
+            int metricValue = snapshot.GetValue(definition.Metric);
+            if (metricValue < definition.Target)
+            {
                 continue;
+            }
 
-            // Đủ điều kiện → ghi bản ghi thành tích mới
             _context.UserAchievements.Add(new UserAchievement
             {
                 UserId = userId,
-                Code = def.Code,
-                Title = def.Title,
-                Description = def.Description,
+                Code = definition.Code,
+                Title = definition.Title,
+                Description = definition.Description,
                 UnlockedAt = DateTime.UtcNow
             });
-            newly.Add(def);
-            have.Add(def.Code);
+
+            newlyUnlocked.Add(definition);
+            unlockedCodes.Add(definition.Code);
         }
 
-        // 4. Lưu nếu có huy hiệu mới; race unique index thì coi như đã mở rồi
-        if (newly.Count > 0)
+        // Có huy hiệu mới mới Save; unique (UserId, Code) có thể va chạm khi 2 request song song
+        if (newlyUnlocked.Count > 0)
         {
             try
             {
@@ -72,11 +77,10 @@ public class AchievementUnlockService
             }
             catch (DbUpdateException)
             {
-                // Hai request đồng thời cùng mở → unique (UserId, Code) có thể va chạm
+                // Request khác đã mở cùng code: coi như đã xong
             }
         }
 
-        // 5. Trả về định nghĩa vừa mở trong lần gọi này
-        return newly;
+        return newlyUnlocked;
     }
 }

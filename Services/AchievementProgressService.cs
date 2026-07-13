@@ -5,53 +5,58 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Services;
 
-// ============================================================
-// Service đếm các chỉ số thành tích (thẻ thuộc, buổi học, nghe chép…)
-// cho một user — trả về AchievementProgressSnapshot dùng cho progress bar
-// và để AchievementUnlockService quyết định mở khóa huy hiệu.
-// ============================================================
+// Đếm metric thành tích của một user (thẻ thuộc, buổi học, nghe chép...).
+// Kết quả dùng cho progress bar và để quyết định mở khóa huy hiệu.
 public class AchievementProgressService
 {
+    // DbContext EF Core, query bảng progress / session / dictation
     private readonly AppDbContext _context;
 
+    // Inject DbContext
     public AchievementProgressService(AppDbContext context)
     {
         _context = context;
     }
 
-    // Lấy snapshot đầy đủ các metric của user (đếm một lần, tái sử dụng)
+    // Đếm một lần toàn bộ metric rồi gói vào snapshot (tránh query lặp theo từng huy hiệu)
     public async Task<AchievementProgressSnapshot> GetSnapshotAsync(
         string userId,
         CancellationToken cancellationToken = default)
     {
-        // Đếm thẻ đã thuộc
-        var cardsMastered = await _context.UserProgresses
-            .CountAsync(p => p.UserId == userId && p.IsLearned, cancellationToken);
-
-        // Đếm buổi Flashcard
-        var flashcardSessions = await _context.StudySessions
+        // Thẻ user đã đánh dấu thuộc
+        int cardsMastered = await _context.UserProgresses
             .CountAsync(
-                s => s.UserId == userId && s.Mode == StudyMode.Flashcard,
+                progress => progress.UserId == userId && progress.IsLearned,
                 cancellationToken);
 
-        // Đếm buổi Dictation (mọi điểm số)
-        var dictationSessions = await _context.StudySessions
+        // Buổi Flashcard đã hoàn thành
+        int flashcardSessions = await _context.StudySessions
             .CountAsync(
-                s => s.UserId == userId && s.Mode == StudyMode.Dictation,
+                session => session.UserId == userId && session.Mode == StudyMode.Flashcard,
                 cancellationToken);
 
-        // Đếm buổi Dictation đạt 100 điểm
-        var dictationPerfectSessions = await _context.StudySessions
+        // Buổi Dictation (mọi điểm)
+        int dictationSessions = await _context.StudySessions
             .CountAsync(
-                s => s.UserId == userId && s.Mode == StudyMode.Dictation && s.Score == 100,
+                session => session.UserId == userId && session.Mode == StudyMode.Dictation,
                 cancellationToken);
 
-        // Đếm câu nghe chép đúng — join session để lọc đúng UserId
-        var dictationCorrectAnswers = await (
-            from d in _context.DictationSessionDetails
-            join s in _context.StudySessions on d.StudySessionId equals s.Id
-            where s.UserId == userId && d.IsCorrect
-            select d).CountAsync(cancellationToken);
+        // Buổi Dictation điểm 100
+        int dictationPerfectSessions = await _context.StudySessions
+            .CountAsync(
+                session =>
+                    session.UserId == userId
+                    && session.Mode == StudyMode.Dictation
+                    && session.Score == 100,
+                cancellationToken);
+
+        // Câu nghe chép đúng: join detail với session để lọc đúng user
+        int dictationCorrectAnswers = await (
+            from detail in _context.DictationSessionDetails
+            join session in _context.StudySessions on detail.StudySessionId equals session.Id
+            where session.UserId == userId && detail.IsCorrect
+            select detail
+        ).CountAsync(cancellationToken);
 
         return new AchievementProgressSnapshot
         {

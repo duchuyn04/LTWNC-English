@@ -6,43 +6,72 @@ using ltwnc.Services.StudyEvents;
 
 namespace ltwnc.Services;
 
-// Kết quả trả về khi kiểm tra một đáp án
+// Kết quả chấm một câu nghe chép (API / JS đọc field này)
 public class DictationCheckResult
 {
+    // User đúng hay sai
     public bool IsCorrect { get; set; }
+
+    // Chuỗi đáp án chuẩn (term hoặc example sentence)
     public string CorrectAnswer { get; set; } = string.Empty;
+
+    // Gợi ý khi sai (IPA / nghĩa); đúng thì null
     public string? Hint { get; set; }
+
+    // Nghĩa câu ví dụ (chỉ mode ExampleSentence)
     public string? ExampleMeaning { get; set; }
+
+    // So từng từ (mode ExampleSentence); mode Vocabulary thường rỗng
     public List<DictationWordComparison> WordComparison { get; set; } = new();
 }
 
+// Trạng thái từng từ khi so answered vs correct
 public enum DictationWordStatus
 {
+    // Khớp
     Correct,
+    // Cùng vị trí alignment nhưng khác chữ
     Incorrect,
+    // Thiếu so với đáp án đúng
     Missing,
+    // Thừa so với đáp án đúng
     Extra
 }
 
+// Một ô so sánh từ trong alignment
 public class DictationWordComparison
 {
     public DictationWordStatus Status { get; set; }
+
+    // Từ user gõ (Missing thì null)
     public string? AnsweredWord { get; set; }
+
+    // Từ đáp án (Extra thì null)
     public string? CorrectWord { get; set; }
 }
 
-// Kết quả tổng kết một phiên nghe chép
+// Tổng kết phiên nghe chép
 public class DictationResult
 {
     public int SessionId { get; set; }
+
+    // Vocabulary hay ExampleSentence trong phiên
     public DictationContentMode ContentMode { get; set; }
+
+    // Số câu đã trả lời
     public int TotalCards { get; set; }
+
+    // Số câu đúng
     public int CorrectCount { get; set; }
+
+    // Điểm lưu trên StudySession
     public int Score { get; set; }
+
+    // Thẻ trả lời sai (ôn lại)
     public List<DictationResultCard> WrongCards { get; set; } = new();
 }
 
-// Thông tin một thẻ sai trong màn hình tổng kết
+// Một thẻ sai trên màn kết quả
 public class DictationResultCard
 {
     public int Id { get; set; }
@@ -53,18 +82,20 @@ public class DictationResultCard
     public string ExampleMeaning { get; set; } = string.Empty;
 }
 
-// Service xử lý nghiệp vụ nghe chép chính tả.
-// Sau khi chấm bài / đóng phiên, phát sự kiện cho Observer (thành tích, log)
-// — DictationService không tự tính huy hiệu.
+// Nghiệp vụ nghe chép: lấy thẻ, chấm đáp án, đóng phiên, phát Observer.
+// Không tự tính huy hiệu.
 public class DictationService
 {
+    // Session, detail, progress, flashcard
     private readonly AppDbContext _context;
+
+    // Lấy DictationModeStrategy (cùng lọc với Study Hub)
     private readonly IStudyModeStrategyResolver _strategyResolver;
 
-    // Trạm phát sự kiện (Subject trong mẫu Observer)
+    // Publish sau khi chấm / complete session
     private readonly IStudyEventPublisher _studyEvents;
 
-    // Inject DbContext, strategy resolver và trạm phát sự kiện
+    // Inject DbContext, resolver, publisher
     public DictationService(
         AppDbContext context,
         IStudyModeStrategyResolver strategyResolver,
@@ -76,12 +107,15 @@ public class DictationService
     }
 
     // Lấy danh sách thẻ cho màn hình Dictation.
-    // Không lặp lại logic lọc — dùng chính DictationModeStrategy để Study Hub và trang Dictation thấy cùng tập thẻ.
+    // Không lặp logic lọc: dùng DictationModeStrategy để hub và trang Dictation cùng tập thẻ.
     // Sau đó chỉ xáo trộn theo cài đặt của user.
-    public async Task<List<Flashcard>> GetCardsForDictationAsync(int setId, string userId, UserStudySettings settings)
+    public async Task<List<Flashcard>> GetCardsForDictationAsync(
+        int setId,
+        string userId,
+        UserStudySettings settings)
     {
-        var strategy = _strategyResolver.Resolve(StudyMode.Dictation);
-        var cards = await strategy.GetCardsAsync(setId, settings, userId);
+        IStudyModeStrategy strategy = _strategyResolver.Resolve(StudyMode.Dictation);
+        List<Flashcard> cards = await strategy.GetCardsAsync(setId, settings, userId);
 
         // Xáo trộn nếu user bật DictationShuffle
         if (settings.DictationShuffle)
@@ -95,21 +129,29 @@ public class DictationService
     // Kiểm tra bộ thẻ có bất kỳ thẻ nào có câu ví dụ không (bỏ qua bộ lọc)
     public async Task<bool> AnyCardHasExampleSentenceAsync(int setId)
     {
-        return await _context.Flashcards.AnyAsync(f =>
-            f.FlashcardSetId == setId &&
-            f.ExampleSentence.Trim() != "");
+        bool hasExample = await _context.Flashcards.AnyAsync(flashcard =>
+            flashcard.FlashcardSetId == setId
+            && flashcard.ExampleSentence.Trim() != "");
+
+        return hasExample;
     }
 
     // Xáo trộn danh sách bằng thuật toán Fisher-Yates
     private static List<T> Shuffle<T>(List<T> list)
     {
-        var random = new Random();
-        var result = new List<T>(list);
+        Random random = new Random();
+        List<T> result = new List<T>(list);
+
         for (int i = result.Count - 1; i > 0; i--)
         {
             int j = random.Next(i + 1);
-            (result[i], result[j]) = (result[j], result[i]);
+
+            // Đổi chỗ hai phần tử
+            T temp = result[i];
+            result[i] = result[j];
+            result[j] = temp;
         }
+
         return result;
     }
 
@@ -119,7 +161,7 @@ public class DictationService
         int setId,
         DictationContentMode contentMode = DictationContentMode.Vocabulary)
     {
-        var session = new StudySession
+        StudySession session = new StudySession
         {
             UserId = userId,
             FlashcardSetId = setId,
@@ -141,53 +183,85 @@ public class DictationService
         string userId,
         bool acceptSynonyms)
     {
-        var session = await _context.StudySessions.FindAsync(sessionId);
+        StudySession? session = await _context.StudySessions.FindAsync(sessionId);
         if (session == null)
+        {
             throw new KeyNotFoundException("Phiên học không tồn tại.");
+        }
 
         if (session.UserId != userId)
+        {
             throw new UnauthorizedAccessException("Không có quyền truy cập phiên học này.");
+        }
 
-        var card = await _context.Flashcards.FindAsync(cardId);
+        Flashcard? card = await _context.Flashcards.FindAsync(cardId);
         if (card == null)
+        {
             throw new KeyNotFoundException("Thẻ không tồn tại.");
+        }
 
         // Đảm bảo thẻ thuộc về bộ thẻ của phiên học
         if (card.FlashcardSetId != session.FlashcardSetId)
+        {
             throw new KeyNotFoundException("Thẻ không thuộc bộ thẻ này.");
+        }
 
         // Đáp án đúng: nội dung ghi chép là câu ví dụ thì nhập lại câu,
-        // còn từ vựng thì luôn nhập thuật ngữ tiếng Anh (bỏ qua chế độ trả lời cũ)
-        var correctAnswer = session.DictationContentMode == DictationContentMode.ExampleSentence
-            ? card.ExampleSentence
-            : card.FrontText;
+        // còn từ vựng thì luôn nhập thuật ngữ tiếng Anh
+        string correctAnswer;
+        if (session.DictationContentMode == DictationContentMode.ExampleSentence)
+        {
+            correctAnswer = card.ExampleSentence;
+        }
+        else
+        {
+            correctAnswer = card.FrontText;
+        }
 
         // Tập hợp các đáp án được chấp nhận
-        var acceptedAnswers = new List<string> { correctAnswer };
+        List<string> acceptedAnswers = new List<string> { correctAnswer };
 
         // Nếu chấp nhận từ đồng nghĩa trong chế độ từ vựng
-        if (session.DictationContentMode == DictationContentMode.Vocabulary &&
-            acceptSynonyms &&
-            !string.IsNullOrWhiteSpace(card.Synonyms))
+        bool canAcceptSynonyms =
+            session.DictationContentMode == DictationContentMode.Vocabulary
+            && acceptSynonyms
+            && !string.IsNullOrWhiteSpace(card.Synonyms);
+
+        if (canAcceptSynonyms)
         {
-            var synonyms = card.Synonyms
-                .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => s.Trim())
-                .Where(s => !string.IsNullOrWhiteSpace(s));
-            acceptedAnswers.AddRange(synonyms);
+            string[] synonymParts = card.Synonyms!.Split(
+                new[] { ',', ';' },
+                StringSplitOptions.RemoveEmptyEntries);
+
+            foreach (string part in synonymParts)
+            {
+                string trimmedSynonym = part.Trim();
+                if (!string.IsNullOrWhiteSpace(trimmedSynonym))
+                {
+                    acceptedAnswers.Add(trimmedSynonym);
+                }
+            }
         }
 
         // Chuẩn hóa đáp án người dùng
-        var normalizedInput = NormalizeAnswer(answeredText);
+        string normalizedInput = NormalizeAnswer(answeredText);
 
-        // Kiểm tra khớp
-        var isCorrect = acceptedAnswers.Any(a => NormalizeAnswer(a) == normalizedInput);
+        // Kiểm tra khớp với bất kỳ đáp án được chấp nhận nào
+        bool isCorrect = false;
+        foreach (string accepted in acceptedAnswers)
+        {
+            if (NormalizeAnswer(accepted) == normalizedInput)
+            {
+                isCorrect = true;
+                break;
+            }
+        }
 
         // Cập nhật tiến trình học của người dùng
         await UpdateUserProgressAsync(userId, cardId, isCorrect);
 
         // Lưu chi tiết câu trả lời
-        var detail = new DictationSessionDetail
+        DictationSessionDetail detail = new DictationSessionDetail
         {
             StudySessionId = sessionId,
             FlashcardId = cardId,
@@ -198,7 +272,6 @@ public class DictationService
         await _context.SaveChangesAsync();
 
         // Báo cho observer: user vừa trả lời một câu nghe chép (đúng/sai)
-        // Người theo dõi thành tích có thể mở huy hiệu nếu câu trả lời đúng
         await _studyEvents.PublishAsync(new DictationAnswerCheckedEvent(
             UserId: userId,
             OccurredAtUtc: DateTime.UtcNow,
@@ -207,17 +280,28 @@ public class DictationService
             FlashcardId: cardId,
             IsCorrect: isCorrect));
 
+        string? hint = null;
+        if (!isCorrect)
+        {
+            hint = BuildHint(card);
+        }
+
+        string? exampleMeaning = null;
+        List<DictationWordComparison> wordComparison = new List<DictationWordComparison>();
+
+        if (session.DictationContentMode == DictationContentMode.ExampleSentence)
+        {
+            exampleMeaning = card.ExampleMeaning;
+            wordComparison = BuildWordComparison(answeredText, correctAnswer);
+        }
+
         return new DictationCheckResult
         {
             IsCorrect = isCorrect,
             CorrectAnswer = correctAnswer,
-            Hint = isCorrect ? null : BuildHint(card),
-            ExampleMeaning = session.DictationContentMode == DictationContentMode.ExampleSentence
-                ? card.ExampleMeaning
-                : null,
-            WordComparison = session.DictationContentMode == DictationContentMode.ExampleSentence
-                ? BuildWordComparison(answeredText, correctAnswer)
-                : new()
+            Hint = hint,
+            ExampleMeaning = exampleMeaning,
+            WordComparison = wordComparison
         };
     }
 
@@ -225,22 +309,44 @@ public class DictationService
     private static string NormalizeAnswer(string? input)
     {
         if (string.IsNullOrWhiteSpace(input))
+        {
             return string.Empty;
+        }
 
-        return string.Join(" ", TokenizeWords(input).Select(word => word.Normalized));
+        List<WordToken> tokens = TokenizeWords(input);
+        List<string> normalizedWords = new List<string>();
+
+        foreach (WordToken token in tokens)
+        {
+            normalizedWords.Add(token.Normalized);
+        }
+
+        return string.Join(" ", normalizedWords);
     }
 
+    // Một từ: bản gốc (UI) + bản chuẩn hóa (so khớp)
     private sealed record WordToken(string Original, string Normalized);
 
     private static List<WordToken> TokenizeWords(string? input)
     {
-        if (string.IsNullOrWhiteSpace(input)) return new();
+        if (string.IsNullOrWhiteSpace(input))
+        {
+            return new List<WordToken>();
+        }
 
-        return input
-            .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries)
-            .Select(word => new WordToken(word, NormalizeWord(word)))
-            .Where(word => word.Normalized.Length > 0)
-            .ToList();
+        string[] parts = input.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        List<WordToken> tokens = new List<WordToken>();
+
+        foreach (string part in parts)
+        {
+            string normalized = NormalizeWord(part);
+            if (normalized.Length > 0)
+            {
+                tokens.Add(new WordToken(part, normalized));
+            }
+        }
+
+        return tokens;
     }
 
     private static string NormalizeWord(string word)
@@ -254,57 +360,94 @@ public class DictationService
             .Replace(";", "");
     }
 
-    private static List<DictationWordComparison> BuildWordComparison(string? answeredText, string correctAnswer)
+    private static List<DictationWordComparison> BuildWordComparison(
+        string? answeredText,
+        string correctAnswer)
     {
-        var answered = TokenizeWords(answeredText);
-        var correct = TokenizeWords(correctAnswer);
-        // ponytail: O(n*m) alignment is appropriate for sentences; revisit only for paragraph dictation.
-        var distance = new int[answered.Count + 1, correct.Count + 1];
+        List<WordToken> answeredTokens = TokenizeWords(answeredText);
+        List<WordToken> correctTokens = TokenizeWords(correctAnswer);
 
-        for (var i = 0; i <= answered.Count; i++) distance[i, 0] = i;
-        for (var j = 0; j <= correct.Count; j++) distance[0, j] = j;
+        // Ma trận khoảng cách chỉnh sửa (Levenshtein theo từ).
+        // O(n*m) phù hợp với câu ngắn; chỉ cân nhắc lại nếu nghe chép cả đoạn dài.
+        int answeredCount = answeredTokens.Count;
+        int correctCount = correctTokens.Count;
+        int[,] distance = new int[answeredCount + 1, correctCount + 1];
 
-        for (var i = 1; i <= answered.Count; i++)
+        for (int i = 0; i <= answeredCount; i++)
         {
-            for (var j = 1; j <= correct.Count; j++)
+            distance[i, 0] = i;
+        }
+
+        for (int j = 0; j <= correctCount; j++)
+        {
+            distance[0, j] = j;
+        }
+
+        for (int i = 1; i <= answeredCount; i++)
+        {
+            for (int j = 1; j <= correctCount; j++)
             {
-                var substitution = distance[i - 1, j - 1] +
-                    (answered[i - 1].Normalized == correct[j - 1].Normalized ? 0 : 1);
-                distance[i, j] = Math.Min(substitution,
-                    Math.Min(distance[i - 1, j] + 1, distance[i, j - 1] + 1));
+                int substitutionCost = 1;
+                if (answeredTokens[i - 1].Normalized == correctTokens[j - 1].Normalized)
+                {
+                    substitutionCost = 0;
+                }
+
+                int substitution = distance[i - 1, j - 1] + substitutionCost;
+                int deletion = distance[i - 1, j] + 1;
+                int insertion = distance[i, j - 1] + 1;
+
+                distance[i, j] = Math.Min(substitution, Math.Min(deletion, insertion));
             }
         }
 
-        var result = new List<DictationWordComparison>();
-        var answeredIndex = answered.Count;
-        var correctIndex = correct.Count;
+        // Truy vết ngược từ góc dưới-phải để dựng danh sách so sánh từ
+        List<DictationWordComparison> result = new List<DictationWordComparison>();
+        int answeredIndex = answeredCount;
+        int correctIndex = correctCount;
 
         while (answeredIndex > 0 || correctIndex > 0)
         {
             if (answeredIndex > 0 && correctIndex > 0)
             {
-                var matches = answered[answeredIndex - 1].Normalized == correct[correctIndex - 1].Normalized;
-                var substitution = distance[answeredIndex - 1, correctIndex - 1] + (matches ? 0 : 1);
-                if (distance[answeredIndex, correctIndex] == substitution)
+                bool wordsMatch =
+                    answeredTokens[answeredIndex - 1].Normalized
+                    == correctTokens[correctIndex - 1].Normalized;
+
+                int substitutionCost = wordsMatch ? 0 : 1;
+                int substitutionDistance =
+                    distance[answeredIndex - 1, correctIndex - 1] + substitutionCost;
+
+                if (distance[answeredIndex, correctIndex] == substitutionDistance)
                 {
+                    DictationWordStatus status = wordsMatch
+                        ? DictationWordStatus.Correct
+                        : DictationWordStatus.Incorrect;
+
                     result.Add(new DictationWordComparison
                     {
-                        Status = matches ? DictationWordStatus.Correct : DictationWordStatus.Incorrect,
-                        AnsweredWord = answered[answeredIndex - 1].Original,
-                        CorrectWord = correct[correctIndex - 1].Original
+                        Status = status,
+                        AnsweredWord = answeredTokens[answeredIndex - 1].Original,
+                        CorrectWord = correctTokens[correctIndex - 1].Original
                     });
+
                     answeredIndex--;
                     correctIndex--;
                     continue;
                 }
             }
 
-            if (answeredIndex > 0 && distance[answeredIndex, correctIndex] == distance[answeredIndex - 1, correctIndex] + 1)
+            bool isExtraWord =
+                answeredIndex > 0
+                && distance[answeredIndex, correctIndex]
+                    == distance[answeredIndex - 1, correctIndex] + 1;
+
+            if (isExtraWord)
             {
                 result.Add(new DictationWordComparison
                 {
                     Status = DictationWordStatus.Extra,
-                    AnsweredWord = answered[answeredIndex - 1].Original
+                    AnsweredWord = answeredTokens[answeredIndex - 1].Original
                 });
                 answeredIndex--;
             }
@@ -313,7 +456,7 @@ public class DictationService
                 result.Add(new DictationWordComparison
                 {
                     Status = DictationWordStatus.Missing,
-                    CorrectWord = correct[correctIndex - 1].Original
+                    CorrectWord = correctTokens[correctIndex - 1].Original
                 });
                 correctIndex--;
             }
@@ -326,19 +469,31 @@ public class DictationService
     // Tạo gợi ý khi trả lời sai: IPA và nghĩa
     private static string? BuildHint(Flashcard card)
     {
-        var parts = new List<string>();
+        List<string> parts = new List<string>();
+
         if (!string.IsNullOrWhiteSpace(card.Pronunciation))
+        {
             parts.Add($"IPA: {card.Pronunciation}");
+        }
+
         if (!string.IsNullOrWhiteSpace(card.BackText))
+        {
             parts.Add($"Nghĩa: {card.BackText}");
-        return parts.Count > 0 ? string.Join(" | ", parts) : null;
+        }
+
+        if (parts.Count == 0)
+        {
+            return null;
+        }
+
+        return string.Join(" | ", parts);
     }
 
     // Cập nhật UserProgress sau mỗi câu trả lời
     private async Task UpdateUserProgressAsync(string userId, int flashcardId, bool isCorrect)
     {
-        var progress = await _context.UserProgresses
-            .FirstOrDefaultAsync(p => p.UserId == userId && p.FlashcardId == flashcardId);
+        UserProgress? progress = await _context.UserProgresses
+            .FirstOrDefaultAsync(row => row.UserId == userId && row.FlashcardId == flashcardId);
 
         if (progress == null)
         {
@@ -351,12 +506,17 @@ public class DictationService
         }
 
         progress.IsLearned = isCorrect;
-        progress.Status = isCorrect ? UserProgressStatus.Mastered : UserProgressStatus.Learning;
 
         if (isCorrect)
+        {
+            progress.Status = UserProgressStatus.Mastered;
             progress.CorrectCount++;
+        }
         else
+        {
+            progress.Status = UserProgressStatus.Learning;
             progress.WrongCount++;
+        }
 
         progress.LastReviewed = DateTime.UtcNow;
 
@@ -366,15 +526,17 @@ public class DictationService
     // Đóng phiên học và lưu điểm
     public async Task<StudySession> CompleteSessionAsync(int sessionId, int score)
     {
-        var session = await _context.StudySessions.FindAsync(sessionId);
+        StudySession? session = await _context.StudySessions.FindAsync(sessionId);
         if (session == null)
+        {
             throw new KeyNotFoundException("Phiên học không tồn tại.");
+        }
 
         session.Score = score;
         session.CompletedAt = DateTime.UtcNow;
         await _context.SaveChangesAsync();
 
-        // Báo buổi nghe chép đã xong — có thể mở huy hiệu buổi Dictation / điểm 100
+        // Báo buổi nghe chép đã xong; có thể mở huy hiệu Dictation / điểm 100
         await _studyEvents.PublishAsync(new StudySessionCompletedEvent(
             UserId: session.UserId,
             OccurredAtUtc: DateTime.UtcNow,
@@ -389,45 +551,68 @@ public class DictationService
     // Lấy dữ liệu tổng kết phiên học
     public async Task<DictationResult> GetSessionResultAsync(int sessionId, string userId)
     {
-        var session = await _context.StudySessions
+        StudySession? session = await _context.StudySessions
             .AsNoTracking()
-            .FirstOrDefaultAsync(s => s.Id == sessionId);
+            .FirstOrDefaultAsync(row => row.Id == sessionId);
 
         if (session == null)
+        {
             throw new KeyNotFoundException("Phiên học không tồn tại.");
+        }
 
         if (session.UserId != userId)
+        {
             throw new UnauthorizedAccessException("Không có quyền xem phiên học này.");
+        }
 
-        var details = await _context.DictationSessionDetails
+        List<DictationSessionDetail> details = await _context.DictationSessionDetails
             .AsNoTracking()
-            .Where(d => d.StudySessionId == sessionId)
-            .Include(d => d.Flashcard)
+            .Where(detail => detail.StudySessionId == sessionId)
+            .Include(detail => detail.Flashcard)
             .ToListAsync();
 
-        var total = details.Count;
-        var correct = details.Count(d => d.IsCorrect);
+        int totalCards = details.Count;
+        int correctCount = 0;
+        List<DictationResultCard> wrongCards = new List<DictationResultCard>();
 
-        var wrongCards = details
-            .Where(d => !d.IsCorrect && d.Flashcard != null)
-            .Select(d => new DictationResultCard
+        foreach (DictationSessionDetail detail in details)
+        {
+            if (detail.IsCorrect)
             {
-                Id = d.Flashcard!.Id,
-                Term = d.Flashcard.FrontText,
-                Definition = d.Flashcard.BackText,
-                Pronunciation = d.Flashcard.Pronunciation,
-                ExampleSentence = d.Flashcard.ExampleSentence,
-                ExampleMeaning = d.Flashcard.ExampleMeaning
-            })
-            .ToList();
+                correctCount++;
+                continue;
+            }
+
+            if (detail.Flashcard == null)
+            {
+                continue;
+            }
+
+            Flashcard flashcard = detail.Flashcard;
+            wrongCards.Add(new DictationResultCard
+            {
+                Id = flashcard.Id,
+                Term = flashcard.FrontText,
+                Definition = flashcard.BackText,
+                Pronunciation = flashcard.Pronunciation,
+                ExampleSentence = flashcard.ExampleSentence,
+                ExampleMeaning = flashcard.ExampleMeaning
+            });
+        }
+
+        int score = 0;
+        if (session.Score.HasValue)
+        {
+            score = session.Score.Value;
+        }
 
         return new DictationResult
         {
             SessionId = sessionId,
             ContentMode = session.DictationContentMode,
-            TotalCards = total,
-            CorrectCount = correct,
-            Score = session.Score ?? 0,
+            TotalCards = totalCards,
+            CorrectCount = correctCount,
+            Score = score,
             WrongCards = wrongCards
         };
     }

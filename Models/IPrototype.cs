@@ -1,10 +1,9 @@
 namespace ltwnc.Models;
 
-// Contract Prototype: entity tự tạo bản sao độc lập về nội dung.
-// Caller chịu trách nhiệm object nguồn đã đủ dữ liệu cần nhân bản
-// (ví dụ danh sách thẻ đã được load từ database trước khi clone bộ thẻ).
-// Clone không gán ownership hay lineage; service làm việc đó sau khi Clone trả về.
+// Prototype: entity tự Clone nội dung độc lập.
+// Caller load đủ navigation trước (ví dụ Flashcards). Clone không gán owner/lineage.
 public interface IPrototype<T> where T : class
 {
+    // Bản object mới; Id/FK identity thường để 0/null cho EF gán
     T Clone();
 }

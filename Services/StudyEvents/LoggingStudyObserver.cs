@@ -2,44 +2,53 @@ using Microsoft.Extensions.Logging;
 
 namespace ltwnc.Services.StudyEvents;
 
-// ============================================================
-// OBSERVER cụ thể #2: "người theo dõi ghi nhật ký".
-//
-// Mục đích kép:
-// 1. Ghi lại trên log hệ thống mỗi khi có sự kiện học (dễ debug).
-// 2. Chứng minh mẫu Observer: MỘT sự kiện, NHIỀU người nghe độc lập
-//    (AchievementStudyObserver làm việc khác, class này chỉ ghi log).
-//
-// Không lưu database — chỉ in ra log của ứng dụng.
-// ============================================================
+// Observer log: ghi một dòng mỗi sự kiện (debug + minh họa nhiều listener cùng tin).
+// Không ghi DB.
 public class LoggingStudyObserver : IStudyEventObserver
 {
+    // Logger ASP.NET
     private readonly ILogger<LoggingStudyObserver> _logger;
 
+    // Inject logger
     public LoggingStudyObserver(ILogger<LoggingStudyObserver> logger)
     {
         _logger = logger;
     }
 
-    // Mỗi sự kiện học → một dòng log dễ đọc
+    // Tóm tắt sự kiện theo type rồi LogInformation
     public Task OnStudyEventAsync(StudyEvent studyEvent, CancellationToken cancellationToken = default)
     {
-        var summary = studyEvent switch
+        string summary;
+
+        if (studyEvent is CardProgressChangedEvent cardProgress)
         {
-            CardProgressChangedEvent e =>
-                $"User {e.UserId} cập nhật thẻ {e.FlashcardId} (bộ {e.SetId}): " +
-                (e.IsLearned ? "đã thuộc" : "chưa thuộc"),
+            string learnedText = cardProgress.IsLearned ? "đã thuộc" : "chưa thuộc";
+            summary =
+                $"User {cardProgress.UserId} cập nhật thẻ {cardProgress.FlashcardId} " +
+                $"(bộ {cardProgress.SetId}): {learnedText}";
+        }
+        else if (studyEvent is StudySessionCompletedEvent sessionCompleted)
+        {
+            string scorePart = string.Empty;
+            if (sessionCompleted.Score.HasValue)
+            {
+                scorePart = $", điểm {sessionCompleted.Score}";
+            }
 
-            StudySessionCompletedEvent e =>
-                $"User {e.UserId} hoàn thành buổi {e.Mode} (session {e.SessionId}, bộ {e.SetId}" +
-                (e.Score.HasValue ? $", điểm {e.Score}" : "") + ")",
-
-            DictationAnswerCheckedEvent e =>
-                $"User {e.UserId} trả lời nghe chép thẻ {e.FlashcardId}: " +
-                (e.IsCorrect ? "đúng" : "sai"),
-
-            _ => $"User {studyEvent.UserId} phát sinh sự kiện {studyEvent.GetType().Name}"
-        };
+            summary =
+                $"User {sessionCompleted.UserId} hoàn thành buổi {sessionCompleted.Mode} " +
+                $"(session {sessionCompleted.SessionId}, bộ {sessionCompleted.SetId}{scorePart})";
+        }
+        else if (studyEvent is DictationAnswerCheckedEvent dictationAnswer)
+        {
+            string correctText = dictationAnswer.IsCorrect ? "đúng" : "sai";
+            summary =
+                $"User {dictationAnswer.UserId} trả lời nghe chép thẻ {dictationAnswer.FlashcardId}: {correctText}";
+        }
+        else
+        {
+            summary = $"User {studyEvent.UserId} phát sinh sự kiện {studyEvent.GetType().Name}";
+        }
 
         _logger.LogInformation("Sự kiện học (Observer Logging): {Summary}", summary);
         return Task.CompletedTask;

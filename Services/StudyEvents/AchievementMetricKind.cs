@@ -1,23 +1,20 @@
 namespace ltwnc.Services.StudyEvents;
 
-// ============================================================
-// Loại chỉ số dùng để đo tiến độ / điều kiện mở khóa huy hiệu.
-// Mỗi Definition trong catalog gắn với đúng một MetricKind + Target.
-// ============================================================
+// Loại chỉ số gắn với từng huy hiệu trong catalog (metric + Target).
 public enum AchievementMetricKind
 {
-    // Số thẻ đã thuộc (UserProgress.IsLearned)
+    // Số thẻ IsLearned
     CardsMastered,
 
-    // Số buổi Flashcard đã hoàn thành
+    // Số buổi Flashcard hoàn thành
     FlashcardSessions,
 
-    // Số buổi Nghe chép đã hoàn thành
+    // Số buổi Dictation hoàn thành
     DictationSessions,
 
-    // Số câu nghe chép trả lời đúng
+    // Số câu nghe chép đúng
     DictationCorrectAnswers,
 
-    // Số buổi nghe chép đạt điểm 100
+    // Số buổi Dictation điểm 100
     DictationPerfectSessions
 }

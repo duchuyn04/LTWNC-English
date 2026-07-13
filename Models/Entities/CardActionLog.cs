@@ -2,32 +2,30 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ltwnc.Models.Entities;
 
-// Entity đại diện cho bảng CardActionLogs — lịch sử các hành động hàng loạt trên thẻ
-// Dùng để hỗ trợ tính năng hoàn tác (Undo)
+// Lịch sử action batch trên thẻ; snapshot để Undo.
 public class CardActionLog
 {
-    // Khóa chính, tự động tăng
     [Key]
     public int Id { get; set; }
 
-    // Id của ngườidùng thực hiện hành động
+    // User đã chạy action
     public string UserId { get; set; } = string.Empty;
 
-    // Id của bộ thẻ bị tác động
+    // Bộ thẻ bị tác động
     public int SetId { get; set; }
 
-    // Loại hành động: Delete, Star, Unstar
+    // "Delete" | "Star" | "Unstar" (khớp factory)
     public string ActionType { get; set; } = string.Empty;
 
-    // Danh sách id thẻ bị tác động, lưu dưới dạng JSON
+    // JSON mảng id thẻ
     public string CardIdsJson { get; set; } = string.Empty;
 
-    // Snapshot trạng thái trước khi thay đổi, dùng để hoàn tác
+    // JSON snapshot trạng thái trước khi đổi (command serialize)
     public string SnapshotJson { get; set; } = string.Empty;
 
-    // Thờidạm thực hiện hành động
+    // Lúc Execute
     public DateTime ExecutedAt { get; set; }
 
-    // Thờidạm hoàn tác (null nếu chưa hoàn tác)
+    // Lúc Undo; null = chưa hoàn tác
     public DateTime? UndoneAt { get; set; }
 }

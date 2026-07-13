@@ -2,29 +2,36 @@ using ltwnc.Models.Entities;
 
 namespace ltwnc.Services.StudyModes;
 
-// Resolver: đứng giữa StudyService và các strategy.
-// Nhiệm vụ: tìm đúng strategy cho một StudyMode và bảo vệ rằng mỗi mode chỉ có 1 strategy.
+// Chọn đúng IStudyModeStrategy theo StudyMode từ danh sách đăng ký DI.
 public class StudyModeStrategyResolver : IStudyModeStrategyResolver
 {
+    // Mọi strategy đã AddScoped trong Program.cs
     private readonly IEnumerable<IStudyModeStrategy> _strategies;
 
+    // Inject tập strategy từ DI
     public StudyModeStrategyResolver(IEnumerable<IStudyModeStrategy> strategies)
     {
         _strategies = strategies;
     }
 
+    // Đúng 1 match thì trả về; 0 hoặc >1 thì throw (lỗi cấu hình)
     public IStudyModeStrategy Resolve(StudyMode mode)
     {
-        // Tìm tất cả strategy phụ trách mode này
-        var matches = _strategies.Where(s => s.Mode == mode).ToList();
+        List<IStudyModeStrategy> matches = new List<IStudyModeStrategy>();
 
-        // Không có strategy nào -> báo lỗi rõ ràng để dễ debug cấu hình DI
+        foreach (IStudyModeStrategy strategy in _strategies)
+        {
+            if (strategy.Mode == mode)
+            {
+                matches.Add(strategy);
+            }
+        }
+
         if (matches.Count == 0)
         {
             throw new InvalidOperationException($"Không tìm thấy strategy cho {mode}.");
         }
 
-        // Có nhiều hơn 1 strategy -> cấu hình DI sai, cũng báo lỗi rõ ràng
         if (matches.Count > 1)
         {
             throw new InvalidOperationException($"Đã đăng ký nhiều strategy cho {mode}.");

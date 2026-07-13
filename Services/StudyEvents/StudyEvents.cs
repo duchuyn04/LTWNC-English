@@ -2,46 +2,51 @@ using ltwnc.Models.Entities;
 
 namespace ltwnc.Services.StudyEvents;
 
-// ============================================================
-// Các "mẩu tin" (sự kiện) trong mẫu Observer.
-// Khi user học xong một việc (đánh dấu thẻ, xong buổi học...),
-// hệ thống tạo một mẩu tin này rồi phát cho mọi "người theo dõi".
-// Subject (người phát tin) không cần biết ai sẽ nhận tin.
-// ============================================================
+// Các mẩu tin (sự kiện) mẫu Observer.
+// Service học tạo tin sau khi Save; publisher gửi cho mọi observer.
 
-// Lớp gốc cho mọi sự kiện học tập.
-// Mọi mẩu tin đều biết: ai (UserId) và lúc nào (OccurredAtUtc).
+// Gốc: mọi sự kiện đều có user và thời điểm UTC
 public abstract record StudyEvent(string UserId, DateTime OccurredAtUtc);
 
-// User vừa cập nhật tiến độ một thẻ (đã thuộc / chưa thuộc).
-// Ví dụ: bấm "Đã biết" trên màn Flashcard.
+// User cập nhật tiến độ một thẻ (ví dụ bấm "Đã biết" trên Flashcard)
 public record CardProgressChangedEvent(
+    // User thao tác
     string UserId,
+    // Thời điểm sự kiện
     DateTime OccurredAtUtc,
+    // Bộ thẻ chứa thẻ
     int SetId,
+    // Thẻ vừa đổi
     int FlashcardId,
+    // true = đã thuộc
     bool IsLearned,
+    // Status chi tiết sau khi lưu
     UserProgressStatus Status
 ) : StudyEvent(UserId, OccurredAtUtc);
 
-// User vừa hoàn thành một buổi học (Flashcard hoặc Dictation).
-// Ví dụ: bấm "Hoàn thành" cuối phiên flashcard, hoặc xong nghe chép.
+// User hoàn thành một buổi học (Flashcard hoặc Dictation)
 public record StudySessionCompletedEvent(
     string UserId,
     DateTime OccurredAtUtc,
+    // Bộ thẻ của buổi học
     int SetId,
+    // Id StudySession vừa lưu
     int SessionId,
+    // Mode buổi học
     StudyMode Mode,
+    // Điểm (Dictation có; Flashcard có thể null)
     int? Score
 ) : StudyEvent(UserId, OccurredAtUtc);
 
-// User vừa nộp một câu trả lời trong chế độ Nghe chép.
-// Dùng để mở thành tích liên quan (ví dụ thẻ đầu tiên trả lời đúng).
+// User nộp một câu trả lời nghe chép
 public record DictationAnswerCheckedEvent(
     string UserId,
     DateTime OccurredAtUtc,
     int SetId,
+    // Phiên dictation
     int SessionId,
+    // Thẻ vừa chấm
     int FlashcardId,
+    // Đáp án đúng hay sai
     bool IsCorrect
 ) : StudyEvent(UserId, OccurredAtUtc);

@@ -4,47 +4,47 @@ using Microsoft.AspNetCore.Identity;
 
 namespace ltwnc.Models.Entities;
 
+// Trạng thái học chi tiết của một thẻ
 public enum UserProgressStatus
 {
+    // Chưa học
     Unlearned = 0,
+    // Đang học / vừa trả lời sai
     Learning = 1,
+    // Đã thuộc / vừa trả lời đúng
     Mastered = 2
 }
 
-// Entity đại diện cho bảng UserProgresses — tiến trình học của người dùng
-// Ghi nhận trạng thái đã biết/chưa biết của mỗi thẻ
-// Unique constraint: mỗi người dùng chỉ có 1 tiến trình cho mỗi thẻ
+// Tiến độ user trên một thẻ. Mỗi cặp (UserId, FlashcardId) một dòng.
 public class UserProgress
 {
-    // Khóa chính, tự động tăng
     [Key]
     public int Id { get; set; }
 
-    // Khóa ngoại đến người học (bảng AspNetUsers)
     [Required]
     public string UserId { get; set; } = string.Empty;
 
-    // Khóa ngoại đến thẻ được học
     [Required]
     public int FlashcardId { get; set; }
 
-    // true = đã biết, false = chưa biết
+    // true = đã thuộc (filter UnlearnedOnly dựa vào đây)
     public bool IsLearned { get; set; }
 
+    // Enum chi tiết hơn IsLearned
     public UserProgressStatus Status { get; set; } = UserProgressStatus.Unlearned;
 
+    // Đếm lần đúng
     public int CorrectCount { get; set; }
 
+    // Đếm lần sai
     public int WrongCount { get; set; }
 
-    // Thời gian học gần nhất
+    // Lần ôn gần nhất (UTC)
     public DateTime LastReviewed { get; set; } = DateTime.UtcNow;
 
-    // Navigation property — liên kết đến người học
     [ForeignKey(nameof(UserId))]
     public IdentityUser? User { get; set; }
 
-    // Navigation property — liên kết đến thẻ
     [ForeignKey(nameof(FlashcardId))]
     public Flashcard? Flashcard { get; set; }
 }

@@ -1,14 +1,8 @@
 namespace ltwnc.Services.StudyEvents;
 
-// ============================================================
-// Vai trò SUBJECT (người phát tin / "trạm phát") trong mẫu Observer.
-//
-// Service học tập chỉ cần gọi PublishAsync sau khi lưu dữ liệu.
-// Trạm phát sẽ lần lượt báo cho tất cả observer đã đăng ký.
-// Nhờ vậy, thêm "người theo dõi" mới không phải sửa StudyService.
-// ============================================================
+// Subject (trạm phát): gửi sự kiện tới mọi IStudyEventObserver đã đăng ký DI.
 public interface IStudyEventPublisher
 {
-    // Phát một sự kiện học tới mọi observer đang lắng nghe.
+    // Gọi lần lượt từng observer; không throw nếu một observer lỗi
     Task PublishAsync(StudyEvent studyEvent, CancellationToken cancellationToken = default);
 }
