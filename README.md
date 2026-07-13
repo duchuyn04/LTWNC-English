@@ -1,6 +1,6 @@
 # LTWNC English
 
-Ứng dụng học từ vựng tiếng Anh bằng flashcard. Ngườidùng tạo bộ thẻ, thêm từ vựng kèm IPA và ví dụ, chia sẻ bộ công khai, rồi học theo tiến độ cá nhân qua các chế độ Flashcard và Nghe chép.
+Ứng dụng học từ vựng tiếng Anh bằng flashcard. Người dùng tạo bộ thẻ, thêm từ vựng kèm IPA và ví dụ, chia sẻ bộ công khai, rồi học theo tiến độ cá nhân qua các chế độ Flashcard và Nghe chép.
 
 ## Tính năng chính
 
@@ -17,34 +17,45 @@
 
 ## Các mẫu thiết kế GoF
 
-Project áp dụng một số mẫu từ sách _Design Patterns: Elements of Reusable Object-Oriented Software_ để code dễ mở rộng và dễ test hơn.
+Project dùng một số mẫu từ sách *Design Patterns: Elements of Reusable Object-Oriented Software*. Mục tiêu không phải “có đủ pattern cho đẹp báo cáo”, mà là gom chỗ dễ phình if/switch và chỗ một hành động kéo theo nhiều hệ quả phụ vào các class riêng, để thêm tính năng sau không phải sửa lan sang service lõi.
 
-### 🧬 Prototype
+### Prototype
 
-Dùng khi người dùng sao chép một bộ thẻ công khai vào thư viện riêng.
+**Vấn đề trong project:** User có thể copy một bộ thẻ công khai vào thư viện riêng. Bộ sao phải giữ nguyên nội dung học (từ, nghĩa, IPA, ví dụ, URL ảnh…) nhưng là bản ghi mới: id khác, owner khác, private, không mang sao hay đường dẫn ảnh upload của người khác. Nếu copy bằng gán field thủ công ở service, mỗi lần entity thêm cột là phải nhớ chỉnh chỗ copy; dễ sót hoặc copy nhầm trạng thái cá nhân.
 
-`FlashcardSet` và `Flashcard` đều implement `IPrototype<T>`.
+**Vì sao dùng Prototype:** Object tự biết cách nhân bản chính nó. Logic “cái gì giữ, cái gì reset” nằm trên `FlashcardSet` / `Flashcard`, sát model, thay vì rải trong service.
 
-- `FlashcardSet.Clone()` giữ tiêu đề, mô tả và deep-clone danh sách thẻ. Reset `Id`, `UserId`, `SourceSetId`, và đặt `IsPublic = false` (bản clone không mang chính sách công khai của nguồn). Caller phải đảm bảo `Flashcards` đã load đủ trước khi clone.
-- `Flashcard.Clone()` giữ nội dung học (từ, nghĩa, IPA, ví dụ, ảnh URL…) nhưng reset trạng thái cá nhân: `IsStarred = false`, `UploadedImagePath = null`.
+**Cách làm trong code:**
+
+- `FlashcardSet` và `Flashcard` implement `IPrototype<T>`.
+- `FlashcardSet.Clone()` giữ tiêu đề, mô tả và deep-clone danh sách thẻ. Reset `Id`, `UserId`, `SourceSetId`, và đặt `IsPublic = false` (bản clone không kế thừa chính sách công khai của nguồn). Caller phải load đủ `Flashcards` trước khi clone.
+- `Flashcard.Clone()` giữ nội dung học nhưng reset trạng thái cá nhân: `IsStarred = false`, `UploadedImagePath = null`.
 - `FlashcardSetService.CopyPublicSetAsync` load bộ nguồn kèm thẻ, kiểm tra số thẻ trên object khớp database, gọi `Clone()`, rồi gán `UserId`, `SourceSetId`, và khẳng định bản sao là private.
 
-Vì clone tạo object mới hoàn toàn, bộ sao có thể chỉnh sửa riêng mà không ảnh hưởng bộ nguồn.
+Vì clone tạo object mới hoàn toàn, bộ sao chỉnh sửa riêng được mà không đụng bộ nguồn.
 
-### 🎯 Strategy
+### Strategy
 
-Dùng cho các chế độ học trong Study Hub.
+**Vấn đề trong project:** Study Hub có nhiều chế độ học (Flashcard, Nghe chép, sau này có thể thêm Quiz…). Mỗi mode lấy thẻ khác nhau và build option hiển thị khác nhau. Ví dụ Dictation có thể loại thẻ thiếu câu ví dụ khi chọn học theo example sentence. Nếu `StudyService` tự `if (mode == Flashcard) … else if (mode == Dictation) …`, mỗi mode mới buộc mở service lõi, test lại cả class, và logic lọc thẻ trộn với điều phối hub.
+
+**Vì sao dùng Strategy:** Gom “cách lấy thẻ + cách hiện option” của từng mode vào một class. Service chỉ chọn strategy theo mode đã chọn, không chứa chi tiết mode.
+
+**Cách làm trong code:**
 
 Mỗi chế độ học là một class implement `IStudyModeStrategy`:
 
 - `FlashcardModeStrategy` lấy tất cả thẻ đã qua bộ lọc.
-- `DictationModeStrategy` lấy thẻ phù hợp với `DictationContentMode`, ví dụ loại thẻ thiếu câu ví dụ khi chọn ExampleSentence mode.
+- `DictationModeStrategy` lấy thẻ phù hợp với `DictationContentMode` (ví dụ loại thẻ thiếu câu ví dụ khi chọn ExampleSentence).
 
-`StudyService` không còn hard-code từng mode. Nó iterate các strategy đã đăng ký trong DI, mỗi strategy tự lấy thẻ và tự xây option hiển thị. Muốn thêm mode mới thì tạo class mới implement interface, đăng ký trong `Program.cs`, không cần mở `StudyService`.
+`StudyService` iterate các strategy đã đăng ký trong DI; mỗi strategy tự lấy thẻ và tự xây option hiển thị. Thêm mode mới: class mới implement interface, đăng ký trong `Program.cs`, không cần mở `StudyService`.
 
-### 🎮 Command
+### Command
 
-Dùng cho các thao tác hàng loạt trên thẻ trong trang sửa bộ thẻ.
+**Vấn đề trong project:** Trang sửa bộ thẻ có thao tác hàng loạt: xóa nhiều thẻ, gắn sao, bỏ sao. Các thao tác này cần undo (snapshot trước khi chạy). Nếu controller hoặc service gọi thẳng EF theo từng action, logic thực thi, hoàn tác và log dính vào nhau; mỗi action mới lại copy boilerplate snapshot/undo.
+
+**Vì sao dùng Command:** Gói một thao tác thành object có `Execute` / `Undo` và dữ liệu cần thiết. Service chỉ chạy command và lưu log; controller không chứa bước EF của từng action.
+
+**Cách làm trong code:**
 
 Các command implement `ICardActionCommand`:
 
@@ -52,32 +63,40 @@ Các command implement `ICardActionCommand`:
 - `StarCardsCommand`
 - `UnstarCardsCommand`
 
-Mỗi command gói một thao tác kèm dữ liệu cần thiết (setId, userId, danh sách cardId) và khả năng undo. `CardActionService.ExecuteAsync` chạy command, lưu snapshot vào `CardActionLog` để hoàn tác sau này. Controller chỉ việc gọi factory tạo command rồi đưa cho service thực thi.
+Mỗi command mang setId, userId, danh sách cardId và biết undo. `CardActionService.ExecuteAsync` chạy command, lưu snapshot vào `CardActionLog` để hoàn tác sau. Controller gọi factory tạo command rồi đưa cho service thực thi.
 
-### 🏭 Factory Method
+### Factory Method
 
-Dùng để tạo command đúng loại từ action mà controller gửi lên.
+**Vấn đề trong project:** Controller nhận chuỗi action type từ form/API (`"Delete"`, `"Star"`, `"Unstar"`). Nếu controller tự `new` từng command hoặc tự switch khởi tạo, nó phải biết constructor, dependency (`AppDbContext`) và danh sách class concrete. Thêm action mới là sửa controller.
 
-`CardActionCommandFactory` nhận một chuỗi action type như `"Delete"`, `"Star"`, `"Unstar"` và trả về command tương ứng. Controller không cần biết command cụ thể là class nào, cũng không cần tự viết switch để khởi tạo.
+**Vì sao dùng Factory Method:** Một chỗ duy nhất map “tên action → object command”. Controller chỉ truyền action type + tham số; không import từng class command.
 
-### 👀 Observer
+**Cách làm trong code:**
 
-Dùng khi user học xong một việc (đánh dấu thẻ đã thuộc, hoàn thành buổi học, trả lời nghe chép) và **nhiều phần khác** cần phản ứng độc lập.
+`CardActionCommandFactory.Create(...)` nhận action type và trả về `ICardActionCommand` tương ứng. Switch khởi tạo nằm trong factory, không nằm ở controller.
 
-- **Subject (trạm phát):** `StudyEventPublisher` — nhận mẩu tin sự kiện và báo cho mọi người theo dõi.
-- **Observer (người theo dõi):** `IStudyEventObserver`.
-- **Concrete observers:**
-  - `AchievementStudyObserver` — gọi `AchievementUnlockService` để mở khóa huy hiệu đủ điều kiện (lưu `UserAchievements`).
-  - `LoggingStudyObserver` — ghi log hệ thống (chứng minh một sự kiện, nhiều người nghe).
-- **Sự kiện:** `CardProgressChangedEvent`, `StudySessionCompletedEvent`, `DictationAnswerCheckedEvent`.
-- **Tiến độ (live):** `AchievementProgressService` đếm thẻ đã thuộc, buổi học, câu nghe chép đúng… theo user; catalog trong code gắn metric + target.
-- **Mở khóa:** `AchievementUnlockService.SyncEligibleAsync` — dùng khi học (Observer) và khi mở trang `/Achievements` (rescan, bù huy hiệu mới / sự kiện bỏ lỡ).
-- **UI:** thanh tiến độ, `current/target`, CTA sang `/Set`; banner TempData khi rescan vừa mở huy hiệu mới.
-- `StudyService` / `DictationService` chỉ gọi `PublishAsync` sau khi lưu database; **không** biết chi tiết thành tích.
-- Thêm observer mới: tạo class implement `IStudyEventObserver`, đăng ký một dòng DI trong `Program.cs`.
+### Observer
+
+**Vấn đề trong project:** Sau khi user đánh dấu thẻ đã thuộc, xong buổi học, hoặc trả lời nghe chép, hệ thống còn việc phụ: mở huy hiệu đủ điều kiện, ghi log. Nếu `StudyService` / `DictationService` gọi thẳng `AchievementUnlockService` và logger, service học bị phụ thuộc thành tích; thêm phản ứng mới (thống kê, notification…) lại sửa service học. Lỗi ở mở huy hiệu cũng dễ kéo hỏng luồng học chính nếu gọi nối tiếp không tách.
+
+**Vì sao dùng Observer:** Service học chỉ phát sự kiện sau khi đã lưu database. Ai cần phản ứng thì đăng ký lắng nghe. Subject không biết concrete observer nào đang có.
+
+**Cách làm trong code:**
+
+- Subject: `StudyEventPublisher` nhận sự kiện và gọi lần lượt các observer.
+- Observer: `IStudyEventObserver`.
+- Concrete observers:
+  - `AchievementStudyObserver` gọi `AchievementUnlockService` để mở khóa huy hiệu (lưu `UserAchievements`).
+  - `LoggingStudyObserver` ghi log hệ thống (minh họa một sự kiện, nhiều listener).
+- Sự kiện: `CardProgressChangedEvent`, `StudySessionCompletedEvent`, `DictationAnswerCheckedEvent`.
+- Tiến độ (live): `AchievementProgressService` đếm thẻ đã thuộc, buổi học, câu nghe chép đúng… theo user; catalog trong code gắn metric + target.
+- Mở khóa: `AchievementUnlockService.SyncEligibleAsync` dùng khi học (qua Observer) và khi mở trang `/Achievements` (rescan, bù huy hiệu mới hoặc sự kiện bỏ lỡ).
+- UI: thanh tiến độ, `current/target`, CTA sang `/Set`; banner TempData khi rescan vừa mở huy hiệu mới.
+- `StudyService` / `DictationService` chỉ gọi `PublishAsync` sau khi lưu database; không biết chi tiết thành tích.
+- Thêm observer mới: class implement `IStudyEventObserver`, một dòng đăng ký DI trong `Program.cs`.
 - Trang xem: `/Achievements` (cần đăng nhập).
 
-Trong ASP.NET, danh sách observer đăng ký qua DI (tương đương `Attach` trong sách GoF).
+Trong ASP.NET, danh sách observer lấy từ DI (tương đương `Attach` trong sách GoF). Nếu một observer lỗi, publisher bắt exception và log; observer khác vẫn nhận tin, buổi học không bị hỏng vì lỗi phụ.
 
 ## Công nghệ
 
