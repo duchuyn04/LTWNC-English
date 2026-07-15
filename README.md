@@ -4,7 +4,7 @@
 
 ## Tính năng chính
 
-- Đăng ký, đăng nhập, đăng xuất với ASP.NET Identity.
+- Đăng ký, đăng nhập, đăng xuất (cookie authentication + bảng `Users`).
 - Tạo, sửa, xóa bộ thẻ công khai hoặc riêng tư.
 - Thêm thẻ với thuật ngữ, định nghĩa, IPA, loại từ, ví dụ tiếng Anh, nghĩa ví dụ tiếng Việt, từ đồng nghĩa.
 - Upload ảnh JPG/PNG/WebP tối đa 2 MB hoặc dùng URL ảnh.
@@ -111,7 +111,7 @@ Ngoài interface của các mẫu GoF, các application service (`FlashcardSetSe
 | Framework  | ASP.NET Core MVC (.NET 10.0)      |
 | Database   | SQL Server                        |
 | ORM        | Entity Framework Core             |
-| Xác thực   | ASP.NET Identity                  |
+| Xác thực   | Cookie authentication + custom Users table |
 | UI         | Razor Views, Bootstrap, CSS riêng |
 | Icons      | Phosphor Icons                    |
 | TTS        | Web Speech API                    |
@@ -122,6 +122,7 @@ Ngoài interface của các mẫu GoF, các application service (`FlashcardSetSe
 ltwnc/
 ├── Controllers/                 # MVC: request, quyền, View/Redirect/JSON
 ├── Services/                    # Nghiệp vụ — tổ chức theo domain/feature
+│   ├── Auth/                    # Cookie auth: register/login, hasher, CurrentUser
 │   ├── FlashcardSets/           # CRUD bộ thẻ / thẻ / copy
 │   ├── Study/                   # Study hub, flashcard session, dictation
 │   ├── Achievements/            # Catalog, progress, unlock, observer thành tích
@@ -192,6 +193,17 @@ Tạo/cập nhật database:
 ```bash
 dotnet ef database update
 ```
+
+### Dev: reset database sau đổi schema auth
+
+Nhánh cookie auth thay bảng Identity (`AspNetUsers`, …) bằng `Users` (`AppUser`). Password hash Identity **không** tương thích với `Pbkdf2PasswordHasher` — dev nên drop DB và tạo lại, rồi đăng ký user mới:
+
+```bash
+dotnet ef database drop --force --project ltwnc.csproj
+dotnet ef database update --project ltwnc.csproj
+```
+
+Sau đó chạy app và register tài khoản mới.
 
 ## Chạy ứng dụng
 

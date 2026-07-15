@@ -4,16 +4,17 @@ using ltwnc.Controllers;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Study;
+using ltwnc.Services.Auth;
 using ltwnc.Services.FlashcardSets;
 using ltwnc.Services.Study;
 using ltwnc.Services.StudyModes;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 
 namespace ltwnc.Tests.Controllers;
 
@@ -44,15 +45,12 @@ public class StudyControllerDictationTests
         }, "TestAuth"));
     }
 
-    // Khởi tạo controller với dependency giả lập (in-memory database, mock UserManager, fake URL helper)
+    // Khởi tạo controller với dependency giả lập (in-memory database, mock ICurrentUser, fake URL helper)
     private StudyController CreateController(AppDbContext context, string userId)
     {
-        var userStore = new Mock<IUserStore<IdentityUser>>();
-        var userManager = new Mock<UserManager<IdentityUser>>(
-            userStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-
-        var user = new IdentityUser { Id = userId, UserName = "test@example.com" };
-        userManager.Setup(u => u.GetUserAsync(It.IsAny<ClaimsPrincipal>())).ReturnsAsync(user);
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(c => c.UserId).Returns(userId);
+        currentUser.Setup(c => c.IsAuthenticated).Returns(true);
 
         // Mock IWebHostEnvironment để FlashcardSetService không cần web root thật
         var environment = new Mock<IWebHostEnvironment>();
@@ -70,7 +68,7 @@ public class StudyControllerDictationTests
         var studyService = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var dictationService = new DictationService(context, resolver, TestStudyEvents.NoOpPublisher());
 
-        var controller = new StudyController(studyService, dictationService, setService, userManager.Object)
+        var controller = new StudyController(studyService, dictationService, setService, currentUser.Object)
         {
             ControllerContext = new ControllerContext
             {

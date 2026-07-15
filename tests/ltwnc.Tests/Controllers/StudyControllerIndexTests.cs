@@ -3,11 +3,11 @@ using ltwnc.Controllers;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Study;
+using ltwnc.Services.Auth;
 using ltwnc.Services.FlashcardSets;
 using ltwnc.Services.Study;
 using ltwnc.Services.StudyModes;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.EntityFrameworkCore;
@@ -40,12 +40,9 @@ public class StudyControllerIndexTests
 
     private StudyController CreateController(AppDbContext context, string? userId)
     {
-        var userStore = new Mock<IUserStore<IdentityUser>>();
-        var userManager = new Mock<UserManager<IdentityUser>>(
-            userStore.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-
-        IdentityUser? user = userId == null ? null : new IdentityUser { Id = userId, UserName = "test@example.com" };
-        userManager.Setup(u => u.GetUserAsync(It.IsAny<ClaimsPrincipal>())).ReturnsAsync(user);
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.Setup(c => c.UserId).Returns(userId);
+        currentUser.Setup(c => c.IsAuthenticated).Returns(userId != null);
 
         var environment = new Mock<Microsoft.AspNetCore.Hosting.IWebHostEnvironment>();
         environment.Setup(e => e.WebRootPath).Returns(Path.Combine(Path.GetTempPath(), "ltwnc-tests"));
@@ -60,7 +57,7 @@ public class StudyControllerIndexTests
             ? new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) }
             : new DefaultHttpContext { User = CreateUser(userId) };
 
-        var controller = new StudyController(studyService, dictationService, setService, userManager.Object)
+        var controller = new StudyController(studyService, dictationService, setService, currentUser.Object)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
             TempData = new TempDataDictionary(new DefaultHttpContext(), new Mock<ITempDataProvider>().Object)

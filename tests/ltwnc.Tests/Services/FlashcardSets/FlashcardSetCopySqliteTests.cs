@@ -1,7 +1,6 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.FlashcardSets;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
@@ -14,7 +13,6 @@ public class FlashcardSetCopySqliteTests : IDisposable
     private readonly SqliteConnection _connection;
     private readonly AppDbContext _context;
     private readonly FlashcardSetService _service;
-    private readonly IdentityUser _owner;
     private const string OwnerId = "author";
     private const string LearnerId = "learner";
 
@@ -37,21 +35,7 @@ public class FlashcardSetCopySqliteTests : IDisposable
         _context = new AppDbContext(options);
         _context.Database.EnsureCreated();
 
-        _owner = new IdentityUser
-        {
-            Id = OwnerId,
-            UserName = OwnerId,
-            NormalizedUserName = OwnerId.ToUpperInvariant()
-        };
-        var learner = new IdentityUser
-        {
-            Id = LearnerId,
-            UserName = LearnerId,
-            NormalizedUserName = LearnerId.ToUpperInvariant()
-        };
-        _context.Users.AddRange(_owner, learner);
-        _context.SaveChanges();
-
+        // UserId là string trên FlashcardSet — không cần seed bảng Users
         _service = new FlashcardSetService(_context, null!);
     }
 

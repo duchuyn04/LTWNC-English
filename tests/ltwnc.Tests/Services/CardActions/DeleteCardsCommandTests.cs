@@ -37,16 +37,7 @@ public class DeleteCardsCommandTests : IDisposable
         _context = new AppDbContext(options);
         _context.Database.EnsureCreated();
 
-        var owner = new Microsoft.AspNetCore.Identity.IdentityUser
-        {
-            Id = OwnerId,
-            UserName = OwnerId,
-            NormalizedUserName = OwnerId.ToUpperInvariant()
-        };
-        _context.Users.Add(owner);
-        _context.SaveChanges();
-
-        // Chuẩn bị một bộ thẻ có 1 thẻ và các dữ liệu liên quan
+        // Chuẩn bị một bộ thẻ có 1 thẻ và các dữ liệu liên quan (UserId string, không FK Users)
         _set = new FlashcardSet
         {
             Title = "Set",
