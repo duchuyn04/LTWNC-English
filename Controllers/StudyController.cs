@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
-using ltwnc.Services;
+using ltwnc.Services.FlashcardSets;
+using ltwnc.Services.Study;
 using ltwnc.Models.ViewModels.Study;
 using ltwnc.Models.Entities;
 

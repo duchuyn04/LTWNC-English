@@ -1,4 +1,4 @@
-namespace ltwnc.Services.StudyEvents;
+namespace ltwnc.Services.Achievements;
 
 // Danh mục huy hiệu tĩnh trong code.
 // Code cố định (lưu DB). Title/Description hiện UI. Metric+Target tính progress và unlock.

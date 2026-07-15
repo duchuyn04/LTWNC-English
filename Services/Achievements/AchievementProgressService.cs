@@ -1,9 +1,8 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
-using ltwnc.Services.StudyEvents;
 using Microsoft.EntityFrameworkCore;
 
-namespace ltwnc.Services;
+namespace ltwnc.Services.Achievements;
 
 // Đếm metric thành tích của một user (thẻ thuộc, buổi học, nghe chép...).
 // Kết quả dùng cho progress bar và để quyết định mở khóa huy hiệu.

@@ -1,7 +1,6 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
-using ltwnc.Services;
-using ltwnc.Services.StudyEvents;
+using ltwnc.Services.Achievements;
 using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Tests.Services;

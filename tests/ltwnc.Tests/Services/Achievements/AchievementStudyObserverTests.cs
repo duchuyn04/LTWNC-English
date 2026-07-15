@@ -1,6 +1,6 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
-using ltwnc.Services;
+using ltwnc.Services.Achievements;
 using ltwnc.Services.StudyEvents;
 using Microsoft.EntityFrameworkCore;
 

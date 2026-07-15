@@ -1,4 +1,4 @@
-using ltwnc.Services.StudyEvents;
+using ltwnc.Services.Achievements;
 
 namespace ltwnc.Tests.StudyEvents;
 

@@ -1,9 +1,8 @@
 using ltwnc.Data;
 using ltwnc.Models.ViewModels.Achievements;
-using ltwnc.Services.StudyEvents;
 using Microsoft.EntityFrameworkCore;
 
-namespace ltwnc.Services;
+namespace ltwnc.Services.Achievements;
 
 // Dữ liệu trang Thành tích: list huy hiệu + tiêu đề vừa mở khi rescan
 public sealed class AchievementPageModel

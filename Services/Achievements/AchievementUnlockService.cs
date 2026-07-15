@@ -1,9 +1,8 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
-using ltwnc.Services.StudyEvents;
 using Microsoft.EntityFrameworkCore;
 
-namespace ltwnc.Services;
+namespace ltwnc.Services.Achievements;
 
 // So metric hiện tại với catalog, chèn UserAchievement còn thiếu.
 // Observer gọi khi có sự kiện học; trang Thành tích cũng gọi để rescan.

@@ -1,6 +1,6 @@
-using ltwnc.Services;
+using ltwnc.Services.StudyEvents;
 
-namespace ltwnc.Services.StudyEvents;
+namespace ltwnc.Services.Achievements;
 
 // Observer thành tích: mỗi sự kiện học thì quét lại metric và mở huy hiệu đủ điều kiện.
 // StudyService / DictationService không gọi unlock trực tiếp.

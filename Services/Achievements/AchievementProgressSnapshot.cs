@@ -1,4 +1,4 @@
-namespace ltwnc.Services.StudyEvents;
+namespace ltwnc.Services.Achievements;
 
 // Ảnh chụp metric thành tích của user tại một thời điểm.
 // Progress service đếm xong đổ vào đây; unlock / UI đọc lại, không query lặp.

@@ -1,7 +1,7 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Study;
-using ltwnc.Services;
+using ltwnc.Services.Study;
 using ltwnc.Services.StudyModes;
 using Microsoft.EntityFrameworkCore;
 

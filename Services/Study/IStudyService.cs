@@ -1,7 +1,7 @@
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Study;
 
-namespace ltwnc.Services;
+namespace ltwnc.Services.Study;
 
 // Contract nghiệp vụ học: settings, tiến độ, hub, đánh dấu thuộc, hoàn thành phiên.
 // Không lọc thẻ mode (strategy) và không mở huy hiệu (observer) — những việc đó nằm trong implementation.

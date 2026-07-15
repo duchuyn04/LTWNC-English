@@ -1,6 +1,6 @@
 using ltwnc.Models.Entities;
 
-namespace ltwnc.Services;
+namespace ltwnc.Services.Study;
 
 // Contract nghe chép: lấy thẻ, tạo phiên, chấm đáp án, hoàn thành, xem kết quả.
 // DTO (DictationCheckResult, DictationResult, …) vẫn là class concrete trong DictationService.cs.

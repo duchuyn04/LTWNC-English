@@ -1,6 +1,5 @@
-using ltwnc.Services.StudyEvents;
 
-namespace ltwnc.Services;
+namespace ltwnc.Services.Achievements;
 
 // Đếm metric thành tích (thẻ thuộc, buổi học, nghe chép…) một lần cho một user.
 public interface IAchievementProgressService

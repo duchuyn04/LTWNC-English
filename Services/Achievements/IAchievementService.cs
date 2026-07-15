@@ -1,4 +1,4 @@
-namespace ltwnc.Services;
+namespace ltwnc.Services.Achievements;
 
 // Dữ liệu trang Thành tích: rescan unlock + map list view model.
 // AchievementPageModel vẫn là class concrete (không phải interface).

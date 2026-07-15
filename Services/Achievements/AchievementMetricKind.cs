@@ -1,4 +1,4 @@
-namespace ltwnc.Services.StudyEvents;
+namespace ltwnc.Services.Achievements;
 
 // Loại chỉ số gắn với từng huy hiệu trong catalog (metric + Target).
 public enum AchievementMetricKind

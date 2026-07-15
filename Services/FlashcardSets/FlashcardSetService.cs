@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Http;
 using System;
 using System.IO;
 
-namespace ltwnc.Services;
+namespace ltwnc.Services.FlashcardSets;
 
 // CRUD bộ thẻ / thẻ, copy public set, upload ảnh.
 // Sửa/xóa chỉ chủ sở hữu.

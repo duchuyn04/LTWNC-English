@@ -4,7 +4,7 @@ using ltwnc.Models.Entities;
 using ltwnc.Services.StudyModes;
 using ltwnc.Services.StudyEvents;
 
-namespace ltwnc.Services;
+namespace ltwnc.Services.Study;
 
 // Kết quả chấm một câu nghe chép (API / JS đọc field này)
 public class DictationCheckResult

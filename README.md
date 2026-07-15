@@ -19,6 +19,8 @@
 
 Project dùng một số mẫu từ sách *Design Patterns: Elements of Reusable Object-Oriented Software*. Mục tiêu không phải “có đủ pattern cho đẹp báo cáo”, mà là gom chỗ dễ phình if/switch và chỗ một hành động kéo theo nhiều hệ quả phụ vào các class riêng, để thêm tính năng sau không phải sửa lan sang service lõi.
 
+**Không** gom code theo thư mục `Patterns/` hay `GoF/`. Mỗi pattern nằm trong domain dùng nó: `Services/StudyModes` (Strategy), `Services/CardActions` (Command + Factory), `Services/StudyEvents` (Observer pub/sub), `Models/IPrototype` (Prototype trên entity), observer thành tích trong `Services/Achievements`.
+
 ### Prototype
 
 **Vấn đề trong project:** User có thể copy một bộ thẻ công khai vào thư viện riêng. Bộ sao phải giữ nguyên nội dung học (từ, nghĩa, IPA, ví dụ, URL ảnh…) nhưng là bản ghi mới: id khác, owner khác, private, không mang sao hay đường dẫn ảnh upload của người khác. Nếu copy bằng gán field thủ công ở service, mỗi lần entity thêm cột là phải nhớ chỉnh chỗ copy; dễ sót hoặc copy nhầm trạng thái cá nhân.
@@ -118,24 +120,25 @@ Ngoài interface của các mẫu GoF, các application service (`FlashcardSetSe
 
 ```text
 ltwnc/
-├── Controllers/              # Nhận request, kiểm tra quyền, trả View/Redirect/JSON
-├── Services/                 # Logic nghiệp vụ và các implementation GoF
-│   ├── CardActions/          # Command pattern
-│   ├── StudyModes/           # Strategy pattern
-│   ├── StudyEvents/          # Observer pattern (sự kiện học + thành tích)
-│   └── FlashcardSetService.cs
-├── Data/                     # EF Core DbContext
-│   └── AppDbContext.cs
-├── Models/                   # Entities và ViewModels
-│   ├── Entities/
-│   └── ViewModels/
-├── Views/                    # Razor Views
-├── wwwroot/                  # Static files
-├── Migrations/               # EF Core migrations
+├── Controllers/                 # MVC: request, quyền, View/Redirect/JSON
+├── Services/                    # Nghiệp vụ — tổ chức theo domain/feature
+│   ├── FlashcardSets/           # CRUD bộ thẻ / thẻ / copy
+│   ├── Study/                   # Study hub, flashcard session, dictation
+│   ├── Achievements/            # Catalog, progress, unlock, observer thành tích
+│   ├── CardActions/             # Command: batch delete/star/unstar + undo
+│   ├── StudyModes/              # Strategy: lọc thẻ theo chế độ học
+│   └── StudyEvents/             # Observer: publisher + sự kiện học (+ logging)
+├── Data/                        # EF Core DbContext
+├── Models/                      # Entities, ViewModels, IPrototype (Prototype)
+├── Views/
+├── wwwroot/
+├── Migrations/
+├── tests/ltwnc.Tests/           # Mirror Services/… theo domain
 ├── Program.cs
-├── appsettings.json
 └── ltwnc.csproj
 ```
+
+**Cách tổ chức:** folder theo **domain** (FlashcardSets, Study, Achievements…), không theo tên pattern GoF. Pattern nằm *trong* domain liên quan (`CardActions` = Command, `StudyModes` = Strategy, `StudyEvents` = Observer, entity `IPrototype` = Prototype).
 
 ## Cài đặt
 

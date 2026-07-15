@@ -5,7 +5,7 @@ using ltwnc.Models.ViewModels.Study;
 using ltwnc.Services.StudyModes;
 using ltwnc.Services.StudyEvents;
 
-namespace ltwnc.Services;
+namespace ltwnc.Services.Study;
 
 // Nghiệp vụ học: settings, tiến độ thẻ, Study Hub, phát sự kiện Observer.
 // Không lọc thẻ trong service (giao strategy). Không tự mở huy hiệu.

@@ -2,7 +2,7 @@ using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.FlashcardSet;
 using Microsoft.AspNetCore.Http;
 
-namespace ltwnc.Services;
+namespace ltwnc.Services.FlashcardSets;
 
 // Contract CRUD bộ thẻ / thẻ / copy public set.
 // Controller và consumer khác inject interface này thay vì FlashcardSetService concrete.

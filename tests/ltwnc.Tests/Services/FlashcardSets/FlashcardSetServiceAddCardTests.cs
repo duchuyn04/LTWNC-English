@@ -1,6 +1,6 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
-using ltwnc.Services;
+using ltwnc.Services.FlashcardSets;
 using Microsoft.EntityFrameworkCore;
 using Xunit;
 
