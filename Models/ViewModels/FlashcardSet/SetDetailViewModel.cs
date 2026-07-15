@@ -1,4 +1,4 @@
-using ltwnc.Models.Entities;
+using ltwnc.Models.ViewModels.Flashcards;
 
 namespace ltwnc.Models.ViewModels.FlashcardSet;
 
@@ -17,11 +17,8 @@ public class SetDetailViewModel
     // Public hay private
     public bool IsPublic { get; set; }
 
-    // Owner AspNetUsers.Id
-    public string UserId { get; set; } = string.Empty;
-
     // Danh sách thẻ (preview)
-    public List<Flashcard> Flashcards { get; set; } = new();
+    public IReadOnlyList<FlashcardViewModel> Flashcards { get; set; } = Array.Empty<FlashcardViewModel>();
 
     // Viewer có phải owner không (hiện Edit/Delete)
     public bool IsOwner { get; set; }

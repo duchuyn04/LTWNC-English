@@ -15,7 +15,7 @@ public class DictationStudyViewModel
     public List<DictationCardViewModel> Cards { get; set; } = new();
 
     // Cài đặt dictation (tốc độ, synonym, hint...)
-    public UserStudySettings Settings { get; set; } = new();
+    public StudySettingsViewModel Settings { get; set; } = new();
 
     // Vocabulary hay ExampleSentence (khớp session)
     public DictationContentMode ContentMode { get; set; }

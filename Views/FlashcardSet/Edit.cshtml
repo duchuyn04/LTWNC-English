@@ -1,7 +1,7 @@
-@model EditSetViewModel
+@model EditSetPageViewModel
 @{
     ViewData["Title"] = "Sửa bộ thẻ";
-    var cards = ViewBag.Cards as List<ltwnc.Models.Entities.Flashcard> ?? new();
+    var cards = Model.Cards;
 }
 
 <link rel="stylesheet" href="~/css/set-management.css" asp-append-version="true" />
@@ -115,7 +115,7 @@
                               enctype="multipart/form-data"
                               class="vocab-card-form">
                             @Html.AntiForgeryToken()
-                            <input type="hidden" name="setId" value="@card.FlashcardSetId" />
+                            <input type="hidden" name="setId" value="@card.SetId" />
                             
                             <div class="vocab-form-header">
                                 <div>

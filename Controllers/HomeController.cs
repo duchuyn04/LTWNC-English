@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using ltwnc.Models;
+using ltwnc.Models.Entities;
 using ltwnc.Services.FlashcardSets;
 using ltwnc.Models.ViewModels.Home;
 
@@ -27,18 +28,28 @@ public class HomeController : Controller
         }
 
         HomeViewModel model = new HomeViewModel();
+        List<FlashcardSet> publicSets;
 
         if (!string.IsNullOrEmpty(q))
         {
             // Có từ khóa: tìm theo tiêu đề
             model.SearchQuery = q;
-            model.PublicSets = await _setService.SearchPublicSetsAsync(q);
+            publicSets = await _setService.SearchPublicSetsAsync(q);
         }
         else
         {
             // Không có q: vài bộ public mới nhất
-            model.PublicSets = await _setService.GetPublicSetsAsync();
+            publicSets = await _setService.GetPublicSetsAsync();
         }
+
+        model.PublicSets = publicSets
+            .Select(set => new PublicSetViewModel
+            {
+                Id = set.Id,
+                Title = set.Title,
+                Description = set.Description
+            })
+            .ToList();
 
         return View(model);
     }

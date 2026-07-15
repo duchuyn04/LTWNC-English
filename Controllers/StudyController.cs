@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ltwnc.Services.Auth;
 using ltwnc.Services.FlashcardSets;
 using ltwnc.Services.Study;
+using ltwnc.Models.ViewModels.Flashcards;
 using ltwnc.Models.ViewModels.Study;
 using ltwnc.Models.Entities;
 
@@ -126,12 +127,14 @@ public class StudyController : Controller
         {
             SetId = setId,
             SetTitle = set.Title,
-            Flashcards = cards,
-            VocabularyCards = vocabularyCards,
-            ProgressByCardId = progressByCardId,
+            Flashcards = FlashcardViewModelMapper.FromEntities(cards),
+            VocabularyCards = FlashcardViewModelMapper.FromEntities(vocabularyCards),
+            ProgressByCardId = progressByCardId.ToDictionary(
+                entry => entry.Key,
+                entry => FlashcardProgressViewModel.FromEntity(entry.Value)),
             CurrentIndex = Math.Clamp(index, 0, cards.Count - 1),
             StarredOnly = effectiveStarredOnly,
-            Settings = settings,
+            Settings = StudySettingsMapper.ToViewModel(settings),
             IsAuthenticated = userId != null,
             UnlearnedOnly = effectiveUnlearnedOnly
         };
@@ -255,7 +258,7 @@ public class StudyController : Controller
     [HttpPost]
     [Route("/Study/Settings")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SaveSettings([FromForm] UserStudySettings settings)
+    public async Task<IActionResult> SaveSettings([FromForm] StudySettingsViewModel settings)
     {
         string? userId = _currentUser.UserId;
         if (userId == null)
@@ -263,10 +266,21 @@ public class StudyController : Controller
             return Unauthorized();
         }
 
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
         try
         {
-            UserStudySettings saved = await _studyService.SaveSettingsAsync(userId, settings);
-            return Json(new { success = true, settings = saved });
+            UserStudySettings saved = await _studyService.SaveSettingsAsync(
+                userId,
+                StudySettingsMapper.ToEntity(settings));
+            return Json(new
+            {
+                success = true,
+                settings = StudySettingsMapper.ToViewModel(saved)
+            });
         }
         catch (Exception)
         {
@@ -383,7 +397,7 @@ public class StudyController : Controller
             SetId = setId,
             SetTitle = set.Title,
             SessionId = session.Id,
-            Settings = settings,
+            Settings = StudySettingsMapper.ToViewModel(settings),
             ContentMode = session.DictationContentMode,
             Cards = cardViewModels
         };

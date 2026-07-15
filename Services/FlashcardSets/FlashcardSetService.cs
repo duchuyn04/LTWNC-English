@@ -180,7 +180,10 @@ public class FlashcardSetService : IFlashcardSetService
 
             items.Add(new FlashcardSetListItemViewModel
             {
-                Set = set,
+                Id = set.Id,
+                Title = set.Title,
+                Description = set.Description,
+                IsPublic = set.IsPublic,
                 TotalCards = totalCards,
                 LearnedCount = learnedCount,
                 MasteryPercent = masteryPercent
