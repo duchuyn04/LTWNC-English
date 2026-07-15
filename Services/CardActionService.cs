@@ -6,16 +6,16 @@ using Microsoft.EntityFrameworkCore;
 namespace ltwnc.Services.CardActions;
 
 // Chạy command batch và ghi CardActionLog; Undo từ log + snapshot.
-public class CardActionService
+public class CardActionService : ICardActionService
 {
     // Lưu log và transaction
     private readonly AppDbContext _context;
 
     // Tái tạo command khi Undo theo ActionType trong log
-    private readonly CardActionCommandFactory _commandFactory;
+    private readonly ICardActionCommandFactory _commandFactory;
 
     // Inject DbContext và factory command
-    public CardActionService(AppDbContext context, CardActionCommandFactory commandFactory)
+    public CardActionService(AppDbContext context, ICardActionCommandFactory commandFactory)
     {
         _context = context;
         _commandFactory = commandFactory;

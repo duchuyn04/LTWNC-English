@@ -7,10 +7,10 @@ namespace ltwnc.Services.StudyEvents;
 public class AchievementStudyObserver : IStudyEventObserver
 {
     // Service chèn UserAchievement còn thiếu
-    private readonly AchievementUnlockService _unlockService;
+    private readonly IAchievementUnlockService _unlockService;
 
     // Inject unlock service
-    public AchievementStudyObserver(AchievementUnlockService unlockService)
+    public AchievementStudyObserver(IAchievementUnlockService unlockService)
     {
         _unlockService = unlockService;
     }

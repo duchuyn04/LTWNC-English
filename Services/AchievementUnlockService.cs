@@ -7,16 +7,16 @@ namespace ltwnc.Services;
 
 // So metric hiện tại với catalog, chèn UserAchievement còn thiếu.
 // Observer gọi khi có sự kiện học; trang Thành tích cũng gọi để rescan.
-public class AchievementUnlockService
+public class AchievementUnlockService : IAchievementUnlockService
 {
     // Ghi / đọc bảng UserAchievements
     private readonly AppDbContext _context;
 
     // Lấy snapshot metric để so với Target từng huy hiệu
-    private readonly AchievementProgressService _progress;
+    private readonly IAchievementProgressService _progress;
 
     // Inject DbContext và service đếm metric
-    public AchievementUnlockService(AppDbContext context, AchievementProgressService progress)
+    public AchievementUnlockService(AppDbContext context, IAchievementProgressService progress)
     {
         _context = context;
         _progress = progress;

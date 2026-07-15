@@ -84,7 +84,7 @@ public class DictationResultCard
 
 // Nghiệp vụ nghe chép: lấy thẻ, chấm đáp án, đóng phiên, phát Observer.
 // Không tự tính huy hiệu.
-public class DictationService
+public class DictationService : IDictationService
 {
     // Session, detail, progress, flashcard
     private readonly AppDbContext _context;

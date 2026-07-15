@@ -9,7 +9,7 @@ namespace ltwnc.Services;
 
 // Nghiệp vụ học: settings, tiến độ thẻ, Study Hub, phát sự kiện Observer.
 // Không lọc thẻ trong service (giao strategy). Không tự mở huy hiệu.
-public class StudyService
+public class StudyService : IStudyService
 {
     // Progress, settings, session, flashcard set
     private readonly AppDbContext _context;

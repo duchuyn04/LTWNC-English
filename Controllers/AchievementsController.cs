@@ -10,14 +10,14 @@ namespace ltwnc.Controllers;
 public class AchievementsController : Controller
 {
     // Rescan unlock + map list view model
-    private readonly AchievementService _achievementService;
+    private readonly IAchievementService _achievementService;
 
     // User hiện tại từ cookie
     private readonly UserManager<IdentityUser> _userManager;
 
     // Inject service thành tích và UserManager
     public AchievementsController(
-        AchievementService achievementService,
+        IAchievementService achievementService,
         UserManager<IdentityUser> userManager)
     {
         _achievementService = achievementService;

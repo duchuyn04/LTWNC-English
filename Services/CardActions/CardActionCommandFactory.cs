@@ -4,7 +4,7 @@ namespace ltwnc.Services.CardActions;
 
 // Map chuỗi action type từ form/API sang command concrete.
 // Controller không new trực tiếp Delete/Star/Unstar.
-public class CardActionCommandFactory
+public class CardActionCommandFactory : ICardActionCommandFactory
 {
     // Truyền vào constructor từng command (cần DbContext)
     private readonly AppDbContext _context;

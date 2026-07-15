@@ -98,6 +98,10 @@ Mỗi command mang setId, userId, danh sách cardId và biết undo. `CardAction
 
 Trong ASP.NET, danh sách observer lấy từ DI (tương đương `Attach` trong sách GoF). Nếu một observer lỗi, publisher bắt exception và log; observer khác vẫn nhận tin, buổi học không bị hỏng vì lỗi phụ.
 
+### Application service interfaces
+
+Ngoài interface của các mẫu GoF, các application service (`FlashcardSetService`, `StudyService`, `DictationService`, card actions, achievements) cũng có contract `I*` tương ứng. Controllers và service nội bộ inject interface; `Program.cs` đăng ký `AddScoped<IService, Service>()`. Mục đích: sau này thay implementation hoặc bọc decorator mà không sửa call site. Đây không phải mẫu GoF mới — chỉ là abstraction cho DI.
+
 ## Công nghệ
 
 | Thành phần | Công nghệ                         |

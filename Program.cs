@@ -35,13 +35,13 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.SlidingExpiration = true;
 });
 
-// Add Services
-builder.Services.AddScoped<FlashcardSetService>();
-builder.Services.AddScoped<StudyService>();
+// Application services — inject qua interface (swap/decorator sau này không sửa controller)
+builder.Services.AddScoped<IFlashcardSetService, FlashcardSetService>();
+builder.Services.AddScoped<IStudyService, StudyService>();
 // Service xử lý nghe chép chính tả
-builder.Services.AddScoped<DictationService>();
-builder.Services.AddScoped<CardActionService>();
-builder.Services.AddScoped<CardActionCommandFactory>();
+builder.Services.AddScoped<IDictationService, DictationService>();
+builder.Services.AddScoped<ICardActionService, CardActionService>();
+builder.Services.AddScoped<ICardActionCommandFactory, CardActionCommandFactory>();
 
 // Study mode strategies
 builder.Services.AddScoped<IStudyCardQueryService, StudyCardQueryService>();
@@ -58,11 +58,11 @@ builder.Services.AddScoped<IStudyEventPublisher, StudyEventPublisher>();
 builder.Services.AddScoped<IStudyEventObserver, AchievementStudyObserver>();
 builder.Services.AddScoped<IStudyEventObserver, LoggingStudyObserver>();
 // Service đọc thành tích cho trang UI (không phải observer)
-builder.Services.AddScoped<AchievementService>();
+builder.Services.AddScoped<IAchievementService, AchievementService>();
 // Service đếm metric tiến độ huy hiệu (snapshot live)
-builder.Services.AddScoped<AchievementProgressService>();
+builder.Services.AddScoped<IAchievementProgressService, AchievementProgressService>();
 // Service đồng bộ mở khóa huy hiệu đủ điều kiện (Observer + rescan trang)
-builder.Services.AddScoped<AchievementUnlockService>();
+builder.Services.AddScoped<IAchievementUnlockService, AchievementUnlockService>();
 
 
 // Add MVC

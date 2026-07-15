@@ -12,22 +12,22 @@ namespace ltwnc.Controllers;
 public class StudyController : Controller
 {
     // Settings, progress, hub, mark learned, complete flashcard session
-    private readonly StudyService _studyService;
+    private readonly IStudyService _studyService;
 
     // Lấy thẻ / chấm / complete / result dictation
-    private readonly DictationService _dictationService;
+    private readonly IDictationService _dictationService;
 
     // Kiểm tra owner set, toggle star
-    private readonly FlashcardSetService _setService;
+    private readonly IFlashcardSetService _setService;
 
     // User cookie
     private readonly UserManager<IdentityUser> _userManager;
 
     // Inject study, dictation, set, UserManager
     public StudyController(
-        StudyService studyService,
-        DictationService dictationService,
-        FlashcardSetService setService,
+        IStudyService studyService,
+        IDictationService dictationService,
+        IFlashcardSetService setService,
         UserManager<IdentityUser> userManager)
     {
         _studyService = studyService;

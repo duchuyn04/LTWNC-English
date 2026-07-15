@@ -18,22 +18,22 @@ public sealed class AchievementPageModel
 }
 
 // Đọc trang Thành tích: rescan unlock, ghép catalog + metric + DB đã mở.
-public class AchievementService
+public class AchievementService : IAchievementService
 {
     // Đọc UserAchievements đã lưu
     private readonly AppDbContext _context;
 
     // Rescan mở huy hiệu đủ điều kiện còn thiếu
-    private readonly AchievementUnlockService _unlock;
+    private readonly IAchievementUnlockService _unlock;
 
     // Lấy metric cho progress bar
-    private readonly AchievementProgressService _progress;
+    private readonly IAchievementProgressService _progress;
 
     // Inject unlock, progress và DbContext
     public AchievementService(
         AppDbContext context,
-        AchievementUnlockService unlock,
-        AchievementProgressService progress)
+        IAchievementUnlockService unlock,
+        IAchievementProgressService progress)
     {
         _context = context;
         _unlock = unlock;

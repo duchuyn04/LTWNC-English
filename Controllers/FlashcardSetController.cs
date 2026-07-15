@@ -13,14 +13,14 @@ namespace ltwnc.Controllers;
 public class FlashcardSetController : Controller
 {
     // Nghiệp vụ set + card + copy
-    private readonly FlashcardSetService _setService;
+    private readonly IFlashcardSetService _setService;
 
     // User hiện tại
     private readonly UserManager<IdentityUser> _userManager;
 
     // Inject set service và UserManager
     public FlashcardSetController(
-        FlashcardSetService setService,
+        IFlashcardSetService setService,
         UserManager<IdentityUser> userManager)
     {
         _setService = setService;

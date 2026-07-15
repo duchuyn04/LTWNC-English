@@ -7,7 +7,7 @@ namespace ltwnc.Services;
 
 // Đếm metric thành tích của một user (thẻ thuộc, buổi học, nghe chép...).
 // Kết quả dùng cho progress bar và để quyết định mở khóa huy hiệu.
-public class AchievementProgressService
+public class AchievementProgressService : IAchievementProgressService
 {
     // DbContext EF Core, query bảng progress / session / dictation
     private readonly AppDbContext _context;

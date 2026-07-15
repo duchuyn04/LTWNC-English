@@ -10,10 +10,10 @@ namespace ltwnc.Controllers;
 public class HomeController : Controller
 {
     // Lấy / tìm bộ thẻ public
-    private readonly FlashcardSetService _setService;
+    private readonly IFlashcardSetService _setService;
 
     // Inject service bộ thẻ
-    public HomeController(FlashcardSetService setService)
+    public HomeController(IFlashcardSetService setService)
     {
         _setService = setService;
     }

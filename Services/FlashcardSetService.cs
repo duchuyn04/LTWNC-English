@@ -11,7 +11,7 @@ namespace ltwnc.Services;
 
 // CRUD bộ thẻ / thẻ, copy public set, upload ảnh.
 // Sửa/xóa chỉ chủ sở hữu.
-public class FlashcardSetService
+public class FlashcardSetService : IFlashcardSetService
 {
     // FlashcardSets, Flashcards, progress liên quan
     private readonly AppDbContext _context;

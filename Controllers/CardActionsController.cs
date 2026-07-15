@@ -13,22 +13,22 @@ namespace ltwnc.Controllers;
 public class CardActionsController : Controller
 {
     // Execute + Undo + đọc log
-    private readonly CardActionService _cardActionService;
+    private readonly ICardActionService _cardActionService;
 
     // Map BatchActionType -> command
-    private readonly CardActionCommandFactory _commandFactory;
+    private readonly ICardActionCommandFactory _commandFactory;
 
     // Kiểm tra set tồn tại / owner
-    private readonly FlashcardSetService _setService;
+    private readonly IFlashcardSetService _setService;
 
     // User hiện tại
     private readonly UserManager<IdentityUser> _userManager;
 
     // Inject service action, factory, set service, UserManager
     public CardActionsController(
-        CardActionService cardActionService,
-        CardActionCommandFactory commandFactory,
-        FlashcardSetService setService,
+        ICardActionService cardActionService,
+        ICardActionCommandFactory commandFactory,
+        IFlashcardSetService setService,
         UserManager<IdentityUser> userManager)
     {
         _cardActionService = cardActionService;
