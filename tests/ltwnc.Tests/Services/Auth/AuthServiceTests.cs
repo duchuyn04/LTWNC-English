@@ -120,6 +120,30 @@ public class AuthServiceTests : IDisposable
             Times.Once);
     }
 
+    [Fact]
+    public async Task Login_without_remember_me_uses_one_day_cookie_lifetime()
+    {
+        var user = new AppUser
+        {
+            Id = Guid.NewGuid().ToString(),
+            UserName = "dave",
+            Email = "dave@example.com",
+            PasswordHash = _hasher.Hash("Secret1A")
+        };
+        _db.Set<AppUser>().Add(user);
+        await _db.SaveChangesAsync();
+
+        AuthResult result = await _auth.LoginAsync("dave@example.com", "Secret1A", rememberMe: false);
+
+        Assert.True(result.Succeeded);
+        _signIn.Verify(
+            s => s.SignInAsync(
+                It.Is<AppUser>(u => u.Id == user.Id),
+                false,
+                TimeSpan.FromDays(1)),
+            Times.Once);
+    }
+
     // Context test: đăng ký AppUser vào model trước khi Task 3 thêm DbSet Users.
     private sealed class AuthTestDbContext : AppDbContext
     {

@@ -34,9 +34,11 @@ public class CookieSignInService : ISignInService
 
         var principal = new ClaimsPrincipal(identity);
 
+        // Always persist the auth cookie (matches old AccountController).
+        // rememberMe only affects lifetime via cookieLifetime (30d vs 1d).
         var properties = new AuthenticationProperties
         {
-            IsPersistent = rememberMe,
+            IsPersistent = true,
             ExpiresUtc = DateTimeOffset.UtcNow.Add(cookieLifetime)
         };
 
