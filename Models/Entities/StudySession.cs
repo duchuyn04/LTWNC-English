@@ -1,6 +1,5 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.AspNetCore.Identity;
 
 namespace ltwnc.Models.Entities;
 
@@ -21,7 +20,7 @@ public class StudySession
     [Key]
     public int Id { get; set; }
 
-    // Khóa ngoại đến người học (bảng AspNetUsers)
+    // Id user trong bảng Users (cookie auth)
     [Required]
     public string UserId { get; set; } = string.Empty;
 
@@ -40,10 +39,6 @@ public class StudySession
 
     // Thời gian hoàn thành phiên học
     public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
-
-    // Người học
-    [ForeignKey(nameof(UserId))]
-    public IdentityUser? User { get; set; }
 
     // Bộ thẻ của buổi học
     [ForeignKey(nameof(FlashcardSetId))]

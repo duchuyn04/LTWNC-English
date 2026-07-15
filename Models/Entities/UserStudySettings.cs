@@ -1,6 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.AspNetCore.Identity;
 
 namespace ltwnc.Models.Entities;
 
@@ -29,7 +27,7 @@ public class UserStudySettings
     [Key]
     public int Id { get; set; }
 
-    // AspNetUsers.Id
+    // Id user trong bảng Users (cookie auth)
     [Required]
     public string UserId { get; set; } = string.Empty;
 
@@ -104,7 +102,4 @@ public class UserStudySettings
 
     // Xáo trộn thứ tự thẻ khi vào dictation
     public bool DictationShuffle { get; set; }
-
-    [ForeignKey(nameof(UserId))]
-    public IdentityUser? User { get; set; }
 }

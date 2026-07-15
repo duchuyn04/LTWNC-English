@@ -1,6 +1,4 @@
 using System.ComponentModel.DataAnnotations;
-using System.ComponentModel.DataAnnotations.Schema;
-using Microsoft.AspNetCore.Identity;
 using ltwnc.Models;
 
 namespace ltwnc.Models.Entities;
@@ -20,7 +18,7 @@ public class FlashcardSet : IPrototype<FlashcardSet>
     // Mô tả, optional
     public string? Description { get; set; }
 
-    // Khóa ngoại đến người tạo bộ thẻ (bảng AspNetUsers)
+    // Id user trong bảng Users (cookie auth)
     [Required]
     public string UserId { get; set; } = string.Empty;
 
@@ -36,10 +34,6 @@ public class FlashcardSet : IPrototype<FlashcardSet>
 
     // Thời gian cập nhật gần nhất
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
-
-    // Owner (AspNetUsers)
-    [ForeignKey(nameof(UserId))]
-    public IdentityUser? User { get; set; }
 
     // Thẻ trong bộ (cần Include trước Clone)
     public ICollection<Flashcard> Flashcards { get; set; } = new List<Flashcard>();
