@@ -1,9 +1,9 @@
 using ltwnc.Models.Enums;
 using ltwnc.Models.Entities;
+using ltwnc.Services.Auth;
 using ltwnc.Services.CardActions;
 using ltwnc.Services.FlashcardSets;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Controllers;
@@ -21,20 +21,19 @@ public class CardActionsController : Controller
     // Kiểm tra set tồn tại / owner
     private readonly IFlashcardSetService _setService;
 
-    // User hiện tại
-    private readonly UserManager<IdentityUser> _userManager;
+    // User hiện tại từ cookie claims
+    private readonly ICurrentUser _currentUser;
 
-    // Inject service action, factory, set service, UserManager
     public CardActionsController(
         ICardActionService cardActionService,
         ICardActionCommandFactory commandFactory,
         IFlashcardSetService setService,
-        UserManager<IdentityUser> userManager)
+        ICurrentUser currentUser)
     {
         _cardActionService = cardActionService;
         _commandFactory = commandFactory;
         _setService = setService;
-        _userManager = userManager;
+        _currentUser = currentUser;
     }
 
     // POST batch: factory tạo command, Execute, TempData success + UndoLogId
@@ -46,14 +45,14 @@ public class CardActionsController : Controller
         BatchActionType action,
         List<int> selectedCardIds)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Challenge();
         }
 
         FlashcardSet? set = await _setService.GetSetByIdAsync(setId);
-        if (set == null || set.UserId != user.Id)
+        if (set == null || set.UserId != userId)
         {
             return Forbid();
         }
@@ -70,7 +69,7 @@ public class CardActionsController : Controller
             ICardActionCommand command = _commandFactory.Create(
                 action.ToString(),
                 setId,
-                user.Id,
+                userId,
                 selectedCardIds);
 
             CardActionLog log = await _cardActionService.ExecuteAsync(command);
@@ -91,13 +90,13 @@ public class CardActionsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Undo(int logId)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Challenge();
         }
 
-        CardActionLog? log = await _cardActionService.GetLogByIdAsync(logId, user.Id);
+        CardActionLog? log = await _cardActionService.GetLogByIdAsync(logId, userId);
         if (log == null)
         {
             return NotFound();
@@ -105,7 +104,7 @@ public class CardActionsController : Controller
 
         try
         {
-            await _cardActionService.UndoAsync(logId, user.Id);
+            await _cardActionService.UndoAsync(logId, userId);
             TempData["Success"] = "Đã hoàn tác hành động.";
         }
         catch (Exception ex)

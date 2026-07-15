@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
+using ltwnc.Services.Auth;
 using ltwnc.Services.FlashcardSets;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.FlashcardSet;
@@ -15,30 +15,29 @@ public class FlashcardSetController : Controller
     // Nghiệp vụ set + card + copy
     private readonly IFlashcardSetService _setService;
 
-    // User hiện tại
-    private readonly UserManager<IdentityUser> _userManager;
+    // User hiện tại từ cookie claims
+    private readonly ICurrentUser _currentUser;
 
-    // Inject set service và UserManager
     public FlashcardSetController(
         IFlashcardSetService setService,
-        UserManager<IdentityUser> userManager)
+        ICurrentUser currentUser)
     {
         _setService = setService;
-        _userManager = userManager;
+        _currentUser = currentUser;
     }
 
     // GET /Set: thư viện cá nhân kèm progress
     [Route("/Set")]
     public async Task<IActionResult> Index()
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Challenge();
         }
 
         List<FlashcardSetListItemViewModel> sets =
-            await _setService.GetMySetsWithProgressAsync(user.Id);
+            await _setService.GetMySetsWithProgressAsync(userId);
         return View(sets);
     }
 
@@ -60,8 +59,8 @@ public class FlashcardSetController : Controller
             return View(model);
         }
 
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Challenge();
         }
@@ -70,7 +69,7 @@ public class FlashcardSetController : Controller
             model.Title,
             model.Description,
             model.IsPublic,
-            user.Id);
+            userId);
 
         return RedirectToAction("Edit", new { id = set.Id });
     }
@@ -80,9 +79,9 @@ public class FlashcardSetController : Controller
     [AllowAnonymous]
     public async Task<IActionResult> Details(int id)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
+        string? userId = _currentUser.UserId;
 
-        FlashcardSet? set = await _setService.GetAccessibleSetWithCardsAsync(id, user?.Id);
+        FlashcardSet? set = await _setService.GetAccessibleSetWithCardsAsync(id, userId);
         if (set == null)
         {
             return NotFound();
@@ -90,9 +89,9 @@ public class FlashcardSetController : Controller
 
         // User khác owner: xem đã copy set này chưa (nút "Vào bản sao")
         int? existingCopyId = null;
-        if (user != null && user.Id != set.UserId)
+        if (userId != null && userId != set.UserId)
         {
-            FlashcardSet? copy = await _setService.GetExistingCopyAsync(set.Id, user.Id);
+            FlashcardSet? copy = await _setService.GetExistingCopyAsync(set.Id, userId);
             if (copy != null)
             {
                 existingCopyId = copy.Id;
@@ -107,7 +106,7 @@ public class FlashcardSetController : Controller
             IsPublic = set.IsPublic,
             UserId = set.UserId,
             Flashcards = set.Flashcards.ToList(),
-            IsOwner = user?.Id == set.UserId,
+            IsOwner = userId == set.UserId,
             ExistingCopyId = existingCopyId
         };
 
@@ -120,15 +119,15 @@ public class FlashcardSetController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Copy(int id)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Challenge();
         }
 
         try
         {
-            FlashcardSet copy = await _setService.CopyPublicSetAsync(id, user.Id);
+            FlashcardSet copy = await _setService.CopyPublicSetAsync(id, userId);
             TempData["Success"] = "Đã sao chép bộ thẻ vào thư viện của bạn.";
             return RedirectToAction("Index", "Study", new { setId = copy.Id });
         }
@@ -146,13 +145,13 @@ public class FlashcardSetController : Controller
     [Route("/Set/{id}/Edit")]
     public async Task<IActionResult> Edit(int id)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Challenge();
         }
 
-        FlashcardSet? set = await _setService.GetSetWithCardsAsync(id, user.Id);
+        FlashcardSet? set = await _setService.GetSetWithCardsAsync(id, userId);
         if (set == null)
         {
             return NotFound();
@@ -182,8 +181,8 @@ public class FlashcardSetController : Controller
             return View(model);
         }
 
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Challenge();
         }
@@ -195,7 +194,7 @@ public class FlashcardSetController : Controller
                 model.Title,
                 model.Description,
                 model.IsPublic,
-                user.Id);
+                userId);
             return RedirectToAction("Edit", new { id });
         }
         catch (UnauthorizedAccessException)
@@ -210,15 +209,15 @@ public class FlashcardSetController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Challenge();
         }
 
         try
         {
-            await _setService.DeleteSetAsync(id, user.Id);
+            await _setService.DeleteSetAsync(id, userId);
             return RedirectToAction("Index");
         }
         catch (UnauthorizedAccessException)
@@ -244,8 +243,8 @@ public class FlashcardSetController : Controller
         IFormFile? imageFile,
         bool isStarred = false)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Challenge();
         }
@@ -264,7 +263,7 @@ public class FlashcardSetController : Controller
                 imageUrl,
                 imageFile,
                 isStarred,
-                user.Id);
+                userId);
             return RedirectToAction("Edit", new { id = setId });
         }
         catch (ArgumentException ex)
@@ -297,8 +296,8 @@ public class FlashcardSetController : Controller
         bool removeUploadedImage = false,
         bool isStarred = false)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Challenge();
         }
@@ -318,7 +317,7 @@ public class FlashcardSetController : Controller
                 imageFile,
                 removeUploadedImage,
                 isStarred,
-                user.Id);
+                userId);
             return RedirectToAction("Edit", new { id = updatedSetId });
         }
         catch (KeyNotFoundException)
@@ -342,15 +341,15 @@ public class FlashcardSetController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteCard(int id)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Challenge();
         }
 
         try
         {
-            int setId = await _setService.DeleteCardAsync(id, user.Id);
+            int setId = await _setService.DeleteCardAsync(id, userId);
             return RedirectToAction("Edit", new { id = setId });
         }
         catch (KeyNotFoundException)

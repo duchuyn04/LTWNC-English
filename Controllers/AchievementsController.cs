@@ -1,6 +1,6 @@
 using ltwnc.Services.Achievements;
+using ltwnc.Services.Auth;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Controllers;
@@ -12,29 +12,28 @@ public class AchievementsController : Controller
     // Rescan unlock + map list view model
     private readonly IAchievementService _achievementService;
 
-    // User hiện tại từ cookie
-    private readonly UserManager<IdentityUser> _userManager;
+    // User hiện tại từ cookie claims
+    private readonly ICurrentUser _currentUser;
 
-    // Inject service thành tích và UserManager
     public AchievementsController(
         IAchievementService achievementService,
-        UserManager<IdentityUser> userManager)
+        ICurrentUser currentUser)
     {
         _achievementService = achievementService;
-        _userManager = userManager;
+        _currentUser = currentUser;
     }
 
     // GET /Achievements: rescan, banner TempData nếu vừa mở huy hiệu, render list
     [Route("/Achievements")]
     public async Task<IActionResult> Index()
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Challenge();
         }
 
-        AchievementPageModel page = await _achievementService.GetPageAsync(user.Id);
+        AchievementPageModel page = await _achievementService.GetPageAsync(userId);
 
         // Banner một lần khi rescan vừa mở huy hiệu mới
         if (page.NewlyUnlockedTitles.Count > 0)

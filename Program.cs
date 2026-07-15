@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using ltwnc.Data;
 using ltwnc.Services.Achievements;
+using ltwnc.Services.Auth;
 using ltwnc.Services.CardActions;
 using ltwnc.Services.FlashcardSets;
 using ltwnc.Services.Study;
@@ -14,28 +15,24 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Add Identity
-builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
-{
-    options.Password.RequireDigit = true;
-    options.Password.RequiredLength = 8;
-    options.Password.RequireNonAlphanumeric = false;
-    options.Password.RequireUppercase = true;
-    options.Password.RequireLowercase = true;
-})
-.AddEntityFrameworkStores<AppDbContext>()
-.AddDefaultTokenProviders();
+// Cookie authentication + custom auth services (no ASP.NET Identity)
+builder.Services.AddHttpContextAccessor();
 
-// Cấu hình cookie xác thực: đường dẫn login/logout và thờigian hiệu lực 30 ngày
-// Cấu hình cookie xác thực: đường dẫn login/logout, thờihạn 30 ngày, gia hạn tự động
-builder.Services.ConfigureApplicationCookie(options =>
-{
-    options.LoginPath = "/Account/Login";
-    options.LogoutPath = "/Account/Logout";
-    options.AccessDeniedPath = "/Account/Login";
-    options.ExpireTimeSpan = TimeSpan.FromDays(30);
-    options.SlidingExpiration = true;
-});
+builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie(options =>
+    {
+        options.LoginPath = "/Account/Login";
+        options.LogoutPath = "/Account/Logout";
+        options.AccessDeniedPath = "/Account/Login";
+        options.ExpireTimeSpan = TimeSpan.FromDays(30);
+        options.SlidingExpiration = true;
+    });
+
+builder.Services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
+builder.Services.AddScoped<ISignInService, CookieSignInService>();
+builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 // Application services — inject qua interface (swap/decorator sau này không sửa controller)
 builder.Services.AddScoped<IFlashcardSetService, FlashcardSetService>();

@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Identity;
+using ltwnc.Services.Auth;
 using ltwnc.Services.FlashcardSets;
 using ltwnc.Services.Study;
 using ltwnc.Models.ViewModels.Study;
@@ -21,20 +21,19 @@ public class StudyController : Controller
     // Kiểm tra owner set, toggle star
     private readonly IFlashcardSetService _setService;
 
-    // User cookie
-    private readonly UserManager<IdentityUser> _userManager;
+    // User hiện tại từ cookie claims
+    private readonly ICurrentUser _currentUser;
 
-    // Inject study, dictation, set, UserManager
     public StudyController(
         IStudyService studyService,
         IDictationService dictationService,
         IFlashcardSetService setService,
-        UserManager<IdentityUser> userManager)
+        ICurrentUser currentUser)
     {
         _studyService = studyService;
         _dictationService = dictationService;
         _setService = setService;
-        _userManager = userManager;
+        _currentUser = currentUser;
     }
 
     // GET Study Hub: chỉ set của owner; query filter ghi settings nếu đã login
@@ -45,21 +44,21 @@ public class StudyController : Controller
         bool? starredOnly = null,
         bool? unlearnedOnly = null)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
+        string? userId = _currentUser.UserId;
 
-        FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, user?.Id!);
+        FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, userId!);
         if (set == null)
         {
             return RedirectToAction("Details", "FlashcardSet", new { id = setId });
         }
 
-        if (user != null && (starredOnly.HasValue || unlearnedOnly.HasValue))
+        if (userId != null && (starredOnly.HasValue || unlearnedOnly.HasValue))
         {
-            await _studyService.SaveFilterSettingsAsync(user.Id, starredOnly, unlearnedOnly);
+            await _studyService.SaveFilterSettingsAsync(userId, starredOnly, unlearnedOnly);
         }
 
         StudyModeSelectorViewModel model =
-            await _studyService.GetStudyModeSelectorDataAsync(setId, user?.Id);
+            await _studyService.GetStudyModeSelectorDataAsync(setId, userId);
         return View(model);
     }
 
@@ -72,9 +71,9 @@ public class StudyController : Controller
         bool? starredOnly = null,
         bool? unlearnedOnly = null)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
+        string? userId = _currentUser.UserId;
 
-        UserStudySettings settings = await _studyService.GetSettingsAsync(user?.Id);
+        UserStudySettings settings = await _studyService.GetSettingsAsync(userId);
 
         // Query string thắng settings đã lưu (JS initialSettings cũng dùng bộ này)
         bool effectiveStarredOnly = starredOnly ?? settings.StarredOnly;
@@ -82,7 +81,7 @@ public class StudyController : Controller
         settings.StarredOnly = effectiveStarredOnly;
         settings.UnlearnedOnly = effectiveUnlearnedOnly;
 
-        FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, user?.Id!);
+        FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, userId!);
         if (set == null)
         {
             return RedirectToAction("Details", "FlashcardSet", new { id = setId });
@@ -92,7 +91,7 @@ public class StudyController : Controller
             StudyMode.Flashcard,
             setId,
             settings,
-            user?.Id);
+            userId);
 
         // List đầy đủ (không filter) cho UI phụ
         UserStudySettings vocabularySettings = new UserStudySettings
@@ -104,10 +103,10 @@ public class StudyController : Controller
             StudyMode.Flashcard,
             setId,
             vocabularySettings,
-            user?.Id);
+            userId);
 
         Dictionary<int, UserProgress> progressByCardId =
-            await _studyService.GetProgressByCardIdAsync(setId, user?.Id);
+            await _studyService.GetProgressByCardIdAsync(setId, userId);
 
         if (!cards.Any())
         {
@@ -133,7 +132,7 @@ public class StudyController : Controller
             CurrentIndex = Math.Clamp(index, 0, cards.Count - 1),
             StarredOnly = effectiveStarredOnly,
             Settings = settings,
-            IsAuthenticated = user != null,
+            IsAuthenticated = userId != null,
             UnlearnedOnly = effectiveUnlearnedOnly
         };
 
@@ -146,8 +145,8 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkLearned(int setId, int cardId, bool learned)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             if (IsAjaxRequest())
             {
@@ -159,7 +158,7 @@ public class StudyController : Controller
 
         try
         {
-            await _studyService.MarkLearnedAsync(user.Id, setId, cardId, learned);
+            await _studyService.MarkLearnedAsync(userId, setId, cardId, learned);
         }
         catch (KeyNotFoundException)
         {
@@ -184,8 +183,8 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Complete(int setId)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             if (IsAjaxRequest())
             {
@@ -197,7 +196,7 @@ public class StudyController : Controller
 
         try
         {
-            await _studyService.CompleteSessionAsync(user.Id, setId, StudyMode.Flashcard);
+            await _studyService.CompleteSessionAsync(userId, setId, StudyMode.Flashcard);
         }
         catch (KeyNotFoundException)
         {
@@ -227,15 +226,15 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleStar(int setId, int cardId)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Unauthorized();
         }
 
         try
         {
-            bool isStarred = await _setService.ToggleStarAsync(cardId, user.Id);
+            bool isStarred = await _setService.ToggleStarAsync(cardId, userId);
             return Json(new { success = true, isStarred = isStarred });
         }
         catch (KeyNotFoundException)
@@ -258,15 +257,15 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveSettings([FromForm] UserStudySettings settings)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Unauthorized();
         }
 
         try
         {
-            UserStudySettings saved = await _studyService.SaveSettingsAsync(user.Id, settings);
+            UserStudySettings saved = await _studyService.SaveSettingsAsync(userId, settings);
             return Json(new { success = true, settings = saved });
         }
         catch (Exception)
@@ -280,13 +279,13 @@ public class StudyController : Controller
     [Route("/Study/{setId}/ClearFilters")]
     public async Task<IActionResult> ClearFilters(int setId)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user != null)
+        string? userId = _currentUser.UserId;
+        if (userId != null)
         {
-            UserStudySettings settings = await _studyService.GetSettingsAsync(user.Id);
+            UserStudySettings settings = await _studyService.GetSettingsAsync(userId);
             settings.StarredOnly = false;
             settings.UnlearnedOnly = false;
-            await _studyService.SaveSettingsAsync(user.Id, settings);
+            await _studyService.SaveSettingsAsync(userId, settings);
         }
 
         return RedirectToAction("Index", new { setId });
@@ -297,22 +296,22 @@ public class StudyController : Controller
     [Route("/Study/{setId}/Dictation")]
     public async Task<IActionResult> Dictation(int setId)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Challenge();
         }
 
-        FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, user.Id);
+        FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, userId);
         if (set == null)
         {
             return RedirectToAction("Details", "FlashcardSet", new { id = setId });
         }
 
-        UserStudySettings settings = await _studyService.GetSettingsAsync(user.Id);
+        UserStudySettings settings = await _studyService.GetSettingsAsync(userId);
         List<Flashcard> cards = await _dictationService.GetCardsForDictationAsync(
             setId,
-            user.Id,
+            userId,
             settings);
 
         if (!cards.Any())
@@ -341,7 +340,7 @@ public class StudyController : Controller
         }
 
         StudySession session = await _dictationService.CreateSessionAsync(
-            user.Id,
+            userId,
             setId,
             settings.DictationContentMode);
 
@@ -402,20 +401,20 @@ public class StudyController : Controller
         int cardId,
         string answeredText)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Unauthorized();
         }
 
         try
         {
-            UserStudySettings settings = await _studyService.GetSettingsAsync(user.Id);
+            UserStudySettings settings = await _studyService.GetSettingsAsync(userId);
             DictationCheckResult result = await _dictationService.CheckAnswerAsync(
                 sessionId,
                 cardId,
                 answeredText,
-                user.Id,
+                userId,
                 settings.DictationAcceptSynonyms);
 
             // Serialize word comparison cho JS highlight
@@ -452,8 +451,8 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DictationComplete(int setId, int sessionId, int score)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Unauthorized();
         }
@@ -478,13 +477,13 @@ public class StudyController : Controller
     [Route("/Study/{setId}/Dictation/Result/{sessionId}")]
     public async Task<IActionResult> DictationResult(int setId, int sessionId)
     {
-        IdentityUser? user = await _userManager.GetUserAsync(User);
-        if (user == null)
+        string? userId = _currentUser.UserId;
+        if (userId == null)
         {
             return Challenge();
         }
 
-        FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, user.Id);
+        FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, userId);
         if (set == null)
         {
             return RedirectToAction("Details", "FlashcardSet", new { id = setId });
@@ -492,7 +491,7 @@ public class StudyController : Controller
 
         try
         {
-            DictationResult result = await _dictationService.GetSessionResultAsync(sessionId, user.Id);
+            DictationResult result = await _dictationService.GetSessionResultAsync(sessionId, userId);
 
             List<DictationResultCardViewModel> wrongCards = new List<DictationResultCardViewModel>();
             foreach (DictationResultCard card in result.WrongCards)
