@@ -20,6 +20,13 @@ public class FlashcardSetEditMarkupTests
     }
 
     [Fact]
+    public void Editor_content_does_not_add_a_nested_main_landmark()
+    {
+        Assert.DoesNotContain("<main class=\"set-editor-content\">", Source);
+        Assert.Contains("<div class=\"set-editor-content\">", Source);
+    }
+
+    [Fact]
     public void Add_card_form_is_outside_editor_and_redundant_header_link_is_removed()
     {
         Assert.DoesNotMatch(
@@ -48,6 +55,11 @@ public class FlashcardSetEditMarkupTests
                 RegexOptions.Singleline),
             Source);
         Assert.Contains("@Html.AntiForgeryToken()", Source);
+        Assert.Matches(
+            new Regex(
+                "class=\\\"vocab-card-form\\\">[\\s\\S]*?@Html\\.AntiForgeryToken\\(\\)[\\s\\S]*?id=\\\"star-card-@card\\.Id\\\"[\\s\\S]*?<label[^>]+for=\\\"star-card-@card\\.Id\\\"",
+                RegexOptions.Singleline),
+            Source);
         Assert.Contains("<input type=\"hidden\" name=\"isStarred\" value=\"false\" />", Source);
     }
 
