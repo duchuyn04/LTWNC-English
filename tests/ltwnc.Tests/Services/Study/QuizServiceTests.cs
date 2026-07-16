@@ -786,6 +786,131 @@ public class QuizServiceTests
             questionsBefore);
     }
 
+    [Theory]
+    [InlineData("wrong")]
+    [InlineData("all")]
+    public async Task Retry_returns_existing_active_quiz_for_same_user_and_set(string retryMode)
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession sourceSession = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        List<QuizSessionQuestion> questions = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(question => question.StudySessionId == sourceSession.Id)
+            .OrderBy(question => question.OrderIndex)
+            .ToListAsync();
+        foreach (QuizSessionQuestion question in questions)
+        {
+            int selectedChoice = question.Id == questions[0].Id
+                ? DifferentChoice(question.CorrectChoiceIndex)
+                : question.CorrectChoiceIndex;
+            await service.AnswerAsync(
+                set.Id,
+                sourceSession.Id,
+                question.Id,
+                selectedChoice,
+                set.UserId);
+        }
+
+        StudySession active = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        StudySession resumed = retryMode == "wrong"
+            ? await service.RetryWrongAsync(set.Id, sourceSession.Id, set.UserId)
+            : await service.RetryAllAsync(set.Id, sourceSession.Id, set.UserId);
+
+        Assert.Equal(active.Id, resumed.Id);
+        Assert.Equal(2, await database.Context.StudySessions.CountAsync());
+    }
+
+    [Fact]
+    public async Task RetryAll_concurrent_requests_return_one_active_quiz_session()
+    {
+        await using var database = await SharedQuizTestDatabase.CreateAsync();
+        int setId;
+        int sourceSessionId;
+        string userId;
+        await using (AppDbContext setupContext = await database.CreateContextAsync())
+        {
+            FlashcardSet set = await SeedQuestionPoolAsync(setupContext);
+            QuizService setupService = CreateService(
+                setupContext,
+                new RecordingStudyEventPublisher());
+            StudySession source = await setupService.StartOrResumeAsync(
+                set.Id,
+                set.UserId,
+                new UserStudySettings());
+            await CompleteQuizAsync(setupContext, setupService, set, source);
+            setId = set.Id;
+            sourceSessionId = source.Id;
+            userId = set.UserId;
+        }
+
+        await using AppDbContext firstContext = await database.CreateContextAsync();
+        await using AppDbContext secondContext = await database.CreateContextAsync();
+        QuizService firstService = CreateService(
+            firstContext,
+            new RecordingStudyEventPublisher());
+        QuizService secondService = CreateService(
+            secondContext,
+            new RecordingStudyEventPublisher());
+        var startGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        async Task<StudySession> RetryAsync(QuizService service)
+        {
+            await startGate.Task;
+            return await service.RetryAllAsync(setId, sourceSessionId, userId);
+        }
+
+        Task<StudySession> firstRequest = RetryAsync(firstService);
+        Task<StudySession> secondRequest = RetryAsync(secondService);
+        startGate.SetResult();
+        StudySession[] sessions = await Task.WhenAll(firstRequest, secondRequest);
+
+        Assert.Equal(sessions[0].Id, sessions[1].Id);
+        await using AppDbContext verificationContext = await database.CreateContextAsync();
+        Assert.Equal(1, await verificationContext.StudySessions.CountAsync(row =>
+            row.FlashcardSetId == setId
+            && row.UserId == userId
+            && row.Mode == StudyMode.Quiz
+            && row.Score == null));
+    }
+
+    [Fact]
+    public async Task RetryAll_does_not_swallow_unrelated_persistence_failure()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession source = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        await CompleteQuizAsync(database.Context, service, set, source);
+        await database.Context.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TRIGGER FailRetryInsert
+            BEFORE INSERT ON StudySessions
+            WHEN NEW.Mode = 1
+            BEGIN
+                SELECT RAISE(ABORT, 'unrelated retry persistence failure');
+            END;
+            """);
+
+        DbUpdateException exception = await Assert.ThrowsAsync<DbUpdateException>(() =>
+            service.RetryAllAsync(set.Id, source.Id, set.UserId));
+
+        Assert.Contains(
+            "unrelated retry persistence failure",
+            exception.InnerException?.Message);
+        Assert.Equal(1, await database.Context.StudySessions.CountAsync());
+    }
+
     [Fact]
     public async Task Retry_rolls_back_when_source_card_is_unavailable()
     {

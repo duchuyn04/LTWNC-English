@@ -107,7 +107,7 @@ public class QuizService : IQuizService
 
             return session;
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException exception) when (IsActiveQuizUniqueConflict(exception))
         {
             if (transaction != null)
             {
@@ -456,6 +456,12 @@ public class QuizService : IQuizService
     {
         (StudySession sourceSession, List<QuizSessionQuestion> sourceQuestions) =
             await LoadRetrySourceAsync(setId, sessionId, userId);
+        StudySession? activeSession = await FindActiveQuizSessionAsync(sourceSession);
+        if (activeSession != null)
+        {
+            return activeSession;
+        }
+
         List<QuizSessionQuestion> wrongQuestions = sourceQuestions
             .Where(question => question.IsCorrect == false)
             .ToList();
@@ -477,6 +483,12 @@ public class QuizService : IQuizService
     {
         (StudySession sourceSession, List<QuizSessionQuestion> sourceQuestions) =
             await LoadRetrySourceAsync(setId, sessionId, userId);
+        StudySession? activeSession = await FindActiveQuizSessionAsync(sourceSession);
+        if (activeSession != null)
+        {
+            return activeSession;
+        }
+
         return await CreateRetrySessionAsync(
             sourceSession,
             sourceQuestions,
@@ -520,6 +532,12 @@ public class QuizService : IQuizService
         IReadOnlyList<QuizSessionQuestion> sourceQuestions,
         bool preserveDirections)
     {
+        StudySession? activeSession = await FindActiveQuizSessionAsync(sourceSession);
+        if (activeSession != null)
+        {
+            return activeSession;
+        }
+
         IDbContextTransaction? transaction = null;
         if (_context.Database.IsRelational())
         {
@@ -581,6 +599,22 @@ public class QuizService : IQuizService
 
             return retrySession;
         }
+        catch (DbUpdateException exception) when (IsActiveQuizUniqueConflict(exception))
+        {
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync();
+            }
+
+            _context.ChangeTracker.Clear();
+            StudySession? winner = await FindActiveQuizSessionAsync(sourceSession);
+            if (winner != null)
+            {
+                return winner;
+            }
+
+            throw;
+        }
         catch
         {
             if (transaction != null)
@@ -597,5 +631,33 @@ public class QuizService : IQuizService
                 await transaction.DisposeAsync();
             }
         }
+    }
+
+    private Task<StudySession?> FindActiveQuizSessionAsync(StudySession sourceSession) =>
+        _context.StudySessions
+            .AsNoTracking()
+            .Where(session => session.FlashcardSetId == sourceSession.FlashcardSetId
+                && session.UserId == sourceSession.UserId
+                && session.Mode == StudyMode.Quiz
+                && session.Score == null)
+            .OrderByDescending(session => session.Id)
+            .FirstOrDefaultAsync();
+
+    private static bool IsActiveQuizUniqueConflict(DbUpdateException exception)
+    {
+        for (Exception? current = exception; current != null; current = current.InnerException)
+        {
+            if (current.Message.Contains(
+                    "IX_StudySessions_UserId_FlashcardSetId_Mode",
+                    StringComparison.OrdinalIgnoreCase)
+                || current.Message.Contains(
+                    "StudySessions.UserId, StudySessions.FlashcardSetId, StudySessions.Mode",
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

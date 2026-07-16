@@ -118,6 +118,18 @@ public class QuizViewTests
     }
 
     [Fact]
+    public void Result_view_consumes_retry_feedback_as_razor_encoded_accessible_status()
+    {
+        string feedbackConditional = RequiredMatch(
+            ResultView,
+            "@if \\(TempData\\[\\\"Message\\\"\\] is string message[\\s\\S]*?" +
+            "<div[^>]*role=\\\"status\\\"[^>]*aria-live=\\\"polite\\\"[^>]*>[\\s\\S]*?</div>");
+
+        Assert.Contains("@message", feedbackConditional);
+        Assert.DoesNotContain("Html.Raw", feedbackConditional);
+    }
+
+    [Fact]
     public void Quiz_styles_preserve_feedback_focus_and_motion_accessibility()
     {
         Assert.Contains(".quiz-choice.is-correct", QuizStyles);

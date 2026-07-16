@@ -31,28 +31,8 @@ namespace ltwnc.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.AlterColumn<DateTime>(
-                name: "CompletedAt",
-                table: "StudySessions",
-                type: "datetime2",
-                nullable: false,
-                defaultValue: new DateTime(1, 1, 1, 0, 0, 0, 0, DateTimeKind.Unspecified),
-                oldClrType: typeof(DateTime),
-                oldType: "datetime2",
-                oldNullable: true);
-
-            migrationBuilder.CreateIndex(
-                name: "IX_QuizSessionQuestions_FlashcardId",
-                table: "QuizSessionQuestions",
-                column: "FlashcardId");
-
-            migrationBuilder.AddForeignKey(
-                name: "FK_QuizSessionQuestions_Flashcards_FlashcardId",
-                table: "QuizSessionQuestions",
-                column: "FlashcardId",
-                principalTable: "Flashcards",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Restrict);
+            throw new NotSupportedException(
+                "This migration is forward-only because deleted flashcards may be referenced by preserved Quiz history.");
         }
     }
 }

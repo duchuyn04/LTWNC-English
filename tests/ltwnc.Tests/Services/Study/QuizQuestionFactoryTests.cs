@@ -238,6 +238,31 @@ public class QuizQuestionFactoryTests
     }
 
     [Fact]
+    public async Task BuildQuestions_large_pool_uses_bounded_random_operations_per_question()
+    {
+        await using AppDbContext context = CreateContext();
+        List<Flashcard> cards = await SeedLibraryAsync(
+            context,
+            sameSetCardCount: 1_000,
+            ownedOtherCardCount: 0,
+            foreignCardCount: 0);
+        var random = new CountingRandom();
+        var factory = new QuizQuestionFactory(context, random);
+
+        QuizSessionQuestion question = Assert.Single(await factory.BuildQuestionsAsync(
+            1,
+            "user-1",
+            new[] { cards[0] },
+            new Dictionary<int, QuizQuestionDirection>
+            {
+                [cards[0].Id] = QuizQuestionDirection.TermToDefinition
+            }));
+
+        Assert.Equal(4, question.Choices.Select(Normalize).Distinct().Count());
+        Assert.InRange(random.NextCalls, 1, 32);
+    }
+
+    [Fact]
     public async Task BuildQuestions_throws_when_only_another_users_cards_can_fill_choices()
     {
         await using AppDbContext context = CreateContext();
@@ -351,4 +376,16 @@ public class QuizQuestionFactoryTests
     }
 
     private static string Normalize(string value) => value.Trim().ToUpperInvariant();
+
+    private sealed class CountingRandom : Random
+    {
+        private int _nextValue;
+        public int NextCalls { get; private set; }
+
+        public override int Next(int maxValue)
+        {
+            NextCalls++;
+            return _nextValue++ % maxValue;
+        }
+    }
 }

@@ -222,36 +222,42 @@ public class QuizQuestionFactory
         IReadOnlyList<ChoiceCandidate> candidates)
     {
         int needed = 4 - choices.Count;
-        var selected = new List<ChoiceCandidate>(needed);
-        int eligibleCount = 0;
-
-        foreach (ChoiceCandidate candidate in candidates)
+        if (needed == 0 || candidates.Count == 0)
         {
-            if (usedValues.Contains(candidate.Normalized))
-            {
-                continue;
-            }
+            return;
+        }
 
-            eligibleCount++;
-            if (selected.Count < needed)
+        var visitedIndices = new HashSet<int>();
+        int maxRandomAttempts = Math.Min(candidates.Count, Math.Max(8, needed * 4));
+        for (int attempt = 0; attempt < maxRandomAttempts && choices.Count < 4; attempt++)
+        {
+            int candidateIndex = _random.Next(candidates.Count);
+            if (visitedIndices.Add(candidateIndex))
             {
-                selected.Add(candidate);
-            }
-            else
-            {
-                int replacementIndex = _random.Next(eligibleCount);
-                if (replacementIndex < needed)
+                ChoiceCandidate candidate = candidates[candidateIndex];
+                if (usedValues.Add(candidate.Normalized))
                 {
-                    selected[replacementIndex] = candidate;
+                    choices.Add(candidate.Value);
                 }
             }
         }
 
-        foreach (ChoiceCandidate candidate in selected)
+        if (choices.Count == 4)
+        {
+            return;
+        }
+
+        // Rare fallback for pathological Random output or a pool dominated by exclusions.
+        foreach (ChoiceCandidate candidate in candidates)
         {
             if (usedValues.Add(candidate.Normalized))
             {
                 choices.Add(candidate.Value);
+            }
+
+            if (choices.Count == 4)
+            {
+                return;
             }
         }
     }

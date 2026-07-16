@@ -9,6 +9,11 @@
 
 <div class="quiz-shell">
     <main class="quiz-result">
+        @if (TempData["Message"] is string message && !string.IsNullOrWhiteSpace(message))
+        {
+            <div class="quiz-alert" role="status" aria-live="polite">@message</div>
+        }
+
         <header class="quiz-result-header">
             <span class="quiz-eyebrow">Hoàn thành</span>
             <h1>Kết quả trắc nghiệm</h1>
