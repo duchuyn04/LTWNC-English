@@ -323,7 +323,11 @@ public class StudyService : IStudyService
         {
             IStudyModeStrategy strategy = _strategyResolver.Resolve(mode);
             List<Flashcard> cardsForMode = await strategy.GetCardsAsync(setId, settings, userId);
-            StudyModeOptionViewModel option = strategy.BuildOption(setId, cardsForMode, settings);
+            StudyModeOptionViewModel option = await strategy.BuildOptionAsync(
+                setId,
+                cardsForMode,
+                settings,
+                userId);
             modes.Add(option);
         }
 

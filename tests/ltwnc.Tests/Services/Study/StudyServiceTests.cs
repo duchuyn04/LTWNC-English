@@ -423,6 +423,47 @@ public class StudyServiceTests
         Assert.DoesNotContain(result.RoadmapModes, m => m.Mode == StudyMode.Quiz);
     }
 
+    [Fact]
+    public async Task GetStudyModeSelectorDataAsync_UsesAsyncOptionBuilder()
+    {
+        await using var context = CreateContext();
+        await SeedSetAsync(context);
+
+        var (strategies, _) = CreateStrategies(context);
+        strategies.Add(new AsyncOptionStrategy());
+        var resolver = new StudyModeStrategyResolver(strategies);
+
+        var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
+        var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
+
+        Assert.Equal("ASYNC", result.Modes.Single(m => m.Mode == StudyMode.Quiz).Name);
+    }
+
+    private sealed class AsyncOptionStrategy : IStudyModeStrategy
+    {
+        public StudyMode Mode => StudyMode.Quiz;
+
+        public Task<List<Flashcard>> GetCardsAsync(
+            int setId,
+            UserStudySettings settings,
+            string? userId) => Task.FromResult(new List<Flashcard>());
+
+        public StudyModeOptionViewModel BuildOption(
+            int setId,
+            IReadOnlyList<Flashcard> cards,
+            UserStudySettings settings) => new() { Mode = Mode, Name = "SYNC" };
+
+        public Task<StudyModeOptionViewModel> BuildOptionAsync(
+            int setId,
+            IReadOnlyList<Flashcard> cards,
+            UserStudySettings settings,
+            string? userId) => Task.FromResult(new StudyModeOptionViewModel
+            {
+                Mode = Mode,
+                Name = "ASYNC"
+            });
+    }
+
     // Strategy giả để kiểm tra khả năng mở rộng mà không cần sửa StudyService
     private sealed class FakeQuizStrategy : IStudyModeStrategy
     {

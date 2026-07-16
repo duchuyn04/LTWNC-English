@@ -20,4 +20,13 @@ public interface IStudyModeStrategy
         int setId,
         IReadOnlyList<Flashcard> cards,
         UserStudySettings settings);
+
+    Task<StudyModeOptionViewModel> BuildOptionAsync(
+        int setId,
+        IReadOnlyList<Flashcard> cards,
+        UserStudySettings settings,
+        string? userId)
+    {
+        return Task.FromResult(BuildOption(setId, cards, settings));
+    }
 }
