@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ltwnc.Data;
 
@@ -11,9 +12,11 @@ using ltwnc.Data;
 namespace ltwnc.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260716175941_PreserveQuizHistoryAndPendingSessions")]
+    partial class PreserveQuizHistoryAndPendingSessions
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -331,10 +334,6 @@ namespace ltwnc.Migrations
                     b.HasIndex("FlashcardSetId");
 
                     b.HasIndex("UserId", "FlashcardSetId");
-
-                    b.HasIndex("UserId", "FlashcardSetId", "Mode")
-                        .IsUnique()
-                        .HasFilter("[Mode] = 1 AND [Score] IS NULL");
 
                     b.ToTable("StudySessions");
                 });

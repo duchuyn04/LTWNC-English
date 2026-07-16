@@ -585,13 +585,33 @@ public class FlashcardSetService : IFlashcardSetService
             throw new UnauthorizedAccessException("Không có quyền xóa thẻ này.");
         }
 
-        await _context.UserProgresses
-            .Where(progress => progress.FlashcardId == cardId)
-            .ExecuteDeleteAsync();
+        await using var transaction = _context.Database.IsRelational()
+            ? await _context.Database.BeginTransactionAsync()
+            : null;
+        try
+        {
+            await _context.UserProgresses
+                .Where(progress => progress.FlashcardId == cardId)
+                .ExecuteDeleteAsync();
 
-        _context.Flashcards.Remove(card);
-        await _context.SaveChangesAsync();
-        return setId;
+            _context.Flashcards.Remove(card);
+            await _context.SaveChangesAsync();
+            if (transaction != null)
+            {
+                await transaction.CommitAsync();
+            }
+
+            return setId;
+        }
+        catch
+        {
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync();
+            }
+
+            throw;
+        }
     }
 
     // Đổi trạng thái đánh sao của thẻ

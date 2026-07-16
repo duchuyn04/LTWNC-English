@@ -220,6 +220,29 @@ public class StudyControllerQuizTests
     }
 
     [Theory]
+    [InlineData("wrong")]
+    [InlineData("all")]
+    public async Task Retry_unavailable_redirects_to_result_with_feedback(string retryMode)
+    {
+        const string message = "Thẻ nguồn không còn khả dụng.";
+        _quizService.Setup(service => service.RetryWrongAsync(7, 42, "user-1"))
+            .ThrowsAsync(new QuizUnavailableException(message));
+        _quizService.Setup(service => service.RetryAllAsync(7, 42, "user-1"))
+            .ThrowsAsync(new QuizUnavailableException(message));
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = retryMode == "wrong"
+            ? await controller.RetryWrong(7, 42)
+            : await controller.RetryAll(7, 42);
+
+        RedirectToActionResult redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(StudyController.QuizResult), redirect.ActionName);
+        Assert.Equal(7, redirect.RouteValues!["setId"]);
+        Assert.Equal(42, redirect.RouteValues["sessionId"]);
+        Assert.Equal(message, controller.TempData["Message"]);
+    }
+
+    [Theory]
     [InlineData("start")]
     [InlineData("question")]
     [InlineData("result")]

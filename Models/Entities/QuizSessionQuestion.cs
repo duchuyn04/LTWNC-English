@@ -46,9 +46,6 @@ public class QuizSessionQuestion
     [ForeignKey(nameof(StudySessionId))]
     public StudySession? StudySession { get; set; }
 
-    [ForeignKey(nameof(FlashcardId))]
-    public Flashcard? Flashcard { get; set; }
-
     [NotMapped]
     public IReadOnlyList<string> Choices =>
         new[] { Choice1Text, Choice2Text, Choice3Text, Choice4Text };

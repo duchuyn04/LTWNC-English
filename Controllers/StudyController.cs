@@ -523,6 +523,11 @@ public class StudyController : Controller
         {
             return NotFound();
         }
+        catch (QuizUnavailableException exception)
+        {
+            TempData["Message"] = exception.Message;
+            return RedirectToAction(nameof(QuizResult), new { setId, sessionId });
+        }
         catch (QuizConflictException exception)
         {
             return StatusCode(StatusCodes.Status409Conflict, new
@@ -560,6 +565,11 @@ public class StudyController : Controller
         catch (KeyNotFoundException)
         {
             return NotFound();
+        }
+        catch (QuizUnavailableException exception)
+        {
+            TempData["Message"] = exception.Message;
+            return RedirectToAction(nameof(QuizResult), new { setId, sessionId });
         }
         catch (QuizConflictException exception)
         {

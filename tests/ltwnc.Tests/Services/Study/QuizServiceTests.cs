@@ -60,6 +60,53 @@ public class QuizServiceTests
     }
 
     [Fact]
+    public async Task StartOrResume_concurrent_requests_return_one_active_quiz_session()
+    {
+        await using var database = await SharedQuizTestDatabase.CreateAsync();
+        int setId;
+        string userId;
+        await using (AppDbContext setupContext = await database.CreateContextAsync())
+        {
+            FlashcardSet set = await SeedQuestionPoolAsync(setupContext);
+            setId = set.Id;
+            userId = set.UserId;
+        }
+
+        await using AppDbContext firstContext = await database.CreateContextAsync();
+        await using AppDbContext secondContext = await database.CreateContextAsync();
+        QuizService firstService = CreateService(
+            firstContext,
+            new RecordingStudyEventPublisher());
+        QuizService secondService = CreateService(
+            secondContext,
+            new RecordingStudyEventPublisher());
+        var startGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        async Task<StudySession> StartAsync(QuizService service)
+        {
+            await startGate.Task;
+            return await service.StartOrResumeAsync(
+                setId,
+                userId,
+                new UserStudySettings());
+        }
+
+        Task<StudySession> firstRequest = StartAsync(firstService);
+        Task<StudySession> secondRequest = StartAsync(secondService);
+        startGate.SetResult();
+        StudySession[] sessions = await Task.WhenAll(firstRequest, secondRequest);
+
+        Assert.Equal(sessions[0].Id, sessions[1].Id);
+        await using AppDbContext verificationContext = await database.CreateContextAsync();
+        Assert.Equal(1, await verificationContext.StudySessions.CountAsync(row =>
+            row.FlashcardSetId == setId
+            && row.UserId == userId
+            && row.Mode == StudyMode.Quiz
+            && row.Score == null));
+        Assert.Equal(4, await verificationContext.QuizSessionQuestions.CountAsync());
+    }
+
+    [Fact]
     public async Task GetCurrentQuestion_returns_first_unanswered_with_session_counts()
     {
         await using var database = await QuizTestDatabase.CreateAsync();
@@ -91,6 +138,65 @@ public class QuizServiceTests
         Assert.NotNull(state.Question);
         Assert.Equal(1, state.Question.OrderIndex);
         Assert.False(state.IsComplete);
+    }
+
+    [Fact]
+    public async Task GetCurrentQuestion_recovers_answered_orphan_and_publishes_completion_once()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        var publisher = new RecordingStudyEventPublisher();
+        QuizService service = CreateService(database.Context, publisher);
+        StudySession session = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        await AnswerAllDirectlyAsync(database.Context, session.Id);
+
+        QuizQuestionState state = await service.GetCurrentQuestionAsync(
+            set.Id,
+            session.Id,
+            set.UserId);
+        QuizSessionResult result = await service.GetResultAsync(
+            set.Id,
+            session.Id,
+            set.UserId);
+
+        Assert.True(state.IsComplete);
+        Assert.Equal(100, result.Score);
+        Assert.Single(publisher.Events.OfType<StudySessionCompletedEvent>());
+        database.Context.ChangeTracker.Clear();
+        StudySession stored = await database.Context.StudySessions.SingleAsync(row =>
+            row.Id == session.Id);
+        Assert.NotNull(stored.CompletedAt);
+    }
+
+    [Fact]
+    public async Task StartOrResume_recovers_answered_orphan_instead_of_creating_replacement()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        var publisher = new RecordingStudyEventPublisher();
+        QuizService service = CreateService(database.Context, publisher);
+        StudySession orphan = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        await AnswerAllDirectlyAsync(database.Context, orphan.Id);
+
+        StudySession recovered = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        QuizSessionResult result = await service.GetResultAsync(
+            set.Id,
+            recovered.Id,
+            set.UserId);
+
+        Assert.Equal(orphan.Id, recovered.Id);
+        Assert.Equal(100, result.Score);
+        Assert.Equal(1, await database.Context.StudySessions.CountAsync());
+        Assert.Single(publisher.Events.OfType<StudySessionCompletedEvent>());
     }
 
     [Fact]
@@ -194,7 +300,9 @@ public class QuizServiceTests
         {
             FlashcardSetId = set.Id,
             UserId = set.UserId,
-            Mode = StudyMode.Quiz
+            Mode = StudyMode.Quiz,
+            Score = 100,
+            CompletedAt = DateTime.UtcNow
         };
         database.Context.StudySessions.Add(anotherSession);
         await database.Context.SaveChangesAsync();
@@ -284,6 +392,57 @@ public class QuizServiceTests
         Assert.Equal(set.Id, completion.SetId);
         Assert.Equal(session.Id, completion.SessionId);
         Assert.Equal(set.UserId, completion.UserId);
+    }
+
+    [Fact]
+    public async Task Last_answer_rolls_back_answer_when_session_completion_update_fails()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        var publisher = new RecordingStudyEventPublisher();
+        QuizService service = CreateService(database.Context, publisher);
+        StudySession session = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        List<QuizSessionQuestion> questions = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .OrderBy(row => row.OrderIndex)
+            .ToListAsync();
+        foreach (QuizSessionQuestion question in questions.Take(questions.Count - 1))
+        {
+            await service.AnswerAsync(
+                set.Id,
+                session.Id,
+                question.Id,
+                question.CorrectChoiceIndex,
+                set.UserId);
+        }
+
+        await database.Context.Database.ExecuteSqlRawAsync(
+            """
+            CREATE TRIGGER FailQuizCompletion
+            BEFORE UPDATE OF Score ON StudySessions
+            WHEN NEW.Score IS NOT NULL
+            BEGIN
+                SELECT RAISE(ABORT, 'completion failed');
+            END;
+            """);
+        QuizSessionQuestion last = questions[^1];
+
+        await Assert.ThrowsAsync<SqliteException>(() => service.AnswerAsync(
+            set.Id,
+            session.Id,
+            last.Id,
+            last.CorrectChoiceIndex,
+            set.UserId));
+
+        database.Context.ChangeTracker.Clear();
+        Assert.Null((await database.Context.QuizSessionQuestions.SingleAsync(row =>
+            row.Id == last.Id)).SelectedChoiceIndex);
+        Assert.Null((await database.Context.StudySessions.SingleAsync(row =>
+            row.Id == session.Id)).Score);
+        Assert.Empty(publisher.Events);
     }
 
     [Fact]
@@ -830,6 +989,18 @@ public class QuizServiceTests
                 question.CorrectChoiceIndex,
                 set.UserId);
         }
+    }
+
+    private static async Task AnswerAllDirectlyAsync(AppDbContext context, int sessionId)
+    {
+        await context.QuizSessionQuestions
+            .Where(question => question.StudySessionId == sessionId)
+            .ExecuteUpdateAsync(updates => updates
+                .SetProperty(question => question.SelectedChoiceIndex, question =>
+                    question.CorrectChoiceIndex)
+                .SetProperty(question => question.IsCorrect, true)
+                .SetProperty(question => question.AnsweredAt, DateTime.UtcNow));
+        context.ChangeTracker.Clear();
     }
 
     private static async Task<StoredQuestionSnapshot[]> LoadQuestionSnapshotsAsync(

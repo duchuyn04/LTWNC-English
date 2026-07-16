@@ -305,7 +305,8 @@ public class StudyService : IStudyService
             recentSessionCount = await _context.StudySessions.CountAsync(session =>
                 session.UserId == userId
                 && session.FlashcardSetId == setId
-                && session.CompletedAt >= recentCutoff);
+                && session.CompletedAt.HasValue
+                && session.CompletedAt.Value >= recentCutoff);
         }
 
         UserStudySettings settings = await GetSettingsAsync(userId);

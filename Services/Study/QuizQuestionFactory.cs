@@ -10,10 +10,17 @@ public class QuizQuestionFactory
         "Cần ít nhất 4 thuật ngữ và 4 định nghĩa khác nhau để tạo câu hỏi trắc nghiệm.";
 
     private readonly AppDbContext _context;
+    private readonly Random _random;
 
     public QuizQuestionFactory(AppDbContext context)
+        : this(context, Random.Shared)
+    {
+    }
+
+    public QuizQuestionFactory(AppDbContext context, Random random)
     {
         _context = context;
+        _random = random;
     }
 
     public async Task<QuizPoolAvailability> GetAvailabilityAsync(int setId, string userId)
@@ -42,20 +49,25 @@ public class QuizQuestionFactory
         (List<Flashcard> sameSetCards, List<Flashcard> ownedOtherCards) =
             await LoadCandidatePoolsAsync(setId, userId);
         List<QuizQuestionDirection> directions = BuildDirections(sourceCards, fixedDirections);
+        CandidatePools sameSetPools = ProjectCandidatePools(sameSetCards);
+        CandidatePools ownedOtherPools = ProjectCandidatePools(ownedOtherCards);
+        var cardDirections = sourceCards
+            .Select((card, index) => (Card: card, Direction: directions[index]))
+            .ToList();
+        Shuffle(cardDirections);
         var questions = new List<QuizSessionQuestion>(sourceCards.Count);
 
-        for (int index = 0; index < sourceCards.Count; index++)
+        for (int index = 0; index < cardDirections.Count; index++)
         {
-            Flashcard sourceCard = sourceCards[index];
-            QuizQuestionDirection direction = directions[index];
+            (Flashcard sourceCard, QuizQuestionDirection direction) = cardDirections[index];
 
             string prompt = GetPrompt(sourceCard, direction);
             string correctAnswer = GetAnswer(sourceCard, direction);
             List<string> choices = BuildChoices(
                 correctAnswer,
                 direction,
-                sameSetCards,
-                ownedOtherCards);
+                sameSetPools,
+                ownedOtherPools);
 
             Shuffle(choices);
             int correctChoiceIndex = choices.FindIndex(choice =>
@@ -96,7 +108,7 @@ public class QuizQuestionFactory
         return (sameSetCards, ownedOtherCards);
     }
 
-    private static List<QuizQuestionDirection> BuildDirections(
+    private List<QuizQuestionDirection> BuildDirections(
         IReadOnlyList<Flashcard> sourceCards,
         IReadOnlyDictionary<int, QuizQuestionDirection>? fixedDirections)
     {
@@ -140,7 +152,7 @@ public class QuizQuestionFactory
             .ToArray();
 
         int targetTermToDefinitionCount = feasibleTargets.Length > 0
-            ? feasibleTargets[Random.Shared.Next(feasibleTargets.Length)]
+            ? feasibleTargets[_random.Next(feasibleTargets.Length)]
             : Math.Clamp(
                 sourceCards.Count / 2,
                 minimumTermToDefinitionCount,
@@ -172,11 +184,11 @@ public class QuizQuestionFactory
         return directions.Select(direction => direction!.Value).ToList();
     }
 
-    private static List<string> BuildChoices(
+    private List<string> BuildChoices(
         string correctAnswer,
         QuizQuestionDirection direction,
-        IReadOnlyList<Flashcard> sameSetCards,
-        IReadOnlyList<Flashcard> ownedOtherCards)
+        CandidatePools sameSetPools,
+        CandidatePools ownedOtherPools)
     {
         string normalizedCorrectAnswer = NormalizeChoice(correctAnswer);
         if (normalizedCorrectAnswer.Length == 0)
@@ -190,10 +202,10 @@ public class QuizQuestionFactory
             normalizedCorrectAnswer
         };
 
-        AddDistinctDistractors(choices, usedValues, sameSetCards, direction);
+        AddDistinctDistractors(choices, usedValues, sameSetPools.For(direction));
         if (choices.Count < 4)
         {
-            AddDistinctDistractors(choices, usedValues, ownedOtherCards, direction);
+            AddDistinctDistractors(choices, usedValues, ownedOtherPools.For(direction));
         }
 
         if (choices.Count < 4)
@@ -204,30 +216,68 @@ public class QuizQuestionFactory
         return choices;
     }
 
-    private static void AddDistinctDistractors(
+    private void AddDistinctDistractors(
         List<string> choices,
         HashSet<string> usedValues,
-        IReadOnlyList<Flashcard> cards,
-        QuizQuestionDirection direction)
+        IReadOnlyList<ChoiceCandidate> candidates)
     {
-        var candidates = cards
-            .Select(card => GetAnswer(card, direction))
-            .ToList();
-        Shuffle(candidates);
+        int needed = 4 - choices.Count;
+        var selected = new List<ChoiceCandidate>(needed);
+        int eligibleCount = 0;
 
-        foreach (string candidate in candidates)
+        foreach (ChoiceCandidate candidate in candidates)
         {
-            string normalizedCandidate = NormalizeChoice(candidate);
-            if (normalizedCandidate.Length > 0 && usedValues.Add(normalizedCandidate))
+            if (usedValues.Contains(candidate.Normalized))
             {
-                choices.Add(candidate);
+                continue;
             }
 
-            if (choices.Count == 4)
+            eligibleCount++;
+            if (selected.Count < needed)
             {
-                return;
+                selected.Add(candidate);
+            }
+            else
+            {
+                int replacementIndex = _random.Next(eligibleCount);
+                if (replacementIndex < needed)
+                {
+                    selected[replacementIndex] = candidate;
+                }
             }
         }
+
+        foreach (ChoiceCandidate candidate in selected)
+        {
+            if (usedValues.Add(candidate.Normalized))
+            {
+                choices.Add(candidate.Value);
+            }
+        }
+    }
+
+    private static CandidatePools ProjectCandidatePools(IReadOnlyList<Flashcard> cards)
+    {
+        return new CandidatePools(
+            ProjectCandidates(cards.Select(card => card.BackText)),
+            ProjectCandidates(cards.Select(card => card.FrontText)));
+    }
+
+    private static IReadOnlyList<ChoiceCandidate> ProjectCandidates(IEnumerable<string> values)
+    {
+        var seen = new HashSet<string>(StringComparer.Ordinal);
+        var candidates = new List<ChoiceCandidate>();
+        foreach (string value in values)
+        {
+            string trimmed = value.Trim();
+            string normalized = NormalizeChoice(trimmed);
+            if (normalized.Length > 0 && seen.Add(normalized))
+            {
+                candidates.Add(new ChoiceCandidate(trimmed, normalized));
+            }
+        }
+
+        return candidates;
     }
 
     private static int CountDistinctValues(IEnumerable<string> values)
@@ -255,12 +305,22 @@ public class QuizQuestionFactory
 
     private static string NormalizeChoice(string value) => value.Trim().ToUpperInvariant();
 
-    private static void Shuffle<T>(IList<T> values)
+    private void Shuffle<T>(IList<T> values)
     {
         for (int index = values.Count - 1; index > 0; index--)
         {
-            int swapIndex = Random.Shared.Next(index + 1);
+            int swapIndex = _random.Next(index + 1);
             (values[index], values[swapIndex]) = (values[swapIndex], values[index]);
         }
+    }
+
+    private sealed record ChoiceCandidate(string Value, string Normalized);
+
+    private sealed record CandidatePools(
+        IReadOnlyList<ChoiceCandidate> Definitions,
+        IReadOnlyList<ChoiceCandidate> Terms)
+    {
+        public IReadOnlyList<ChoiceCandidate> For(QuizQuestionDirection direction) =>
+            direction == QuizQuestionDirection.TermToDefinition ? Definitions : Terms;
     }
 }

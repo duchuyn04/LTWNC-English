@@ -50,13 +50,18 @@ public class QuizService : IQuizService
                 && session.UserId == userId
                 && session.Mode == StudyMode.Quiz
                 && session.Score == null)
-            .Where(session => _context.QuizSessionQuestions.Any(question =>
-                question.StudySessionId == session.Id
-                && question.SelectedChoiceIndex == null))
             .OrderByDescending(session => session.Id)
             .FirstOrDefaultAsync();
         if (existingSession != null)
         {
+            bool hasUnansweredQuestion = await _context.QuizSessionQuestions.AnyAsync(question =>
+                question.StudySessionId == existingSession.Id
+                && question.SelectedChoiceIndex == null);
+            if (!hasUnansweredQuestion)
+            {
+                await RecoverCompletedSessionIfNeededAsync(existingSession);
+            }
+
             return existingSession;
         }
 
@@ -80,7 +85,8 @@ public class QuizService : IQuizService
             {
                 FlashcardSetId = setId,
                 UserId = userId,
-                Mode = StudyMode.Quiz
+                Mode = StudyMode.Quiz,
+                CompletedAt = null
             };
             List<QuizSessionQuestion> questions = await _questionFactory.BuildQuestionsAsync(
                 setId,
@@ -100,6 +106,29 @@ public class QuizService : IQuizService
             }
 
             return session;
+        }
+        catch (DbUpdateException)
+        {
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync();
+            }
+
+            _context.ChangeTracker.Clear();
+            StudySession? winner = await _context.StudySessions
+                .AsNoTracking()
+                .Where(row => row.FlashcardSetId == setId
+                    && row.UserId == userId
+                    && row.Mode == StudyMode.Quiz
+                    && row.Score == null)
+                .OrderByDescending(row => row.Id)
+                .FirstOrDefaultAsync();
+            if (winner != null)
+            {
+                return winner;
+            }
+
+            throw;
         }
         finally
         {
@@ -142,6 +171,10 @@ public class QuizService : IQuizService
             .Where(question => question.SelectedChoiceIndex == null)
             .OrderBy(question => question.OrderIndex)
             .FirstOrDefaultAsync();
+        if (currentQuestion == null && session.Score == null)
+        {
+            await RecoverCompletedSessionIfNeededAsync(session);
+        }
 
         return new QuizQuestionState
         {
@@ -190,53 +223,104 @@ public class QuizService : IQuizService
             throw new KeyNotFoundException("Câu hỏi trắc nghiệm không tồn tại.");
         }
 
-        bool isCorrect = selectedChoiceIndex == question.CorrectChoiceIndex;
-        int affected = await _context.QuizSessionQuestions
-            .Where(row => row.Id == questionId && row.SelectedChoiceIndex == null)
-            .ExecuteUpdateAsync(updates => updates
-                .SetProperty(row => row.SelectedChoiceIndex, selectedChoiceIndex)
-                .SetProperty(row => row.IsCorrect, isCorrect)
-                .SetProperty(row => row.AnsweredAt, DateTime.UtcNow));
-        if (affected == 0)
+        IDbContextTransaction? transaction = null;
+        if (_context.Database.IsRelational())
         {
-            QuizSessionQuestion storedQuestion = await _context.QuizSessionQuestions
-                .AsNoTracking()
-                .SingleAsync(row => row.Id == questionId);
-            if (storedQuestion.SelectedChoiceIndex == selectedChoiceIndex)
+            transaction = await _context.Database.BeginTransactionAsync();
+        }
+
+        StudySessionCompletedEvent? completionEvent = null;
+        QuizAnswerResult answerResult;
+        try
+        {
+            bool isCorrect = selectedChoiceIndex == question.CorrectChoiceIndex;
+            int affected = await _context.QuizSessionQuestions
+                .Where(row => row.Id == questionId && row.SelectedChoiceIndex == null)
+                .ExecuteUpdateAsync(updates => updates
+                    .SetProperty(row => row.SelectedChoiceIndex, selectedChoiceIndex)
+                    .SetProperty(row => row.IsCorrect, isCorrect)
+                    .SetProperty(row => row.AnsweredAt, DateTime.UtcNow));
+            if (affected == 0)
             {
+                QuizSessionQuestion storedQuestion = await _context.QuizSessionQuestions
+                    .AsNoTracking()
+                    .SingleAsync(row => row.Id == questionId);
+                if (storedQuestion.SelectedChoiceIndex != selectedChoiceIndex)
+                {
+                    throw new QuizConflictException(
+                        "Câu hỏi đã được trả lời bằng lựa chọn khác.");
+                }
+
                 bool storedIsLastQuestion = !await _context.QuizSessionQuestions.AnyAsync(row =>
                     row.StudySessionId == sessionId
                     && row.SelectedChoiceIndex == null);
                 if (storedIsLastQuestion)
                 {
-                    await CompleteSessionIfNeededAsync(session);
+                    completionEvent = await CompleteSessionIfEligibleAsync(session);
                 }
 
-                return new QuizAnswerResult(
+                answerResult = new QuizAnswerResult(
                     storedQuestion.IsCorrect == true,
                     storedQuestion.CorrectChoiceIndex,
                     storedIsLastQuestion);
             }
+            else
+            {
+                bool isLastQuestion = !await _context.QuizSessionQuestions.AnyAsync(row =>
+                    row.StudySessionId == sessionId
+                    && row.SelectedChoiceIndex == null);
+                if (isLastQuestion)
+                {
+                    completionEvent = await CompleteSessionIfEligibleAsync(session);
+                }
 
-            throw new QuizConflictException("Câu hỏi đã được trả lời bằng lựa chọn khác.");
+                answerResult = new QuizAnswerResult(
+                    isCorrect,
+                    question.CorrectChoiceIndex,
+                    isLastQuestion);
+            }
+
+            if (transaction != null)
+            {
+                await transaction.CommitAsync();
+            }
         }
-
-        bool isLastQuestion = !await _context.QuizSessionQuestions.AnyAsync(row =>
-            row.StudySessionId == sessionId
-            && row.SelectedChoiceIndex == null);
-        if (isLastQuestion)
+        catch
         {
-            await CompleteSessionIfNeededAsync(session);
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync();
+            }
+
+            throw;
+        }
+        finally
+        {
+            if (transaction != null)
+            {
+                await transaction.DisposeAsync();
+            }
         }
 
-        return new QuizAnswerResult(
-            isCorrect,
-            question.CorrectChoiceIndex,
-            isLastQuestion);
+        if (completionEvent != null)
+        {
+            await _studyEvents.PublishAsync(completionEvent);
+        }
+
+        return answerResult;
     }
 
-    private async Task CompleteSessionIfNeededAsync(StudySession session)
+    private async Task<StudySessionCompletedEvent?> CompleteSessionIfEligibleAsync(
+        StudySession session)
     {
+        bool hasUnansweredQuestion = await _context.QuizSessionQuestions.AnyAsync(row =>
+            row.StudySessionId == session.Id
+            && row.SelectedChoiceIndex == null);
+        if (hasUnansweredQuestion)
+        {
+            return null;
+        }
+
         int totalCount = await _context.QuizSessionQuestions.CountAsync(row =>
             row.StudySessionId == session.Id);
         int correctCount = await _context.QuizSessionQuestions.CountAsync(row =>
@@ -259,13 +343,55 @@ public class QuizService : IQuizService
                 .SetProperty(row => row.CompletedAt, completedAt));
         if (affected == 1)
         {
-            await _studyEvents.PublishAsync(new StudySessionCompletedEvent(
+            return new StudySessionCompletedEvent(
                 UserId: session.UserId,
                 OccurredAtUtc: completedAt,
                 SetId: session.FlashcardSetId,
                 SessionId: session.Id,
                 Mode: StudyMode.Quiz,
-                Score: score));
+                Score: score);
+        }
+
+        return null;
+    }
+
+    private async Task RecoverCompletedSessionIfNeededAsync(StudySession session)
+    {
+        IDbContextTransaction? transaction = null;
+        if (_context.Database.IsRelational())
+        {
+            transaction = await _context.Database.BeginTransactionAsync();
+        }
+
+        StudySessionCompletedEvent? completionEvent;
+        try
+        {
+            completionEvent = await CompleteSessionIfEligibleAsync(session);
+            if (transaction != null)
+            {
+                await transaction.CommitAsync();
+            }
+        }
+        catch
+        {
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync();
+            }
+
+            throw;
+        }
+        finally
+        {
+            if (transaction != null)
+            {
+                await transaction.DisposeAsync();
+            }
+        }
+
+        if (completionEvent != null)
+        {
+            await _studyEvents.PublishAsync(completionEvent);
         }
     }
 
@@ -431,7 +557,8 @@ public class QuizService : IQuizService
             {
                 FlashcardSetId = sourceSession.FlashcardSetId,
                 UserId = sourceSession.UserId,
-                Mode = StudyMode.Quiz
+                Mode = StudyMode.Quiz,
+                CompletedAt = null
             };
             List<QuizSessionQuestion> retryQuestions =
                 await _questionFactory.BuildQuestionsAsync(

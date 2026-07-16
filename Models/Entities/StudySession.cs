@@ -38,7 +38,7 @@ public class StudySession
     public int? Score { get; set; }
 
     // Thời gian hoàn thành phiên học
-    public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
+    public DateTime? CompletedAt { get; set; }
 
     // Bộ thẻ của buổi học
     [ForeignKey(nameof(FlashcardSetId))]

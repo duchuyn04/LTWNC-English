@@ -68,6 +68,9 @@ public class AppDbContext : DbContext
         {
             // Index composite (UserId + FlashcardSetId) — tăng tốc truy vấn theo người dùng và bộ thẻ
             entity.HasIndex(e => new { e.UserId, e.FlashcardSetId });
+            entity.HasIndex(e => new { e.UserId, e.FlashcardSetId, e.Mode })
+                .IsUnique()
+                .HasFilter("[Mode] = 1 AND [Score] IS NULL");
             // Quan hệ: nhiều StudySession thuộc về 1 FlashcardSet
             // Restrict = không cho xóa bộ thẻ nếu còn phiên học (tránh mất dữ liệu)
             entity.HasOne(e => e.FlashcardSet)
@@ -88,10 +91,6 @@ public class AppDbContext : DbContext
                 .HasForeignKey(e => e.StudySessionId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            entity.HasOne(e => e.Flashcard)
-                .WithMany()
-                .HasForeignKey(e => e.FlashcardId)
-                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Cấu hình bảng UserProgresses

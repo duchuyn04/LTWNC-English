@@ -244,6 +244,42 @@ public class StudyServiceTests
     }
 
     [Fact]
+    public async Task GetStudyModeSelectorDataAsync_counts_completed_quiz_but_not_pending_quiz()
+    {
+        await using var context = CreateContext();
+        await SeedSetAsync(context);
+        await SeedCardAsync(context, 1, "hello", "xin chào");
+        context.StudySessions.AddRange(
+            new StudySession
+            {
+                UserId = "user-1",
+                FlashcardSetId = 1,
+                Mode = StudyMode.Quiz,
+                Score = null,
+                CompletedAt = null
+            },
+            new StudySession
+            {
+                UserId = "user-1",
+                FlashcardSetId = 1,
+                Mode = StudyMode.Quiz,
+                Score = 100,
+                CompletedAt = DateTime.UtcNow
+            });
+        await context.SaveChangesAsync();
+        var (strategies, resolver) = CreateStrategies(context);
+        var service = new StudyService(
+            context,
+            strategies,
+            resolver,
+            TestStudyEvents.NoOpPublisher());
+
+        var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
+
+        Assert.Equal(1, result.RecentSessionCount);
+    }
+
+    [Fact]
     // Lưu cài đặt bộ lọc vào database
     public async Task SaveFilterSettingsAsync_UpdatesStarredAndUnlearnedOnly()
     {

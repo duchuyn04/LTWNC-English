@@ -8,7 +8,7 @@ namespace ltwnc.Tests.Services;
 public class QuizQuestionFactoryTests
 {
     [Fact]
-    public async Task BuildQuestions_creates_one_question_per_source_card()
+    public async Task BuildQuestions_shuffles_cards_and_assigns_sequential_order_indexes()
     {
         await using AppDbContext context = CreateContext();
         List<Flashcard> cards = await SeedLibraryAsync(context, sameSetCardCount: 4);
@@ -16,7 +16,7 @@ public class QuizQuestionFactoryTests
             card => card.Id,
             _ => QuizQuestionDirection.TermToDefinition);
 
-        var factory = new QuizQuestionFactory(context);
+        var factory = new QuizQuestionFactory(context, new Random(17));
         List<QuizSessionQuestion> questions = await factory.BuildQuestionsAsync(
             1,
             "user-1",
@@ -24,9 +24,18 @@ public class QuizQuestionFactoryTests
             directions);
 
         Assert.Equal(cards.Count, questions.Count);
-        Assert.Equal(cards.Select(card => card.Id), questions.Select(question => question.FlashcardId));
+        Assert.Equal(
+            cards.Select(card => card.Id).OrderBy(id => id),
+            questions.Select(question => question.FlashcardId).OrderBy(id => id));
+        Assert.NotEqual(
+            cards.Select(card => card.Id),
+            questions.Select(question => question.FlashcardId));
         Assert.Equal(Enumerable.Range(0, cards.Count), questions.Select(question => question.OrderIndex));
-        Assert.Equal(cards.Select(card => card.FrontText), questions.Select(question => question.PromptText));
+        Assert.All(questions, question =>
+        {
+            Flashcard card = cards.Single(candidate => candidate.Id == question.FlashcardId);
+            Assert.Equal(card.FrontText, question.PromptText);
+        });
     }
 
     [Fact]
@@ -156,10 +165,14 @@ public class QuizQuestionFactoryTests
             cards.Take(2).ToList(),
             fixedDirections);
 
-        Assert.Equal(QuizQuestionDirection.DefinitionToTerm, questions[0].Direction);
-        Assert.Equal(cards[0].BackText, questions[0].PromptText);
-        Assert.Equal(QuizQuestionDirection.TermToDefinition, questions[1].Direction);
-        Assert.Equal(cards[1].FrontText, questions[1].PromptText);
+        QuizSessionQuestion firstCardQuestion = questions.Single(question =>
+            question.FlashcardId == cards[0].Id);
+        QuizSessionQuestion secondCardQuestion = questions.Single(question =>
+            question.FlashcardId == cards[1].Id);
+        Assert.Equal(QuizQuestionDirection.DefinitionToTerm, firstCardQuestion.Direction);
+        Assert.Equal(cards[0].BackText, firstCardQuestion.PromptText);
+        Assert.Equal(QuizQuestionDirection.TermToDefinition, secondCardQuestion.Direction);
+        Assert.Equal(cards[1].FrontText, secondCardQuestion.PromptText);
     }
 
     [Fact]
@@ -181,13 +194,47 @@ public class QuizQuestionFactoryTests
                 cards,
                 fixedDirections);
 
-            Assert.Equal(QuizQuestionDirection.TermToDefinition, questions[0].Direction);
+            Assert.Equal(
+                QuizQuestionDirection.TermToDefinition,
+                questions.Single(question => question.FlashcardId == cards[0].Id).Direction);
             int termToDefinition = questions.Count(question =>
                 question.Direction == QuizQuestionDirection.TermToDefinition);
             int definitionToTerm = questions.Count(question =>
                 question.Direction == QuizQuestionDirection.DefinitionToTerm);
             Assert.True(Math.Abs(termToDefinition - definitionToTerm) <= 1);
         }
+    }
+
+    [Fact]
+    public async Task BuildQuestions_deduplicates_normalized_values_across_same_and_owned_pools()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedSetsAsync(context);
+        Flashcard source = CreateCard(1, 1, "source", "correct");
+        context.Flashcards.AddRange(
+            source,
+            CreateCard(2, 1, "same-1", "Alpha"),
+            CreateCard(3, 1, "same-2", "Beta"),
+            CreateCard(101, 2, "owned-1", " alpha "),
+            CreateCard(102, 2, "owned-2", "Gamma"),
+            CreateCard(103, 2, "owned-3", "Delta"),
+            CreateCard(201, 3, "foreign", "Foreign"));
+        await context.SaveChangesAsync();
+        var factory = new QuizQuestionFactory(context, new Random(7));
+
+        QuizSessionQuestion question = Assert.Single(await factory.BuildQuestionsAsync(
+            1,
+            "user-1",
+            new[] { source },
+            new Dictionary<int, QuizQuestionDirection>
+            {
+                [source.Id] = QuizQuestionDirection.TermToDefinition
+            }));
+
+        Assert.Equal(4, question.Choices.Select(Normalize).Distinct().Count());
+        Assert.DoesNotContain(question.Choices, choice => Normalize(choice) == "FOREIGN");
+        Assert.Contains(question.Choices, choice => Normalize(choice) == "GAMMA"
+            || Normalize(choice) == "DELTA");
     }
 
     [Fact]
