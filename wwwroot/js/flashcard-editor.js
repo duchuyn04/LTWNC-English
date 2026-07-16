@@ -107,6 +107,7 @@
             panel.classList.toggle('is-active', active);
             if (active) {
                 panel.querySelectorAll('textarea[data-auto-grow]').forEach(growTextarea);
+                syncEditorPanelHeights();
                 if (window.innerWidth <= 900) {
                     panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 }
@@ -117,6 +118,22 @@
     function growTextarea(textarea) {
         textarea.style.height = 'auto';
         textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
+    }
+
+    function syncEditorPanelHeights() {
+        const editor = document.querySelector('.vocab-editor');
+        const detail = document.querySelector('.vocab-detail');
+        if (!editor || !detail) return;
+
+        if (window.innerWidth <= 900) {
+            editor.style.removeProperty('--vocab-detail-height');
+            return;
+        }
+
+        const height = Math.ceil(detail.getBoundingClientRect().height);
+        if (height > 0) {
+            editor.style.setProperty('--vocab-detail-height', height + 'px');
+        }
     }
 
     function bindAutoGrow(textarea) {
@@ -160,6 +177,13 @@
 
         const firstCard = document.querySelector('.vocab-list-item[data-card-id]');
         if (firstCard) selectCard(firstCard.dataset.cardId);
+        syncEditorPanelHeights();
+
+        const detail = document.querySelector('.vocab-detail');
+        if (detail && window.ResizeObserver) {
+            new ResizeObserver(syncEditorPanelHeights).observe(detail);
+        }
+        window.addEventListener('resize', syncEditorPanelHeights);
     }
 
     window.selectCard = selectCard;

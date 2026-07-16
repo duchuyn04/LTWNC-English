@@ -62,9 +62,11 @@
 }
 
 .vocab-list {
-    max-height: min(70vh, 720px);
+    height: var(--vocab-detail-height, min(70vh, 720px));
+    max-height: var(--vocab-detail-height, min(70vh, 720px));
     overflow-y: auto;
     min-height: 0;
+    box-sizing: border-box;
     padding: 1rem;
 }
 
@@ -259,6 +261,11 @@ textarea[data-auto-grow] {
 
     .vocab-editor {
         grid-template-columns: 1fr;
+    }
+
+    .vocab-list {
+        height: auto;
+        max-height: min(70vh, 720px);
     }
 
     .vocab-grid {

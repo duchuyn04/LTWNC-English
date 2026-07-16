@@ -58,6 +58,22 @@ public class FlashcardEditorScriptTests
     }
 
     [Fact]
+    public void Script_keeps_the_vocabulary_list_equal_to_the_visible_detail_height()
+    {
+        Assert.Contains("function syncEditorPanelHeights()", Script);
+        Assert.Contains("--vocab-detail-height", Script);
+        Assert.Contains("detail.getBoundingClientRect().height", Script);
+        Assert.Contains("new ResizeObserver(syncEditorPanelHeights)", Script);
+        Assert.Contains("window.addEventListener('resize', syncEditorPanelHeights)", Script);
+        Assert.Matches(
+            new Regex(
+                "panel\\.querySelectorAll\\('textarea\\[data-auto-grow\\]'\\)\\.forEach\\(growTextarea\\);[\\s\\S]*?" +
+                "syncEditorPanelHeights\\(\\)",
+                RegexOptions.Singleline),
+            Script);
+    }
+
+    [Fact]
     public void Edit_view_marks_back_text_and_example_meaning_textareas_for_auto_grow()
     {
         Assert.Equal(2, AutoGrowTextareas("backText").Count);

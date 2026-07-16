@@ -15,7 +15,9 @@ public class FlashcardSetEditStyleTests
         Assert.Matches(
             Rule(
                 "\\.vocab-list",
-                "max-height:\\s*min\\(70vh,\\s*720px\\)[^}]*overflow-y:\\s*auto[^}]*min-height:\\s*0"),
+                "height:\\s*var\\(--vocab-detail-height,\\s*min\\(70vh,\\s*720px\\)\\)[^}]*" +
+                "max-height:\\s*var\\(--vocab-detail-height,\\s*min\\(70vh,\\s*720px\\)\\)[^}]*" +
+                "overflow-y:\\s*auto[^}]*min-height:\\s*0[^}]*box-sizing:\\s*border-box"),
             Source);
         Assert.Matches(
             Rule(
