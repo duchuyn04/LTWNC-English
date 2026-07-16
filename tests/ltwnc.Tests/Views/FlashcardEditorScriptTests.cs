@@ -102,6 +102,31 @@ public class FlashcardEditorScriptTests
             View);
     }
 
+    [Fact]
+    public void Batch_form_submits_with_fetch_formdata_and_ajax_header()
+    {
+        Assert.Contains("function submitBatchAction(form, submitter)", Script);
+        Assert.Contains("new FormData(form)", Script);
+        Assert.Contains("formData.append('action', submitter.value)", Script);
+        Assert.Contains("'X-Requested-With': 'XMLHttpRequest'", Script);
+        Assert.Contains("fetch(form.action", Script);
+        Assert.Contains("event.submitter", Script);
+        Assert.Contains("event.preventDefault()", Script);
+    }
+
+    [Fact]
+    public void Confirmed_batch_result_updates_star_delete_selection_and_feedback()
+    {
+        Assert.Contains("function applyBatchResult(form, result)", Script);
+        Assert.Contains("setStarState(cardId, result.action === 'Star')", Script);
+        Assert.Contains("function removeCards(cardIds)", Script);
+        Assert.Contains("wrapper?.remove()", Script);
+        Assert.Contains("panel?.remove()", Script);
+        Assert.Contains("input.checked = false", Script);
+        Assert.Contains("syncBatchToolbar(form)", Script);
+        Assert.Contains("showBatchFeedback", Script);
+    }
+
     private static string ReadFile(params string[] parts)
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);

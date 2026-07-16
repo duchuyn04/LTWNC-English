@@ -166,11 +166,130 @@
         toolbar.hidden = !hasSelection;
     }
 
+    function showBatchFeedback(form, message, undoLogId, isError) {
+        const feedback = document.querySelector('#batch-feedback');
+        if (!feedback) return;
+
+        feedback.replaceChildren();
+        const alert = document.createElement('div');
+        alert.className = 'alert ' + (isError ? 'alert-danger' : 'alert-success');
+        alert.setAttribute('role', 'alert');
+
+        const text = document.createElement('span');
+        text.textContent = message;
+        alert.appendChild(text);
+
+        if (!isError && undoLogId && form.dataset.undoUrlPrefix) {
+            alert.classList.add('d-flex', 'justify-content-between', 'align-items-center');
+            const undoForm = document.createElement('form');
+            undoForm.method = 'post';
+            undoForm.action = form.dataset.undoUrlPrefix + undoLogId;
+            undoForm.className = 'm-0';
+
+            const token = form.querySelector('input[name="__RequestVerificationToken"]');
+            if (token) {
+                const tokenCopy = document.createElement('input');
+                tokenCopy.type = 'hidden';
+                tokenCopy.name = token.name;
+                tokenCopy.value = token.value;
+                undoForm.appendChild(tokenCopy);
+            }
+
+            const undoButton = document.createElement('button');
+            undoButton.type = 'submit';
+            undoButton.className = 'btn btn-sm btn-link';
+            undoButton.textContent = 'Hoàn tác';
+            undoForm.appendChild(undoButton);
+            alert.appendChild(undoForm);
+        }
+
+        feedback.appendChild(alert);
+    }
+
+    function removeCards(cardIds) {
+        cardIds.forEach(function (cardId) {
+            const checkbox = document.querySelector(
+                '#batch-form input[name="selectedCardIds"][value="' + cardId + '"]');
+            const wrapper = checkbox?.closest('.vocab-list-item-wrapper');
+            const panel = document.querySelector('[data-card-panel="' + cardId + '"]');
+            wrapper?.remove();
+            panel?.remove();
+        });
+
+        const firstCard = document.querySelector('.vocab-list-item[data-card-id]');
+        const activeCard = document.querySelector('.vocab-list-item.is-active[data-card-id]');
+        const emptyState = document.querySelector('[data-empty-card-list]');
+        if (emptyState) emptyState.hidden = Boolean(firstCard);
+        if (!activeCard && firstCard) selectCard(firstCard.dataset.cardId);
+        syncEditorPanelHeights();
+    }
+
+    function applyBatchResult(form, result) {
+        const cardIds = Array.isArray(result.cardIds) ? result.cardIds : [];
+        if (result.action === 'Delete') {
+            removeCards(cardIds);
+        } else if (result.action === 'Star' || result.action === 'Unstar') {
+            cardIds.forEach(function (cardId) {
+                setStarState(cardId, result.action === 'Star');
+            });
+        }
+
+        form.querySelectorAll('input[name="selectedCardIds"]').forEach(function (input) {
+            input.checked = false;
+        });
+        syncBatchToolbar(form);
+        showBatchFeedback(form, result.message, result.undoLogId, false);
+    }
+
+    function submitBatchAction(form, submitter) {
+        if (!submitter || form.dataset.batchPending === 'true') return;
+
+        const formData = new FormData(form);
+        formData.append('action', submitter.value);
+        const toolbarButtons = document.querySelectorAll(
+            '[data-batch-for="' + form.id + '"] button');
+        form.dataset.batchPending = 'true';
+        toolbarButtons.forEach(function (button) { button.disabled = true; });
+
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'application/json'
+            }
+        })
+            .then(function (response) {
+                return response.json().then(function (result) {
+                    if (!response.ok || result.success !== true) {
+                        throw new Error(result.message || 'Batch request failed');
+                    }
+                    return result;
+                });
+            })
+            .then(function (result) { applyBatchResult(form, result); })
+            .catch(function (error) {
+                showBatchFeedback(
+                    form,
+                    error.message || 'Không thể thực hiện thao tác. Vui lòng thử lại.',
+                    null,
+                    true);
+            })
+            .finally(function () {
+                form.removeAttribute('data-batch-pending');
+                toolbarButtons.forEach(function (button) { button.disabled = false; });
+            });
+    }
+
     function bindBatchSelection() {
         document.querySelectorAll('form#batch-form').forEach(function (form) {
             syncBatchToolbar(form);
             form.querySelectorAll('input[name="selectedCardIds"]').forEach(function (input) {
                 input.addEventListener('change', function () { syncBatchToolbar(form); });
+            });
+            form.addEventListener('submit', function (event) {
+                event.preventDefault();
+                submitBatchAction(form, event.submitter);
             });
         });
     }
