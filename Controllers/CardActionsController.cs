@@ -59,7 +59,13 @@ public class CardActionsController : Controller
 
         if (selectedCardIds.Count == 0)
         {
-            TempData["Error"] = "Chưa chọn thẻ nào.";
+            const string message = "Chưa chọn thẻ nào.";
+            if (IsAjaxRequest())
+            {
+                return BadRequest(new { success = false, message });
+            }
+
+            TempData["Error"] = message;
             return RedirectToAction("Edit", "FlashcardSet", new { id = setId });
         }
 
@@ -73,16 +79,42 @@ public class CardActionsController : Controller
                 selectedCardIds);
 
             CardActionLog log = await _cardActionService.ExecuteAsync(command);
-            TempData["Success"] = $"Đã {Describe(action)} {selectedCardIds.Count} thẻ.";
+            string message = $"Đã {Describe(action)} {selectedCardIds.Count} thẻ.";
+            if (IsAjaxRequest())
+            {
+                return Json(new
+                {
+                    success = true,
+                    message,
+                    action = action.ToString(),
+                    cardIds = selectedCardIds,
+                    undoLogId = log.Id
+                });
+            }
+
+            TempData["Success"] = message;
             TempData["UndoLogId"] = log.Id;
         }
         catch (Exception ex)
         {
+            if (IsAjaxRequest())
+            {
+                return StatusCode(
+                    StatusCodes.Status500InternalServerError,
+                    new { success = false, message = ex.Message });
+            }
+
             TempData["Error"] = ex.Message;
         }
 
         return RedirectToAction("Edit", "FlashcardSet", new { id = setId });
     }
+
+    private bool IsAjaxRequest() =>
+        string.Equals(
+            Request.Headers.XRequestedWith,
+            "XMLHttpRequest",
+            StringComparison.OrdinalIgnoreCase);
 
     // POST Undo theo logId của user; redirect về Edit set của log
     [HttpPost]
