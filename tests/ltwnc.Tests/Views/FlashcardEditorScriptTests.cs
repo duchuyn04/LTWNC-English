@@ -105,11 +105,20 @@ public class FlashcardEditorScriptTests
     [Fact]
     public void Batch_form_submits_with_fetch_formdata_and_ajax_header()
     {
+        string batchSubmit = Regex.Match(
+            Script,
+            "function submitBatchAction\\(form, submitter\\)[\\s\\S]*?function submitBatchActionFromButton",
+            RegexOptions.Singleline).Value;
+
         Assert.Contains("function submitBatchAction(form, submitter)", Script);
-        Assert.Contains("new FormData(form)", Script);
-        Assert.Contains("formData.append('action', submitter.value)", Script);
-        Assert.Contains("'X-Requested-With': 'XMLHttpRequest'", Script);
-        Assert.Contains("fetch(form.action", Script);
+        Assert.Contains("new FormData(form)", batchSubmit);
+        Assert.Contains("formData.append('action', submitter.value)", batchSubmit);
+        Assert.Contains("const token = form.querySelector('input[name=\"__RequestVerificationToken\"]')", batchSubmit);
+        Assert.Contains("'RequestVerificationToken': token?.value || ''", batchSubmit);
+        Assert.Contains("'X-CSRF-TOKEN': token?.value || ''", batchSubmit);
+        Assert.Contains("'X-Requested-With': 'XMLHttpRequest'", batchSubmit);
+        Assert.Contains("credentials: 'same-origin'", batchSubmit);
+        Assert.Contains("fetch(form.action", batchSubmit);
         Assert.Contains("event.submitter", Script);
         Assert.Contains("event.preventDefault()", Script);
     }

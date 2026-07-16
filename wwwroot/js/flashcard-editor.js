@@ -244,6 +244,7 @@
     function submitBatchAction(form, submitter) {
         if (!submitter || form.dataset.batchPending === 'true') return;
 
+        const token = form.querySelector('input[name="__RequestVerificationToken"]');
         const formData = new FormData(form);
         formData.append('action', submitter.value);
         const toolbarButtons = document.querySelectorAll(
@@ -253,8 +254,11 @@
 
         fetch(form.action, {
             method: 'POST',
+            credentials: 'same-origin',
             body: formData,
             headers: {
+                'RequestVerificationToken': token?.value || '',
+                'X-CSRF-TOKEN': token?.value || '',
                 'X-Requested-With': 'XMLHttpRequest',
                 'Accept': 'application/json'
             }
