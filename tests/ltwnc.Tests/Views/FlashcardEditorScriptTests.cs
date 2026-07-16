@@ -162,6 +162,16 @@ public class FlashcardEditorScriptTests
         Assert.Contains("showBatchFeedback", Script);
     }
 
+    [Fact]
+    public void Removing_the_last_card_restores_both_empty_states_and_compact_layout()
+    {
+        Assert.Contains("data-empty-detail", View);
+        Assert.Contains("const hasCards = Boolean(firstCard)", Script);
+        Assert.Contains("emptyState.hidden = hasCards", Script);
+        Assert.Contains("detailEmptyState.hidden = hasCards", Script);
+        Assert.Contains("editor.classList.toggle('is-empty', !hasCards)", Script);
+    }
+
     private static string ReadFile(params string[] parts)
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);

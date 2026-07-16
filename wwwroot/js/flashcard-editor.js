@@ -219,7 +219,12 @@
         const firstCard = document.querySelector('.vocab-list-item[data-card-id]');
         const activeCard = document.querySelector('.vocab-list-item.is-active[data-card-id]');
         const emptyState = document.querySelector('[data-empty-card-list]');
-        if (emptyState) emptyState.hidden = Boolean(firstCard);
+        const detailEmptyState = document.querySelector('[data-empty-detail]');
+        const editor = document.querySelector('.vocab-editor');
+        const hasCards = Boolean(firstCard);
+        if (emptyState) emptyState.hidden = hasCards;
+        if (detailEmptyState) detailEmptyState.hidden = hasCards;
+        if (editor) editor.classList.toggle('is-empty', !hasCards);
         if (!activeCard && firstCard) selectCard(firstCard.dataset.cardId);
         syncEditorPanelHeights();
     }

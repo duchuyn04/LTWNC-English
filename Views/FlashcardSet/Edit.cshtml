@@ -128,17 +128,14 @@
                     <h5>Danh sách từ</h5>
                 </div>
 
-                @if (!cards.Any())
-                {
-                    <div class="vocab-empty-state vocab-empty-state--list" data-empty-card-list>
-                        <i class="ph ph-cards" aria-hidden="true"></i>
-                        <div>
-                            <h6>Chưa có từ vựng</h6>
-                            <p>Thêm từ đầu tiên để bắt đầu xây dựng bộ thẻ.</p>
-                        </div>
+                <div class="vocab-empty-state vocab-empty-state--list" data-empty-card-list @(cards.Any() ? "hidden" : null)>
+                    <i class="ph ph-cards" aria-hidden="true"></i>
+                    <div>
+                        <h6>Chưa có từ vựng</h6>
+                        <p>Thêm từ đầu tiên để bắt đầu xây dựng bộ thẻ.</p>
                     </div>
-                }
-                else
+                </div>
+                @if (cards.Any())
                 {
                     <form asp-controller="CardActions"
                           asp-action="BatchAction"
@@ -168,18 +165,15 @@
             </aside>
 
             <section class="vocab-detail">
-                @if (!cards.Any())
-                {
-                    <div class="vocab-empty-state vocab-empty-state--detail">
-                        <i class="ph ph-note-pencil" aria-hidden="true"></i>
-                        <div>
-                            <h5>Chưa có từ để chỉnh sửa</h5>
-                            <p>Thêm từ vựng đầu tiên, sau đó bạn có thể chỉnh sửa chi tiết tại đây.</p>
-                        </div>
-                        <a href="#add-card-form" class="btn-primary-custom">Thêm từ vựng</a>
+                <div class="vocab-empty-state vocab-empty-state--detail" data-empty-detail @(cards.Any() ? "hidden" : null)>
+                    <i class="ph ph-note-pencil" aria-hidden="true"></i>
+                    <div>
+                        <h5>Chưa có từ để chỉnh sửa</h5>
+                        <p>Thêm từ vựng đầu tiên, sau đó bạn có thể chỉnh sửa chi tiết tại đây.</p>
                     </div>
-                }
-                else
+                    <a href="#add-card-form" class="btn-primary-custom">Thêm từ vựng</a>
+                </div>
+                @if (cards.Any())
                 {
                     @foreach (var card in cards.OrderBy(c => c.OrderIndex))
                     {
