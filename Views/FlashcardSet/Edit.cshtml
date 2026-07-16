@@ -13,9 +13,20 @@
 <link rel="stylesheet" href="~/css/edit.css" asp-append-version="true" />
 
 <div class="set-management-shell">
+<div class="set-editor-layout">
+    <aside class="set-editor-sidebar">
+        <nav aria-label="Điều hướng trình chỉnh sửa bộ thẻ">
+            <a href="#set-info">Thông tin bộ thẻ</a>
+            <a href="#file-import">Nhập từ tệp</a>
+            <a href="#card-list">Danh sách từ</a>
+            <a href="#add-card-form">Thêm từ mới</a>
+        </nav>
+    </aside>
+
+    <main class="set-editor-content">
 <div class="row justify-content-center gsap-fade-up">
     <div class="col-md-10 col-lg-8">
-        <div class="set-form-card mb-4 gsap-scale-in">
+        <div id="set-info" class="set-form-card mb-4 gsap-scale-in">
             <h1 style="margin: 0 0 0.25rem; font-size: 1.5rem; font-weight: 800; color: var(--sm-ink);">Quản lý bộ thẻ</h1>
 
             <form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="mt-4 gsap-stagger">
@@ -61,7 +72,7 @@
             </div>
         }
 
-        <div class="set-form-card mb-4">
+        <div id="file-import" class="set-form-card mb-4">
             <h2 style="margin: 0 0 0.5rem; font-size: 1.15rem; font-weight: 800; color: var(--sm-ink);">Nhập thẻ từ tệp</h2>
             <p class="text-muted mb-3">Chọn tệp CSV UTF-8 hoặc XLSX. Sáu cột bắt buộc: <code>THUẬT NGỮ</code>, <code>ĐỊNH NGHĨA</code>, <code>IPA</code>, <code>LOẠI TỪ</code>, <code>VÍ DỤ TIẾNG ANH</code>, <code>NGHĨA VÍ DỤ TIẾNG VIỆT</code>. Cột tùy chọn: <code>TỪ ĐỒNG NGHĨA</code>, <code>URL ẢNH</code>.</p>
             <form asp-action="Import" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data" class="d-flex flex-wrap align-items-end gap-2">
@@ -91,13 +102,10 @@
             </div>
         }
 
-        <div class="vocab-editor gsap-fade-up">
+        <div id="card-list" class="vocab-editor gsap-fade-up">
             <aside class="vocab-list gsap-stagger">
                 <div class="vocab-list-header">
                     <h5>Danh sách từ</h5>
-                    <a href="#add-card-form" class="btn-primary-custom" style="padding: 0.4rem 0.8rem; font-size: 0.8125rem;">
-                        <i class="ph ph-plus"></i> Thêm
-                    </a>
                 </div>
 
                 @if (!cards.Any())
@@ -158,8 +166,17 @@
                                     <h5>@card.FrontText</h5>
                                 </div>
                                 <div class="vocab-form-actions">
-                                    <label class="star-toggle">
-                                        <input type="checkbox" name="isStarred" value="true" @(card.IsStarred ? "checked" : "") />
+                                    <input type="checkbox"
+                                           name="isStarred"
+                                           value="true"
+                                           id="star-card-@card.Id"
+                                           class="visually-hidden"
+                                           data-toggle-star-url="@Url.Action("ToggleStar", "FlashcardSet", new { setId = Model.Id, cardId = card.Id })"
+                                           data-card-id="@card.Id"
+                                           data-star-target="#star-label-@card.Id"
+                                           aria-label="Đánh sao thẻ @card.FrontText"
+                                           @(card.IsStarred ? "checked" : "") />
+                                    <label id="star-label-@card.Id" for="star-card-@card.Id" class="star-toggle">
                                         <span>★ Đánh sao</span>
                                     </label>
                                     <button type="submit" class="btn-primary-custom">Lưu từ</button>
@@ -234,7 +251,10 @@
                         </form>
                     </div>
                 }
+            </section>
+        </div>
 
+        <section class="set-form-card mb-4">
                 <form id="add-card-form"
                       asp-action="AddCard"
                       asp-route-setId="@Model.Id"
@@ -242,6 +262,7 @@
                       enctype="multipart/form-data"
                       class="vocab-card-form add-card-form">
                     @Html.AntiForgeryToken()
+                    <input type="hidden" name="isStarred" value="false" />
                     
                     <div class="vocab-form-header">
                         <div>
@@ -249,10 +270,6 @@
                             <h5>Thêm từ vựng</h5>
                         </div>
                         <div class="vocab-form-actions">
-                            <label class="star-toggle">
-                                <input type="checkbox" name="isStarred" value="true" />
-                                <span>★ Đánh sao</span>
-                            </label>
                             <button type="submit" class="btn-primary-custom">Thêm từ</button>
                         </div>
                     </div>
@@ -303,8 +320,9 @@
                     </div>
                 </form>
             </section>
-        </div>
     </div>
+</div>
+    </main>
 </div>
 </div>
 
@@ -321,11 +339,11 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
     <script>
-        document.querySelectorAll('[data-card-id]').forEach(button => {
+        document.querySelectorAll('.vocab-list-item[data-card-id]').forEach(button => {
             button.addEventListener('click', () => {
                 const cardId = button.getAttribute('data-card-id');
 
-                document.querySelectorAll('[data-card-id]').forEach(item => {
+                document.querySelectorAll('.vocab-list-item[data-card-id]').forEach(item => {
                     item.classList.toggle('is-active', item === button);
                 });
 
@@ -340,7 +358,7 @@
             });
         });
 
-        const firstCardButton = document.querySelector('[data-card-id]');
+        const firstCardButton = document.querySelector('.vocab-list-item[data-card-id]');
         if (firstCardButton) firstCardButton.click();
     </script>
 }
