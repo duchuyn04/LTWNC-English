@@ -322,6 +322,33 @@ public class FlashcardSetController : Controller
         }
     }
 
+    // POST AJAX toggle sao thẻ trong trình chỉnh sửa (owner)
+    [HttpPost]
+    [Route("/Set/{setId}/Cards/{cardId}/ToggleStar")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleStar(int setId, int cardId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        try
+        {
+            bool isStarred = await _setService.ToggleStarAsync(cardId, userId);
+            return Json(new { success = true, isStarred });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+    }
+
     // POST sửa thẻ; removeUploadedImage xóa path ảnh upload nếu user bật
     [HttpPost]
     [Route("/Cards/{id}/Edit")]
