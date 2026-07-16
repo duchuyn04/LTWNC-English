@@ -287,6 +287,14 @@
             form.querySelectorAll('input[name="selectedCardIds"]').forEach(function (input) {
                 input.addEventListener('change', function () { syncBatchToolbar(form); });
             });
+            const toolbar = document.querySelector('[data-batch-for="' + form.id + '"]');
+            toolbar?.querySelectorAll('button').forEach(function (button) {
+                button.addEventListener('click', function (event) {
+                    if (event.defaultPrevented) return;
+                    event.preventDefault();
+                    submitBatchAction(form, button);
+                });
+            });
             form.addEventListener('submit', function (event) {
                 event.preventDefault();
                 submitBatchAction(form, event.submitter);

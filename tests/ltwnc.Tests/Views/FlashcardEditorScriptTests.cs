@@ -115,6 +115,14 @@ public class FlashcardEditorScriptTests
     }
 
     [Fact]
+    public void Batch_buttons_submit_directly_when_external_form_submitter_is_unavailable()
+    {
+        Assert.Contains("button.addEventListener('click'", Script);
+        Assert.Contains("if (event.defaultPrevented) return", Script);
+        Assert.Contains("submitBatchAction(form, button)", Script);
+    }
+
+    [Fact]
     public void Confirmed_batch_result_updates_star_delete_selection_and_feedback()
     {
         Assert.Contains("function applyBatchResult(form, result)", Script);
