@@ -71,6 +71,13 @@ public class FlashcardSetEditMarkupTests
         Assert.Contains("document.querySelector('.vocab-list-item[data-card-id]')", Source);
     }
 
+    [Fact]
+    public void Import_summary_renders_the_omitted_error_count()
+    {
+        Assert.Contains("TempData[\"ImportErrorsOmittedCount\"] is int omittedImportErrorCount", Source);
+        Assert.Contains("@omittedImportErrorCount", Source);
+    }
+
     private static string FindEditView()
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);

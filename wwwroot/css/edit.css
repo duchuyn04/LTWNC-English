@@ -147,6 +147,16 @@
     box-sizing: border-box;
 }
 
+textarea[data-auto-grow] {
+    min-height: 4.5rem;
+    max-height: 220px;
+    overflow-y: auto;
+}
+
+.add-card-form {
+    margin-top: 2rem;
+}
+
 .vocab-grid span,
 .vocab-wide-field span,
 .vocab-form-label {

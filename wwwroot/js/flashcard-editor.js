@@ -105,20 +105,25 @@
         document.querySelectorAll('[data-card-panel]').forEach(function (panel) {
             const active = panel.dataset.cardPanel === String(cardId);
             panel.classList.toggle('is-active', active);
-            if (active && window.innerWidth <= 900) {
-                panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            if (active) {
+                panel.querySelectorAll('textarea[data-auto-grow]').forEach(growTextarea);
+                if (window.innerWidth <= 900) {
+                    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
             }
         });
     }
 
+    function growTextarea(textarea) {
+        textarea.style.height = 'auto';
+        textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
+    }
+
     function bindAutoGrow(textarea) {
-        if (!textarea) return;
-        const grow = function () {
-            textarea.style.height = 'auto';
-            textarea.style.height = Math.min(textarea.scrollHeight, maxHeight) + 'px';
-        };
-        textarea.addEventListener('input', grow);
-        grow();
+        if (!textarea || textarea.dataset.autoGrowBound === 'true') return;
+        textarea.dataset.autoGrowBound = 'true';
+        textarea.addEventListener('input', function () { growTextarea(textarea); });
+        growTextarea(textarea);
     }
 
     function bindAnchors() {
@@ -150,7 +155,7 @@
                 if (input) showStarError(input, 'Đang cập nhật đánh dấu sao. Vui lòng đợi.');
             });
         });
-        document.querySelectorAll('textarea[name="backText"], textarea[name="exampleMeaning"]').forEach(bindAutoGrow);
+        document.querySelectorAll('textarea[data-auto-grow]').forEach(bindAutoGrow);
         bindAnchors();
 
         const firstCard = document.querySelector('.vocab-list-item[data-card-id]');

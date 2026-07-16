@@ -13,6 +13,8 @@ namespace ltwnc.Controllers;
 [Authorize]
 public class FlashcardSetController : Controller
 {
+    private const int MaxDisplayedImportErrors = 100;
+
     // Nghiệp vụ set + card + copy
     private readonly IFlashcardSetService _setService;
 
@@ -231,9 +233,13 @@ public class FlashcardSetController : Controller
 
             TempData["ImportImportedCount"] = result.ImportedCount;
             TempData["ImportSkippedCount"] = result.SkippedCount;
-            if (result.Errors.Count > 0)
+            FlashcardImportError[] displayedErrors = result.Errors
+                .Take(MaxDisplayedImportErrors)
+                .ToArray();
+            TempData["ImportErrorsOmittedCount"] = result.Errors.Count - displayedErrors.Length;
+            if (displayedErrors.Length > 0)
             {
-                TempData["ImportErrors"] = JsonSerializer.Serialize(result.Errors);
+                TempData["ImportErrors"] = JsonSerializer.Serialize(displayedErrors);
             }
 
             TempData["Success"] = result.ImportedCount > 0

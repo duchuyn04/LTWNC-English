@@ -34,8 +34,35 @@ public class FlashcardEditorScriptTests
     {
         Assert.Contains("scrollIntoView", Script);
         Assert.Contains("scrollHeight", Script);
-        Assert.Contains("backText", Script);
-        Assert.Contains("exampleMeaning", Script);
+        Assert.Contains("document.querySelectorAll('textarea[data-auto-grow]')", Script);
+    }
+
+    [Fact]
+    public void Selecting_a_card_recalculates_auto_grow_textareas_after_activating_its_panel()
+    {
+        Assert.Matches(
+            new Regex(
+                "panel\\.classList\\.toggle\\('is-active', active\\);[\\s\\S]*?" +
+                "if \\(active\\) \\{[\\s\\S]*?" +
+                "panel\\.querySelectorAll\\('textarea\\[data-auto-grow\\]'\\)\\.forEach\\(growTextarea\\)",
+                RegexOptions.Singleline),
+            Script);
+        Assert.Contains("if (firstCard) selectCard(firstCard.dataset.cardId)", Script);
+    }
+
+    [Fact]
+    public void Auto_grow_listener_binding_is_idempotent()
+    {
+        Assert.Contains("textarea.dataset.autoGrowBound === 'true'", Script);
+        Assert.Contains("textarea.dataset.autoGrowBound = 'true'", Script);
+    }
+
+    [Fact]
+    public void Edit_view_marks_back_text_and_example_meaning_textareas_for_auto_grow()
+    {
+        Assert.Equal(2, AutoGrowTextareas("backText").Count);
+        Assert.Equal(2, AutoGrowTextareas("exampleMeaning").Count);
+        Assert.DoesNotMatch(new Regex("<input[^>]+name=\"backText\"", RegexOptions.Singleline), View);
     }
 
     [Fact]
@@ -58,4 +85,10 @@ public class FlashcardEditorScriptTests
 
         return string.Empty;
     }
+
+    private static MatchCollection AutoGrowTextareas(string name) =>
+        Regex.Matches(
+            View,
+            $"<textarea(?=[^>]*name=\"{name}\")(?=[^>]*class=\"form-input-custom\")(?=[^>]*rows=\"2\")(?=[^>]*data-auto-grow)(?=[^>]*required)[^>]*>",
+            RegexOptions.Singleline);
 }

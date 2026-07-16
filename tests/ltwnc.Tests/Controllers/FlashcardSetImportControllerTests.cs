@@ -5,6 +5,7 @@ using ltwnc.Services.FlashcardSets;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using System.Text.Json;
 
 namespace ltwnc.Tests.Controllers;
 
@@ -89,6 +90,30 @@ public class FlashcardSetImportControllerTests
         var json = Assert.IsType<string>(controller.TempData["ImportErrors"]);
         Assert.Contains("\"RowNumber\":3", json);
         Assert.Contains("missing", json);
+    }
+
+    [Fact]
+    public async Task Import_ResultErrors_AreCappedForTempDataAndReportOmittedCount()
+    {
+        var (controller, import) = Create("owner");
+        FlashcardImportError[] errors = Enumerable.Range(1, 105)
+            .Select(row => new FlashcardImportError { RowNumber = row, Reason = $"error {row}" })
+            .ToArray();
+        import.Setup(x => x.ImportAsync(4, "owner", It.IsAny<IFormFile>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FlashcardImportResult
+            {
+                SkippedCount = errors.Length,
+                Errors = errors
+            });
+
+        await controller.Import(4, File());
+
+        var json = Assert.IsType<string>(controller.TempData["ImportErrors"]);
+        FlashcardImportError[] displayed = JsonSerializer.Deserialize<FlashcardImportError[]>(json)!;
+        Assert.Equal(100, displayed.Length);
+        Assert.Equal(100, displayed[^1].RowNumber);
+        Assert.Equal(5, controller.TempData["ImportErrorsOmittedCount"]);
+        Assert.Equal(105, controller.TempData["ImportSkippedCount"]);
     }
 
     [Fact]

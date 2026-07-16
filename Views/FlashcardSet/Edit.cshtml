@@ -99,6 +99,10 @@
                         }
                     </ul>
                 }
+                @if (TempData["ImportErrorsOmittedCount"] is int omittedImportErrorCount && omittedImportErrorCount > 0)
+                {
+                    <p class="mb-0 mt-2">Còn <strong>@omittedImportErrorCount</strong> lỗi khác không hiển thị.</p>
+                }
             </div>
         }
 
@@ -190,7 +194,7 @@
                                 </label>
                                 <label>
                                     <span>Định nghĩa <b>*</b></span>
-                                    <input type="text" name="backText" value="@card.BackText" class="form-input-custom" required />
+                                    <textarea name="backText" class="form-input-custom" rows="2" data-auto-grow required>@card.BackText</textarea>
                                 </label>
                                 <label>
                                     <span>IPA <b>*</b></span>
@@ -209,7 +213,7 @@
 
                             <label class="vocab-wide-field">
                                 <span>Nghĩa câu ví dụ tiếng Việt <b>*</b></span>
-                                <textarea name="exampleMeaning" class="form-input-custom" rows="2" required>@card.ExampleMeaning</textarea>
+                                <textarea name="exampleMeaning" class="form-input-custom" rows="2" data-auto-grow required>@card.ExampleMeaning</textarea>
                             </label>
 
                             <label class="vocab-wide-field">
@@ -281,7 +285,7 @@
                         </label>
                         <label>
                             <span>Định nghĩa <b>*</b></span>
-                            <input type="text" name="backText" class="form-input-custom" aria-label="Định nghĩa" required />
+                            <textarea name="backText" class="form-input-custom" rows="2" data-auto-grow aria-label="Định nghĩa" required></textarea>
                         </label>
                         <label>
                             <span>IPA <b>*</b></span>
@@ -300,7 +304,7 @@
 
                     <label class="vocab-wide-field">
                         <span>Nghĩa câu ví dụ tiếng Việt <b>*</b></span>
-                        <textarea name="exampleMeaning" class="form-input-custom" rows="2" required></textarea>
+                        <textarea name="exampleMeaning" class="form-input-custom" rows="2" data-auto-grow required></textarea>
                     </label>
 
                     <label class="vocab-wide-field">

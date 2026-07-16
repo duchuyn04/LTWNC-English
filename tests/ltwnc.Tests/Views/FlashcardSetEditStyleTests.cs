@@ -84,6 +84,24 @@ public class FlashcardSetEditStyleTests
     }
 
     [Fact]
+    public void Auto_grow_textareas_have_sensible_height_bounds_and_overflow()
+    {
+        Assert.Matches(
+            Rule(
+                "textarea\\[data-auto-grow\\]",
+                "min-height:\\s*[^;]+;[^}]*max-height:\\s*220px;[^}]*overflow-y:\\s*auto"),
+            Source);
+    }
+
+    [Fact]
+    public void Add_card_form_is_visually_separated_from_the_split_editor()
+    {
+        Assert.Matches(
+            Rule("\\.add-card-form", "margin-top:\\s*2rem"),
+            Source);
+    }
+
+    [Fact]
     public void Sidebar_becomes_horizontally_scrollable_on_mobile()
     {
         Assert.Matches(
