@@ -8,7 +8,7 @@ Làm cho trang quản lý bộ thẻ dễ sử dụng khi có nhiều thẻ: dan
 
 - Chỉ thay đổi trang `Views/FlashcardSet/Edit.cshtml`, CSS/JS liên quan và endpoint toggle sao phục vụ trang này.
 - Không thay đổi mô hình dữ liệu, cách import file, CRUD nghiệp vụ hoặc các Study Mode.
-- Giữ nguyên checkbox chọn nhiều thẻ cho thao tác Delete/Star/Unstar hàng loạt; chỉ thay đổi UI của trạng thái sao trên từng thẻ.
+- Giữ nguyên checkbox chọn nhiều thẻ cho thao tác Delete/Star/Unstar hàng loạt; checkbox này là lựa chọn hàng loạt, không đại diện cho trạng thái sao của thẻ.
 
 ## Bố cục mới
 
@@ -37,17 +37,17 @@ Mỗi thẻ trong danh sách vẫn có nút chọn để mở panel chi tiết t
 
 ## Đánh dấu sao không reload
 
-Trạng thái sao trên form chi tiết và form thêm mới dùng control hình ngôi sao có thể bấm, không hiển thị checkbox vuông. Control có:
+Trạng thái sao trên form chi tiết, form thêm mới và item trong danh sách dùng checkbox semantic nhưng được tạo hình ngôi sao, không hiển thị ô vuông mặc định. Control có:
 
-- `button type="button"` với `aria-pressed="true|false"`, `aria-label` mô tả hành động và icon sao.
+- `input type="checkbox"` ẩn phần native nhưng giữ trạng thái checked, kết hợp với `label`/button hình ngôi sao; có `aria-label` mô tả hành động và focus style rõ ràng.
 - class `is-starred` khi đang bật; màu và nền thay đổi bằng CSS.
 - `data-toggle-star-url`, `data-card-id` và `data-star-target` để JavaScript cập nhật đúng card.
 
-Khi bấm sao trên một thẻ đã tồn tại, JavaScript gửi `POST` tới endpoint JSON mới của `FlashcardSetController`, kèm antiforgery token và `setId/cardId`. Service hiện có `ToggleStarAsync` được dùng lại; controller trả `{ success, isStarred }`. Khi thành công, UI cập nhật icon, class, `aria-pressed` và sao trong item danh sách ngay lập tức. Khi lỗi, UI khôi phục trạng thái trước đó và hiển thị thông báo ngắn; không reload trang.
+Khi bấm sao trên một thẻ đã tồn tại, JavaScript gửi `POST` tới endpoint JSON mới của `FlashcardSetController`, kèm antiforgery token và `setId/cardId`. Service hiện có `ToggleStarAsync` được dùng lại; controller trả `{ success, isStarred }`. Khi thành công, UI cập nhật icon, class, `checked`/`aria-checked` và sao trong item danh sách ngay lập tức. Khi lỗi, UI khôi phục trạng thái trước đó và hiển thị thông báo ngắn; không reload trang.
 
 Form thêm mới giữ field hidden/giá trị sao tương thích với action `AddCard`; nút sao chỉ cập nhật hidden input trước khi submit.
 
-Checkbox vuông trong batch toolbar vẫn giữ nguyên để chọn nhiều card cho Command hiện có.
+Checkbox vuông trong batch toolbar vẫn giữ nguyên vì nó biểu thị lựa chọn nhiều card cho Command hiện có, không phải trạng thái starred. Giao diện phải đặt label/tooltip khác biệt để người dùng không nhầm hai loại checkbox.
 
 ## Input và responsive
 
@@ -64,7 +64,7 @@ Các input văn bản trong `.vocab-grid` dùng `width: 100%`, `min-width: 0`, `
 
 - Nếu user chưa đăng nhập, endpoint trả Challenge như các action hiện tại.
 - Nếu card không tồn tại hoặc không thuộc set/user, endpoint trả `404`/`403` phù hợp; JavaScript không đổi state cuối cùng.
-- Nút sao có focus style, `aria-pressed`, `aria-label` và không phụ thuộc chỉ vào màu để biểu thị bật/tắt.
+- Nút sao có focus style, `aria-checked`, `aria-label` và không phụ thuộc chỉ vào màu để biểu thị bật/tắt.
 - Anchor sidebar có focus-visible; thao tác bằng bàn phím vẫn mở panel và toggle sao được.
 - Không dùng inline style mới cho layout; các style responsive đặt trong `edit.css`.
 
