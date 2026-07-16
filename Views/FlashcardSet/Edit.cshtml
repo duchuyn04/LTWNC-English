@@ -170,14 +170,14 @@
                                            name="isStarred"
                                            value="true"
                                            id="star-card-@card.Id"
-                                           class="visually-hidden"
+                                           class="star-checkbox"
                                            data-toggle-star-url="@Url.Action("ToggleStar", "FlashcardSet", new { setId = Model.Id, cardId = card.Id })"
                                            data-card-id="@card.Id"
                                            data-star-target="#star-label-@card.Id"
                                            aria-label="Đánh sao thẻ @card.FrontText"
                                            @(card.IsStarred ? "checked" : "") />
                                     <label id="star-label-@card.Id" for="star-card-@card.Id" class="star-toggle">
-                                        <span>★ Đánh sao</span>
+                                        <span>Đánh sao</span>
                                     </label>
                                     <button type="submit" class="btn-primary-custom">Lưu từ</button>
                                 </div>

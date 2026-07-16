@@ -51,7 +51,7 @@ public class FlashcardSetEditMarkupTests
     {
         Assert.Matches(
             new Regex(
-                "<input[^>]+type=\\\"checkbox\\\"[^>]+name=\\\"isStarred\\\"[^>]+class=\\\"visually-hidden\\\"[^>]+data-toggle-star-url=[^>]+data-card-id=[^>]+data-star-target=[^>]+aria-label=[^>]+checked",
+                "<input[^>]+type=\\\"checkbox\\\"[^>]+name=\\\"isStarred\\\"[^>]+class=\\\"star-checkbox\\\"[^>]+data-toggle-star-url=[^>]+data-card-id=[^>]+data-star-target=[^>]+aria-label=[^>]+checked",
                 RegexOptions.Singleline),
             Source);
         Assert.Contains("@Html.AntiForgeryToken()", Source);
