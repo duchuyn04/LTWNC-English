@@ -51,6 +51,7 @@
     grid-template-columns: minmax(240px, 320px) minmax(0, 1fr);
     align-items: start;
     gap: 1rem;
+    padding-bottom: 3rem;
 }
 
 .vocab-list,
