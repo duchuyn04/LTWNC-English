@@ -21,7 +21,11 @@ public class FlashcardEditorScriptTests
     public void Script_rolls_back_failed_toggles_and_guards_pending_requests()
     {
         Assert.Matches(new Regex("rollback|restore|previous", RegexOptions.IgnoreCase), Script);
-        Assert.Matches(new Regex("pending|inFlight|disabled", RegexOptions.IgnoreCase), Script);
+        Assert.Contains("const previousChecked = !input.checked", Script);
+        Assert.Contains("setStarState(cardId, previousChecked)", Script);
+        Assert.Contains("data-star-pending", Script);
+        Assert.Contains("preventDefault()", Script);
+        Assert.DoesNotContain("input.disabled", Script);
         Assert.Contains("error", Script);
     }
 

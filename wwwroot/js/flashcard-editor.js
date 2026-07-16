@@ -47,18 +47,23 @@
     }
 
     function toggleStar(input) {
-        if (!input || input.dataset.pending === 'true') return;
+        if (!input || input.getAttribute('data-star-pending') === 'true') return;
 
         const cardId = input.dataset.cardId;
-        const previousState = input.checked;
+        const previousChecked = !input.checked;
         const token = input.closest('form')?.querySelector('input[name="__RequestVerificationToken"]')
             || document.querySelector('input[name="__RequestVerificationToken"]');
         const relatedInputs = Array.from(document.querySelectorAll(
             '.star-checkbox[data-card-id="' + cardId + '"]'));
+        const relatedForms = Array.from(new Set(relatedInputs
+            .map(function (control) { return control.closest('.vocab-card-form'); })
+            .filter(Boolean)));
 
         relatedInputs.forEach(function (control) {
-            control.dataset.pending = 'true';
-            control.disabled = true;
+            control.setAttribute('data-star-pending', 'true');
+        });
+        relatedForms.forEach(function (form) {
+            form.setAttribute('data-star-pending', 'true');
         });
         clearStarError(input);
 
@@ -79,13 +84,15 @@
                 setStarState(cardId, Boolean(result.isStarred));
             })
             .catch(function () {
-                setStarState(cardId, previousState);
+                setStarState(cardId, previousChecked);
                 showStarError(input, 'Không thể cập nhật đánh dấu sao. Vui lòng thử lại.');
             })
             .finally(function () {
                 relatedInputs.forEach(function (control) {
-                    control.disabled = false;
-                    delete control.dataset.pending;
+                    control.removeAttribute('data-star-pending');
+                });
+                relatedForms.forEach(function (form) {
+                    form.removeAttribute('data-star-pending');
                 });
             });
     }
@@ -134,6 +141,14 @@
         document.querySelectorAll('.star-checkbox[data-card-id]').forEach(function (input) {
             input.setAttribute('aria-checked', String(input.checked));
             input.addEventListener('change', function () { toggleStar(input); });
+        });
+        document.querySelectorAll('.vocab-card-form').forEach(function (form) {
+            form.addEventListener('submit', function (event) {
+                if (form.getAttribute('data-star-pending') !== 'true') return;
+                event.preventDefault();
+                const input = form.querySelector('.star-checkbox[data-card-id]');
+                if (input) showStarError(input, 'Đang cập nhật đánh dấu sao. Vui lòng đợi.');
+            });
         });
         document.querySelectorAll('textarea[name="backText"], textarea[name="exampleMeaning"]').forEach(bindAutoGrow);
         bindAnchors();
