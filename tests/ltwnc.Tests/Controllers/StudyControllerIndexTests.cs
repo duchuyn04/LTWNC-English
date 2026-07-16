@@ -57,7 +57,12 @@ public class StudyControllerIndexTests
             ? new DefaultHttpContext { User = new ClaimsPrincipal(new ClaimsIdentity()) }
             : new DefaultHttpContext { User = CreateUser(userId) };
 
-        var controller = new StudyController(studyService, dictationService, setService, currentUser.Object)
+        var controller = new StudyController(
+            studyService,
+            dictationService,
+            Mock.Of<IQuizService>(),
+            setService,
+            currentUser.Object)
         {
             ControllerContext = new ControllerContext { HttpContext = httpContext },
             TempData = new TempDataDictionary(new DefaultHttpContext(), new Mock<ITempDataProvider>().Object)

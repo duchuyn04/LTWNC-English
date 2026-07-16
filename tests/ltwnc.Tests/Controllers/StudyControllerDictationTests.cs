@@ -68,7 +68,12 @@ public class StudyControllerDictationTests
         var studyService = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var dictationService = new DictationService(context, resolver, TestStudyEvents.NoOpPublisher());
 
-        var controller = new StudyController(studyService, dictationService, setService, currentUser.Object)
+        var controller = new StudyController(
+            studyService,
+            dictationService,
+            Mock.Of<IQuizService>(),
+            setService,
+            currentUser.Object)
         {
             ControllerContext = new ControllerContext
             {

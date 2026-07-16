@@ -18,6 +18,9 @@ public class StudyController : Controller
     // Lấy thẻ / chấm / complete / result dictation
     private readonly IDictationService _dictationService;
 
+    // Tạo phiên / lấy câu hỏi / chấm / kết quả quiz
+    private readonly IQuizService _quizService;
+
     // Kiểm tra owner set, toggle star
     private readonly IFlashcardSetService _setService;
 
@@ -27,11 +30,13 @@ public class StudyController : Controller
     public StudyController(
         IStudyService studyService,
         IDictationService dictationService,
+        IQuizService quizService,
         IFlashcardSetService setService,
         ICurrentUser currentUser)
     {
         _studyService = studyService;
         _dictationService = dictationService;
+        _quizService = quizService;
         _setService = setService;
         _currentUser = currentUser;
     }
@@ -289,6 +294,281 @@ public class StudyController : Controller
         }
 
         return RedirectToAction("Index", new { setId });
+    }
+
+    [HttpGet]
+    [Route("/Study/{setId}/Quiz")]
+    public async Task<IActionResult> QuizStart(int setId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        try
+        {
+            UserStudySettings settings = await _studyService.GetSettingsAsync(userId);
+            StudySession session = await _quizService.StartOrResumeAsync(setId, userId, settings);
+            return RedirectToAction(nameof(Quiz), new { setId, sessionId = session.Id });
+        }
+        catch (QuizUnavailableException exception)
+        {
+            TempData["Message"] = exception.Message;
+            return RedirectToAction(nameof(Index), new { setId });
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return BadRequest();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+    }
+
+    [HttpGet]
+    [Route("/Study/{setId}/Quiz/{sessionId:int}")]
+    public async Task<IActionResult> Quiz(int setId, int sessionId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        try
+        {
+            QuizQuestionState state = await _quizService.GetCurrentQuestionAsync(
+                setId,
+                sessionId,
+                userId);
+            if (state.IsComplete)
+            {
+                return RedirectToAction(nameof(QuizResult), new { setId, sessionId });
+            }
+
+            QuizSessionQuestion question = state.Question!;
+            QuizStudyViewModel model = new()
+            {
+                SetId = state.SetId,
+                SetTitle = state.SetTitle,
+                SessionId = state.SessionId,
+                QuestionId = question.Id,
+                CurrentNumber = state.AnsweredCount + 1,
+                TotalQuestions = state.TotalQuestions,
+                CorrectCount = state.CorrectCount,
+                Direction = question.Direction,
+                PromptText = question.PromptText,
+                Choices = question.Choices.ToList()
+            };
+
+            return View(model);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return BadRequest();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+    }
+
+    [HttpPost]
+    [Route("/Study/{setId}/Quiz/{sessionId:int}/Answer")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> QuizAnswer(
+        int setId,
+        int sessionId,
+        int questionId,
+        int selectedChoiceIndex)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            QuizAnswerResult result = await _quizService.AnswerAsync(
+                setId,
+                sessionId,
+                questionId,
+                selectedChoiceIndex,
+                userId);
+            string? nextUrl = result.IsLastQuestion
+                ? Url.Action(nameof(QuizResult), new { setId, sessionId })
+                : Url.Action(nameof(Quiz), new { setId, sessionId });
+
+            return Json(new
+            {
+                success = true,
+                isCorrect = result.IsCorrect,
+                correctChoiceIndex = result.CorrectChoiceIndex,
+                isLastQuestion = result.IsLastQuestion,
+                nextUrl
+            });
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return BadRequest();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (QuizConflictException exception)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new
+            {
+                success = false,
+                message = exception.Message
+            });
+        }
+    }
+
+    [HttpGet]
+    [Route("/Study/{setId}/Quiz/Result/{sessionId:int}")]
+    public async Task<IActionResult> QuizResult(int setId, int sessionId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        try
+        {
+            QuizSessionResult result = await _quizService.GetResultAsync(setId, sessionId, userId);
+            QuizResultViewModel model = new()
+            {
+                SetId = result.SetId,
+                SetTitle = result.SetTitle,
+                SessionId = result.SessionId,
+                Score = result.Score,
+                TotalQuestions = result.TotalQuestions,
+                CorrectCount = result.CorrectCount,
+                WrongAnswers = result.WrongAnswers.Select(answer => new QuizWrongAnswerViewModel
+                {
+                    Direction = answer.Direction,
+                    PromptText = answer.PromptText,
+                    SelectedAnswer = answer.SelectedAnswer,
+                    CorrectAnswer = answer.CorrectAnswer
+                }).ToList()
+            };
+
+            return View(model);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return BadRequest();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (QuizConflictException exception)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new
+            {
+                success = false,
+                message = exception.Message
+            });
+        }
+    }
+
+    [HttpPost]
+    [Route("/Study/{setId}/Quiz/{sessionId:int}/RetryWrong")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RetryWrong(int setId, int sessionId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            StudySession session = await _quizService.RetryWrongAsync(setId, sessionId, userId);
+            return RedirectToAction(nameof(Quiz), new { setId, sessionId = session.Id });
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return BadRequest();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (QuizConflictException exception)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new
+            {
+                success = false,
+                message = exception.Message
+            });
+        }
+    }
+
+    [HttpPost]
+    [Route("/Study/{setId}/Quiz/{sessionId:int}/RetryAll")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> RetryAll(int setId, int sessionId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            StudySession session = await _quizService.RetryAllAsync(setId, sessionId, userId);
+            return RedirectToAction(nameof(Quiz), new { setId, sessionId = session.Id });
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return BadRequest();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (QuizConflictException exception)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new
+            {
+                success = false,
+                message = exception.Message
+            });
+        }
     }
 
     // GET màn Dictation: tạo session, map thẻ -> view model; empty -> hub
