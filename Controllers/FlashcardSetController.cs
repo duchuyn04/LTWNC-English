@@ -71,6 +71,7 @@ public class FlashcardSetController : Controller
             model.IsPublic,
             userId);
 
+        TempData["Success"] = "Đã tạo bộ thẻ. Hãy thêm từ đầu tiên.";
         return RedirectToAction("Edit", new { id = set.Id });
     }
 
@@ -195,6 +196,7 @@ public class FlashcardSetController : Controller
                 model.Description,
                 model.IsPublic,
                 userId);
+            TempData["Success"] = "Đã lưu thay đổi bộ thẻ.";
             return RedirectToAction("Edit", new { id });
         }
         catch (UnauthorizedAccessException)

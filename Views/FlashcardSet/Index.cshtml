@@ -48,7 +48,7 @@
                         </div>
                         <div class="set-card-actions">
                             <a href="/Study/@item.Set.Id" class="btn-sm-primary"><i class="ph ph-book-open"></i> Học</a>
-                            <a href="/Set/@item.Set.Id/Edit" class="btn-sm-secondary">Sửa</a>
+                            <a href="/Set/@item.Set.Id/Edit" class="btn-sm-secondary">Quản lý</a>
                             <form asp-action="Delete" asp-route-id="@item.Set.Id" method="post" class="d-inline" onsubmit="return confirm('Xóa bộ thẻ này?');">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="btn-sm-danger">Xóa</button>
