@@ -128,6 +128,17 @@ public class FlashcardSetEditStyleTests
             Source);
     }
 
+    [Fact]
+    public void Vocabulary_list_controls_stay_visible_while_cards_scroll()
+    {
+        Assert.Matches(
+            Rule("\\.vocab-list-header", "position:\\s*sticky[^}]*top:\\s*-1rem[^}]*z-index:\\s*4"),
+            Source);
+        Assert.Matches(
+            Rule("\\.batch-toolbar", "position:\\s*sticky[^}]*top:\\s*4rem[^}]*z-index:\\s*3"),
+            Source);
+    }
+
     private static Regex Rule(string selector, string declarations) =>
         new(RulePattern(selector, declarations), RegexOptions.Singleline);
 

@@ -80,6 +80,15 @@
     gap: 0.75rem;
 }
 
+.vocab-list-header {
+    position: sticky;
+    top: -1rem;
+    z-index: 4;
+    background: #fff;
+    margin: -1rem -1rem 0;
+    padding: 1rem 1rem 0.75rem;
+}
+
 .vocab-list-item {
     width: 100%;
     border: 1px solid transparent;
@@ -222,6 +231,11 @@ textarea[data-auto-grow] {
 }
 
 .batch-toolbar {
+    position: sticky;
+    top: 4rem;
+    z-index: 3;
+    background: #fff;
+    padding: 0.5rem 0;
     display: flex;
     flex-wrap: wrap;
     gap: 0.5rem;
