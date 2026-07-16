@@ -117,7 +117,7 @@ public class FlashcardSetEditStyleTests
     public void Add_card_form_is_visually_separated_from_the_split_editor()
     {
         Assert.Matches(
-            Rule("\\.vocab-editor", "padding-bottom:\\s*3rem"),
+            Rule("\\.vocab-editor", "padding-bottom:\\s*1rem"),
             Source);
         Assert.Matches(
             Rule("\\.add-card-form", "margin-top:\\s*3rem"),
