@@ -15,6 +15,21 @@
 - Lưu tiến trình học qua `UserProgress`.
 - Text-to-speech, phím tắt, cài đặt hiển thị mặt trước/mặt sau.
 
+## Nhập thẻ từ tệp
+
+Từ trang chỉnh sửa bộ thẻ tại `/Set/{id}/Edit` (chỉ chủ sở hữu), chọn tệp `.csv` hoặc `.xlsx`. Tệp XLSX chỉ đọc worksheet đầu tiên. Kích thước tệp tối đa là **10 MB**; các định dạng khác (ví dụ `.xls`) bị từ chối và tệp không được lưu lại sau khi nhập.
+
+Hàng đầu tiên phải có đúng các cột bắt buộc sau (không phân biệt hoa thường, khoảng trắng đầu/cuối được bỏ qua): `Thuật ngữ`, `Định nghĩa`, `IPA`, `Loại từ`, `Ví dụ tiếng Anh`, `Nghĩa ví dụ tiếng Việt`. Hai cột tùy chọn là `Từ đồng nghĩa` và `URL ẢNH`; URL ảnh được lưu như URL ảnh của thẻ (không phải tệp ảnh tải lên).
+
+Ví dụ CSV tối thiểu:
+
+```csv
+Thuật ngữ,Định nghĩa,IPA,Loại từ,Ví dụ tiếng Anh,Nghĩa ví dụ tiếng Việt,Từ đồng nghĩa,URL ẢNH
+run,chạy,/rʌn/,verb,"I run every morning.",Tôi chạy mỗi sáng.,jog,https://example.com/run.png
+```
+
+Các dòng trống được bỏ qua. Dòng hợp lệ vẫn được nhập nếu tệp có dòng lỗi; kết quả hiển thị số thẻ đã nhập và số dòng bỏ qua cùng báo lỗi theo số dòng. Nếu thiếu cột bắt buộc hoặc dùng định dạng không hỗ trợ, toàn bộ tệp bị báo lỗi và không thêm thẻ nào.
+
 ## Các mẫu thiết kế GoF
 
 Project dùng một số mẫu từ sách *Design Patterns: Elements of Reusable Object-Oriented Software*. Mục tiêu không phải “có đủ pattern cho đẹp báo cáo”, mà là gom chỗ dễ phình if/switch và chỗ một hành động kéo theo nhiều hệ quả phụ vào các class riêng, để thêm tính năng sau không phải sửa lan sang service lõi.
