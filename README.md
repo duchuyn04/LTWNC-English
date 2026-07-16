@@ -12,6 +12,7 @@
 - Study Hub: chọn chế độ học, xem tiến độ, gợi ý mode phù hợp, lọc nhanh đã sao/chưa thuộc.
 - Học flashcard với lật thẻ, trộn thẻ, lọc thẻ đã sao hoặc chưa thuộc.
 - Nghe chép chính tả: học theo từ vựng hoặc câu ví dụ, chấm đáp án từng từ, phát âm qua Web Speech API.
+- Trắc nghiệm 4 lựa chọn: trộn câu hỏi Anh–Việt/Việt–Anh, chấm ngay, lưu điểm và làm lại câu sai.
 - Lưu tiến trình học qua `UserProgress`.
 - Text-to-speech, phím tắt, cài đặt hiển thị mặt trước/mặt sau.
 
@@ -53,7 +54,7 @@ Vì clone tạo object mới hoàn toàn, bộ sao chỉnh sửa riêng được
 
 ### Strategy
 
-**Vấn đề trong project:** Study Hub có nhiều chế độ học (Flashcard, Nghe chép, sau này có thể thêm Quiz…). Mỗi mode lấy thẻ khác nhau và build option hiển thị khác nhau. Ví dụ Dictation có thể loại thẻ thiếu câu ví dụ khi chọn học theo example sentence. Nếu `StudyService` tự `if (mode == Flashcard) … else if (mode == Dictation) …`, mỗi mode mới buộc mở service lõi, test lại cả class, và logic lọc thẻ trộn với điều phối hub.
+**Vấn đề trong project:** Study Hub có ba chế độ học (Flashcard, Nghe chép, Quiz). Mỗi mode lấy thẻ khác nhau và build option hiển thị khác nhau. Ví dụ Dictation có thể loại thẻ thiếu câu ví dụ khi chọn học theo example sentence, còn Quiz cần kiểm tra pool đáp án trước khi cho phép bắt đầu. Nếu `StudyService` tự phân nhánh theo từng mode, mỗi mode mới buộc mở service lõi, test lại cả class, và logic lọc thẻ trộn với điều phối hub.
 
 **Vì sao dùng Strategy:** Gom “cách lấy thẻ + cách hiện option” của từng mode vào một class. Service chỉ chọn strategy theo mode đã chọn, không chứa chi tiết mode.
 
@@ -63,6 +64,7 @@ Mỗi chế độ học là một class implement `IStudyModeStrategy`:
 
 - `FlashcardModeStrategy` lấy tất cả thẻ đã qua bộ lọc.
 - `DictationModeStrategy` lấy thẻ phù hợp với `DictationContentMode` (ví dụ loại thẻ thiếu câu ví dụ khi chọn ExampleSentence).
+- `QuizModeStrategy` lấy thẻ câu hỏi qua bộ lọc chung và kiểm tra pool thuật ngữ/nghĩa phân biệt qua async option builder trước khi bật chế độ Quiz.
 
 `StudyService` iterate các strategy đã đăng ký trong DI; mỗi strategy tự lấy thẻ và tự xây option hiển thị. Thêm mode mới: class mới implement interface, đăng ký trong `Program.cs`, không cần mở `StudyService`.
 
