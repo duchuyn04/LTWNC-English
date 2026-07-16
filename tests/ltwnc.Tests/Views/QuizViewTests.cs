@@ -1,3 +1,5 @@
+using System.Text.RegularExpressions;
+
 namespace ltwnc.Tests.Views;
 
 public class QuizViewTests
@@ -34,13 +36,25 @@ public class QuizViewTests
     [Fact]
     public void Quiz_script_posts_antiforgery_and_uses_only_the_server_grade()
     {
-        Assert.Contains("RequestVerificationToken", QuizScript);
-        Assert.Contains("selectedChoiceIndex", QuizScript);
-        Assert.Contains("button.disabled = true", QuizScript);
-        Assert.Contains("correctChoiceIndex", QuizScript);
-        Assert.Contains("result.nextUrl", QuizScript);
-        Assert.Contains("result.isLastQuestion", QuizScript);
-        Assert.Contains("textContent", QuizScript);
+        string clickHandler = RequiredMatch(
+            QuizScript,
+            "button\\.addEventListener\\('click', async \\(\\) => \\{[\\s\\S]*?\\n        \\}\\);");
+        string serverGrade = RequiredMatch(
+            clickHandler,
+            "const result = await response\\.json\\(\\);[\\s\\S]*?nextLink\\.hidden = false;");
+
+        Assert.Contains("RequestVerificationToken", clickHandler);
+        Assert.Contains("selectedChoiceIndex", clickHandler);
+        Assert.Matches(
+            new Regex("setPending\\(true\\);[\\s\\S]*?await fetch", RegexOptions.Singleline),
+            clickHandler);
+        Assert.Contains("const correctChoiceIndex = Number(result.correctChoiceIndex)", serverGrade);
+        Assert.Contains("const correctButton = buttons[correctChoiceIndex]", serverGrade);
+        Assert.Contains("correctButton.classList.add('is-correct')", serverGrade);
+        Assert.Contains("result.isCorrect === false", serverGrade);
+        Assert.Contains("result.nextUrl", serverGrade);
+        Assert.Contains("result.isLastQuestion", serverGrade);
+        Assert.Contains("textContent", serverGrade);
         Assert.DoesNotContain("innerHTML", QuizScript);
         Assert.DoesNotContain("dataset.correct", QuizScript);
     }
@@ -48,20 +62,56 @@ public class QuizViewTests
     [Fact]
     public void Quiz_script_retries_transient_failures_and_reloads_conflicts()
     {
-        Assert.Contains("response.status === 409", QuizScript);
-        Assert.Contains("window.location.reload()", QuizScript);
-        Assert.Contains("button.disabled = false", QuizScript);
-        Assert.Contains("response.status >= 500", QuizScript);
+        string pendingFunction = RequiredMatch(
+            QuizScript,
+            "const setPending = \\(pending\\) => \\{[\\s\\S]*?\\n    \\};");
+        string retryableErrorFunction = RequiredMatch(
+            QuizScript,
+            "const showRetryableError = \\(\\) => \\{[\\s\\S]*?\\n    \\};");
+        string conflictBranch = RequiredMatch(
+            QuizScript,
+            "if \\(response\\.status === 409\\) \\{[\\s\\S]*?return;[\\s\\S]*?\\n                \\}");
+        string requestErrorFlow = RequiredMatch(
+            QuizScript,
+            "if \\(response\\.status >= 500\\)[\\s\\S]*?catch \\(error\\) \\{[\\s\\S]*?\\n            \\}");
+
+        Assert.Contains("button.disabled = true", pendingFunction);
+        Assert.Contains("button.disabled = false", pendingFunction);
+        Assert.Contains("setPending(false)", retryableErrorFunction);
+        Assert.Contains("window.location.reload()", conflictBranch);
+        Assert.Contains("throw new Error('Server error')", requestErrorFlow);
+        Assert.Contains("showRetryableError()", requestErrorFlow);
+    }
+
+    [Fact]
+    public void Quiz_script_announces_and_labels_the_server_selected_correct_choice()
+    {
+        string serverGrade = RequiredMatch(
+            QuizScript,
+            "const result = await response\\.json\\(\\);[\\s\\S]*?nextLink\\.hidden = false;");
+
+        Assert.Contains("const correctChoiceText = correctButton.textContent.trim()", serverGrade);
+        Assert.Contains(
+            "correctButton.setAttribute('aria-label', `Đáp án đúng: ${correctChoiceText}`)",
+            serverGrade);
+        Assert.Contains(": `Chưa đúng. Đáp án đúng: ${correctChoiceText}.`;", serverGrade);
     }
 
     [Fact]
     public void Result_view_encodes_snapshots_and_offers_expected_actions()
     {
+        string retryWrongConditional = RequiredMatch(
+            ResultView,
+            "<div class=\"quiz-result-actions\">\\s*" +
+            "@if \\(Model\\.WrongAnswers\\.Any\\(\\)\\)\\s*\\{\\s*" +
+            "<form(?=[^>]*asp-action=\"RetryWrong\")[\\s\\S]*?</form>\\s*\\}");
+
         Assert.Contains("@answer.PromptText", ResultView);
         Assert.Contains("@answer.SelectedAnswer", ResultView);
         Assert.Contains("@answer.CorrectAnswer", ResultView);
-        Assert.Contains("Model.WrongAnswers.Any()", ResultView);
-        Assert.Contains("RetryWrong", ResultView);
+        Assert.Contains("Model.WrongAnswers.Any()", retryWrongConditional);
+        Assert.Contains("asp-action=\"RetryWrong\"", retryWrongConditional);
+        Assert.Contains("@Html.AntiForgeryToken()", retryWrongConditional);
         Assert.Contains("RetryAll", ResultView);
         Assert.Contains("@Html.AntiForgeryToken()", ResultView);
         Assert.Contains("asp-action=\"Index\"", ResultView);
@@ -75,8 +125,20 @@ public class QuizViewTests
         Assert.Contains(":focus-visible", QuizStyles);
         Assert.Contains(".quiz-choice:disabled.is-correct", QuizStyles);
         Assert.Contains(".quiz-choice:disabled.is-wrong", QuizStyles);
+        Assert.Contains("outline: 3px solid #92400e;", QuizStyles);
+        Assert.DoesNotContain("outline: 3px solid rgba(", QuizStyles);
         Assert.Contains("@media (max-width:", QuizStyles);
         Assert.Contains("prefers-reduced-motion: reduce", QuizStyles);
+    }
+
+    private static string RequiredMatch(string source, string pattern)
+    {
+        System.Text.RegularExpressions.Match match = Regex.Match(
+            source,
+            pattern,
+            RegexOptions.Singleline);
+        Assert.True(match.Success, $"Required scoped contract did not match: {pattern}");
+        return match.Value;
     }
 
     private static string ReadFile(params string[] parts)

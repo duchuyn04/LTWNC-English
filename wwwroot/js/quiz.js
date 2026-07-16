@@ -67,12 +67,14 @@
                     throw new Error('Invalid response');
                 }
 
+                const correctChoiceText = correctButton.textContent.trim();
                 correctButton.classList.add('is-correct');
+                correctButton.setAttribute('aria-label', `Đáp án đúng: ${correctChoiceText}`);
                 if (result.isCorrect === false) button.classList.add('is-wrong');
 
                 feedback.textContent = result.isCorrect
                     ? 'Chính xác!'
-                    : 'Chưa đúng. Đáp án đúng đã được đánh dấu.';
+                    : `Chưa đúng. Đáp án đúng: ${correctChoiceText}.`;
                 feedback.className = result.isCorrect
                     ? 'quiz-feedback is-correct'
                     : 'quiz-feedback is-wrong';

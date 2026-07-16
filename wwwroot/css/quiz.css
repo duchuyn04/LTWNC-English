@@ -175,7 +175,7 @@
 .quiz-exit:focus-visible,
 .quiz-next:focus-visible,
 .quiz-action:focus-visible {
-    outline: 3px solid rgba(245, 158, 11, 0.45);
+    outline: 3px solid #92400e;
     outline-offset: 3px;
 }
 
