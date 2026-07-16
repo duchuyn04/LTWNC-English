@@ -25,7 +25,8 @@ public class StudyServiceTests
         var strategies = new List<IStudyModeStrategy>
         {
             new FlashcardModeStrategy(queryService),
-            new DictationModeStrategy(queryService)
+            new DictationModeStrategy(queryService),
+            new QuizModeStrategy(queryService, new QuizQuestionFactory(context))
         };
         var resolver = new StudyModeStrategyResolver(strategies);
         return (strategies, resolver);
@@ -100,7 +101,9 @@ public class StudyServiceTests
         Assert.Equal(0, result.LearnedCount);
         Assert.Equal(0, result.MasteryPercent);
         Assert.Equal(StudyMode.Flashcard, result.RecommendedMode);
-        Assert.Equal(2, result.Modes.Count);
+        Assert.Equal(3, result.Modes.Count);
+        Assert.Contains(result.Modes, option => option.Mode == StudyMode.Quiz);
+        Assert.DoesNotContain(result.RoadmapModes, option => option.Mode == StudyMode.Quiz);
     }
 
     [Fact]
@@ -137,7 +140,7 @@ public class StudyServiceTests
 
         Assert.Equal(100, result.MasteryPercent);
         Assert.Equal(StudyMode.Dictation, result.RecommendedMode);
-        Assert.Equal(2, result.Modes.Count);
+        Assert.Equal(3, result.Modes.Count);
         var dictation = result.Modes.Single(m => m.Mode == StudyMode.Dictation);
         Assert.True(dictation.IsAvailable);
         Assert.Equal(2, dictation.CardCount);
@@ -407,20 +410,20 @@ public class StudyServiceTests
         await SeedCardAsync(context, 1, "hello", "xin chào");
 
         var (baseStrategies, _) = CreateStrategies(context);
-        baseStrategies.Add(new FakeQuizStrategy());
+        baseStrategies.Add(new FakeWriteStrategy());
         var resolver = new StudyModeStrategyResolver(baseStrategies);
 
         var service = new StudyService(context, baseStrategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
-        var quizOption = result.Modes.SingleOrDefault(m => m.Mode == StudyMode.Quiz);
-        Assert.NotNull(quizOption);
-        Assert.Equal("Quiz", quizOption.Name);
-        Assert.Equal(1, quizOption.CardCount);
-        Assert.True(quizOption.IsAvailable);
+        var writeOption = result.Modes.SingleOrDefault(m => m.Mode == StudyMode.Write);
+        Assert.NotNull(writeOption);
+        Assert.Equal("Write", writeOption.Name);
+        Assert.Equal(1, writeOption.CardCount);
+        Assert.True(writeOption.IsAvailable);
 
         // Mode đã có strategy thật không được xuất hiện trong roadmap
-        Assert.DoesNotContain(result.RoadmapModes, m => m.Mode == StudyMode.Quiz);
+        Assert.DoesNotContain(result.RoadmapModes, m => m.Mode == StudyMode.Write);
     }
 
     [Fact]
@@ -436,12 +439,12 @@ public class StudyServiceTests
         var service = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
         var result = await service.GetStudyModeSelectorDataAsync(1, "user-1");
 
-        Assert.Equal("ASYNC", result.Modes.Single(m => m.Mode == StudyMode.Quiz).Name);
+        Assert.Equal("ASYNC", result.Modes.Single(m => m.Mode == StudyMode.Match).Name);
     }
 
     private sealed class AsyncOptionStrategy : IStudyModeStrategy
     {
-        public StudyMode Mode => StudyMode.Quiz;
+        public StudyMode Mode => StudyMode.Match;
 
         public Task<List<Flashcard>> GetCardsAsync(
             int setId,
@@ -465,9 +468,9 @@ public class StudyServiceTests
     }
 
     // Strategy giả để kiểm tra khả năng mở rộng mà không cần sửa StudyService
-    private sealed class FakeQuizStrategy : IStudyModeStrategy
+    private sealed class FakeWriteStrategy : IStudyModeStrategy
     {
-        public StudyMode Mode => StudyMode.Quiz;
+        public StudyMode Mode => StudyMode.Write;
 
         public Task<List<Flashcard>> GetCardsAsync(int setId, UserStudySettings settings, string? userId)
         {
@@ -490,11 +493,11 @@ public class StudyServiceTests
         {
             return new StudyModeOptionViewModel
             {
-                Mode = StudyMode.Quiz,
-                Name = "Quiz",
-                Description = "Test quiz",
+                Mode = StudyMode.Write,
+                Name = "Write",
+                Description = "Test write",
                 IconClass = "ph-question",
-                ActionUrl = $"/Study/{setId}/Quiz",
+                ActionUrl = $"/Study/{setId}/Write",
                 IsAvailable = cards.Count > 0,
                 CardCount = cards.Count,
                 EstimatedSeconds = cards.Count * 30

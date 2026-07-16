@@ -49,8 +49,10 @@ builder.Services.AddScoped<ICardActionCommandFactory, CardActionCommandFactory>(
 // Study mode strategies
 builder.Services.AddScoped<IStudyCardQueryService, StudyCardQueryService>();
 builder.Services.AddScoped<IStudyModeStrategyResolver, StudyModeStrategyResolver>();
+builder.Services.AddScoped<QuizQuestionFactory>();
 builder.Services.AddScoped<IStudyModeStrategy, FlashcardModeStrategy>();
 builder.Services.AddScoped<IStudyModeStrategy, DictationModeStrategy>();
+builder.Services.AddScoped<IStudyModeStrategy, QuizModeStrategy>();
 
 // ============================================================
 // Mẫu Observer — đăng ký "trạm phát" và các "người theo dõi"
