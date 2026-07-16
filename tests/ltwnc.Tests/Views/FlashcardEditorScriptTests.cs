@@ -118,7 +118,8 @@ public class FlashcardEditorScriptTests
         Assert.Contains("'X-CSRF-TOKEN': token?.value || ''", batchSubmit);
         Assert.Contains("'X-Requested-With': 'XMLHttpRequest'", batchSubmit);
         Assert.Contains("credentials: 'same-origin'", batchSubmit);
-        Assert.Contains("fetch(form.action", batchSubmit);
+        Assert.Contains("fetch(form.getAttribute('action')", batchSubmit);
+        Assert.DoesNotContain("fetch(form.action", batchSubmit);
         Assert.Contains("event.submitter", Script);
         Assert.Contains("event.preventDefault()", Script);
     }

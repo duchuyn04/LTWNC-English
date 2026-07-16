@@ -252,7 +252,7 @@
         form.dataset.batchPending = 'true';
         toolbarButtons.forEach(function (button) { button.disabled = true; });
 
-        fetch(form.action, {
+        fetch(form.getAttribute('action'), {
             method: 'POST',
             credentials: 'same-origin',
             body: formData,
