@@ -126,6 +126,35 @@ public class CardActionsControllerTests
         fixture.ActionService.VerifyAll();
     }
 
+    [Fact]
+    public async Task BatchAction_json_accept_header_uses_json_response_without_x_requested_with()
+    {
+        Fixture fixture = CreateController(ajax: false);
+        fixture.Controller.Request.Headers.Accept = "application/json";
+        ICardActionCommand command = Mock.Of<ICardActionCommand>();
+        fixture.SetService.Setup(service => service.GetSetByIdAsync(9))
+            .ReturnsAsync(new FlashcardSet { Id = 9, UserId = "user-1" });
+        fixture.Factory.Setup(factory => factory.Create(
+                "Star",
+                9,
+                "user-1",
+                It.IsAny<IReadOnlyList<int>>()))
+            .Returns(command);
+        fixture.ActionService.Setup(service => service.ExecuteAsync(command))
+            .ReturnsAsync(new CardActionLog { Id = 43 });
+
+        IActionResult result = await fixture.Controller.BatchAction(
+            9,
+            BatchActionType.Star,
+            new List<int> { 3 });
+
+        JsonResult json = Assert.IsType<JsonResult>(result);
+        AssertProperty(json.Value, "success", true);
+        AssertProperty(json.Value, "undoLogId", 43);
+        fixture.Factory.VerifyAll();
+        fixture.ActionService.VerifyAll();
+    }
+
     private static Fixture CreateController(bool ajax)
     {
         var actionService = new Mock<ICardActionService>();

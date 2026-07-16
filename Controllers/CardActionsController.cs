@@ -110,11 +110,21 @@ public class CardActionsController : Controller
         return RedirectToAction("Edit", "FlashcardSet", new { id = setId });
     }
 
-    private bool IsAjaxRequest() =>
-        string.Equals(
-            Request.Headers.XRequestedWith,
-            "XMLHttpRequest",
-            StringComparison.OrdinalIgnoreCase);
+    private bool IsAjaxRequest()
+    {
+        if (string.Equals(
+                Request.Headers.XRequestedWith,
+                "XMLHttpRequest",
+                StringComparison.OrdinalIgnoreCase))
+        {
+            return true;
+        }
+
+        return Request.Headers.TryGetValue("Accept", out Microsoft.Extensions.Primitives.StringValues accept)
+            && accept.ToString().Contains(
+                "application/json",
+                StringComparison.OrdinalIgnoreCase);
+    }
 
     // POST Undo theo logId của user; redirect về Edit set của log
     [HttpPost]
