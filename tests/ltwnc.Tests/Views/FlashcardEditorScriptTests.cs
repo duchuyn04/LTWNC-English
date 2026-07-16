@@ -123,6 +123,23 @@ public class FlashcardEditorScriptTests
     }
 
     [Fact]
+    public void Batch_buttons_expose_an_inline_fallback_when_the_editor_script_is_unavailable()
+    {
+        Assert.Contains("function submitBatchActionFromButton(button)", Script);
+        Assert.Contains("window.submitBatchActionFromButton", Script);
+        Assert.Contains("return window.submitBatchActionFromButton ?", View);
+    }
+
+    [Fact]
+    public void Batch_response_parsing_handles_empty_or_non_json_responses()
+    {
+        Assert.Contains("response.text()", Script);
+        Assert.Contains("JSON.parse(responseText)", Script);
+        Assert.Contains("Vui lòng thử lại.", Script);
+        Assert.DoesNotContain("return response.json().then(function (result)", Script);
+    }
+
+    [Fact]
     public void Confirmed_batch_result_updates_star_delete_selection_and_feedback()
     {
         Assert.Contains("function applyBatchResult(form, result)", Script);

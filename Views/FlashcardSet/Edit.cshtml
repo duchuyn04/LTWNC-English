@@ -24,13 +24,13 @@
         @if (cards.Any())
         {
             <div class="batch-toolbar" data-batch-for="batch-form" hidden>
-                <button type="submit" form="batch-form" name="action" value="Delete" class="btn-secondary-custom" onclick="return confirm('Xóa các thẻ đã chọn?');">
+                <button type="submit" form="batch-form" name="action" value="Delete" class="btn-secondary-custom" onclick="if (!confirm('Xóa các thẻ đã chọn?')) return false; return window.submitBatchActionFromButton ? window.submitBatchActionFromButton(this) : true;">
                     <i class="ph ph-trash"></i> Xóa đã chọn
                 </button>
-                <button type="submit" form="batch-form" name="action" value="Star" class="btn-secondary-custom">
+                <button type="submit" form="batch-form" name="action" value="Star" class="btn-secondary-custom" onclick="return window.submitBatchActionFromButton ? window.submitBatchActionFromButton(this) : true;">
                     <i class="ph ph-star"></i> Đánh sao
                 </button>
-                <button type="submit" form="batch-form" name="action" value="Unstar" class="btn-secondary-custom">
+                <button type="submit" form="batch-form" name="action" value="Unstar" class="btn-secondary-custom" onclick="return window.submitBatchActionFromButton ? window.submitBatchActionFromButton(this) : true;">
                     <i class="ph ph-star-off"></i> Bỏ sao
                 </button>
             </div>

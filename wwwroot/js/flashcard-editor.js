@@ -260,10 +260,20 @@
             }
         })
             .then(function (response) {
-                return response.json().then(function (result) {
-                    if (!response.ok || result.success !== true) {
-                        throw new Error(result.message || 'Batch request failed');
+                return response.text().then(function (responseText) {
+                    let result = null;
+                    try {
+                        if (responseText.trim()) result = JSON.parse(responseText);
+                    } catch (error) {
+                        result = null;
                     }
+
+                    if (!response.ok || !result || result.success !== true) {
+                        throw new Error(
+                            result?.message ||
+                            'Không thể thực hiện thao tác. Vui lòng thử lại.');
+                    }
+
                     return result;
                 });
             })
@@ -279,6 +289,15 @@
                 form.removeAttribute('data-batch-pending');
                 toolbarButtons.forEach(function (button) { button.disabled = false; });
             });
+    }
+
+    function submitBatchActionFromButton(button) {
+        const formId = button?.getAttribute('form');
+        const form = formId ? document.getElementById(formId) : button?.form;
+        if (!form) return true;
+
+        submitBatchAction(form, button);
+        return false;
     }
 
     function bindBatchSelection() {
@@ -337,6 +356,7 @@
     window.toggleStar = toggleStar;
     window.bindAutoGrow = bindAutoGrow;
     window.bindAnchors = bindAnchors;
+    window.submitBatchActionFromButton = submitBatchActionFromButton;
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);
