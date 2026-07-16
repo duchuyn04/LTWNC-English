@@ -55,8 +55,6 @@
 
 .vocab-list,
 .vocab-detail {
-    max-height: min(70vh, 720px);
-    overflow-y: auto;
     min-height: 0;
     border: 1px solid #EAEAEA;
     border-radius: 12px;
@@ -64,6 +62,9 @@
 }
 
 .vocab-list {
+    max-height: min(70vh, 720px);
+    overflow-y: auto;
+    min-height: 0;
     padding: 1rem;
 }
 
@@ -113,6 +114,8 @@
 }
 
 .vocab-detail {
+    max-height: none;
+    overflow-y: visible;
     padding: 1rem;
 }
 
@@ -154,7 +157,7 @@ textarea[data-auto-grow] {
 }
 
 .add-card-form {
-    margin-top: 2rem;
+    margin-top: 3rem;
 }
 
 .vocab-grid span,

@@ -7,15 +7,20 @@ public class FlashcardSetEditStyleTests
     private static readonly string Source = File.ReadAllText(FindEditStylesheet());
 
     [Fact]
-    public void Vocabulary_panels_are_fixed_height_and_scroll_independently()
+    public void Vocabulary_list_scrolls_but_detail_expands_to_fit_its_form()
     {
         Assert.Matches(
             Rule("\\.vocab-editor", "align-items:\\s*start"),
             Source);
         Assert.Matches(
             Rule(
-                "\\.vocab-list,\\s*\\.vocab-detail",
+                "\\.vocab-list",
                 "max-height:\\s*min\\(70vh,\\s*720px\\)[^}]*overflow-y:\\s*auto[^}]*min-height:\\s*0"),
+            Source);
+        Assert.Matches(
+            Rule(
+                "\\.vocab-detail",
+                "max-height:\\s*none[^}]*overflow-y:\\s*visible"),
             Source);
     }
 
@@ -97,7 +102,7 @@ public class FlashcardSetEditStyleTests
     public void Add_card_form_is_visually_separated_from_the_split_editor()
     {
         Assert.Matches(
-            Rule("\\.add-card-form", "margin-top:\\s*2rem"),
+            Rule("\\.add-card-form", "margin-top:\\s*3rem"),
             Source);
     }
 
