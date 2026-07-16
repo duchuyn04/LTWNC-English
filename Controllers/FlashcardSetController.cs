@@ -5,6 +5,7 @@ using ltwnc.Services.FlashcardSets;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.FlashcardSet;
 using Microsoft.AspNetCore.Http;
+using System.Text.Json;
 
 namespace ltwnc.Controllers;
 
@@ -17,13 +18,16 @@ public class FlashcardSetController : Controller
 
     // User hiện tại từ cookie claims
     private readonly ICurrentUser _currentUser;
+    private readonly IFlashcardImportService _importService;
 
     public FlashcardSetController(
         IFlashcardSetService setService,
-        ICurrentUser currentUser)
+        ICurrentUser currentUser,
+        IFlashcardImportService importService)
     {
         _setService = setService;
         _currentUser = currentUser;
+        _importService = importService;
     }
 
     // GET /Set: thư viện cá nhân kèm progress
@@ -202,6 +206,45 @@ public class FlashcardSetController : Controller
         catch (UnauthorizedAccessException)
         {
             return Forbid();
+        }
+    }
+
+    // POST nhập nhiều thẻ từ CSV/XLSX, luôn redirect về Edit để tránh gửi lại form.
+    [HttpPost]
+    [Route("/Set/{id}/Import")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Import(int id, IFormFile? file)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        try
+        {
+            FlashcardImportResult result = await _importService.ImportAsync(
+                id,
+                userId,
+                file!,
+                HttpContext.RequestAborted);
+
+            TempData["ImportImportedCount"] = result.ImportedCount;
+            TempData["ImportSkippedCount"] = result.SkippedCount;
+            if (result.Errors.Count > 0)
+            {
+                TempData["ImportErrors"] = JsonSerializer.Serialize(result.Errors);
+            }
+
+            TempData["Success"] = result.ImportedCount > 0
+                ? $"Đã nhập {result.ImportedCount} thẻ thành công."
+                : "Không có thẻ hợp lệ nào được nhập.";
+            return RedirectToAction("Edit", new { id });
+        }
+        catch (FlashcardImportException exception)
+        {
+            TempData["Error"] = exception.Message;
+            return RedirectToAction("Edit", new { id });
         }
     }
 

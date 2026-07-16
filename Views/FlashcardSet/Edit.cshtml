@@ -2,6 +2,11 @@
 @{
     ViewData["Title"] = "Quản lý bộ thẻ";
     var cards = ViewBag.Cards as List<ltwnc.Models.Entities.Flashcard> ?? new();
+    var importErrorsJson = TempData["ImportErrors"] as string;
+    var importErrors = string.IsNullOrWhiteSpace(importErrorsJson)
+        ? Array.Empty<ltwnc.Models.ViewModels.FlashcardSet.FlashcardImportError>()
+        : System.Text.Json.JsonSerializer.Deserialize<ltwnc.Models.ViewModels.FlashcardSet.FlashcardImportError[]>(importErrorsJson)
+            ?? Array.Empty<ltwnc.Models.ViewModels.FlashcardSet.FlashcardImportError>();
 }
 
 <link rel="stylesheet" href="~/css/set-management.css" asp-append-version="true" />
@@ -52,6 +57,36 @@
                         @Html.AntiForgeryToken()
                         <button type="submit" class="btn btn-sm btn-link">Hoàn tác</button>
                     </form>
+                }
+            </div>
+        }
+
+        <div class="set-form-card mb-4">
+            <h2 style="margin: 0 0 0.5rem; font-size: 1.15rem; font-weight: 800; color: var(--sm-ink);">Nhập thẻ từ tệp</h2>
+            <p class="text-muted mb-3">Chọn tệp CSV UTF-8 hoặc XLSX. Sáu cột bắt buộc: <code>THUẬT NGỮ</code>, <code>ĐỊNH NGHĨA</code>, <code>IPA</code>, <code>LOẠI TỪ</code>, <code>VÍ DỤ TIẾNG ANH</code>, <code>NGHĨA VÍ DỤ TIẾNG VIỆT</code>. Cột tùy chọn: <code>TỪ ĐỒNG NGHĨA</code>, <code>URL ẢNH</code>.</p>
+            <form asp-action="Import" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data" class="d-flex flex-wrap align-items-end gap-2">
+                @Html.AntiForgeryToken()
+                <div>
+                    <label for="flashcard-import-file" class="set-form-label">Tệp dữ liệu</label>
+                    <input id="flashcard-import-file" type="file" name="file" class="form-input-custom" accept=".csv,.xlsx" required />
+                </div>
+                <button type="submit" class="btn-primary-custom">Nhập thẻ</button>
+                <a href="~/templates/flashcard-import-template.csv" download class="btn-secondary-custom">Tải mẫu CSV</a>
+            </form>
+        </div>
+
+        @if (TempData["ImportImportedCount"] is not null || TempData["ImportSkippedCount"] is not null)
+        {
+            <div class="alert alert-info">
+                Đã nhập <strong>@(TempData["ImportImportedCount"] ?? 0)</strong> thẻ; bỏ qua <strong>@(TempData["ImportSkippedCount"] ?? 0)</strong> dòng.
+                @if (importErrors.Length > 0)
+                {
+                    <ul class="mb-0 mt-2">
+                        @foreach (var importError in importErrors)
+                        {
+                            <li>Dòng @importError.RowNumber: @importError.Reason</li>
+                        }
+                    </ul>
                 }
             </div>
         }
