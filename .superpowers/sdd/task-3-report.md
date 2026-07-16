@@ -19,3 +19,13 @@
 
 - File-level parser/validation failures are represented as a general `FlashcardImportError` with `RowNumber = 0`, because the existing result contract has row errors but no separate general-error field.
 - Unsupported extension, empty file, and over-limit uploads throw the existing typed `FlashcardImportException` for controller-level mapping.
+
+## Review fix (P1)
+
+- Wrapped parser execution in `FlashcardImportService.ImportAsync` so malformed CSV/corrupt XLSX (and other parser failures) are translated to `FlashcardImportException`; `OperationCanceledException` is rethrown unchanged and existing typed import exceptions are preserved.
+- Added service coverage for corrupt XLSX parser failures, unsupported extensions, and empty files, asserting typed errors and no database mutation.
+
+## Verification after fix
+
+- `dotnet test tests/ltwnc.Tests/ltwnc.Tests.csproj --filter FullyQualifiedName~FlashcardImportServiceTests --no-restore` — Passed 8/8.
+- `dotnet test tests/ltwnc.Tests/ltwnc.Tests.csproj --no-restore` — Passed 120/120.

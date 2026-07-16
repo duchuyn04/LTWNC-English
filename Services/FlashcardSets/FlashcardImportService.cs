@@ -33,9 +33,24 @@ public sealed class FlashcardImportService : IFlashcardImportService
 
         IFlashcardFileParser parser = _resolver.Resolve(Path.GetExtension(file.FileName));
         FlashcardFileParseResult parsed;
-        await using (Stream stream = file.OpenReadStream())
+        try
         {
-            parsed = await parser.ParseAsync(stream, cancellationToken);
+            await using (Stream stream = file.OpenReadStream())
+            {
+                parsed = await parser.ParseAsync(stream, cancellationToken);
+            }
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (FlashcardImportException)
+        {
+            throw;
+        }
+        catch (Exception exception)
+        {
+            throw new FlashcardImportException("Không thể đọc tệp nhập. Vui lòng kiểm tra định dạng tệp.", exception);
         }
 
         var errors = parsed.Errors.ToList();

@@ -87,5 +87,41 @@ public class FlashcardImportServiceTests : IDisposable
         Assert.Equal("xlsx", (await _context.Flashcards.SingleAsync(c => c.FrontText == "xlsx")).FrontText);
     }
 
+    [Fact]
+    public async Task Corrupt_xlsx_is_reported_as_typed_import_exception()
+    {
+        var bytes = Encoding.UTF8.GetBytes("this is not an xlsx file");
+        await using var stream = new MemoryStream(bytes);
+        var file = new FormFile(stream, 0, stream.Length, "file", "corrupt.xlsx");
+
+        var exception = await Assert.ThrowsAsync<FlashcardImportException>(
+            () => _service.ImportAsync(_setId, "owner", file));
+
+        Assert.Contains("Không thể đọc tệp nhập", exception.Message);
+        Assert.Equal(1, await _context.Flashcards.CountAsync(c => c.FlashcardSetId == _setId));
+    }
+
+    [Fact]
+    public async Task Unsupported_extension_is_rejected_before_parsing()
+    {
+        await using var stream = new MemoryStream(Encoding.UTF8.GetBytes("data"));
+        var file = new FormFile(stream, 0, stream.Length, "file", "cards.txt");
+
+        await Assert.ThrowsAsync<FlashcardImportException>(
+            () => _service.ImportAsync(_setId, "owner", file));
+        Assert.Equal(1, await _context.Flashcards.CountAsync(c => c.FlashcardSetId == _setId));
+    }
+
+    [Fact]
+    public async Task Empty_file_is_rejected_without_mutation()
+    {
+        await using var stream = new MemoryStream();
+        var file = new FormFile(stream, 0, 0, "file", "cards.csv");
+
+        await Assert.ThrowsAsync<FlashcardImportException>(
+            () => _service.ImportAsync(_setId, "owner", file));
+        Assert.Equal(1, await _context.Flashcards.CountAsync(c => c.FlashcardSetId == _setId));
+    }
+
     private static IFormFile FormFile(string content, string name) => new FormFile(new MemoryStream(Encoding.UTF8.GetBytes(content)), 0, Encoding.UTF8.GetByteCount(content), "file", name);
 }
