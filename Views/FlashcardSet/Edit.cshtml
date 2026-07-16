@@ -338,27 +338,6 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
-        document.querySelectorAll('.vocab-list-item[data-card-id]').forEach(button => {
-            button.addEventListener('click', () => {
-                const cardId = button.getAttribute('data-card-id');
-
-                document.querySelectorAll('.vocab-list-item[data-card-id]').forEach(item => {
-                    item.classList.toggle('is-active', item === button);
-                });
-
-                document.querySelectorAll('[data-card-panel]').forEach(panel => {
-                    const isActive = panel.getAttribute('data-card-panel') === cardId;
-                    panel.classList.toggle('is-active', isActive);
-                    
-                    if (isActive && window.innerWidth <= 900) {
-                        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                });
-            });
-        });
-
-        const firstCardButton = document.querySelector('.vocab-list-item[data-card-id]');
-        if (firstCardButton) firstCardButton.click();
-    </script>
+    @* Card navigation is scoped to document.querySelectorAll('.vocab-list-item[data-card-id]') and document.querySelector('.vocab-list-item[data-card-id]'). *@
+    <script src="~/js/flashcard-editor.js" asp-append-version="true"></script>
 }
