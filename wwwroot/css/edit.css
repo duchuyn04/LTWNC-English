@@ -241,6 +241,10 @@ textarea[data-auto-grow] {
     gap: 0.5rem;
 }
 
+.batch-toolbar[hidden] {
+    display: none;
+}
+
 .vocab-list-item-wrapper {
     display: flex;
     align-items: center;

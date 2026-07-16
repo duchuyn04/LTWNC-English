@@ -89,6 +89,18 @@ public class FlashcardEditorScriptTests
             View);
     }
 
+    [Fact]
+    public void Batch_toolbar_stays_hidden_until_a_card_is_selected()
+    {
+        Assert.Contains("function syncBatchToolbar(form)", Script);
+        Assert.Contains("input[name=\"selectedCardIds\"]:checked", Script);
+        Assert.Contains("toolbar.hidden = !hasSelection", Script);
+        Assert.Contains("input[name=\"selectedCardIds\"]", Script);
+        Assert.Matches(
+            new Regex("class=\"batch-toolbar[^\"]*\"[^>]*hidden", RegexOptions.Singleline),
+            View);
+    }
+
     private static string ReadFile(params string[] parts)
     {
         DirectoryInfo? directory = new(AppContext.BaseDirectory);

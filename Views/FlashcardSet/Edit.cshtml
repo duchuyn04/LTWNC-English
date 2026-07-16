@@ -120,7 +120,7 @@
                 {
                     <form asp-controller="CardActions" asp-action="BatchAction" asp-route-setId="@Model.Id" method="post" id="batch-form">
                         @Html.AntiForgeryToken()
-                        <div class="batch-toolbar mb-3">
+                        <div class="batch-toolbar mb-3" hidden>
                             <button type="submit" name="action" value="Delete" class="btn-secondary-custom" onclick="return confirm('Xóa các thẻ đã chọn?');">
                                 <i class="ph ph-trash"></i> Xóa đã chọn
                             </button>

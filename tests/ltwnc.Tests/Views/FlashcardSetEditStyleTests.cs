@@ -139,6 +139,17 @@ public class FlashcardSetEditStyleTests
             Source);
     }
 
+    [Fact]
+    public void Batch_toolbar_can_be_hidden_without_breaking_its_layout()
+    {
+        Assert.Matches(
+            Rule("\\.batch-toolbar", "display:\\s*flex"),
+            Source);
+        Assert.Matches(
+            Rule("\\.batch-toolbar\\[hidden\\]", "display:\\s*none"),
+            Source);
+    }
+
     private static Regex Rule(string selector, string declarations) =>
         new(RulePattern(selector, declarations), RegexOptions.Singleline);
 

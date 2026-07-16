@@ -156,6 +156,23 @@
         });
     }
 
+    function syncBatchToolbar(form) {
+        const toolbar = form?.querySelector('.batch-toolbar');
+        if (!toolbar) return;
+
+        const hasSelection = form.querySelector('input[name="selectedCardIds"]:checked');
+        toolbar.hidden = !hasSelection;
+    }
+
+    function bindBatchSelection() {
+        document.querySelectorAll('form#batch-form').forEach(function (form) {
+            syncBatchToolbar(form);
+            form.querySelectorAll('input[name="selectedCardIds"]').forEach(function (input) {
+                input.addEventListener('change', function () { syncBatchToolbar(form); });
+            });
+        });
+    }
+
     function init() {
         document.querySelectorAll('.vocab-list-item[data-card-id]').forEach(function (button) {
             button.addEventListener('click', function () { selectCard(button.dataset.cardId); });
@@ -174,6 +191,7 @@
         });
         document.querySelectorAll('textarea[data-auto-grow]').forEach(bindAutoGrow);
         bindAnchors();
+        bindBatchSelection();
 
         const firstCard = document.querySelector('.vocab-list-item[data-card-id]');
         if (firstCard) selectCard(firstCard.dataset.cardId);
