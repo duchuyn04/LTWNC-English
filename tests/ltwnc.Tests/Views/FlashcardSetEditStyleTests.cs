@@ -91,6 +91,19 @@ public class FlashcardSetEditStyleTests
     }
 
     [Fact]
+    public void Term_and_definition_fields_share_the_same_top_alignment_and_default_height()
+    {
+        Assert.Matches(
+            Rule("\\.vocab-grid", "align-items:\\s*start"),
+            Source);
+        Assert.Matches(
+            Rule(
+                "\\.set-editor-content\\s+input\\[name=\\\"frontText\\\"\\]",
+                "min-height:\\s*4\\.5rem"),
+            Source);
+    }
+
+    [Fact]
     public void Auto_grow_textareas_have_sensible_height_bounds_and_overflow()
     {
         Assert.Matches(
