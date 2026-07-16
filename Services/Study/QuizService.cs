@@ -269,18 +269,206 @@ public class QuizService : IQuizService
         }
     }
 
-    public Task<QuizSessionResult> GetResultAsync(
+    public async Task<QuizSessionResult> GetResultAsync(
         int setId,
         int sessionId,
-        string userId) => throw new NotImplementedException("Implemented in Task 5.");
+        string userId)
+    {
+        StudySession? session = await _context.StudySessions
+            .AsNoTracking()
+            .Include(row => row.FlashcardSet)
+            .FirstOrDefaultAsync(row => row.Id == sessionId);
+        if (session == null
+            || session.FlashcardSetId != setId
+            || session.Mode != StudyMode.Quiz)
+        {
+            throw new KeyNotFoundException("Phiên trắc nghiệm không tồn tại.");
+        }
 
-    public Task<StudySession> RetryWrongAsync(
-        int setId,
-        int sessionId,
-        string userId) => throw new NotImplementedException("Implemented in Task 5.");
+        if (session.UserId != userId)
+        {
+            throw new UnauthorizedAccessException(
+                "Không có quyền xem kết quả phiên trắc nghiệm này.");
+        }
 
-    public Task<StudySession> RetryAllAsync(
+        if (session.Score == null)
+        {
+            throw new QuizConflictException("Phiên trắc nghiệm chưa hoàn thành.");
+        }
+
+        List<QuizSessionQuestion> questions = await _context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(question => question.StudySessionId == sessionId)
+            .OrderBy(question => question.OrderIndex)
+            .ToListAsync();
+        List<QuizWrongAnswer> wrongAnswers = questions
+            .Where(question => question.IsCorrect == false)
+            .Select(question => new QuizWrongAnswer(
+                question.FlashcardId,
+                question.Direction,
+                question.PromptText,
+                question.Choices[question.SelectedChoiceIndex!.Value],
+                question.Choices[question.CorrectChoiceIndex]))
+            .ToList();
+
+        return new QuizSessionResult
+        {
+            SessionId = session.Id,
+            SetId = session.FlashcardSetId,
+            SetTitle = session.FlashcardSet?.Title ?? string.Empty,
+            TotalQuestions = questions.Count,
+            CorrectCount = questions.Count(question => question.IsCorrect == true),
+            Score = session.Score.Value,
+            WrongAnswers = wrongAnswers
+        };
+    }
+
+    public async Task<StudySession> RetryWrongAsync(
         int setId,
         int sessionId,
-        string userId) => throw new NotImplementedException("Implemented in Task 5.");
+        string userId)
+    {
+        (StudySession sourceSession, List<QuizSessionQuestion> sourceQuestions) =
+            await LoadRetrySourceAsync(setId, sessionId, userId);
+        List<QuizSessionQuestion> wrongQuestions = sourceQuestions
+            .Where(question => question.IsCorrect == false)
+            .ToList();
+        if (wrongQuestions.Count == 0)
+        {
+            throw new QuizConflictException("Phiên trắc nghiệm không có câu trả lời sai.");
+        }
+
+        return await CreateRetrySessionAsync(
+            sourceSession,
+            wrongQuestions,
+            preserveDirections: true);
+    }
+
+    public async Task<StudySession> RetryAllAsync(
+        int setId,
+        int sessionId,
+        string userId)
+    {
+        (StudySession sourceSession, List<QuizSessionQuestion> sourceQuestions) =
+            await LoadRetrySourceAsync(setId, sessionId, userId);
+        return await CreateRetrySessionAsync(
+            sourceSession,
+            sourceQuestions,
+            preserveDirections: false);
+    }
+
+    private async Task<(StudySession Session, List<QuizSessionQuestion> Questions)>
+        LoadRetrySourceAsync(int setId, int sessionId, string userId)
+    {
+        StudySession? sourceSession = await _context.StudySessions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(session => session.Id == sessionId);
+        if (sourceSession == null
+            || sourceSession.FlashcardSetId != setId
+            || sourceSession.Mode != StudyMode.Quiz)
+        {
+            throw new KeyNotFoundException("Phiên trắc nghiệm không tồn tại.");
+        }
+
+        if (sourceSession.UserId != userId)
+        {
+            throw new UnauthorizedAccessException(
+                "Không có quyền tạo lại phiên trắc nghiệm này.");
+        }
+
+        if (sourceSession.Score == null)
+        {
+            throw new QuizConflictException("Phiên trắc nghiệm chưa hoàn thành.");
+        }
+
+        List<QuizSessionQuestion> sourceQuestions = await _context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(question => question.StudySessionId == sourceSession.Id)
+            .OrderBy(question => question.OrderIndex)
+            .ToListAsync();
+        return (sourceSession, sourceQuestions);
+    }
+
+    private async Task<StudySession> CreateRetrySessionAsync(
+        StudySession sourceSession,
+        IReadOnlyList<QuizSessionQuestion> sourceQuestions,
+        bool preserveDirections)
+    {
+        IDbContextTransaction? transaction = null;
+        if (_context.Database.IsRelational())
+        {
+            transaction = await _context.Database.BeginTransactionAsync();
+        }
+
+        try
+        {
+            int[] sourceCardIds = sourceQuestions
+                .Select(question => question.FlashcardId)
+                .Distinct()
+                .ToArray();
+            List<Flashcard> storedCards = await _context.Flashcards
+                .AsNoTracking()
+                .Where(card => sourceCardIds.Contains(card.Id))
+                .ToListAsync();
+            if (storedCards.Count != sourceCardIds.Length)
+            {
+                throw new QuizUnavailableException(
+                    "Một hoặc nhiều thẻ nguồn không còn khả dụng.");
+            }
+
+            Dictionary<int, Flashcard> cardsById = storedCards
+                .ToDictionary(card => card.Id);
+            List<Flashcard> sourceCards = sourceQuestions
+                .Select(question => cardsById[question.FlashcardId])
+                .ToList();
+            IReadOnlyDictionary<int, QuizQuestionDirection>? fixedDirections =
+                preserveDirections
+                    ? sourceQuestions.ToDictionary(
+                        question => question.FlashcardId,
+                        question => question.Direction)
+                    : null;
+            var retrySession = new StudySession
+            {
+                FlashcardSetId = sourceSession.FlashcardSetId,
+                UserId = sourceSession.UserId,
+                Mode = StudyMode.Quiz
+            };
+            List<QuizSessionQuestion> retryQuestions =
+                await _questionFactory.BuildQuestionsAsync(
+                    sourceSession.FlashcardSetId,
+                    sourceSession.UserId,
+                    sourceCards,
+                    fixedDirections);
+            foreach (QuizSessionQuestion question in retryQuestions)
+            {
+                question.StudySession = retrySession;
+            }
+
+            _context.QuizSessionQuestions.AddRange(retryQuestions);
+            await _context.SaveChangesAsync();
+
+            if (transaction != null)
+            {
+                await transaction.CommitAsync();
+            }
+
+            return retrySession;
+        }
+        catch
+        {
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync();
+            }
+
+            throw;
+        }
+        finally
+        {
+            if (transaction != null)
+            {
+                await transaction.DisposeAsync();
+            }
+        }
+    }
 }

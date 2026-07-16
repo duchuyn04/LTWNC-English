@@ -398,6 +398,338 @@ public class QuizServiceTests
     }
 
     [Fact]
+    public async Task GetResult_returns_score_and_wrong_answer_snapshots()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession session = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        List<QuizSessionQuestion> questions = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .OrderBy(question => question.OrderIndex)
+            .ToListAsync();
+        QuizSessionQuestion wrongQuestion = questions[0];
+        int wrongChoiceIndex = DifferentChoice(wrongQuestion.CorrectChoiceIndex);
+
+        foreach (QuizSessionQuestion question in questions)
+        {
+            int selectedChoiceIndex = question.Id == wrongQuestion.Id
+                ? wrongChoiceIndex
+                : question.CorrectChoiceIndex;
+            await service.AnswerAsync(
+                set.Id,
+                session.Id,
+                question.Id,
+                selectedChoiceIndex,
+                set.UserId);
+        }
+
+        Flashcard currentCard = await database.Context.Flashcards
+            .SingleAsync(card => card.Id == wrongQuestion.FlashcardId);
+        currentCard.FrontText = "mutated current term";
+        currentCard.BackText = "mutated current definition";
+        await database.Context.SaveChangesAsync();
+
+        QuizSessionResult result = await service.GetResultAsync(
+            set.Id,
+            session.Id,
+            set.UserId);
+
+        Assert.Equal(session.Id, result.SessionId);
+        Assert.Equal(set.Id, result.SetId);
+        Assert.Equal(set.Title, result.SetTitle);
+        Assert.Equal(4, result.TotalQuestions);
+        Assert.Equal(3, result.CorrectCount);
+        Assert.Equal(75, result.Score);
+        QuizWrongAnswer wrongAnswer = Assert.Single(result.WrongAnswers);
+        Assert.Equal(wrongQuestion.FlashcardId, wrongAnswer.FlashcardId);
+        Assert.Equal(wrongQuestion.Direction, wrongAnswer.Direction);
+        Assert.Equal(wrongQuestion.PromptText, wrongAnswer.PromptText);
+        Assert.Equal(wrongQuestion.Choices[wrongChoiceIndex], wrongAnswer.SelectedAnswer);
+        Assert.Equal(
+            wrongQuestion.Choices[wrongQuestion.CorrectChoiceIndex],
+            wrongAnswer.CorrectAnswer);
+        Assert.DoesNotContain("mutated current", wrongAnswer.PromptText);
+        Assert.DoesNotContain("mutated current", wrongAnswer.CorrectAnswer);
+    }
+
+    [Fact]
+    public async Task GetResult_rejects_incomplete_session()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession session = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+
+        await Assert.ThrowsAsync<QuizConflictException>(() => service.GetResultAsync(
+            set.Id,
+            session.Id,
+            set.UserId));
+    }
+
+    [Fact]
+    public async Task GetResult_rejects_another_user()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession session = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.GetResultAsync(
+            set.Id,
+            session.Id,
+            "another-user"));
+    }
+
+    [Fact]
+    public async Task RetryWrong_contains_only_wrong_cards_and_preserves_directions()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession sourceSession = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        List<QuizSessionQuestion> sourceQuestions = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(question => question.StudySessionId == sourceSession.Id)
+            .OrderBy(question => question.OrderIndex)
+            .ToListAsync();
+        int[] wrongCardIds = { sourceQuestions[0].FlashcardId, sourceQuestions[2].FlashcardId };
+
+        foreach (QuizSessionQuestion question in sourceQuestions)
+        {
+            int selectedChoiceIndex = wrongCardIds.Contains(question.FlashcardId)
+                ? DifferentChoice(question.CorrectChoiceIndex)
+                : question.CorrectChoiceIndex;
+            await service.AnswerAsync(
+                set.Id,
+                sourceSession.Id,
+                question.Id,
+                selectedChoiceIndex,
+                set.UserId);
+        }
+
+        database.Context.ChangeTracker.Clear();
+        StudySession sourceBefore = await database.Context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(session => session.Id == sourceSession.Id);
+        StoredQuestionSnapshot[] questionsBefore = await LoadQuestionSnapshotsAsync(
+            database.Context,
+            sourceSession.Id);
+        Dictionary<int, QuizQuestionDirection> expectedDirections = sourceQuestions
+            .Where(question => wrongCardIds.Contains(question.FlashcardId))
+            .ToDictionary(question => question.FlashcardId, question => question.Direction);
+
+        StudySession retrySession = await service.RetryWrongAsync(
+            set.Id,
+            sourceSession.Id,
+            set.UserId);
+
+        database.Context.ChangeTracker.Clear();
+        List<QuizSessionQuestion> retryQuestions = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(question => question.StudySessionId == retrySession.Id)
+            .OrderBy(question => question.OrderIndex)
+            .ToListAsync();
+        Assert.NotEqual(sourceSession.Id, retrySession.Id);
+        Assert.Null(retrySession.Score);
+        Assert.Equal(wrongCardIds.Order(), retryQuestions.Select(question => question.FlashcardId).Order());
+        Assert.All(retryQuestions, question =>
+            Assert.Equal(expectedDirections[question.FlashcardId], question.Direction));
+        Assert.All(retryQuestions, question =>
+        {
+            Assert.Null(question.SelectedChoiceIndex);
+            Assert.Null(question.IsCorrect);
+            Assert.Null(question.AnsweredAt);
+        });
+        await AssertSourceUnchangedAsync(
+            database.Context,
+            sourceBefore,
+            questionsBefore);
+    }
+
+    [Fact]
+    public async Task RetryWrong_with_no_wrong_answers_throws_conflict()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession sourceSession = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        await CompleteQuizAsync(database.Context, service, set, sourceSession);
+
+        await Assert.ThrowsAsync<QuizConflictException>(() => service.RetryWrongAsync(
+            set.Id,
+            sourceSession.Id,
+            set.UserId));
+
+        Assert.Equal(1, await database.Context.StudySessions.CountAsync());
+    }
+
+    [Fact]
+    public async Task RetryAll_preserves_original_card_scope_and_redistributes_directions()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession sourceSession = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        await CompleteQuizAsync(database.Context, service, set, sourceSession);
+        await database.Context.QuizSessionQuestions
+            .Where(question => question.StudySessionId == sourceSession.Id)
+            .ExecuteUpdateAsync(updates => updates.SetProperty(
+                question => question.Direction,
+                QuizQuestionDirection.TermToDefinition));
+        database.Context.ChangeTracker.Clear();
+        StudySession sourceBefore = await database.Context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(session => session.Id == sourceSession.Id);
+        StoredQuestionSnapshot[] questionsBefore = await LoadQuestionSnapshotsAsync(
+            database.Context,
+            sourceSession.Id);
+
+        StudySession retrySession = await service.RetryAllAsync(
+            set.Id,
+            sourceSession.Id,
+            set.UserId);
+
+        database.Context.ChangeTracker.Clear();
+        List<QuizSessionQuestion> retryQuestions = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(question => question.StudySessionId == retrySession.Id)
+            .OrderBy(question => question.OrderIndex)
+            .ToListAsync();
+        Assert.Equal(
+            questionsBefore.Select(question => question.FlashcardId).Order(),
+            retryQuestions.Select(question => question.FlashcardId).Order());
+        Assert.Equal(2, retryQuestions.Count(question =>
+            question.Direction == QuizQuestionDirection.TermToDefinition));
+        Assert.Equal(2, retryQuestions.Count(question =>
+            question.Direction == QuizQuestionDirection.DefinitionToTerm));
+        await AssertSourceUnchangedAsync(
+            database.Context,
+            sourceBefore,
+            questionsBefore);
+    }
+
+    [Fact]
+    public async Task Retry_rolls_back_when_source_card_is_unavailable()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession sourceSession = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        await CompleteQuizAsync(database.Context, service, set, sourceSession);
+        int missingCardId = await database.Context.QuizSessionQuestions
+            .Where(question => question.StudySessionId == sourceSession.Id)
+            .Select(question => question.FlashcardId)
+            .FirstAsync();
+        await database.Context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = OFF;");
+        await database.Context.Flashcards
+            .Where(card => card.Id == missingCardId)
+            .ExecuteDeleteAsync();
+        await database.Context.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
+        database.Context.ChangeTracker.Clear();
+        StudySession sourceBefore = await database.Context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(session => session.Id == sourceSession.Id);
+        StoredQuestionSnapshot[] questionsBefore = await LoadQuestionSnapshotsAsync(
+            database.Context,
+            sourceSession.Id);
+
+        await Assert.ThrowsAsync<QuizUnavailableException>(() => service.RetryAllAsync(
+            set.Id,
+            sourceSession.Id,
+            set.UserId));
+
+        Assert.Equal(1, await database.Context.StudySessions.CountAsync());
+        await AssertSourceUnchangedAsync(
+            database.Context,
+            sourceBefore,
+            questionsBefore);
+    }
+
+    [Fact]
+    public async Task Retry_rolls_back_when_answer_pool_is_unavailable()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession sourceSession = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        await CompleteQuizAsync(database.Context, service, set, sourceSession);
+        List<Flashcard> cards = await database.Context.Flashcards
+            .Where(card => card.FlashcardSetId == set.Id)
+            .ToListAsync();
+        foreach (Flashcard card in cards)
+        {
+            card.FrontText = "same term";
+            card.BackText = "same definition";
+        }
+        await database.Context.SaveChangesAsync();
+        database.Context.ChangeTracker.Clear();
+        StudySession sourceBefore = await database.Context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(session => session.Id == sourceSession.Id);
+        StoredQuestionSnapshot[] questionsBefore = await LoadQuestionSnapshotsAsync(
+            database.Context,
+            sourceSession.Id);
+
+        await Assert.ThrowsAsync<QuizUnavailableException>(() => service.RetryAllAsync(
+            set.Id,
+            sourceSession.Id,
+            set.UserId));
+
+        Assert.Equal(1, await database.Context.StudySessions.CountAsync());
+        await AssertSourceUnchangedAsync(
+            database.Context,
+            sourceBefore,
+            questionsBefore);
+    }
+
+    [Fact]
+    public async Task Retry_rejects_another_user()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession sourceSession = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.RetryWrongAsync(
+            set.Id,
+            sourceSession.Id,
+            "another-user"));
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.RetryAllAsync(
+            set.Id,
+            sourceSession.Id,
+            "another-user"));
+        Assert.Equal(1, await database.Context.StudySessions.CountAsync());
+    }
+
+    [Fact]
     public async Task Schema_DuplicateOrderIndexWithinSession_ThrowsDbUpdateException()
     {
         await using var database = await QuizTestDatabase.CreateAsync();
@@ -477,6 +809,82 @@ public class QuizServiceTests
         Choice4Text = "choice four",
         CorrectChoiceIndex = 0
     };
+
+    private static async Task CompleteQuizAsync(
+        AppDbContext context,
+        QuizService service,
+        FlashcardSet set,
+        StudySession session)
+    {
+        List<QuizSessionQuestion> questions = await context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(question => question.StudySessionId == session.Id)
+            .OrderBy(question => question.OrderIndex)
+            .ToListAsync();
+        foreach (QuizSessionQuestion question in questions)
+        {
+            await service.AnswerAsync(
+                set.Id,
+                session.Id,
+                question.Id,
+                question.CorrectChoiceIndex,
+                set.UserId);
+        }
+    }
+
+    private static async Task<StoredQuestionSnapshot[]> LoadQuestionSnapshotsAsync(
+        AppDbContext context,
+        int sessionId) => await context.QuizSessionQuestions
+        .AsNoTracking()
+        .Where(question => question.StudySessionId == sessionId)
+        .OrderBy(question => question.OrderIndex)
+        .Select(question => new StoredQuestionSnapshot(
+            question.Id,
+            question.StudySessionId,
+            question.FlashcardId,
+            question.OrderIndex,
+            question.Direction,
+            question.PromptText,
+            question.Choice1Text,
+            question.Choice2Text,
+            question.Choice3Text,
+            question.Choice4Text,
+            question.CorrectChoiceIndex,
+            question.SelectedChoiceIndex,
+            question.IsCorrect,
+            question.AnsweredAt))
+        .ToArrayAsync();
+
+    private static async Task AssertSourceUnchangedAsync(
+        AppDbContext context,
+        StudySession expectedSession,
+        StoredQuestionSnapshot[] expectedQuestions)
+    {
+        StudySession storedSession = await context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(session => session.Id == expectedSession.Id);
+        Assert.Equal(expectedSession.Score, storedSession.Score);
+        Assert.Equal(expectedSession.CompletedAt, storedSession.CompletedAt);
+        Assert.Equal(
+            expectedQuestions,
+            await LoadQuestionSnapshotsAsync(context, expectedSession.Id));
+    }
+
+    private sealed record StoredQuestionSnapshot(
+        int Id,
+        int StudySessionId,
+        int FlashcardId,
+        int OrderIndex,
+        QuizQuestionDirection Direction,
+        string PromptText,
+        string Choice1Text,
+        string Choice2Text,
+        string Choice3Text,
+        string Choice4Text,
+        int CorrectChoiceIndex,
+        int? SelectedChoiceIndex,
+        bool? IsCorrect,
+        DateTime? AnsweredAt);
 
     private static QuizService CreateService(
         AppDbContext context,
