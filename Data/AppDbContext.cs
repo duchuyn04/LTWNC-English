@@ -15,6 +15,7 @@ public class AppDbContext : DbContext
     public DbSet<FlashcardSet> FlashcardSets => Set<FlashcardSet>();
     public DbSet<Flashcard> Flashcards => Set<Flashcard>();
     public DbSet<StudySession> StudySessions => Set<StudySession>();
+    public DbSet<QuizSessionQuestion> QuizSessionQuestions => Set<QuizSessionQuestion>();
     public DbSet<UserProgress> UserProgresses => Set<UserProgress>();
     public DbSet<UserStudySettings> UserStudySettings => Set<UserStudySettings>();
     public DbSet<DictationSessionDetail> DictationSessionDetails => Set<DictationSessionDetail>();
@@ -73,6 +74,24 @@ public class AppDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(e => e.FlashcardSetId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        // Cấu hình bảng QuizSessionQuestions
+        builder.Entity<QuizSessionQuestion>(entity =>
+        {
+            entity.HasIndex(e => e.StudySessionId);
+            entity.HasIndex(e => new { e.StudySessionId, e.OrderIndex }).IsUnique();
+            entity.HasIndex(e => new { e.StudySessionId, e.FlashcardId }).IsUnique();
+
+            entity.HasOne(e => e.StudySession)
+                .WithMany()
+                .HasForeignKey(e => e.StudySessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasOne(e => e.Flashcard)
+                .WithMany()
+                .HasForeignKey(e => e.FlashcardId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         // Cấu hình bảng UserProgresses
