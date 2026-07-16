@@ -93,6 +93,7 @@ public class FlashcardEditorScriptTests
     public void Batch_toolbar_stays_hidden_until_a_card_is_selected()
     {
         Assert.Contains("function syncBatchToolbar(form)", Script);
+        Assert.Contains("document.querySelector('[data-batch-for=\"' + form.id + '\"]')", Script);
         Assert.Contains("input[name=\"selectedCardIds\"]:checked", Script);
         Assert.Contains("toolbar.hidden = !hasSelection", Script);
         Assert.Contains("input[name=\"selectedCardIds\"]", Script);

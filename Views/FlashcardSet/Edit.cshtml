@@ -21,6 +21,20 @@
             <a href="#card-list">Danh sách từ</a>
             <a href="#add-card-form">Thêm từ mới</a>
         </nav>
+        @if (cards.Any())
+        {
+            <div class="batch-toolbar" data-batch-for="batch-form" hidden>
+                <button type="submit" form="batch-form" name="action" value="Delete" class="btn-secondary-custom" onclick="return confirm('Xóa các thẻ đã chọn?');">
+                    <i class="ph ph-trash"></i> Xóa đã chọn
+                </button>
+                <button type="submit" form="batch-form" name="action" value="Star" class="btn-secondary-custom">
+                    <i class="ph ph-star"></i> Đánh sao
+                </button>
+                <button type="submit" form="batch-form" name="action" value="Unstar" class="btn-secondary-custom">
+                    <i class="ph ph-star-off"></i> Bỏ sao
+                </button>
+            </div>
+        }
     </aside>
 
     <div class="set-editor-content">
@@ -120,18 +134,6 @@
                 {
                     <form asp-controller="CardActions" asp-action="BatchAction" asp-route-setId="@Model.Id" method="post" id="batch-form">
                         @Html.AntiForgeryToken()
-                        <div class="batch-toolbar mb-3" hidden>
-                            <button type="submit" name="action" value="Delete" class="btn-secondary-custom" onclick="return confirm('Xóa các thẻ đã chọn?');">
-                                <i class="ph ph-trash"></i> Xóa đã chọn
-                            </button>
-                            <button type="submit" name="action" value="Star" class="btn-secondary-custom">
-                                <i class="ph ph-star"></i> Đánh sao
-                            </button>
-                            <button type="submit" name="action" value="Unstar" class="btn-secondary-custom">
-                                <i class="ph ph-star-off"></i> Bỏ sao
-                            </button>
-                        </div>
-
                         @foreach (var card in cards.OrderBy(c => c.OrderIndex))
                         {
                             <div class="vocab-list-item-wrapper">

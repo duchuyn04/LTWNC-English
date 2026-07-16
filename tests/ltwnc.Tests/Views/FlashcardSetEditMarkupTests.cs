@@ -20,6 +20,20 @@ public class FlashcardSetEditMarkupTests
     }
 
     [Fact]
+    public void Batch_actions_live_below_sidebar_navigation_and_target_the_selection_form()
+    {
+        Assert.Matches(
+            new Regex(
+                "<aside class=\\\"set-editor-sidebar\\\">[\\s\\S]*?</nav>\\s*@if \\(cards\\.Any\\(\\)\\)[\\s\\S]*?" +
+                "class=\\\"batch-toolbar[^\\\"]*\\\"[^>]+data-batch-for=\\\"batch-form\\\"[^>]+hidden",
+                RegexOptions.Singleline),
+            Source);
+        Assert.Equal(
+            3,
+            Regex.Matches(Source, "<button[^>]+form=\\\"batch-form\\\"[^>]+name=\\\"action\\\"").Count);
+    }
+
+    [Fact]
     public void Editor_content_does_not_add_a_nested_main_landmark()
     {
         Assert.DoesNotContain("<main class=\"set-editor-content\">", Source);

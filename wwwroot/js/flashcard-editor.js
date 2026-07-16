@@ -157,7 +157,9 @@
     }
 
     function syncBatchToolbar(form) {
-        const toolbar = form?.querySelector('.batch-toolbar');
+        const toolbar = form?.id
+            ? document.querySelector('[data-batch-for="' + form.id + '"]')
+            : null;
         if (!toolbar) return;
 
         const hasSelection = form.querySelector('input[name="selectedCardIds"]:checked');

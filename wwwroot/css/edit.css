@@ -230,15 +230,20 @@ textarea[data-auto-grow] {
     outline-offset: 2px;
 }
 
-.batch-toolbar {
-    position: sticky;
-    top: 4rem;
-    z-index: 3;
+.set-editor-sidebar .batch-toolbar {
+    position: static;
     background: #fff;
-    padding: 0.5rem 0;
-    display: flex;
-    flex-wrap: wrap;
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid #EAEAEA;
+    border-radius: 12px;
+    display: grid;
     gap: 0.5rem;
+}
+
+.set-editor-sidebar .batch-toolbar .btn-secondary-custom {
+    width: 100%;
+    justify-content: flex-start;
 }
 
 .batch-toolbar[hidden] {

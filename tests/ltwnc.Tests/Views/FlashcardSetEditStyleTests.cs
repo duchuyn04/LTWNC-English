@@ -129,13 +129,10 @@ public class FlashcardSetEditStyleTests
     }
 
     [Fact]
-    public void Vocabulary_list_controls_stay_visible_while_cards_scroll()
+    public void Vocabulary_list_header_stays_visible_while_cards_scroll()
     {
         Assert.Matches(
             Rule("\\.vocab-list-header", "position:\\s*sticky[^}]*top:\\s*-1rem[^}]*z-index:\\s*4"),
-            Source);
-        Assert.Matches(
-            Rule("\\.batch-toolbar", "position:\\s*sticky[^}]*top:\\s*4rem[^}]*z-index:\\s*3"),
             Source);
     }
 
@@ -143,7 +140,9 @@ public class FlashcardSetEditStyleTests
     public void Batch_toolbar_can_be_hidden_without_breaking_its_layout()
     {
         Assert.Matches(
-            Rule("\\.batch-toolbar", "display:\\s*flex"),
+            Rule(
+                "\\.set-editor-sidebar\\s+\\.batch-toolbar",
+                "position:\\s*static[^}]*display:\\s*grid"),
             Source);
         Assert.Matches(
             Rule("\\.batch-toolbar\\[hidden\\]", "display:\\s*none"),
