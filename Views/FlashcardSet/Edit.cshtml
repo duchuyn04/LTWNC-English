@@ -86,6 +86,8 @@
             </div>
         }
 
+        <div id="batch-feedback" aria-live="polite"></div>
+
         <div id="file-import" class="set-form-card mb-4">
             <h2 style="margin: 0 0 0.5rem; font-size: 1.15rem; font-weight: 800; color: var(--sm-ink);">Nhập thẻ từ tệp</h2>
             <p class="text-muted mb-3">Chọn tệp CSV UTF-8 hoặc XLSX. Sáu cột bắt buộc: <code>THUẬT NGỮ</code>, <code>ĐỊNH NGHĨA</code>, <code>IPA</code>, <code>LOẠI TỪ</code>, <code>VÍ DỤ TIẾNG ANH</code>, <code>NGHĨA VÍ DỤ TIẾNG VIỆT</code>. Cột tùy chọn: <code>TỪ ĐỒNG NGHĨA</code>, <code>URL ẢNH</code>.</p>
@@ -126,13 +128,17 @@
                     <h5>Danh sách từ</h5>
                 </div>
 
-                @if (!cards.Any())
+                <p data-empty-card-list @(cards.Any() ? "hidden" : null) style="color: #787774;">
+                    Chưa có thẻ nào.
+                </p>
+                @if (cards.Any())
                 {
-                    <p style="color: #787774;">Chưa có thẻ nào.</p>
-                }
-                else
-                {
-                    <form asp-controller="CardActions" asp-action="BatchAction" asp-route-setId="@Model.Id" method="post" id="batch-form">
+                    <form asp-controller="CardActions"
+                          asp-action="BatchAction"
+                          asp-route-setId="@Model.Id"
+                          method="post"
+                          id="batch-form"
+                          data-undo-url-prefix="@Url.Content("~/CardActions/Undo/")">
                         @Html.AntiForgeryToken()
                         @foreach (var card in cards.OrderBy(c => c.OrderIndex))
                         {

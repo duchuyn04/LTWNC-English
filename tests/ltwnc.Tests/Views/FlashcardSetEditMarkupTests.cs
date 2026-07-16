@@ -34,6 +34,19 @@ public class FlashcardSetEditMarkupTests
     }
 
     [Fact]
+    public void Batch_form_exposes_ajax_feedback_empty_state_and_undo_metadata()
+    {
+        Assert.Matches(
+            new Regex("id=\\\"batch-feedback\\\"[^>]+aria-live=\\\"polite\\\"", RegexOptions.Singleline),
+            Source);
+        Assert.Contains("data-empty-card-list", Source);
+        Assert.Matches(
+            new Regex("<form[^>]+id=\\\"batch-form\\\"[^>]+data-undo-url-prefix=", RegexOptions.Singleline),
+            Source);
+        Assert.Contains("@Html.AntiForgeryToken()", Source);
+    }
+
+    [Fact]
     public void Editor_content_does_not_add_a_nested_main_landmark()
     {
         Assert.DoesNotContain("<main class=\"set-editor-content\">", Source);
