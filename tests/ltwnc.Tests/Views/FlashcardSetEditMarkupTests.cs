@@ -47,6 +47,31 @@ public class FlashcardSetEditMarkupTests
     }
 
     [Fact]
+    public void Empty_editor_renders_list_and_detail_guidance_with_add_action()
+    {
+        Assert.Contains("class=\"vocab-editor @(cards.Any() ? null : \"is-empty\")", Source);
+        Assert.Contains("class=\"vocab-empty-state vocab-empty-state--list\"", Source);
+        Assert.Contains("class=\"vocab-empty-state vocab-empty-state--detail\"", Source);
+        Assert.Contains("Chưa có từ vựng", Source);
+        Assert.Contains("Chưa có từ để chỉnh sửa", Source);
+        Assert.Matches(
+            new Regex("vocab-empty-state--detail[\\s\\S]*?<a[^>]+href=\"#add-card-form\"[^>]*>[\\s\\S]*?Thêm từ vựng", RegexOptions.Singleline),
+            Source);
+        Assert.Equal(2, Regex.Matches(Source, "class=\"ph [^\"]+\" aria-hidden=\"true\"").Count);
+    }
+
+    [Fact]
+    public void Populated_editor_remains_in_the_cards_any_branch()
+    {
+        Assert.Matches(
+            new Regex("@if \\(cards\\.Any\\(\\)\\)[\\s\\S]*?id=\"batch-form\"", RegexOptions.Singleline),
+            Source);
+        Assert.Matches(
+            new Regex("@if \\(cards\\.Any\\(\\)\\)[\\s\\S]*?@foreach \\(var card in cards\\.OrderBy", RegexOptions.Singleline),
+            Source);
+    }
+
+    [Fact]
     public void Editor_content_does_not_add_a_nested_main_landmark()
     {
         Assert.DoesNotContain("<main class=\"set-editor-content\">", Source);
@@ -56,9 +81,12 @@ public class FlashcardSetEditMarkupTests
     [Fact]
     public void Add_card_form_is_outside_editor_and_redundant_header_link_is_removed()
     {
-        Assert.DoesNotMatch(
-            new Regex("vocab-list-header[\\s\\S]*?<a[^>]+href=\\\"#add-card-form\\\""),
-            Source);
+        var listHeader = Regex.Match(
+            Source,
+            "<div class=\\\"vocab-list-header\\\">[\\s\\S]*?</div>");
+
+        Assert.True(listHeader.Success);
+        Assert.DoesNotContain("href=\\\"#add-card-form\\\"", listHeader.Value);
         Assert.Matches(
             new Regex("</section>\\s*</div>\\s*<section[^>]*>\\s*<form[^>]+id=\\\"add-card-form\\\"", RegexOptions.Singleline),
             Source);

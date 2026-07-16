@@ -131,6 +131,57 @@
     padding: 1rem;
 }
 
+.vocab-empty-state {
+    display: grid;
+    place-items: center;
+    align-content: center;
+    gap: 1rem;
+    padding: 2rem 1.25rem;
+    color: #787774;
+    text-align: center;
+}
+
+.vocab-empty-state > i {
+    display: grid;
+    place-items: center;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    background: #F4FAFE;
+    color: #58708A;
+    font-size: 1.5rem;
+}
+
+.vocab-empty-state h5,
+.vocab-empty-state h6,
+.vocab-empty-state p {
+    margin: 0;
+}
+
+.vocab-empty-state h5,
+.vocab-empty-state h6 {
+    color: #292524;
+    font-weight: 700;
+}
+
+.vocab-empty-state p {
+    margin-top: 0.35rem;
+    max-width: 32rem;
+}
+
+.vocab-editor.is-empty .vocab-list {
+    height: auto;
+    max-height: none;
+}
+
+.vocab-empty-state--list {
+    min-height: 180px;
+}
+
+.vocab-empty-state--detail {
+    min-height: 260px;
+}
+
 .vocab-card-panel {
     display: none;
 }
@@ -295,6 +346,10 @@ textarea[data-auto-grow] {
     .vocab-list {
         height: auto;
         max-height: min(70vh, 720px);
+    }
+
+    .vocab-empty-state--detail {
+        min-height: 200px;
     }
 
     .vocab-grid {

@@ -122,16 +122,23 @@
             </div>
         }
 
-        <div id="card-list" class="vocab-editor gsap-fade-up">
+        <div id="card-list" class="vocab-editor @(cards.Any() ? null : "is-empty") gsap-fade-up">
             <aside class="vocab-list gsap-stagger">
                 <div class="vocab-list-header">
                     <h5>Danh sách từ</h5>
                 </div>
 
-                <p data-empty-card-list @(cards.Any() ? "hidden" : null) style="color: #787774;">
-                    Chưa có thẻ nào.
-                </p>
-                @if (cards.Any())
+                @if (!cards.Any())
+                {
+                    <div class="vocab-empty-state vocab-empty-state--list" data-empty-card-list>
+                        <i class="ph ph-cards" aria-hidden="true"></i>
+                        <div>
+                            <h6>Chưa có từ vựng</h6>
+                            <p>Thêm từ đầu tiên để bắt đầu xây dựng bộ thẻ.</p>
+                        </div>
+                    </div>
+                }
+                else
                 {
                     <form asp-controller="CardActions"
                           asp-action="BatchAction"
@@ -161,9 +168,22 @@
             </aside>
 
             <section class="vocab-detail">
-                @foreach (var card in cards.OrderBy(c => c.OrderIndex))
+                @if (!cards.Any())
                 {
-                    <div class="vocab-card-panel" data-card-panel="@card.Id">
+                    <div class="vocab-empty-state vocab-empty-state--detail">
+                        <i class="ph ph-note-pencil" aria-hidden="true"></i>
+                        <div>
+                            <h5>Chưa có từ để chỉnh sửa</h5>
+                            <p>Thêm từ vựng đầu tiên, sau đó bạn có thể chỉnh sửa chi tiết tại đây.</p>
+                        </div>
+                        <a href="#add-card-form" class="btn-primary-custom">Thêm từ vựng</a>
+                    </div>
+                }
+                else
+                {
+                    @foreach (var card in cards.OrderBy(c => c.OrderIndex))
+                    {
+                        <div class="vocab-card-panel" data-card-panel="@card.Id">
                         <form asp-action="EditCard"
                               asp-route-id="@card.Id"
                               method="post"
@@ -261,7 +281,8 @@
                                 <i class="ph ph-trash"></i> Xóa từ
                             </button>
                         </form>
-                    </div>
+                        </div>
+                    }
                 }
             </section>
         </div>

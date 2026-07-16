@@ -150,6 +150,39 @@ public class FlashcardSetEditStyleTests
     }
 
     [Fact]
+    public void Empty_editor_states_are_centered_and_do_not_use_the_tall_list_height()
+    {
+        Assert.Matches(
+            Rule(
+                "\\.vocab-empty-state",
+                "display:\\s*grid[^}]*place-items:\\s*center[^}]*text-align:\\s*center"),
+            Source);
+        Assert.Matches(
+            Rule(
+                "\\.vocab-editor\\.is-empty\\s+\\.vocab-list",
+                "height:\\s*auto[^}]*max-height:\\s*none"),
+            Source);
+        Assert.Matches(
+            Rule(
+                "\\.vocab-empty-state--detail",
+                "min-height:\\s*260px"),
+            Source);
+    }
+
+    [Fact]
+    public void Empty_editor_uses_compact_mobile_heights()
+    {
+        Assert.Matches(
+            new Regex(
+                "@media\\s*\\(max-width:\\s*900px\\)[^{]*\\{[\\s\\S]*?" +
+                RulePattern(
+                    "\\.vocab-empty-state--detail",
+                    "min-height:\\s*200px"),
+                RegexOptions.Singleline),
+            Source);
+    }
+
+    [Fact]
     public void Batch_toolbar_can_be_hidden_without_breaking_its_layout()
     {
         Assert.Matches(
