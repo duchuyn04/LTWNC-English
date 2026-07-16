@@ -1,0 +1,73 @@
+@model QuizStudyViewModel
+@{
+    ViewData["Title"] = "Trắc nghiệm";
+    string directionLabel = Model.Direction == QuizQuestionDirection.TermToDefinition
+        ? "Chọn nghĩa đúng"
+        : "Chọn từ phù hợp";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/quiz.css" asp-append-version="true" />
+}
+
+<div class="quiz-shell">
+    <main class="quiz-stage"
+          data-quiz-root
+          data-question-id="@Model.QuestionId"
+          data-answer-url="@Url.Action("QuizAnswer", "Study", new { setId = Model.SetId, sessionId = Model.SessionId })">
+        @Html.AntiForgeryToken()
+
+        <header class="quiz-header">
+            <a class="quiz-exit" asp-action="Index" asp-route-setId="@Model.SetId">
+                <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                <span>Thoát</span>
+            </a>
+            <div class="quiz-heading">
+                <span class="quiz-eyebrow">Trắc nghiệm</span>
+                <h1>@Model.SetTitle</h1>
+            </div>
+            <div class="quiz-score" aria-label="Số câu đúng">
+                <strong>@Model.CorrectCount</strong>
+                <span>đúng</span>
+            </div>
+        </header>
+
+        <div class="quiz-progress" aria-label="Tiến độ bài trắc nghiệm">
+            <span>Câu @Model.CurrentNumber / @Model.TotalQuestions</span>
+            <div class="quiz-progress-track" aria-hidden="true">
+                <span style="width: @((Model.CurrentNumber - 1) * 100 / Math.Max(Model.TotalQuestions, 1))%"></span>
+            </div>
+        </div>
+
+        <section class="quiz-card" aria-labelledby="quiz-prompt">
+            <p class="quiz-direction">@directionLabel</p>
+            <h2 id="quiz-prompt" class="quiz-prompt">@Model.PromptText</h2>
+
+            <div class="quiz-choices" role="group" aria-label="Các lựa chọn trả lời">
+                @for (int index = 0; index < Model.Choices.Count; index++)
+                {
+                    <button type="button"
+                            class="quiz-choice"
+                            data-quiz-answer
+                            data-choice-index="@index">
+                        <span class="quiz-choice-key" aria-hidden="true">@(index + 1)</span>
+                        <span>@Model.Choices[index]</span>
+                    </button>
+                }
+            </div>
+
+            <p class="quiz-feedback" data-quiz-feedback role="status" aria-live="polite"></p>
+
+            <div class="quiz-actions">
+                <a class="quiz-next" data-quiz-next href="#" hidden>
+                    <span data-quiz-next-label>Câu tiếp theo</span>
+                    <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                </a>
+            </div>
+        </section>
+    </main>
+</div>
+
+@section Scripts {
+    <script src="~/js/quiz.js" asp-append-version="true"></script>
+}

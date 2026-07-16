@@ -1,0 +1,85 @@
+@model QuizResultViewModel
+@{
+    ViewData["Title"] = "Kết quả trắc nghiệm";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/quiz.css" asp-append-version="true" />
+}
+
+<div class="quiz-shell">
+    <main class="quiz-result">
+        <header class="quiz-result-header">
+            <span class="quiz-eyebrow">Hoàn thành</span>
+            <h1>Kết quả trắc nghiệm</h1>
+            <p>@Model.SetTitle</p>
+        </header>
+
+        <section class="quiz-result-summary" aria-label="Tổng kết kết quả">
+            <div class="quiz-result-score">
+                <strong>@Model.Score%</strong>
+                <span>Điểm số</span>
+            </div>
+            <div class="quiz-result-count">
+                <strong>@Model.CorrectCount / @Model.TotalQuestions</strong>
+                <span>Câu trả lời đúng</span>
+            </div>
+        </section>
+
+        @if (Model.WrongAnswers.Any())
+        {
+            <section class="quiz-review" aria-labelledby="quiz-review-title">
+                <h2 id="quiz-review-title">Xem lại câu sai</h2>
+                <div class="quiz-review-list">
+                    @foreach (QuizWrongAnswerViewModel answer in Model.WrongAnswers)
+                    {
+                        string directionLabel = answer.Direction == QuizQuestionDirection.TermToDefinition
+                            ? "Từ → Nghĩa"
+                            : "Nghĩa → Từ";
+                        <article class="quiz-review-item">
+                            <span class="quiz-review-direction">@directionLabel</span>
+                            <h3>@answer.PromptText</h3>
+                            <dl>
+                                <div class="quiz-review-wrong">
+                                    <dt>Bạn đã chọn</dt>
+                                    <dd>@answer.SelectedAnswer</dd>
+                                </div>
+                                <div class="quiz-review-correct">
+                                    <dt>Đáp án đúng</dt>
+                                    <dd>@answer.CorrectAnswer</dd>
+                                </div>
+                            </dl>
+                        </article>
+                    }
+                </div>
+            </section>
+        }
+        else
+        {
+            <p class="quiz-perfect">Tuyệt vời! Bạn đã trả lời đúng tất cả câu hỏi.</p>
+        }
+
+        <div class="quiz-result-actions">
+            @if (Model.WrongAnswers.Any())
+            {
+                <form asp-action="RetryWrong"
+                      asp-route-setId="@Model.SetId"
+                      asp-route-sessionId="@Model.SessionId"
+                      method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="quiz-action quiz-action-secondary">Làm lại câu sai</button>
+                </form>
+            }
+
+            <form asp-action="RetryAll"
+                  asp-route-setId="@Model.SetId"
+                  asp-route-sessionId="@Model.SessionId"
+                  method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="quiz-action quiz-action-primary">Làm lại tất cả</button>
+            </form>
+
+            <a class="quiz-action quiz-action-link" asp-action="Index" asp-route-setId="@Model.SetId">Về trang học</a>
+        </div>
+    </main>
+</div>
