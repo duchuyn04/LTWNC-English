@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Study;
@@ -285,6 +286,92 @@ public class QuizServiceTests
         Assert.Equal(set.UserId, completion.UserId);
     }
 
+    [Fact]
+    public async Task Last_answer_concurrent_requests_persist_score_and_publish_once()
+    {
+        await using var database = await SharedQuizTestDatabase.CreateAsync();
+        var publisher = new RecordingStudyEventPublisher();
+        int setId;
+        int sessionId;
+        int questionId;
+        int selectedChoiceIndex;
+        string userId;
+
+        await using (AppDbContext setupContext = await database.CreateContextAsync())
+        {
+            FlashcardSet set = await SeedQuestionPoolAsync(setupContext);
+            QuizService setupService = CreateService(setupContext, publisher);
+            StudySession session = await setupService.StartOrResumeAsync(
+                set.Id,
+                set.UserId,
+                new UserStudySettings());
+            List<QuizSessionQuestion> questions = await setupContext.QuizSessionQuestions
+                .AsNoTracking()
+                .OrderBy(row => row.OrderIndex)
+                .ToListAsync();
+            foreach (QuizSessionQuestion question in questions.Take(questions.Count - 1))
+            {
+                await setupService.AnswerAsync(
+                    set.Id,
+                    session.Id,
+                    question.Id,
+                    question.CorrectChoiceIndex,
+                    set.UserId);
+            }
+
+            QuizSessionQuestion lastQuestion = questions[^1];
+            setId = set.Id;
+            sessionId = session.Id;
+            questionId = lastQuestion.Id;
+            selectedChoiceIndex = lastQuestion.CorrectChoiceIndex;
+            userId = set.UserId;
+        }
+
+        await using AppDbContext firstContext = await database.CreateContextAsync();
+        await using AppDbContext secondContext = await database.CreateContextAsync();
+        QuizService firstService = CreateService(firstContext, publisher);
+        QuizService secondService = CreateService(secondContext, publisher);
+        var bothReady = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var startGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        int readyCount = 0;
+
+        async Task<QuizAnswerResult> SubmitLastAnswerAsync(QuizService service)
+        {
+            if (Interlocked.Increment(ref readyCount) == 2)
+            {
+                bothReady.SetResult();
+            }
+
+            await startGate.Task;
+            return await service.AnswerAsync(
+                setId,
+                sessionId,
+                questionId,
+                selectedChoiceIndex,
+                userId);
+        }
+
+        Task<QuizAnswerResult> firstRequest = SubmitLastAnswerAsync(firstService);
+        Task<QuizAnswerResult> secondRequest = SubmitLastAnswerAsync(secondService);
+        await bothReady.Task.WaitAsync(TimeSpan.FromSeconds(5));
+        startGate.SetResult();
+        QuizAnswerResult[] results = await Task.WhenAll(firstRequest, secondRequest);
+
+        await using AppDbContext verificationContext = await database.CreateContextAsync();
+        QuizSessionQuestion storedQuestion = await verificationContext.QuizSessionQuestions
+            .SingleAsync(row => row.Id == questionId);
+        StudySession storedSession = await verificationContext.StudySessions
+            .SingleAsync(row => row.Id == sessionId);
+        Assert.All(results, result => Assert.True(result.IsLastQuestion));
+        Assert.Equal(selectedChoiceIndex, storedQuestion.SelectedChoiceIndex);
+        Assert.True(storedQuestion.IsCorrect);
+        Assert.NotNull(storedQuestion.AnsweredAt);
+        Assert.Equal(4, await verificationContext.QuizSessionQuestions.CountAsync(row =>
+            row.StudySessionId == sessionId && row.SelectedChoiceIndex != null));
+        Assert.Equal(100, storedSession.Score);
+        Assert.Single(publisher.Events.OfType<StudySessionCompletedEvent>());
+    }
+
     [Theory]
     [InlineData(-1)]
     [InlineData(4)]
@@ -432,14 +519,63 @@ public class QuizServiceTests
 
     private sealed class RecordingStudyEventPublisher : IStudyEventPublisher
     {
-        public List<StudyEvent> Events { get; } = new();
+        public ConcurrentQueue<StudyEvent> Events { get; } = new();
 
         public Task PublishAsync(
             StudyEvent studyEvent,
             CancellationToken cancellationToken = default)
         {
-            Events.Add(studyEvent);
+            Events.Enqueue(studyEvent);
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class SharedQuizTestDatabase : IAsyncDisposable
+    {
+        private readonly string _databasePath;
+        private readonly string _connectionString;
+
+        private SharedQuizTestDatabase(string databasePath)
+        {
+            _databasePath = databasePath;
+            _connectionString = new SqliteConnectionStringBuilder
+            {
+                DataSource = databasePath,
+                Mode = SqliteOpenMode.ReadWriteCreate,
+                Pooling = false,
+                DefaultTimeout = 10
+            }.ToString();
+        }
+
+        public static async Task<SharedQuizTestDatabase> CreateAsync()
+        {
+            string databasePath = Path.Combine(
+                Path.GetTempPath(),
+                $"ltwnc-quiz-{Guid.NewGuid():N}.db");
+            var database = new SharedQuizTestDatabase(databasePath);
+            await using AppDbContext context = await database.CreateContextAsync();
+            await context.Database.EnsureCreatedAsync();
+            await context.Database.ExecuteSqlRawAsync("PRAGMA journal_mode=WAL;");
+            return database;
+        }
+
+        public async Task<AppDbContext> CreateContextAsync()
+        {
+            var options = new DbContextOptionsBuilder<AppDbContext>()
+                .UseSqlite(_connectionString)
+                .Options;
+            var context = new AppDbContext(options);
+            await context.Database.OpenConnectionAsync();
+            await context.Database.ExecuteSqlRawAsync("PRAGMA busy_timeout=10000;");
+            return context;
+        }
+
+        public ValueTask DisposeAsync()
+        {
+            File.Delete(_databasePath);
+            File.Delete($"{_databasePath}-wal");
+            File.Delete($"{_databasePath}-shm");
+            return ValueTask.CompletedTask;
         }
     }
 
