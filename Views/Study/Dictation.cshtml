@@ -92,6 +92,10 @@
                             <span class="material-symbols-outlined">arrow_forward</span>
                             <span>Tiếp tục</span>
                         </button>
+                        <button type="button" id="dictation-retry-btn" class="dictation-btn dictation-btn-secondary" onclick="startRetry()" hidden>
+                            <span class="material-symbols-outlined">replay</span>
+                            <span>Thử lại</span>
+                        </button>
                     </div>
                 </div>
             </main>
@@ -212,6 +216,7 @@
         let correctCount = 0;
         let isAnswered = false;
         let lastCorrectAnswer = '';
+        let isRetrying = false;
 
         const synth = window.speechSynthesis;
         const voiceSelect = document.getElementById('dictation-voice');
@@ -222,6 +227,7 @@
         const checkBtn = document.getElementById('dictation-check-btn');
         const dontKnowBtn = document.getElementById('dictation-dont-know-btn');
         const playBtn = document.getElementById('dictation-play-btn');
+        const retryBtn = document.getElementById('dictation-retry-btn');
 
         let voices = [];
 

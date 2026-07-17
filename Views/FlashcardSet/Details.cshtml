@@ -36,7 +36,7 @@
             @if (Model.IsOwner)
             {
                 <a href="/Set/@Model.Id/Edit" class="btn-secondary-custom">
-                    <i class="ph ph-pencil"></i> Sửa
+                    <i class="ph ph-pencil"></i> Quản lý
                 </a>
                 <a href="/Study/@Model.Id" class="btn-primary-custom">
                     <i class="ph ph-play-circle"></i> Bắt đầu học
@@ -76,7 +76,7 @@
                 <h3>Danh sách từ</h3>
                 @if (Model.IsOwner)
                 {
-                    <a href="/Set/@Model.Id/Edit" class="btn-secondary-custom" style="padding: 0.4rem 0.8rem; font-size: 0.8125rem;">Chỉnh sửa</a>
+                    <a href="/Set/@Model.Id/Edit" class="btn-secondary-custom" style="padding: 0.4rem 0.8rem; font-size: 0.8125rem;">Quản lý</a>
                 }
             </div>
             @foreach (var card in Model.Flashcards.OrderBy(c => c.OrderIndex))

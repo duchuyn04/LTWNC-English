@@ -23,6 +23,7 @@
 
     @{
         var hideLayoutChrome = ViewData["HideLayoutChrome"] as bool? == true;
+        var signedIn = User.Identity?.IsAuthenticated == true;
     }
     @if (!hideLayoutChrome)
     {
@@ -40,7 +41,7 @@
                         <li class="nav-item">
                             <a class="nav-link" href="/" style="color: #787774;">Trang chủ</a>
                         </li>
-                        @if (SignInManager.IsSignedIn(User))
+                        @if (signedIn)
                         {
                             <li class="nav-item">
                                 <a class="nav-link" href="/Set" style="color: #787774;">Bộ thẻ của tôi</a>
@@ -51,7 +52,7 @@
                         }
                     </ul>
                     <ul class="navbar-nav">
-                        @if (SignInManager.IsSignedIn(User))
+                        @if (signedIn)
                         {
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" style="color: #111111;">

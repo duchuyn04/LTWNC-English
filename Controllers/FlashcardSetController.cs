@@ -5,6 +5,8 @@ using ltwnc.Services.FlashcardSets;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Flashcards;
 using ltwnc.Models.ViewModels.FlashcardSet;
+using Microsoft.AspNetCore.Http;
+using System.Text.Json;
 
 namespace ltwnc.Controllers;
 
@@ -12,18 +14,23 @@ namespace ltwnc.Controllers;
 [Authorize]
 public class FlashcardSetController : Controller
 {
+    private const int MaxDisplayedImportErrors = 100;
+
     // Nghiệp vụ set + card + copy
     private readonly IFlashcardSetService _setService;
 
     // User hiện tại từ cookie claims
     private readonly ICurrentUser _currentUser;
+    private readonly IFlashcardImportService _importService;
 
     public FlashcardSetController(
         IFlashcardSetService setService,
-        ICurrentUser currentUser)
+        ICurrentUser currentUser,
+        IFlashcardImportService importService)
     {
         _setService = setService;
         _currentUser = currentUser;
+        _importService = importService;
     }
 
     // GET /Set: thư viện cá nhân kèm progress
@@ -71,6 +78,7 @@ public class FlashcardSetController : Controller
             model.IsPublic,
             userId);
 
+        TempData["Success"] = "Đã tạo bộ thẻ. Hãy thêm từ đầu tiên.";
         return RedirectToAction("Edit", new { id = set.Id });
     }
 
@@ -190,11 +198,55 @@ public class FlashcardSetController : Controller
                 model.Description,
                 model.IsPublic,
                 userId);
+            TempData["Success"] = "Đã lưu thay đổi bộ thẻ.";
             return RedirectToAction("Edit", new { id });
         }
         catch (UnauthorizedAccessException)
         {
             return Forbid();
+        }
+    }
+
+    // POST nhập nhiều thẻ từ CSV/XLSX, luôn redirect về Edit để tránh gửi lại form.
+    [HttpPost]
+    [Route("/Set/{id}/Import")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Import(int id, IFormFile? file)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        try
+        {
+            FlashcardImportResult result = await _importService.ImportAsync(
+                id,
+                userId,
+                file!,
+                HttpContext.RequestAborted);
+
+            TempData["ImportImportedCount"] = result.ImportedCount;
+            TempData["ImportSkippedCount"] = result.SkippedCount;
+            FlashcardImportError[] displayedErrors = result.Errors
+                .Take(MaxDisplayedImportErrors)
+                .ToArray();
+            TempData["ImportErrorsOmittedCount"] = result.Errors.Count - displayedErrors.Length;
+            if (displayedErrors.Length > 0)
+            {
+                TempData["ImportErrors"] = JsonSerializer.Serialize(displayedErrors);
+            }
+
+            TempData["Success"] = result.ImportedCount > 0
+                ? $"Đã nhập {result.ImportedCount} thẻ thành công."
+                : "Không có thẻ hợp lệ nào được nhập.";
+            return RedirectToAction("Edit", new { id });
+        }
+        catch (FlashcardImportException exception)
+        {
+            TempData["Error"] = exception.Message;
+            return RedirectToAction("Edit", new { id });
         }
     }
 
@@ -260,6 +312,33 @@ public class FlashcardSetController : Controller
         {
             TempData["Error"] = ex.Message;
             return RedirectToAction("Edit", new { id = setId });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+    }
+
+    // POST AJAX toggle sao thẻ trong trình chỉnh sửa (owner)
+    [HttpPost]
+    [Route("/Set/{setId}/Cards/{cardId}/ToggleStar")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ToggleStar(int setId, int cardId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        try
+        {
+            bool isStarred = await _setService.ToggleStarAsync(cardId, userId);
+            return Json(new { success = true, isStarred });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
         }
         catch (UnauthorizedAccessException)
         {
