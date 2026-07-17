@@ -659,7 +659,9 @@
                 playCurrentPrompt();
             } else if (e.key === 'Enter' && !e.shiftKey && document.activeElement === answerInput) {
                 e.preventDefault();
-                if (isAnswered) {
+                if (isRetrying) {
+                    checkRetryAnswer();
+                } else if (isAnswered) {
                     nextCard();
                 } else {
                     checkAnswer();
