@@ -401,6 +401,75 @@
                 setTimeout(nextCard, 1000);
             } else {
                 continueBtn.hidden = false;
+                if (!data.isCorrect && retryBtn) retryBtn.hidden = false;
+            }
+        }
+
+        function startRetry() {
+            if (!isAnswered) return;
+
+            isRetrying = true;
+            answerInput.value = '';
+            answerInput.readOnly = false;
+            feedbackPanel.hidden = true;
+            document.getElementById('dictation-feedback-comparison').hidden = true;
+
+            continueBtn.hidden = true;
+            if (retryBtn) retryBtn.hidden = true;
+            checkBtn.hidden = false;
+            dontKnowBtn.hidden = false;
+
+            answerInput.focus();
+        }
+
+        function normalizeRetryInput(input) {
+            if (!input) return '';
+            return input
+                .toLowerCase()
+                .replace(/[,.!?;]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function checkRetryAnswer() {
+            if (!isRetrying || cards.length === 0) return;
+
+            const value = answerInput.value.trim();
+            if (!value) {
+                answerInput.focus();
+                return;
+            }
+
+            const normalizedInput = normalizeRetryInput(value);
+            const normalizedCorrect = normalizeRetryInput(lastCorrectAnswer);
+            const isNowCorrect = normalizedInput === normalizedCorrect && normalizedCorrect !== '';
+
+            feedbackPanel.hidden = false;
+            answerInput.readOnly = true;
+            checkBtn.hidden = true;
+            dontKnowBtn.hidden = true;
+
+            const icon = document.getElementById('dictation-feedback-icon');
+            const answer = document.getElementById('dictation-feedback-answer');
+            const hint = document.getElementById('dictation-feedback-hint');
+            const comparison = document.getElementById('dictation-feedback-comparison');
+            comparison.hidden = true;
+
+            if (isNowCorrect) {
+                feedbackPanel.className = 'dictation-feedback is-correct';
+                icon.innerHTML = '<span class="material-symbols-outlined" style="color: var(--dt-success); font-size: 1.75rem;">check_circle</span>';
+                answer.textContent = 'Chính xác!';
+                hint.textContent = '';
+                continueBtn.hidden = false;
+                if (retryBtn) retryBtn.hidden = true;
+                isRetrying = false;
+            } else {
+                feedbackPanel.className = 'dictation-feedback is-wrong';
+                icon.innerHTML = '<span class="material-symbols-outlined" style="color: var(--dt-error); font-size: 1.75rem;">cancel</span>';
+                answer.textContent = 'Chưa chính xác';
+                hint.textContent = settings.DictationShowHint ? (cards[currentIndex].Definition || '') : '';
+                continueBtn.hidden = false;
+                if (retryBtn) retryBtn.hidden = false;
             }
         }
 
@@ -447,12 +516,14 @@
 
         function resetCard() {
             isAnswered = false;
+            isRetrying = false;
             answerInput.value = '';
             answerInput.readOnly = false;
             lastCorrectAnswer = '';
             feedbackPanel.hidden = true;
             document.getElementById('dictation-feedback-comparison').hidden = true;
             continueBtn.hidden = true;
+            if (retryBtn) retryBtn.hidden = true;
             checkBtn.hidden = false;
             dontKnowBtn.hidden = false;
             answerInput.focus();
