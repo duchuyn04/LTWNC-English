@@ -1,0 +1,114 @@
+@model ltwnc.Models.ViewModels.FlashcardSet.EditorViewModel
+@{
+    ViewData["Title"] = Model.Id.HasValue ? "Chỉnh sửa bộ thẻ" : "Tạo bộ thẻ";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/unified-editor.css" />
+}
+
+<div class="unified-editor" data-set-id="@Model.Id" data-is-new="@(Model.Id.HasValue ? "false" : "true")">
+    <div class="editor-header">
+        <div>
+            <h2>Danh sách từ</h2>
+            <p class="subtitle"><span id="card-count">@Model.Cards.Count</span> thẻ · có thể chỉnh sửa trực tiếp</p>
+        </div>
+        <div class="header-actions">
+            <select id="card-filter" class="form-select">
+                <option value="all">Tất cả thẻ</option>
+                <option value="starred">Đã đánh dấu</option>
+            </select>
+            <button id="btn-import" type="button" class="btn btn-secondary">Import</button>
+            <button id="btn-finish" type="button" class="btn btn-primary" disabled>Hoàn tất</button>
+        </div>
+    </div>
+
+    <div class="editor-meta">
+        <label for="set-title">Tên bộ từ <span class="required">*</span></label>
+        <input id="set-title" class="form-control" value="@Model.Title" placeholder="Nhập tên bộ thẻ" />
+        <div class="save-status" id="save-status"></div>
+    </div>
+
+    <div id="cards-container" class="cards-container">
+        @for (int i = 0; i < Model.Cards.Count; i++)
+        {
+            var card = Model.Cards[i];
+            <div class="flashcard-card @(i == 0 ? "expanded" : "collapsed")"
+                 data-id="@card.Id"
+                 data-order="@card.OrderIndex"
+                 data-starred="@card.IsStarred.ToString().ToLowerInvariant()">
+                <div class="card-header">
+                    <span class="card-number">@(i + 1)</span>
+                    <button type="button" class="btn-star" aria-label="Toggle star">
+                        @(card.IsStarred ? "★" : "☆")
+                    </button>
+                    <span class="card-term">@card.FrontText</span>
+                    <div class="card-actions">
+                        <button type="button" class="btn-toggle" aria-label="Expand/collapse">▲</button>
+                        <button type="button" class="btn-delete" aria-label="Delete">🗑</button>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Thuật ngữ <span class="required">*</span></label>
+                            <input class="form-control input-front" value="@card.FrontText" placeholder="Thuật ngữ" />
+                        </div>
+                        <div class="form-group">
+                            <label>Định nghĩa <span class="required">*</span></label>
+                            <input class="form-control input-back" value="@card.BackText" placeholder="Định nghĩa" />
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Phát âm</label>
+                            <input class="form-control input-pronunciation" value="@card.Pronunciation" placeholder="IPA" />
+                        </div>
+                        <div class="form-group">
+                            <label>Loại từ</label>
+                            <input class="form-control input-part-of-speech" value="@card.PartOfSpeech" placeholder="noun, verb..." />
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Ví dụ tiếng Anh</label>
+                        <textarea class="form-control input-example-sentence" rows="2" placeholder="Ví dụ">@card.ExampleSentence</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Nghĩa câu ví dụ tiếng Việt</label>
+                        <textarea class="form-control input-example-meaning" rows="2" placeholder="Nghĩa">@card.ExampleMeaning</textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Từ đồng nghĩa</label>
+                        <input class="form-control input-synonyms" value="@card.Synonyms" placeholder="Cách nhau bằng dấu phẩy" />
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <button id="btn-add-card" type="button" class="btn btn-add-card">+ Thêm thẻ mới</button>
+</div>
+
+<div id="import-modal" class="modal" style="display:none;">
+    <div class="modal-content">
+        <h3>Import nhanh</h3>
+        <p>Dán danh sách từ, mỗi dòng một thẻ. Dấu phân cách giữa thuật ngữ và định nghĩa:</p>
+        <select id="import-delimiter" class="form-select">
+            <option value="\t">Tab</option>
+            <option value=",">Dấu phẩy</option>
+            <option value="-">Dấu gạch ngang</option>
+        </select>
+        <textarea id="import-text" class="form-control" rows="10" placeholder="hello\txin chào"></textarea>
+        <label><input type="checkbox" id="import-replace" /> Ghi đè toàn bộ thẻ hiện có</label>
+        <div id="import-preview"></div>
+        <div class="modal-actions">
+            <button id="btn-import-cancel" type="button" class="btn btn-secondary">Hủy</button>
+            <button id="btn-import-confirm" type="button" class="btn btn-primary">Thêm</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="~/js/unified-editor.js" asp-append-version="true"></script>
+}

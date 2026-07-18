@@ -48,6 +48,58 @@ public class FlashcardSetController : Controller
         return View();
     }
 
+    // GET unified editor: tạo mới hoặc chỉnh sửa bộ thẻ
+    [Route("/flashcardset/editor/{id?}")]
+    public async Task<IActionResult> Editor(int? id)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        EditorViewModel model = new EditorViewModel();
+
+        if (id.HasValue)
+        {
+            FlashcardSet? set = await _setService.GetSetWithCardsAsync(id.Value, userId);
+            if (set == null)
+            {
+                return NotFound();
+            }
+
+            model.Id = set.Id;
+            model.Title = set.Title;
+            model.Description = set.Description;
+            model.IsPublic = set.IsPublic;
+            model.Cards = set.Flashcards
+                .OrderBy(c => c.OrderIndex)
+                .Select(c => new CardViewModel
+                {
+                    Id = c.Id,
+                    FrontText = c.FrontText,
+                    BackText = c.BackText,
+                    Pronunciation = c.Pronunciation,
+                    PartOfSpeech = c.PartOfSpeech,
+                    ExampleSentence = c.ExampleSentence,
+                    ExampleMeaning = c.ExampleMeaning,
+                    Synonyms = c.Synonyms,
+                    ImageUrl = c.ImageUrl,
+                    UploadedImagePath = c.UploadedImagePath,
+                    IsStarred = c.IsStarred,
+                    OrderIndex = c.OrderIndex
+                })
+                .ToList();
+        }
+        else
+        {
+            // New set starts with one empty card
+            model.Cards.Add(new CardViewModel());
+        }
+
+        return View(model);
+    }
+
     // POST tạo set, redirect Edit để thêm thẻ
     [HttpPost]
     [Route("/Set/Create")]
