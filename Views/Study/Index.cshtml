@@ -12,7 +12,7 @@
     var primaryMode = Model.Modes.FirstOrDefault(m => m.IsRecommended)
         ?? Model.Modes.FirstOrDefault(m => m.IsAvailable);
 
-    var signedIn = SignInManager.IsSignedIn(User);
+    var signedIn = User.Identity?.IsAuthenticated == true;
 }
 
 @section Styles {

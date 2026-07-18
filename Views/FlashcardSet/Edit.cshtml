@@ -1,17 +1,47 @@
 @model EditSetPageViewModel
 @{
-    ViewData["Title"] = "Sửa bộ thẻ";
+    ViewData["Title"] = "Quản lý bộ thẻ";
     var cards = Model.Cards;
+    var importErrorsJson = TempData["ImportErrors"] as string;
+    var importErrors = string.IsNullOrWhiteSpace(importErrorsJson)
+        ? Array.Empty<ltwnc.Models.ViewModels.FlashcardSet.FlashcardImportError>()
+        : System.Text.Json.JsonSerializer.Deserialize<ltwnc.Models.ViewModels.FlashcardSet.FlashcardImportError[]>(importErrorsJson)
+            ?? Array.Empty<ltwnc.Models.ViewModels.FlashcardSet.FlashcardImportError>();
 }
 
 <link rel="stylesheet" href="~/css/set-management.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/edit.css" asp-append-version="true" />
 
 <div class="set-management-shell">
+<div class="set-editor-layout">
+    <aside class="set-editor-sidebar">
+        <nav aria-label="Điều hướng trình chỉnh sửa bộ thẻ">
+            <a href="#set-info">Thông tin bộ thẻ</a>
+            <a href="#file-import">Nhập từ tệp</a>
+            <a href="#card-list">Danh sách từ</a>
+            <a href="#add-card-form">Thêm từ mới</a>
+        </nav>
+        @if (cards.Any())
+        {
+            <div class="batch-toolbar" data-batch-for="batch-form" hidden>
+                <button type="submit" form="batch-form" name="action" value="Delete" class="btn-secondary-custom" onclick="if (!confirm('Xóa các thẻ đã chọn?')) return false; return window.submitBatchActionFromButton ? window.submitBatchActionFromButton(this) : true;">
+                    <i class="ph ph-trash"></i> Xóa đã chọn
+                </button>
+                <button type="submit" form="batch-form" name="action" value="Star" class="btn-secondary-custom" onclick="return window.submitBatchActionFromButton ? window.submitBatchActionFromButton(this) : true;">
+                    <i class="ph ph-star"></i> Đánh sao
+                </button>
+                <button type="submit" form="batch-form" name="action" value="Unstar" class="btn-secondary-custom" onclick="return window.submitBatchActionFromButton ? window.submitBatchActionFromButton(this) : true;">
+                    <i class="ph ph-star-off"></i> Bỏ sao
+                </button>
+            </div>
+        }
+    </aside>
+
+    <div class="set-editor-content">
 <div class="row justify-content-center gsap-fade-up">
     <div class="col-md-10 col-lg-8">
-        <div class="set-form-card mb-4 gsap-scale-in">
-            <h1 style="margin: 0 0 0.25rem; font-size: 1.5rem; font-weight: 800; color: var(--sm-ink);">Sửa bộ thẻ</h1>
+        <div id="set-info" class="set-form-card mb-4 gsap-scale-in">
+            <h1 style="margin: 0 0 0.25rem; font-size: 1.5rem; font-weight: 800; color: var(--sm-ink);">Quản lý bộ thẻ</h1>
 
             <form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="mt-4 gsap-stagger">
                 <div asp-validation-summary="ModelOnly" class="mb-3"></div>
@@ -32,7 +62,7 @@
                     <label asp-for="IsPublic" style="font-size: 0.875rem; color: #57534e;">Công khai</label>
                 </div>
 
-                <button type="submit" class="btn-primary-custom">Lưu thay đổi</button>
+                <button type="submit" class="btn-primary-custom">Lưu thông tin bộ thẻ</button>
                 <a href="/Set" class="btn-secondary-custom ms-2">Hủy</a>
             </form>
         </div>
@@ -56,35 +86,64 @@
             </div>
         }
 
-        <div class="vocab-editor gsap-fade-up">
+        <div id="batch-feedback" aria-live="polite"></div>
+
+        <div id="file-import" class="set-form-card mb-4">
+            <h2 style="margin: 0 0 0.5rem; font-size: 1.15rem; font-weight: 800; color: var(--sm-ink);">Nhập thẻ từ tệp</h2>
+            <p class="text-muted mb-3">Chọn tệp CSV UTF-8 hoặc XLSX. Sáu cột bắt buộc: <code>THUẬT NGỮ</code>, <code>ĐỊNH NGHĨA</code>, <code>IPA</code>, <code>LOẠI TỪ</code>, <code>VÍ DỤ TIẾNG ANH</code>, <code>NGHĨA VÍ DỤ TIẾNG VIỆT</code>. Cột tùy chọn: <code>TỪ ĐỒNG NGHĨA</code>, <code>URL ẢNH</code>.</p>
+            <form asp-action="Import" asp-route-id="@Model.Id" method="post" enctype="multipart/form-data" class="d-flex flex-wrap align-items-end gap-2">
+                @Html.AntiForgeryToken()
+                <div>
+                    <label for="flashcard-import-file" class="set-form-label">Tệp dữ liệu</label>
+                    <input id="flashcard-import-file" type="file" name="file" class="form-input-custom" accept=".csv,.xlsx" required />
+                </div>
+                <button type="submit" class="btn-primary-custom">Nhập thẻ</button>
+                <a href="~/templates/flashcard-import-template.csv" download class="btn-secondary-custom">Tải mẫu CSV</a>
+            </form>
+        </div>
+
+        @if (TempData["ImportImportedCount"] is not null || TempData["ImportSkippedCount"] is not null)
+        {
+            <div class="alert alert-info">
+                Đã nhập <strong>@(TempData["ImportImportedCount"] ?? 0)</strong> thẻ; bỏ qua <strong>@(TempData["ImportSkippedCount"] ?? 0)</strong> dòng.
+                @if (importErrors.Length > 0)
+                {
+                    <ul class="mb-0 mt-2">
+                        @foreach (var importError in importErrors)
+                        {
+                            <li>Dòng @importError.RowNumber: @importError.Reason</li>
+                        }
+                    </ul>
+                }
+                @if (TempData["ImportErrorsOmittedCount"] is int omittedImportErrorCount && omittedImportErrorCount > 0)
+                {
+                    <p class="mb-0 mt-2">Còn <strong>@omittedImportErrorCount</strong> lỗi khác không hiển thị.</p>
+                }
+            </div>
+        }
+
+        <div id="card-list" class="vocab-editor @(cards.Any() ? null : "is-empty") gsap-fade-up">
             <aside class="vocab-list gsap-stagger">
                 <div class="vocab-list-header">
                     <h5>Danh sách từ</h5>
-                    <a href="#add-card-form" class="btn-primary-custom" style="padding: 0.4rem 0.8rem; font-size: 0.8125rem;">
-                        <i class="ph ph-plus"></i> Thêm
-                    </a>
                 </div>
 
-                @if (!cards.Any())
+                <div class="vocab-empty-state vocab-empty-state--list" data-empty-card-list @(cards.Any() ? "hidden" : null)>
+                    <i class="ph ph-cards" aria-hidden="true"></i>
+                    <div>
+                        <h6>Chưa có từ vựng</h6>
+                        <p>Thêm từ đầu tiên để bắt đầu xây dựng bộ thẻ.</p>
+                    </div>
+                </div>
+                @if (cards.Any())
                 {
-                    <p style="color: #787774;">Chưa có thẻ nào.</p>
-                }
-                else
-                {
-                    <form asp-controller="CardActions" asp-action="BatchAction" asp-route-setId="@Model.Id" method="post" id="batch-form">
+                    <form asp-controller="CardActions"
+                          asp-action="BatchAction"
+                          asp-route-setId="@Model.Id"
+                          method="post"
+                          id="batch-form"
+                          data-undo-url-prefix="@Url.Content("~/CardActions/Undo/")">
                         @Html.AntiForgeryToken()
-                        <div class="batch-toolbar mb-3">
-                            <button type="submit" name="action" value="Delete" class="btn-secondary-custom" onclick="return confirm('Xóa các thẻ đã chọn?');">
-                                <i class="ph ph-trash"></i> Xóa đã chọn
-                            </button>
-                            <button type="submit" name="action" value="Star" class="btn-secondary-custom">
-                                <i class="ph ph-star"></i> Đánh sao
-                            </button>
-                            <button type="submit" name="action" value="Unstar" class="btn-secondary-custom">
-                                <i class="ph ph-star-off"></i> Bỏ sao
-                            </button>
-                        </div>
-
                         @foreach (var card in cards.OrderBy(c => c.OrderIndex))
                         {
                             <div class="vocab-list-item-wrapper">
@@ -106,9 +165,19 @@
             </aside>
 
             <section class="vocab-detail">
-                @foreach (var card in cards.OrderBy(c => c.OrderIndex))
+                <div class="vocab-empty-state vocab-empty-state--detail" data-empty-detail @(cards.Any() ? "hidden" : null)>
+                    <i class="ph ph-note-pencil" aria-hidden="true"></i>
+                    <div>
+                        <h5>Chưa có từ để chỉnh sửa</h5>
+                        <p>Thêm từ vựng đầu tiên, sau đó bạn có thể chỉnh sửa chi tiết tại đây.</p>
+                    </div>
+                    <a href="#add-card-form" class="btn-primary-custom">Thêm từ vựng</a>
+                </div>
+                @if (cards.Any())
                 {
-                    <div class="vocab-card-panel" data-card-panel="@card.Id">
+                    @foreach (var card in cards.OrderBy(c => c.OrderIndex))
+                    {
+                        <div class="vocab-card-panel" data-card-panel="@card.Id">
                         <form asp-action="EditCard"
                               asp-route-id="@card.Id"
                               method="post"
@@ -123,9 +192,18 @@
                                     <h5>@card.FrontText</h5>
                                 </div>
                                 <div class="vocab-form-actions">
-                                    <label class="star-toggle">
-                                        <input type="checkbox" name="isStarred" value="true" @(card.IsStarred ? "checked" : "") />
-                                        <span>★ Đánh sao</span>
+                                    <input type="checkbox"
+                                           name="isStarred"
+                                           value="true"
+                                           id="star-card-@card.Id"
+                                           class="star-checkbox"
+                                           data-toggle-star-url="@Url.Action("ToggleStar", "FlashcardSet", new { setId = Model.Id, cardId = card.Id })"
+                                           data-card-id="@card.Id"
+                                           data-star-target="#star-label-@card.Id"
+                                           aria-label="Đánh sao thẻ @card.FrontText"
+                                           @(card.IsStarred ? "checked" : "") />
+                                    <label id="star-label-@card.Id" for="star-card-@card.Id" class="star-toggle">
+                                        <span>Đánh sao</span>
                                     </label>
                                     <button type="submit" class="btn-primary-custom">Lưu từ</button>
                                 </div>
@@ -138,7 +216,7 @@
                                 </label>
                                 <label>
                                     <span>Định nghĩa <b>*</b></span>
-                                    <input type="text" name="backText" value="@card.BackText" class="form-input-custom" required />
+                                    <textarea name="backText" class="form-input-custom" rows="2" data-auto-grow required>@card.BackText</textarea>
                                 </label>
                                 <label>
                                     <span>IPA <b>*</b></span>
@@ -157,7 +235,7 @@
 
                             <label class="vocab-wide-field">
                                 <span>Nghĩa câu ví dụ tiếng Việt <b>*</b></span>
-                                <textarea name="exampleMeaning" class="form-input-custom" rows="2" required>@card.ExampleMeaning</textarea>
+                                <textarea name="exampleMeaning" class="form-input-custom" rows="2" data-auto-grow required>@card.ExampleMeaning</textarea>
                             </label>
 
                             <label class="vocab-wide-field">
@@ -197,9 +275,13 @@
                                 <i class="ph ph-trash"></i> Xóa từ
                             </button>
                         </form>
-                    </div>
+                        </div>
+                    }
                 }
+            </section>
+        </div>
 
+        <section class="set-form-card mb-4">
                 <form id="add-card-form"
                       asp-action="AddCard"
                       asp-route-setId="@Model.Id"
@@ -207,6 +289,7 @@
                       enctype="multipart/form-data"
                       class="vocab-card-form add-card-form">
                     @Html.AntiForgeryToken()
+                    <input type="hidden" name="isStarred" value="false" />
                     
                     <div class="vocab-form-header">
                         <div>
@@ -214,10 +297,6 @@
                             <h5>Thêm từ vựng</h5>
                         </div>
                         <div class="vocab-form-actions">
-                            <label class="star-toggle">
-                                <input type="checkbox" name="isStarred" value="true" />
-                                <span>★ Đánh sao</span>
-                            </label>
                             <button type="submit" class="btn-primary-custom">Thêm từ</button>
                         </div>
                     </div>
@@ -229,7 +308,7 @@
                         </label>
                         <label>
                             <span>Định nghĩa <b>*</b></span>
-                            <input type="text" name="backText" class="form-input-custom" aria-label="Định nghĩa" required />
+                            <textarea name="backText" class="form-input-custom" rows="2" data-auto-grow aria-label="Định nghĩa" required></textarea>
                         </label>
                         <label>
                             <span>IPA <b>*</b></span>
@@ -248,7 +327,7 @@
 
                     <label class="vocab-wide-field">
                         <span>Nghĩa câu ví dụ tiếng Việt <b>*</b></span>
-                        <textarea name="exampleMeaning" class="form-input-custom" rows="2" required></textarea>
+                        <textarea name="exampleMeaning" class="form-input-custom" rows="2" data-auto-grow required></textarea>
                     </label>
 
                     <label class="vocab-wide-field">
@@ -268,7 +347,8 @@
                     </div>
                 </form>
             </section>
-        </div>
+    </div>
+</div>
     </div>
 </div>
 </div>
@@ -285,27 +365,6 @@
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
-    <script>
-        document.querySelectorAll('[data-card-id]').forEach(button => {
-            button.addEventListener('click', () => {
-                const cardId = button.getAttribute('data-card-id');
-
-                document.querySelectorAll('[data-card-id]').forEach(item => {
-                    item.classList.toggle('is-active', item === button);
-                });
-
-                document.querySelectorAll('[data-card-panel]').forEach(panel => {
-                    const isActive = panel.getAttribute('data-card-panel') === cardId;
-                    panel.classList.toggle('is-active', isActive);
-                    
-                    if (isActive && window.innerWidth <= 900) {
-                        panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                });
-            });
-        });
-
-        const firstCardButton = document.querySelector('[data-card-id]');
-        if (firstCardButton) firstCardButton.click();
-    </script>
+    @* Card navigation is scoped to document.querySelectorAll('.vocab-list-item[data-card-id]') and document.querySelector('.vocab-list-item[data-card-id]'). *@
+    <script src="~/js/flashcard-editor.js" asp-append-version="true"></script>
 }

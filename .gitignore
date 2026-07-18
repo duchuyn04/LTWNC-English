@@ -57,6 +57,7 @@ artifacts/
 ## Claude Code
 .agents/
 .superpowers/
+docs/superpowers/
 skills-lock.json
 
 ## Tests

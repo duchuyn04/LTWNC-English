@@ -36,6 +36,10 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 // Application services — inject qua interface (swap/decorator sau này không sửa controller)
 builder.Services.AddScoped<IFlashcardSetService, FlashcardSetService>();
+builder.Services.AddScoped<IFlashcardImportService, FlashcardImportService>();
+builder.Services.AddScoped<CsvFlashcardFileParser>();
+builder.Services.AddScoped<XlsxFlashcardFileParser>();
+builder.Services.AddScoped<FlashcardFileParserResolver>();
 builder.Services.AddScoped<IStudyService, StudyService>();
 // Service xử lý nghe chép chính tả
 builder.Services.AddScoped<IDictationService, DictationService>();
