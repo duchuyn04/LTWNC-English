@@ -4,7 +4,7 @@ namespace ltwnc.Models.ViewModels.Profile;
 
 public sealed class ProfileEditViewModel
 {
-    [Required, StringLength(256)]
+    [Required, StringLength(50, MinimumLength = 3)]
     public string Username { get; set; } = string.Empty;
 
     [StringLength(500)]

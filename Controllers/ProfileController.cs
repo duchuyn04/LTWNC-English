@@ -10,6 +10,8 @@ namespace ltwnc.Controllers;
 
 public class ProfileController : Controller
 {
+    public const string PublicProfileRouteName = "PublicProfile";
+
     private readonly IProfileService _profileService;
     private readonly ICurrentUser _currentUser;
     private readonly SignInManager<IdentityUser> _signInManager;
@@ -28,7 +30,7 @@ public class ProfileController : Controller
     }
 
     [AllowAnonymous]
-    [HttpGet("/u/{username}")]
+    [HttpGet("/{username:profileUsername}", Name = PublicProfileRouteName)]
     public async Task<IActionResult> Public(
         string username,
         CancellationToken cancellationToken)
@@ -42,7 +44,29 @@ public class ProfileController : Controller
             return NotFound();
         }
 
+        if (!string.Equals(username, model.Username, StringComparison.Ordinal))
+        {
+            return RedirectToRoutePermanent(
+                PublicProfileRouteName,
+                new { username = model.Username });
+        }
+
         return View(model.IsPrivate ? "Private" : "Public", model);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("/u/{username}")]
+    public IActionResult LegacyPublic(string username)
+    {
+        string candidate = username.Trim();
+        if (!UsernamePolicy.IsValid(candidate))
+        {
+            return NotFound();
+        }
+
+        return RedirectToRoutePermanent(
+            PublicProfileRouteName,
+            new { username = candidate });
     }
 
     [Authorize]

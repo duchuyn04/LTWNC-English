@@ -1,6 +1,7 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Account;
+using ltwnc.Services.Profiles;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -40,6 +41,13 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid)
         {
+            return View(model);
+        }
+
+        string? usernameError = UsernamePolicy.GetValidationError(model.Username);
+        if (usernameError != null)
+        {
+            ModelState.AddModelError(nameof(RegisterViewModel.Username), usernameError);
             return View(model);
         }
 
