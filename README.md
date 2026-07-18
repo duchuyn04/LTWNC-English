@@ -5,7 +5,7 @@
 ## Tính năng chính
 
 - Đăng ký, đăng nhập, đăng xuất (ASP.NET Core Identity).
-- Profile cá nhân/công khai tại `/u/{username}`, thống kê học tập, timeline và quyền riêng tư.
+- Profile cá nhân/công khai tại `/{username}`, thống kê học tập, timeline và quyền riêng tư.
 - Avatar upload JPG/PNG/WebP tối đa 5 MB, crop theo khung tròn.
 - Trang 404 tương tác concept Wrong Turn với vocabulary card.
 - Tạo, sửa, xóa bộ thẻ công khai hoặc riêng tư.
@@ -226,9 +226,10 @@ Sau đó chạy app và register tài khoản mới.
 
 ### Profile và trang 404
 
-- Profile công khai: `/u/{username}`.
+- Profile công khai: `/{username}`; URL cũ `/u/{username}` redirect 301 sang URL này.
 - Chỉnh sửa profile: `/Account/Profile/Edit`.
 - Profile mới mặc định công khai ở mức cơ bản; thống kê, huy hiệu, hoạt động và bộ thẻ công khai mặc định ẩn.
+- Username dài 3-50 ký tự, bắt đầu/kết thúc bằng chữ không dấu hoặc số; bên trong cho phép thêm `.`, `_`, `-` và không được trùng route hệ thống.
 - Username chỉ đổi một lần mỗi 30 ngày.
 - Trang không tồn tại trả HTTP `404` và hiển thị giao diện Wrong Turn; prototype độc lập nằm tại `prototype/404/`.
 

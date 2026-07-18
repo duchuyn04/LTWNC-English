@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Routing;
 using ltwnc.Data;
 using ltwnc.Services.Achievements;
 using ltwnc.Services.Auth;
@@ -28,8 +30,7 @@ builder.Services.AddIdentityCore<IdentityUser>(options =>
         options.Password.RequireLowercase = true;
         options.Password.RequireNonAlphanumeric = false;
         options.User.RequireUniqueEmail = true;
-        // Giữ hành vi cũ: username cho phép mọi ký tự (kể cả có dấu)
-        options.User.AllowedUserNameCharacters = null;
+        options.User.AllowedUserNameCharacters = UsernamePolicy.AllowedIdentityCharacters;
     })
     .AddEntityFrameworkStores<AppDbContext>()
     .AddSignInManager()
@@ -49,6 +50,8 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IAvatarService, AvatarService>();
+builder.Services.Configure<RouteOptions>(options =>
+    options.ConstraintMap["profileUsername"] = typeof(ProfileUsernameRouteConstraint));
 
 // Application services — inject qua interface (swap/decorator sau này không sửa controller)
 builder.Services.AddScoped<IFlashcardSetService, FlashcardSetService>();

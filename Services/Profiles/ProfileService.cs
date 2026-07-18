@@ -115,9 +115,17 @@ public sealed class ProfileService : IProfileService
         ProfileEditViewModel model,
         CancellationToken cancellationToken = default)
     {
+        string username = model.Username?.Trim() ?? string.Empty;
+        string? usernameError = UsernamePolicy.GetValidationError(username);
+        if (usernameError != null)
+        {
+            return ProfileOperationResult.Failure(new ProfileFieldError(
+                nameof(ProfileEditViewModel.Username),
+                usernameError));
+        }
+
         IdentityUser user = await FindUserAsync(userId);
         UserProfile profile = await GetOrCreateProfileAsync(userId, cancellationToken);
-        string username = model.Username.Trim();
         DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
         string? originalUsername = user.UserName;
         bool usernameChanged = false;

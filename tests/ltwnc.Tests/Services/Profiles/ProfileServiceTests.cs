@@ -215,6 +215,32 @@ public class ProfileServiceTests
     }
 
     [Fact]
+    public async Task UpdateProfile_InvalidUsername_DoesNotCallIdentity()
+    {
+        using AppDbContext db = CreateContext();
+        var user = new IdentityUser { Id = "user-1", UserName = "legacy user" };
+        db.UserProfiles.Add(new UserProfile { UserId = user.Id });
+        await db.SaveChangesAsync();
+        var userManager = MockUserManager(user);
+        ProfileService service = new(db, userManager.Object, new FixedTimeProvider(Now));
+
+        ProfileOperationResult result = await service.UpdateProfileAsync(
+            user.Id,
+            new ProfileEditViewModel { Username = "profile", IsPublic = true });
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error =>
+            error.Field == nameof(ProfileEditViewModel.Username) &&
+            error.Message == "Username này được dành riêng cho hệ thống.");
+        userManager.Verify(
+            manager => manager.SetUserNameAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()),
+            Times.Never);
+        userManager.Verify(
+            manager => manager.FindByIdAsync(It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task UpdateProfile_UsernameChangedAfterThirtyDays_UpdatesIdentityAndTimestamp()
     {
         using AppDbContext db = CreateContext();

@@ -18,7 +18,7 @@ public class StatusCodePageTests : IClassFixture<WebApplicationFactory<Program>>
     [Fact]
     public async Task UnknownRoute_ReturnsCustom404With404Status()
     {
-        HttpResponseMessage response = await _client.GetAsync("/khong-ton-tai");
+        HttpResponseMessage response = await _client.GetAsync("/khong/ton-tai");
         string html = await response.Content.ReadAsStringAsync();
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);

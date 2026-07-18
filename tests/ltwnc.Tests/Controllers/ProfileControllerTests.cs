@@ -83,6 +83,51 @@ public class ProfileControllerTests
     }
 
     [Fact]
+    public async Task Public_NonCanonicalCasing_RedirectsPermanentlyToStoredUsername()
+    {
+        var profileService = new Mock<IProfileService>();
+        profileService.Setup(service => service.GetPublicProfileAsync("USER1", null, default))
+            .ReturnsAsync(new PublicProfileViewModel { Username = "user1" });
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.SetupGet(user => user.UserId).Returns((string?)null);
+        ProfileController controller = CreateController(profileService, currentUser);
+
+        RedirectToRouteResult result = Assert.IsType<RedirectToRouteResult>(
+            await controller.Public("USER1", default));
+
+        Assert.True(result.Permanent);
+        Assert.Equal(ProfileController.PublicProfileRouteName, result.RouteName);
+        Assert.Equal("user1", result.RouteValues!["username"]);
+    }
+
+    [Fact]
+    public void LegacyPublic_ValidUsername_RedirectsPermanentlyToNamedRoute()
+    {
+        var profileService = new Mock<IProfileService>();
+        var currentUser = new Mock<ICurrentUser>();
+        ProfileController controller = CreateController(profileService, currentUser);
+
+        RedirectToRouteResult result = Assert.IsType<RedirectToRouteResult>(
+            controller.LegacyPublic("user1"));
+
+        Assert.True(result.Permanent);
+        Assert.Equal(ProfileController.PublicProfileRouteName, result.RouteName);
+        Assert.Equal("user1", result.RouteValues!["username"]);
+    }
+
+    [Fact]
+    public void LegacyPublic_InvalidUsername_ReturnsNotFound()
+    {
+        var profileService = new Mock<IProfileService>();
+        var currentUser = new Mock<ICurrentUser>();
+        ProfileController controller = CreateController(profileService, currentUser);
+
+        IActionResult result = controller.LegacyPublic("account");
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
     public async Task EditPost_ServiceErrors_AreAddedToModelState()
     {
         var profileService = new Mock<IProfileService>();

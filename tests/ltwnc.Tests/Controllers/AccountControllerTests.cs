@@ -57,6 +57,26 @@ public class AccountControllerTests
     }
 
     [Fact]
+    public async Task Register_InvalidUsername_DoesNotCreateIdentityUser()
+    {
+        var userManager = MockUserManager();
+        var signInManager = MockSignInManager(userManager);
+        AccountController controller = CreateController(userManager, signInManager);
+        RegisterViewModel model = ValidRegister();
+        model.Username = "account";
+
+        IActionResult result = await controller.Register(model);
+
+        Assert.IsType<ViewResult>(result);
+        Assert.Contains(
+            controller.ModelState[nameof(RegisterViewModel.Username)]!.Errors,
+            error => error.ErrorMessage == "Username này được dành riêng cho hệ thống.");
+        userManager.Verify(
+            manager => manager.CreateAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()),
+            Times.Never);
+    }
+
+    [Fact]
     public async Task Register_CreateFails_MapsVietnameseErrorToModelState()
     {
         var userManager = MockUserManager();

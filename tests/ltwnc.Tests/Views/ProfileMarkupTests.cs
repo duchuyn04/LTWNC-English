@@ -29,4 +29,15 @@ public class ProfileMarkupTests
         Assert.Contains("asp-validation-summary=\"All\"", view);
         Assert.Contains("tabindex=\"0\"", view);
     }
+
+    [Fact]
+    public void AuthenticatedLayout_UsesNamedPublicProfileRouteAndKeepsEditLink()
+    {
+        string layout = File.ReadAllText(Path.Combine(Root, "Views", "Shared", "_Layout.cshtml"));
+
+        Assert.Contains("asp-route=\"PublicProfile\"", layout);
+        Assert.Contains("asp-route-username=\"@User.Identity?.Name\"", layout);
+        Assert.Contains("/Account/Profile/Edit", layout);
+        Assert.Contains("Chỉnh sửa profile", layout);
+    }
 }
