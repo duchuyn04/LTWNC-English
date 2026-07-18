@@ -34,6 +34,29 @@
         cardCountLabel.textContent = cards.length;
     }
 
+    const sortable = Sortable.create(container, {
+        handle: '.card-header',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        onEnd: async function () {
+            const orderedIds = Array.from(container.querySelectorAll('.flashcard-card'))
+                .map(card => parseInt(card.dataset.id))
+                .filter(id => !isNaN(id));
+
+            if (orderedIds.length === 0) return;
+
+            const currentSetId = getSetId() || await ensureSetCreated();
+            if (!currentSetId) return;
+
+            await fetch('/api/flashcards/reorder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ setId: currentSetId, orderedCardIds: orderedIds })
+            });
+            updateCardNumbering();
+        }
+    });
+
     function setSaveStatus(message, type) {
         saveStatus.textContent = message;
         saveStatus.className = 'save-status ' + (type || '');
@@ -237,6 +260,8 @@
                 <button type="button" class="btn-star" aria-label="Toggle star">☆</button>
                 <span class="card-term"></span>
                 <div class="card-actions">
+                    <button type="button" class="btn-move-up" aria-label="Move up">▲</button>
+                    <button type="button" class="btn-move-down" aria-label="Move down">▼</button>
                     <button type="button" class="btn-toggle" aria-label="Expand/collapse">▲</button>
                     <button type="button" class="btn-delete" aria-label="Delete">🗑</button>
                 </div>
@@ -327,6 +352,22 @@
                 card.dataset.starred = result.isStarred;
                 card.querySelector('.btn-star').textContent = result.isStarred ? '★' : '☆';
             }
+        });
+
+        card.querySelector('.btn-move-up')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const prev = card.previousElementSibling;
+            if (prev) container.insertBefore(card, prev);
+            sortable.options.onEnd();
+            updateCardNumbering();
+        });
+
+        card.querySelector('.btn-move-down')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const next = card.nextElementSibling;
+            if (next) container.insertBefore(next, card);
+            sortable.options.onEnd();
+            updateCardNumbering();
         });
 
         card.addEventListener('click', () => {
