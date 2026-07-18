@@ -629,6 +629,13 @@ public class FlashcardSetService : IFlashcardSetService
             throw new UnauthorizedAccessException("Không có quyền xóa thẻ trong bộ thẻ này.");
         }
 
+        await RemoveAllCardsInternalAsync(setId);
+        await _context.SaveChangesAsync();
+    }
+
+    // Xóa progress + thẻ của một bộ nhưng KHÔNG SaveChanges — dùng chung cho batch import trong transaction.
+    private async Task RemoveAllCardsInternalAsync(int setId)
+    {
         List<UserProgress> progresses = await _context.UserProgresses
             .Where(progress => progress.Flashcard!.FlashcardSetId == setId)
             .ToListAsync();
@@ -638,8 +645,63 @@ public class FlashcardSetService : IFlashcardSetService
             .Where(card => card.FlashcardSetId == setId)
             .ToListAsync();
         _context.Flashcards.RemoveRange(cards);
+    }
 
+    // Import hàng loạt thẻ một cách nguyên tử:
+    // xóa (nếu replaceAll) + thêm mới được gộp trong MỘT lần SaveChangesAsync,
+    // EF Core tự bọc trong một transaction — lỗi giữa chừng thì rollback, không mất dữ liệu.
+    // (Không dùng BeginTransactionAsync tường minh để tương thích InMemory provider trong test.)
+    public async Task<List<Flashcard>> BatchImportCardsAsync(
+        int setId,
+        IReadOnlyList<BatchImportCardItem> cards,
+        bool replaceAll,
+        string userId)
+    {
+        FlashcardSet? set = await _context.FlashcardSets
+            .Include(row => row.Flashcards)
+            .FirstOrDefaultAsync(row => row.Id == setId);
+
+        if (set == null || set.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("Không có quyền thêm thẻ.");
+        }
+
+        int nextOrder = 0;
+        if (replaceAll)
+        {
+            await RemoveAllCardsInternalAsync(setId);
+        }
+        else if (set.Flashcards.Any())
+        {
+            nextOrder = set.Flashcards.Max(card => card.OrderIndex) + 1;
+        }
+
+        List<Flashcard> created = new List<Flashcard>();
+        foreach (BatchImportCardItem item in cards)
+        {
+            Flashcard card = new Flashcard
+            {
+                FlashcardSetId = setId,
+                FrontText = RequiredText(item.FrontText, "Thuật ngữ"),
+                BackText = RequiredText(item.BackText, "Định nghĩa"),
+                Pronunciation = (item.Pronunciation ?? string.Empty).Trim(),
+                PartOfSpeech = (item.PartOfSpeech ?? string.Empty).Trim(),
+                ExampleSentence = (item.ExampleSentence ?? string.Empty).Trim(),
+                ExampleMeaning = (item.ExampleMeaning ?? string.Empty).Trim(),
+                Synonyms = OptionalText(item.Synonyms),
+                ImageUrl = OptionalText(item.ImageUrl),
+                UploadedImagePath = null,
+                IsStarred = item.IsStarred,
+                OrderIndex = nextOrder
+            };
+
+            nextOrder++;
+            created.Add(card);
+        }
+
+        await _context.Flashcards.AddRangeAsync(created);
         await _context.SaveChangesAsync();
+        return created;
     }
 
     // Đổi trạng thái đánh sao của thẻ

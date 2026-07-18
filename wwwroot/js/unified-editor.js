@@ -24,8 +24,15 @@
     const dirtyCards = new Set(); // card dataset ids with unsaved changes
     let isTitleDirty = false;
 
+    let tempIdCounter = 0;
+
     function generateTempId() {
-        return 'new-' + crypto.randomUUID();
+        // crypto.randomUUID() chỉ có trong secure context (HTTPS); fallback cho HTTP.
+        if (window.crypto && typeof window.crypto.randomUUID === 'function') {
+            return 'new-' + crypto.randomUUID();
+        }
+        tempIdCounter += 1;
+        return 'new-' + Date.now().toString(36) + '-' + tempIdCounter;
     }
 
     function updateCardNumbering() {
@@ -79,18 +86,20 @@
         }
     }
 
+    // Snapshot các element thẻ theo thứ tự DOM trước khi kéo — revert bằng chính
+    // element, an toàn khi temp id (new-...) đổi thành id thật sau khi lưu.
     let orderBeforeDrag = [];
     const sortable = Sortable.create(container, {
         handle: '.card-drag-handle',
         animation: 150,
         ghostClass: 'sortable-ghost',
         onStart: function () {
-            orderBeforeDrag = sortable.toArray();
+            orderBeforeDrag = Array.from(container.querySelectorAll('.flashcard-card'));
         },
         onEnd: async function (evt) {
             const ok = await persistOrder();
             if (!ok && evt) {
-                sortable.sort(orderBeforeDrag);
+                orderBeforeDrag.forEach(el => container.appendChild(el));
                 updateCardNumbering();
             }
             return ok;
@@ -141,49 +150,58 @@
         return errors;
     }
 
+    // Promise dùng chung để serialize việc tạo set mới — tránh race khi
+    // saveCard() và saveSetMetadata() cùng POST tạo set một lúc (tạo trùng set).
+    let setCreationPromise = null;
+
     async function ensureSetCreated() {
-        if (!isNewSet() || getSetId()) return getSetId();
+        const existingId = getSetId();
+        if (existingId) return existingId;
+        if (setCreationPromise) return setCreationPromise;
 
         const metadata = getSetMetadata();
         if (!metadata.title) return null;
 
         setSaveStatus('Đang lưu...', 'saving');
-        const response = await fetch('/api/flashcards/flashcard-sets', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(metadata)
-        });
+        setCreationPromise = (async () => {
+            try {
+                const response = await fetch('/api/flashcards/flashcard-sets', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(metadata)
+                });
 
-        if (!response.ok) {
-            setSaveStatus('Lỗi lưu bộ thẻ', 'error');
-            return null;
-        }
+                if (!response.ok) {
+                    setSaveStatus('Lỗi lưu bộ thẻ', 'error');
+                    return null;
+                }
 
-        const set = await response.json();
-        editor.dataset.setId = set.id;
-        editor.dataset.description = metadata.description;
-        editor.dataset.isPublic = metadata.isPublic.toString();
-        history.replaceState(null, '', `/flashcardset/editor/${set.id}`);
-        return set.id;
+                const set = await response.json();
+                editor.dataset.setId = set.id;
+                editor.dataset.description = metadata.description;
+                editor.dataset.isPublic = metadata.isPublic.toString();
+                history.replaceState(null, '', `/flashcardset/editor/${set.id}`);
+                return set.id;
+            } finally {
+                setCreationPromise = null;
+            }
+        })();
+        return setCreationPromise;
     }
 
     async function saveSetMetadata() {
         const metadata = getSetMetadata();
         if (!metadata.title) return null;
 
-        const setId = getSetId();
+        // Set mới: tạo qua ensureSetCreated (đã serialize) rồi PUT metadata mới nhất.
+        const setId = getSetId() || await ensureSetCreated();
+        if (!setId) return null;
+
         setSaveStatus('Đang lưu...', 'saving');
 
-        let url = '/api/flashcards/flashcard-sets';
-        let method = 'POST';
-        if (setId) {
-            url = `/api/flashcards/flashcard-sets/${setId}`;
-            method = 'PUT';
-        }
-
         try {
-            const response = await fetch(url, {
-                method,
+            const response = await fetch(`/api/flashcards/flashcard-sets/${setId}`, {
+                method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(metadata)
             });
@@ -191,12 +209,6 @@
             if (!response.ok) {
                 const error = await response.text();
                 throw new Error(error);
-            }
-
-            if (!setId) {
-                const set = await response.json();
-                editor.dataset.setId = set.id;
-                history.replaceState(null, '', `/flashcardset/editor/${set.id}`);
             }
 
             editor.dataset.description = metadata.description;
@@ -421,18 +433,18 @@
             }
         });
 
+        // Nút lên/xuống: tự revert bằng DOM, không đi qua onEnd của sortable
+        // (onEnd dùng orderBeforeDrag của lần kéo trước — revert sai thứ tự).
         card.querySelector('.btn-move-up')?.addEventListener('click', async (e) => {
             e.stopPropagation();
             const prev = card.previousElementSibling;
             if (!prev) return;
             container.insertBefore(card, prev);
-            try {
-                const ok = await sortable.options.onEnd();
-                if (!ok) {
-                    container.insertBefore(prev, card);
-                }
-            } catch (err) {
+            updateCardNumbering();
+            const ok = await persistOrder();
+            if (!ok) {
                 container.insertBefore(prev, card);
+                updateCardNumbering();
             }
         });
 
@@ -441,13 +453,11 @@
             const next = card.nextElementSibling;
             if (!next) return;
             container.insertBefore(next, card);
-            try {
-                const ok = await sortable.options.onEnd();
-                if (!ok) {
-                    container.insertBefore(card, next);
-                }
-            } catch (err) {
+            updateCardNumbering();
+            const ok = await persistOrder();
+            if (!ok) {
                 container.insertBefore(card, next);
+                updateCardNumbering();
             }
         });
 

@@ -35,7 +35,7 @@ public class FlashcardsApiController : ControllerBase
             request.IsPublic,
             UserId);
 
-        return CreatedAtAction(nameof(GetSet), new { id = set.Id }, set);
+        return CreatedAtAction(nameof(GetSet), new { id = set.Id }, MapToResponse(set));
     }
 
     [HttpGet("flashcard-sets/{id}")]
@@ -46,7 +46,7 @@ public class FlashcardsApiController : ControllerBase
         var set = await _setService.GetOwnedSetAsync(id, UserId);
         if (set == null) return NotFound();
 
-        return Ok(set);
+        return Ok(MapToResponse(set));
     }
 
     [HttpPut("flashcard-sets/{id}")]
@@ -113,7 +113,7 @@ public class FlashcardsApiController : ControllerBase
             request.Synonyms,
             request.ImageUrl,
             null,
-            false,
+            request.RemoveUploadedImage,
             request.IsStarred,
             UserId);
 
@@ -143,31 +143,26 @@ public class FlashcardsApiController : ControllerBase
     {
         if (UserId == null) return Challenge();
 
-        if (request.ReplaceAll)
+        var items = request.Cards.Select(card => new BatchImportCardItem
         {
-            await _setService.DeleteAllCardsAsync(request.SetId, UserId);
-        }
+            FrontText = card.FrontText,
+            BackText = card.BackText,
+            Pronunciation = card.Pronunciation,
+            PartOfSpeech = card.PartOfSpeech,
+            ExampleSentence = card.ExampleSentence,
+            ExampleMeaning = card.ExampleMeaning,
+            Synonyms = card.Synonyms,
+            ImageUrl = card.ImageUrl,
+            IsStarred = card.IsStarred
+        }).ToList();
 
-        var created = new List<CardResponse>();
-        foreach (var card in request.Cards)
-        {
-            var entity = await _setService.AddCardAsync(
-                request.SetId,
-                card.FrontText,
-                card.BackText,
-                card.Pronunciation,
-                card.PartOfSpeech,
-                card.ExampleSentence,
-                card.ExampleMeaning,
-                card.Synonyms,
-                card.ImageUrl,
-                null,
-                card.IsStarred,
-                UserId);
-            created.Add(MapToResponse(entity));
-        }
+        var created = await _setService.BatchImportCardsAsync(
+            request.SetId,
+            items,
+            request.ReplaceAll,
+            UserId);
 
-        return Ok(created);
+        return Ok(created.Select(MapToResponse).ToList());
     }
 
     [HttpPost("flashcards/reorder")]
@@ -177,6 +172,19 @@ public class FlashcardsApiController : ControllerBase
 
         await _setService.ReorderCardsAsync(request.SetId, request.OrderedCardIds, UserId);
         return NoContent();
+    }
+
+    private static SetResponse MapToResponse(FlashcardSet set)
+    {
+        return new SetResponse
+        {
+            Id = set.Id,
+            Title = set.Title,
+            Description = set.Description,
+            IsPublic = set.IsPublic,
+            CreatedAt = set.CreatedAt,
+            UpdatedAt = set.UpdatedAt
+        };
     }
 
     private static CardResponse MapToResponse(Flashcard card)

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -33,6 +34,11 @@ public class ApiExceptionFilter : ExceptionFilterAttribute
             return;
         }
 
-        base.OnException(context);
+        // Lỗi không xác định: trả JSON 500 thay vì rơi về trang lỗi HTML.
+        context.Result = new ObjectResult(new { error = "Đã xảy ra lỗi máy chủ." })
+        {
+            StatusCode = StatusCodes.Status500InternalServerError
+        };
+        context.ExceptionHandled = true;
     }
 }

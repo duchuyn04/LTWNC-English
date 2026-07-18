@@ -1,5 +1,6 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
+using ltwnc.Models.ViewModels.FlashcardSet;
 using ltwnc.Services.FlashcardSets;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
@@ -100,5 +101,90 @@ public class FlashcardSetServiceCardTests
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
             service.DeleteAllCardsAsync(set.Id, otherId));
+    }
+
+    [Fact]
+    public async Task BatchImportCardsAsync_ReplaceAll_RemovesOldCardsAndProgress()
+    {
+        using var context = CreateContext();
+        var service = new FlashcardSetService(context, MockEnvironment());
+        var userId = "user-1";
+        var set = await service.CreateSetAsync("Test", null, false, userId);
+        var oldCard = await service.AddCardAsync(set.Id, "old", "cũ", null, null, null, null, null, null, null, false, userId);
+        context.UserProgresses.Add(new UserProgress { UserId = userId, FlashcardId = oldCard.Id, IsLearned = true });
+        await context.SaveChangesAsync();
+
+        var created = await service.BatchImportCardsAsync(set.Id, new[]
+        {
+            new BatchImportCardItem { FrontText = "new1", BackText = "mới 1" },
+            new BatchImportCardItem { FrontText = "new2", BackText = "mới 2" }
+        }, replaceAll: true, userId);
+
+        var remaining = await context.Flashcards
+            .Where(c => c.FlashcardSetId == set.Id)
+            .OrderBy(c => c.OrderIndex)
+            .ToListAsync();
+        Assert.Equal(2, remaining.Count);
+        Assert.Equal(new[] { "new1", "new2" }, remaining.Select(c => c.FrontText).ToArray());
+        Assert.Equal(new[] { 0, 1 }, remaining.Select(c => c.OrderIndex).ToArray());
+        Assert.Empty(await context.UserProgresses.Where(p => p.UserId == userId).ToListAsync());
+        Assert.Equal(2, created.Count);
+    }
+
+    [Fact]
+    public async Task BatchImportCardsAsync_Append_ContinuesOrderIndex()
+    {
+        using var context = CreateContext();
+        var service = new FlashcardSetService(context, MockEnvironment());
+        var userId = "user-1";
+        var set = await service.CreateSetAsync("Test", null, false, userId);
+        await service.AddCardAsync(set.Id, "a", "1", null, null, null, null, null, null, null, false, userId);
+
+        await service.BatchImportCardsAsync(set.Id, new[]
+        {
+            new BatchImportCardItem { FrontText = "b", BackText = "2" }
+        }, replaceAll: false, userId);
+
+        var cards = await context.Flashcards
+            .Where(c => c.FlashcardSetId == set.Id)
+            .OrderBy(c => c.OrderIndex)
+            .ToListAsync();
+        Assert.Equal(2, cards.Count);
+        Assert.Equal("b", cards[1].FrontText);
+        Assert.Equal(1, cards[1].OrderIndex);
+    }
+
+    [Fact]
+    public async Task BatchImportCardsAsync_InvalidItem_KeepsOldCardsIntact()
+    {
+        using var context = CreateContext();
+        var service = new FlashcardSetService(context, MockEnvironment());
+        var userId = "user-1";
+        var set = await service.CreateSetAsync("Test", null, false, userId);
+        await service.AddCardAsync(set.Id, "old", "cũ", null, null, null, null, null, null, null, false, userId);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => service.BatchImportCardsAsync(set.Id, new[]
+        {
+            new BatchImportCardItem { FrontText = " ", BackText = "thiếu thuật ngữ" }
+        }, replaceAll: true, userId));
+
+        var remaining = await context.Flashcards.Where(c => c.FlashcardSetId == set.Id).ToListAsync();
+        Assert.Single(remaining);
+        Assert.Equal("old", remaining[0].FrontText);
+    }
+
+    [Fact]
+    public async Task BatchImportCardsAsync_NotOwned_ThrowsUnauthorizedAccessException()
+    {
+        using var context = CreateContext();
+        var service = new FlashcardSetService(context, MockEnvironment());
+        var ownerId = "user-1";
+        var set = await service.CreateSetAsync("Test", null, false, ownerId);
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => service.BatchImportCardsAsync(
+            set.Id,
+            new[] { new BatchImportCardItem { FrontText = "a", BackText = "1" } },
+            replaceAll: false,
+            "user-2"));
     }
 }

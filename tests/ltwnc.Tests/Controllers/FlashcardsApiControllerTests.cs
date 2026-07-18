@@ -45,7 +45,7 @@ public class FlashcardsApiControllerTests
         var result = await controller.CreateSet(new CreateSetRequest { Title = "Test" });
 
         var created = Assert.IsType<CreatedAtActionResult>(result);
-        Assert.Equal(7, ((FlashcardSet)created.Value!).Id);
+        Assert.Equal(7, ((SetResponse)created.Value!).Id);
     }
 
     [Fact]
@@ -69,7 +69,7 @@ public class FlashcardsApiControllerTests
         var result = await controller.GetSet(1);
 
         var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.Equal(1, ((FlashcardSet)ok.Value!).Id);
+        Assert.Equal(1, ((SetResponse)ok.Value!).Id);
     }
 
     [Fact]
@@ -123,15 +123,13 @@ public class FlashcardsApiControllerTests
     }
 
     [Fact]
-    public async Task GetCard_NotOwner_ReturnsChallenge()
+    public async Task GetCard_NotOwner_ThrowsUnauthorizedAccessException()
     {
         var (controller, service) = Create("owner");
         service.Setup(x => x.GetCardAsync(5, "owner"))
             .ThrowsAsync(new UnauthorizedAccessException("Không có quyền xem thẻ này."));
 
-        var result = await controller.GetCard(5);
-
-        Assert.IsType<ChallengeResult>(result);
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() => controller.GetCard(5));
     }
 
     [Fact]
@@ -196,6 +194,26 @@ public class FlashcardsApiControllerTests
     }
 
     [Fact]
+    public async Task UpdateCard_RemoveUploadedImage_PassesTrueToService()
+    {
+        var (controller, service) = Create("owner");
+        service.Setup(x => x.UpdateCardAsync(5, "front", "back", null, null, null, null, null, null, null, true, false, "owner"))
+            .ReturnsAsync(1);
+
+        var result = await controller.UpdateCard(5, new UpdateCardRequest
+        {
+            Id = 5,
+            SetId = 1,
+            FrontText = "front",
+            BackText = "back",
+            RemoveUploadedImage = true
+        });
+
+        Assert.IsType<NoContentResult>(result);
+        service.Verify(x => x.UpdateCardAsync(5, "front", "back", null, null, null, null, null, null, null, true, false, "owner"), Times.Once);
+    }
+
+    [Fact]
     public async Task DeleteCard_Authenticated_ReturnsNoContent()
     {
         var (controller, service) = Create("owner");
@@ -225,10 +243,16 @@ public class FlashcardsApiControllerTests
     public async Task BatchImport_ReplaceAll_DeletesExistingThenCreates()
     {
         var (controller, service) = Create("owner");
-        service.Setup(x => x.DeleteAllCardsAsync(1, "owner"))
-            .Returns(Task.CompletedTask);
-        service.Setup(x => x.AddCardAsync(1, "new", "new", null, null, null, null, null, null, null, false, "owner"))
-            .ReturnsAsync(new Flashcard { Id = 2, FlashcardSetId = 1, FrontText = "new", BackText = "new" });
+        service.Setup(x => x.BatchImportCardsAsync(
+                1,
+                It.Is<IReadOnlyList<BatchImportCardItem>>(items =>
+                    items.Count == 1 && items[0].FrontText == "new" && items[0].BackText == "new"),
+                true,
+                "owner"))
+            .ReturnsAsync(new List<Flashcard>
+            {
+                new() { Id = 2, FlashcardSetId = 1, FrontText = "new", BackText = "new" }
+            });
 
         var result = await controller.BatchImport(new BatchImportRequest
         {
@@ -243,7 +267,11 @@ public class FlashcardsApiControllerTests
         var ok = Assert.IsType<OkObjectResult>(result);
         var cards = Assert.IsType<List<CardResponse>>(ok.Value);
         Assert.Single(cards);
-        service.Verify(x => x.DeleteAllCardsAsync(1, "owner"), Times.Once);
+        service.Verify(x => x.BatchImportCardsAsync(
+            1,
+            It.IsAny<IReadOnlyList<BatchImportCardItem>>(),
+            true,
+            "owner"), Times.Once);
     }
 
     [Fact]
