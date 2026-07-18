@@ -72,13 +72,21 @@ public class AccountController : Controller
         }
 
         DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
-        _db.UserProfiles.Add(new UserProfile
+        try
         {
-            UserId = user.Id,
-            CreatedAt = now,
-            UpdatedAt = now
-        });
-        await _db.SaveChangesAsync();
+            _db.UserProfiles.Add(new UserProfile
+            {
+                UserId = user.Id,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+            await _db.SaveChangesAsync();
+        }
+        catch
+        {
+            await _userManager.DeleteAsync(user);
+            throw;
+        }
 
         await _signInManager.SignInAsync(
             user,

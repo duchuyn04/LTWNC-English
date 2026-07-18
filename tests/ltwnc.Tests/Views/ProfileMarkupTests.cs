@@ -25,5 +25,8 @@ public class ProfileMarkupTests
         Assert.Contains("multipart/form-data", view);
         Assert.Contains("data-avatar-cropper", view);
         Assert.Contains("profile-avatar.js", view);
+        Assert.Contains("TempData[\"Error\"]", view);
+        Assert.Contains("asp-validation-summary=\"All\"", view);
+        Assert.Contains("tabindex=\"0\"", view);
     }
 }

@@ -148,6 +148,11 @@ public class ProfileServiceTests
             result.Timeline.OrderByDescending(item => item.Timestamp)));
         Assert.Single(result.Badges);
         Assert.Single(result.PublicSets);
+        Assert.Contains(result.Timeline, item =>
+            item.Kind == "study" &&
+            item.Detail != null &&
+            item.Detail.Contains("Dictation") &&
+            item.Detail.Contains("80"));
     }
 
     [Fact]
@@ -288,8 +293,43 @@ public class ProfileServiceTests
             error.Message == "Mật khẩu hiện tại không đúng.");
     }
 
+    [Fact]
+    public async Task UpdateProfile_SaveFails_RestoresOriginalUsername()
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        await using var db = new FailingProfileDbContext(options);
+        var user = new IdentityUser { Id = "user-1", UserName = "user1" };
+        db.UserProfiles.Add(new UserProfile { UserId = user.Id });
+        await db.SaveChangesAsync();
+        db.FailSaves = true;
+        var userManager = MockUserManager(user);
+        userManager.Setup(item => item.SetUserNameAsync(user, It.IsAny<string>()))
+            .ReturnsAsync(IdentityResult.Success);
+        ProfileService service = new(db, userManager.Object, new FixedTimeProvider(Now));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateProfileAsync(
+            user.Id,
+            new ProfileEditViewModel { Username = "new-name", IsPublic = true }));
+
+        userManager.Verify(item => item.SetUserNameAsync(user, "new-name"), Times.Once);
+        userManager.Verify(item => item.SetUserNameAsync(user, "user1"), Times.Once);
+    }
+
     private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => utcNow;
+    }
+
+    private sealed class FailingProfileDbContext(DbContextOptions<AppDbContext> options)
+        : AppDbContext(options)
+    {
+        public bool FailSaves { get; set; }
+
+        public override Task<int> SaveChangesAsync(CancellationToken cancellationToken = default) =>
+            FailSaves
+                ? throw new InvalidOperationException("database failure")
+                : base.SaveChangesAsync(cancellationToken);
     }
 }

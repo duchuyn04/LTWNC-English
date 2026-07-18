@@ -15,6 +15,7 @@ public class NotFoundMarkupTests
         Assert.Contains("Về trang chủ", view);
         Assert.Contains("Lật thẻ", view);
         Assert.Contains("aria-pressed", view);
+        Assert.Contains("role=\"button\"", view);
         Assert.Contains("not-found.css", view);
         Assert.Contains("not-found.js", view);
         Assert.DoesNotContain("-->", view);

@@ -118,6 +118,8 @@ public sealed class ProfileService : IProfileService
         UserProfile profile = await GetOrCreateProfileAsync(userId, cancellationToken);
         string username = model.Username.Trim();
         DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
+        string? originalUsername = user.UserName;
+        bool usernameChanged = false;
 
         if (!string.Equals(user.UserName, username, StringComparison.Ordinal))
         {
@@ -143,6 +145,7 @@ public sealed class ProfileService : IProfileService
                 return Failure(nameof(ProfileEditViewModel.Username), usernameResult);
             }
 
+            usernameChanged = true;
             profile.LastUsernameChangedAt = now;
         }
 
@@ -153,7 +156,19 @@ public sealed class ProfileService : IProfileService
         profile.ShowActivity = model.ShowActivity;
         profile.ShowPublicSets = model.ShowPublicSets;
         profile.UpdatedAt = now;
-        await _db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch
+        {
+            if (usernameChanged && originalUsername != null)
+            {
+                await _userManager.SetUserNameAsync(user, originalUsername);
+            }
+
+            throw;
+        }
         return ProfileOperationResult.Success();
     }
 
@@ -341,7 +356,9 @@ public sealed class ProfileService : IProfileService
             {
                 Kind = "study",
                 Title = "Hoàn thành phiên học",
-                Detail = session.Score.HasValue ? $"Điểm: {session.Score}" : session.Mode.ToString(),
+                Detail = session.Score.HasValue
+                    ? $"{session.Mode} · Điểm: {session.Score}"
+                    : session.Mode.ToString(),
                 Timestamp = session.CompletedAt
             })
             .ToListAsync(cancellationToken));

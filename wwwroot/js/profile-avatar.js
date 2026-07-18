@@ -49,6 +49,16 @@
         draw();
     });
     canvas?.addEventListener('pointerup', () => { dragging = false; });
+    canvas?.addEventListener('keydown', (event) => {
+        const step = event.shiftKey ? 10 : 2;
+        if (event.key === 'ArrowLeft') offsetX -= step;
+        else if (event.key === 'ArrowRight') offsetX += step;
+        else if (event.key === 'ArrowUp') offsetY -= step;
+        else if (event.key === 'ArrowDown') offsetY += step;
+        else return;
+        event.preventDefault();
+        draw();
+    });
 
     form?.addEventListener('submit', (event) => {
         if (!image || !canvas) return;

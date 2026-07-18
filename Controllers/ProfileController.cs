@@ -111,7 +111,10 @@ public class ProfileController : Controller
 
         if (!ModelState.IsValid)
         {
-            return RedirectToAction(nameof(Edit));
+            ProfileEditViewModel editModel = await _profileService.GetEditModelAsync(
+                _currentUser.UserId,
+                cancellationToken);
+            return View("Edit", editModel);
         }
 
         ProfileOperationResult result = await _profileService.ChangeEmailAsync(
@@ -145,7 +148,10 @@ public class ProfileController : Controller
 
         if (!ModelState.IsValid)
         {
-            return RedirectToAction(nameof(Edit));
+            ProfileEditViewModel editModel = await _profileService.GetEditModelAsync(
+                _currentUser.UserId,
+                cancellationToken);
+            return View("Edit", editModel);
         }
 
         ProfileOperationResult result = await _profileService.ChangePasswordAsync(

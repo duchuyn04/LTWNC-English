@@ -72,14 +72,6 @@ public sealed class AvatarService : IAvatarService
                 return Failure("Ảnh sau khi crop phải có tỷ lệ vuông.");
             }
 
-            string directory = Path.Combine(_environment.WebRootPath, "uploads", "avatars");
-            Directory.CreateDirectory(directory);
-            string fileName = $"{Guid.NewGuid():N}.png";
-            string physicalPath = Path.Combine(directory, fileName);
-            string avatarPath = AvatarUrlPrefix + fileName;
-
-            await image.SaveAsPngAsync(physicalPath, cancellationToken);
-
             UserProfile? profile = await _db.UserProfiles
                 .SingleOrDefaultAsync(item => item.UserId == userId, cancellationToken);
             if (profile == null)
@@ -88,6 +80,14 @@ public sealed class AvatarService : IAvatarService
                 profile = new UserProfile { UserId = userId, CreatedAt = now };
                 _db.UserProfiles.Add(profile);
             }
+
+            string directory = Path.Combine(_environment.WebRootPath, "uploads", "avatars");
+            Directory.CreateDirectory(directory);
+            string fileName = $"{Guid.NewGuid():N}.png";
+            string physicalPath = Path.Combine(directory, fileName);
+            string avatarPath = AvatarUrlPrefix + fileName;
+
+            await image.SaveAsPngAsync(physicalPath, cancellationToken);
 
             string? oldAvatarPath = profile.AvatarPath;
             profile.AvatarPath = avatarPath;
