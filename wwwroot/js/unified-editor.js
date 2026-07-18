@@ -94,8 +94,56 @@
         return set.id;
     }
 
+    async function saveSetMetadata() {
+        const title = setTitleInput.value.trim();
+        if (!title) return null;
+
+        const setId = getSetId();
+        setSaveStatus('Đang lưu...', 'saving');
+
+        let url = '/api/flashcards/flashcard-sets';
+        let method = 'POST';
+        if (setId) {
+            url = `/api/flashcards/flashcard-sets/${setId}`;
+            method = 'PUT';
+        }
+
+        try {
+            const response = await fetch(url, {
+                method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title, description: '', isPublic: false })
+            });
+
+            if (!response.ok) {
+                const error = await response.text();
+                throw new Error(error);
+            }
+
+            if (!setId) {
+                const set = await response.json();
+                editor.dataset.setId = set.id;
+                history.replaceState(null, '', `/flashcardset/editor/${set.id}`);
+            }
+
+            isTitleDirty = false;
+            setSaveStatus('Đã lưu', 'saved');
+            return getSetId();
+        } catch (err) {
+            setSaveStatus('Lỗi lưu bộ thẻ', 'error');
+            console.error(err);
+            return null;
+        }
+    }
+
     async function saveCard(card) {
         const originalId = card.dataset.id;
+
+        if (pendingSaves.has(originalId)) {
+            clearTimeout(pendingSaves.get(originalId));
+            pendingSaves.delete(originalId);
+        }
+
         const data = getCardData(card);
         const errors = validateCard(data);
         if (errors.length > 0) {
@@ -132,6 +180,7 @@
             if (isNewCard) {
                 const created = await response.json();
                 card.dataset.id = created.id.toString();
+                pendingSaves.delete(originalId);
             }
 
             setSaveStatus('Đã lưu', 'saved');
@@ -290,10 +339,7 @@
     });
     setTitleInput.addEventListener('blur', async () => {
         if (setTitleInput.value.trim()) {
-            const createdId = await ensureSetCreated();
-            if (createdId) {
-                isTitleDirty = false;
-            }
+            await saveSetMetadata();
         }
     });
 
