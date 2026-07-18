@@ -4,7 +4,10 @@
 
 ## Tính năng chính
 
-- Đăng ký, đăng nhập, đăng xuất (cookie authentication + bảng `Users`).
+- Đăng ký, đăng nhập, đăng xuất (ASP.NET Core Identity).
+- Profile cá nhân/công khai tại `/u/{username}`, thống kê học tập, timeline và quyền riêng tư.
+- Avatar upload JPG/PNG/WebP tối đa 5 MB, crop theo khung tròn.
+- Trang 404 tương tác concept Wrong Turn với vocabulary card.
 - Tạo, sửa, xóa bộ thẻ công khai hoặc riêng tư.
 - Thêm thẻ với thuật ngữ, định nghĩa, IPA, loại từ, ví dụ tiếng Anh, nghĩa ví dụ tiếng Việt, từ đồng nghĩa.
 - Upload ảnh JPG/PNG/WebP tối đa 2 MB hoặc dùng URL ảnh.
@@ -126,7 +129,7 @@ Ngoài interface của các mẫu GoF, các application service (`FlashcardSetSe
 | Framework  | ASP.NET Core MVC (.NET 10.0)      |
 | Database   | SQL Server                        |
 | ORM        | Entity Framework Core             |
-| Xác thực   | Cookie authentication + custom Users table |
+| Xác thực   | ASP.NET Core Identity (cookie)      |
 | UI         | Razor Views, Bootstrap, CSS riêng |
 | Icons      | Phosphor Icons                    |
 | TTS        | Web Speech API                    |
@@ -137,7 +140,8 @@ Ngoài interface của các mẫu GoF, các application service (`FlashcardSetSe
 ltwnc/
 ├── Controllers/                 # MVC: request, quyền, View/Redirect/JSON
 ├── Services/                    # Nghiệp vụ — tổ chức theo domain/feature
-│   ├── Auth/                    # Cookie auth: register/login, hasher, CurrentUser
+│   ├── Auth/                    # Identity auth và CurrentUser đọc claims
+│   ├── Profiles/                # Profile service, avatar, thống kê và timeline
 │   ├── FlashcardSets/           # CRUD bộ thẻ / thẻ / copy
 │   ├── Study/                   # Study hub, flashcard session, dictation
 │   ├── Achievements/            # Catalog, progress, unlock, observer thành tích
@@ -211,7 +215,7 @@ dotnet ef database update
 
 ### Dev: reset database sau đổi schema auth
 
-Nhánh cookie auth thay bảng Identity (`AspNetUsers`, …) bằng `Users` (`AppUser`). Password hash Identity **không** tương thích với `Pbkdf2PasswordHasher` — dev nên drop DB và tạo lại, rồi đăng ký user mới:
+Auth đã chuyển sang ASP.NET Core Identity — bảng `Users` (`AppUser`) cũ đã được thay bằng `AspNetUsers`; password hash cũ **không** tương thích với Identity. Profile bổ sung bảng `UserProfiles`. Dev nên drop DB và tạo lại, rồi đăng ký user mới:
 
 ```bash
 dotnet ef database drop --force --project ltwnc.csproj
@@ -219,6 +223,14 @@ dotnet ef database update --project ltwnc.csproj
 ```
 
 Sau đó chạy app và register tài khoản mới.
+
+### Profile và trang 404
+
+- Profile công khai: `/u/{username}`.
+- Chỉnh sửa profile: `/Account/Profile/Edit`.
+- Profile mới mặc định công khai ở mức cơ bản; thống kê, huy hiệu, hoạt động và bộ thẻ công khai mặc định ẩn.
+- Username chỉ đổi một lần mỗi 30 ngày.
+- Trang không tồn tại trả HTTP `404` và hiển thị giao diện Wrong Turn; prototype độc lập nằm tại `prototype/404/`.
 
 ## Chạy ứng dụng
 
