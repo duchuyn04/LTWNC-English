@@ -66,7 +66,7 @@
             if (orderedIds.length === 0) return true;
 
             setSaveStatus('Đang lưu...', 'saving');
-            const response = await fetch('/api/flashcards/reorder', {
+            const response = await fetch('/api/flashcards/flashcards/reorder', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ setId: currentSetId, orderedCardIds: orderedIds })
@@ -223,13 +223,22 @@
         }
     }
 
-    async function saveCard(card) {
+    // Serialize các lần lưu của cùng một thẻ qua chuỗi promise — tránh race
+    // tạo trùng thẻ khi debounce và blur cùng POST lúc thẻ chưa có id thật.
+    function saveCard(card) {
         const originalId = card.dataset.id;
-
         if (pendingSaves.has(originalId)) {
             clearTimeout(pendingSaves.get(originalId));
             pendingSaves.delete(originalId);
         }
+
+        const queued = (card.savePromise || Promise.resolve()).then(() => persistCard(card));
+        card.savePromise = queued.catch(() => {});
+        return queued;
+    }
+
+    async function persistCard(card) {
+        const originalId = card.dataset.id;
 
         const data = getCardData(card);
         const errors = validateCard(data);
@@ -516,13 +525,26 @@
     function renderPreview(rows) {
         const valid = rows.filter(r => r.frontText && r.backText);
         const invalid = rows.filter(r => !r.frontText || !r.backText);
-        importPreview.innerHTML = `
-            <p>Hợp lệ: ${valid.length}, lỗi: ${invalid.length}</p>
-            <ul>
-                ${valid.slice(0, 5).map(r => `<li>${r.frontText} → ${r.backText}</li>`).join('')}
-                ${invalid.map(r => `<li class="error">Lỗi: "${r.frontText}" / "${r.backText}"</li>`).join('')}
-            </ul>
-        `;
+
+        // Dựng bằng DOM/textContent — nội dung paste từ ngưới dùng, tránh XSS qua innerHTML.
+        importPreview.innerHTML = '';
+        const summary = document.createElement('p');
+        summary.textContent = `Hợp lệ: ${valid.length}, lỗi: ${invalid.length}`;
+        importPreview.appendChild(summary);
+
+        const list = document.createElement('ul');
+        valid.slice(0, 5).forEach(r => {
+            const li = document.createElement('li');
+            li.textContent = `${r.frontText} → ${r.backText}`;
+            list.appendChild(li);
+        });
+        invalid.forEach(r => {
+            const li = document.createElement('li');
+            li.className = 'error';
+            li.textContent = `Lỗi: "${r.frontText}" / "${r.backText}"`;
+            list.appendChild(li);
+        });
+        importPreview.appendChild(list);
     }
 
     btnImport.addEventListener('click', () => {
@@ -565,41 +587,46 @@
         };
 
         setSaveStatus('Đang import...', 'saving');
-        const response = await fetch('/api/flashcards/flashcards/batch', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        });
-
-        if (response.ok) {
-            const created = await response.json();
-
-            if (replaceAll) {
-                existingCards.forEach(c => {
-                    if (pendingSaves.has(c.dataset.id)) {
-                        clearTimeout(pendingSaves.get(c.dataset.id));
-                        pendingSaves.delete(c.dataset.id);
-                    }
-                    dirtyCards.delete(c.dataset.id);
-                    c.remove();
-                });
-            }
-
-            created.forEach(c => {
-                const card = createEmptyCard();
-                card.dataset.id = c.id;
-                card.querySelector('.input-front').value = c.frontText;
-                card.querySelector('.input-back').value = c.backText;
-                card.querySelector('.card-term').textContent = c.frontText;
-                container.appendChild(card);
+        try {
+            const response = await fetch('/api/flashcards/flashcards/batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
             });
-            updateCardNumbering();
-            setSaveStatus('Đã import', 'saved');
-            importModal.style.display = 'none';
-        } else {
-            const errorText = await response.text().catch(() => 'Import thất bại');
-            setSaveStatus('Lỗi import: ' + errorText, 'error');
-            console.error('Batch import failed:', errorText);
+
+            if (response.ok) {
+                const created = await response.json();
+
+                if (replaceAll) {
+                    existingCards.forEach(c => {
+                        if (pendingSaves.has(c.dataset.id)) {
+                            clearTimeout(pendingSaves.get(c.dataset.id));
+                            pendingSaves.delete(c.dataset.id);
+                        }
+                        dirtyCards.delete(c.dataset.id);
+                        c.remove();
+                    });
+                }
+
+                created.forEach(c => {
+                    const card = createEmptyCard();
+                    card.dataset.id = c.id;
+                    card.querySelector('.input-front').value = c.frontText;
+                    card.querySelector('.input-back').value = c.backText;
+                    card.querySelector('.card-term').textContent = c.frontText;
+                    container.appendChild(card);
+                });
+                updateCardNumbering();
+                setSaveStatus('Đã import', 'saved');
+                importModal.style.display = 'none';
+            } else {
+                const errorText = await response.text().catch(() => 'Import thất bại');
+                setSaveStatus('Lỗi import: ' + errorText, 'error');
+                console.error('Batch import failed:', errorText);
+            }
+        } catch (err) {
+            setSaveStatus('Lỗi import', 'error');
+            console.error('Batch import failed:', err);
         }
     });
 

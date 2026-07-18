@@ -415,7 +415,7 @@ public class FlashcardSetService : IFlashcardSetService
     {
         FlashcardSet set = new FlashcardSet
         {
-            Title = title,
+            Title = RequiredText(title, "Tên bộ từ", 200),
             Description = description,
             IsPublic = isPublic,
             UserId = userId,
@@ -443,7 +443,7 @@ public class FlashcardSetService : IFlashcardSetService
             throw new UnauthorizedAccessException("Không có quyền sửa bộ thẻ này.");
         }
 
-        set.Title = title;
+        set.Title = RequiredText(title, "Tên bộ từ", 200);
         set.Description = description;
         set.IsPublic = isPublic;
         set.UpdatedAt = DateTime.UtcNow;

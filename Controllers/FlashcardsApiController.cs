@@ -8,7 +8,8 @@ using Microsoft.AspNetCore.Mvc;
 namespace ltwnc.Controllers;
 
 [Authorize]
-[Route("api/[controller]")]
+// Route cố định: [controller] sẽ resolve thành "FlashcardsApi" (sai so với JS gọi /api/flashcards).
+[Route("api/flashcards")]
 [ApiController]
 [ServiceFilter(typeof(ApiExceptionFilter))]
 public class FlashcardsApiController : ControllerBase
