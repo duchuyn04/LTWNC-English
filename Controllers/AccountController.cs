@@ -122,6 +122,6 @@ public class AccountController : Controller
         nameof(IdentityErrorDescriber.PasswordRequiresUpper) or "PasswordRequiresUpper" => "Mật khẩu phải có ít nhất một chữ hoa.",
         nameof(IdentityErrorDescriber.PasswordRequiresLower) or "PasswordRequiresLower" => "Mật khẩu phải có ít nhất một chữ thường.",
         nameof(IdentityErrorDescriber.PasswordRequiresDigit) or "PasswordRequiresDigit" => "Mật khẩu phải có ít nhất một chữ số.",
-        _ => error.Description
+        _ => "Đăng ký không thành công. Vui lòng kiểm tra lại thông tin."
     };
 }

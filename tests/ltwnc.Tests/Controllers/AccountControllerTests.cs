@@ -60,6 +60,22 @@ public class AccountControllerTests
     }
 
     [Fact]
+    public async Task Register_CreateFailsWithUnknownIdentityError_ReturnsGenericVietnameseError()
+    {
+        var userManager = MockUserManager();
+        userManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), "Pass1234"))
+            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Code = "Unexpected", Description = "English fallback" }));
+        var signInManager = MockSignInManager(userManager);
+        var controller = new AccountController(userManager.Object, signInManager.Object);
+
+        var result = await controller.Register(ValidRegister());
+
+        Assert.IsType<ViewResult>(result);
+        Assert.Contains(controller.ModelState[string.Empty]!.Errors,
+            e => e.ErrorMessage == "Đăng ký không thành công. Vui lòng kiểm tra lại thông tin.");
+    }
+
+    [Fact]
     public async Task Register_Success_SignsInPersistentOneDayAndRedirectsHome()
     {
         var userManager = MockUserManager();
