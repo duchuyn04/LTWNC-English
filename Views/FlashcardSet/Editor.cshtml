@@ -26,6 +26,15 @@
     <div class="editor-meta">
         <label for="set-title">Tên bộ từ <span class="required">*</span></label>
         <input id="set-title" class="form-control" value="@Model.Title" placeholder="Nhập tên bộ thẻ" />
+
+        <label for="set-description">Mô tả</label>
+        <textarea id="set-description" class="form-control" rows="3" placeholder="Mô tả bộ thẻ">@Model.Description</textarea>
+
+        <label class="checkbox-label">
+            <input type="checkbox" id="set-is-public" @(Model.IsPublic ? "checked" : "") />
+            Công khai
+        </label>
+
         <div class="save-status" id="save-status"></div>
     </div>
 
@@ -34,7 +43,7 @@
         {
             var card = Model.Cards[i];
             <div class="flashcard-card @(i == 0 ? "expanded" : "collapsed")"
-                 data-id="@card.Id"
+                 data-id="@(Model.Id.HasValue ? card.Id.ToString() : "new-" + Guid.NewGuid())"
                  data-order="@card.OrderIndex"
                  data-starred="@card.IsStarred.ToString().ToLowerInvariant()">
                 <div class="card-header">

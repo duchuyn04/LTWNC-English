@@ -10,6 +10,7 @@ namespace ltwnc.Controllers;
 [Authorize]
 [Route("api/[controller]")]
 [ApiController]
+[ServiceFilter(typeof(ApiExceptionFilter))]
 public class FlashcardsApiController : ControllerBase
 {
     private readonly IFlashcardSetService _setService;
@@ -90,17 +91,10 @@ public class FlashcardsApiController : ControllerBase
     {
         if (UserId == null) return Challenge();
 
-        try
-        {
-            var card = await _setService.GetCardAsync(id, UserId);
-            if (card == null) return NotFound();
+        var card = await _setService.GetCardAsync(id, UserId);
+        if (card == null) return NotFound();
 
-            return Ok(MapToResponse(card));
-        }
-        catch (UnauthorizedAccessException)
-        {
-            return Challenge();
-        }
+        return Ok(MapToResponse(card));
     }
 
     [HttpPut("flashcards/{id}")]

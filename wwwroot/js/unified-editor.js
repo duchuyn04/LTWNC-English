@@ -13,6 +13,8 @@
         return !getSetId();
     }
     const setTitleInput = document.getElementById('set-title');
+    const setDescriptionInput = document.getElementById('set-description');
+    const setIsPublicInput = document.getElementById('set-is-public');
     const saveStatus = document.getElementById('save-status');
     const cardCountLabel = document.getElementById('card-count');
     const btnFinish = document.getElementById('btn-finish');
@@ -108,6 +110,14 @@
         isTitleDirty = true;
     }
 
+    function getSetMetadata() {
+        return {
+            title: setTitleInput.value.trim(),
+            description: setDescriptionInput.value.trim(),
+            isPublic: setIsPublicInput.checked
+        };
+    }
+
     function getCardData(card) {
         return {
             id: card.dataset.id,
@@ -134,14 +144,14 @@
     async function ensureSetCreated() {
         if (!isNewSet() || getSetId()) return getSetId();
 
-        const title = setTitleInput.value.trim();
-        if (!title) return null;
+        const metadata = getSetMetadata();
+        if (!metadata.title) return null;
 
         setSaveStatus('Đang lưu...', 'saving');
         const response = await fetch('/api/flashcards/flashcard-sets', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ title, description: '', isPublic: false })
+            body: JSON.stringify(metadata)
         });
 
         if (!response.ok) {
@@ -151,19 +161,18 @@
 
         const set = await response.json();
         editor.dataset.setId = set.id;
+        editor.dataset.description = metadata.description;
+        editor.dataset.isPublic = metadata.isPublic.toString();
         history.replaceState(null, '', `/flashcardset/editor/${set.id}`);
         return set.id;
     }
 
     async function saveSetMetadata() {
-        const title = setTitleInput.value.trim();
-        if (!title) return null;
+        const metadata = getSetMetadata();
+        if (!metadata.title) return null;
 
         const setId = getSetId();
         setSaveStatus('Đang lưu...', 'saving');
-
-        const description = editor.dataset.description || '';
-        const isPublic = editor.dataset.isPublic === 'true';
 
         let url = '/api/flashcards/flashcard-sets';
         let method = 'POST';
@@ -176,7 +185,7 @@
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, description, isPublic })
+                body: JSON.stringify(metadata)
             });
 
             if (!response.ok) {
@@ -187,11 +196,11 @@
             if (!setId) {
                 const set = await response.json();
                 editor.dataset.setId = set.id;
-                editor.dataset.description = description;
-                editor.dataset.isPublic = isPublic.toString();
                 history.replaceState(null, '', `/flashcardset/editor/${set.id}`);
             }
 
+            editor.dataset.description = metadata.description;
+            editor.dataset.isPublic = metadata.isPublic.toString();
             isTitleDirty = false;
             setSaveStatus('Đã lưu', 'saved');
             return getSetId();
@@ -225,7 +234,7 @@
         card.dataset.setId = currentSetId;
         setSaveStatus('Đang lưu...', 'saving');
 
-        const isNewCard = data.id.startsWith('new-');
+        const isNewCard = !data.id || data.id === '0' || data.id.startsWith('new-');
         const url = isNewCard
             ? '/api/flashcards/flashcards'
             : `/api/flashcards/flashcards/${data.id}`;
@@ -531,6 +540,9 @@
         const currentSetId = getSetId() || await ensureSetCreated();
         if (!currentSetId) return;
 
+        const replaceAll = importReplace.checked;
+        const existingCards = Array.from(container.querySelectorAll('.flashcard-card'));
+
         const payload = {
             setId: currentSetId,
             cards: rows.map(r => ({
@@ -539,13 +551,10 @@
                 backText: r.backText,
                 isStarred: false
             })),
-            replaceAll: importReplace.checked
+            replaceAll
         };
 
-        if (importReplace.checked) {
-            container.querySelectorAll('.flashcard-card').forEach(c => c.remove());
-        }
-
+        setSaveStatus('Đang import...', 'saving');
         const response = await fetch('/api/flashcards/flashcards/batch', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -554,6 +563,18 @@
 
         if (response.ok) {
             const created = await response.json();
+
+            if (replaceAll) {
+                existingCards.forEach(c => {
+                    if (pendingSaves.has(c.dataset.id)) {
+                        clearTimeout(pendingSaves.get(c.dataset.id));
+                        pendingSaves.delete(c.dataset.id);
+                    }
+                    dirtyCards.delete(c.dataset.id);
+                    c.remove();
+                });
+            }
+
             created.forEach(c => {
                 const card = createEmptyCard();
                 card.dataset.id = c.id;
@@ -563,7 +584,12 @@
                 container.appendChild(card);
             });
             updateCardNumbering();
+            setSaveStatus('Đã import', 'saved');
             importModal.style.display = 'none';
+        } else {
+            const errorText = await response.text().catch(() => 'Import thất bại');
+            setSaveStatus('Lỗi import: ' + errorText, 'error');
+            console.error('Batch import failed:', errorText);
         }
     });
 

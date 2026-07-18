@@ -66,6 +66,7 @@ builder.Services.AddScoped<IAchievementUnlockService, AchievementUnlockService>(
 
 // Add MVC
 builder.Services.AddControllersWithViews();
+builder.Services.AddScoped<ltwnc.Controllers.ApiExceptionFilter>();
 
 var app = builder.Build();
 
