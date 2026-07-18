@@ -1,0 +1,36 @@
+@model ProfileEditViewModel
+@{
+    ViewData["Title"] = "Chỉnh sửa profile";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/profile.css" asp-append-version="true" />
+}
+
+<div class="profile-edit-page">
+    <div class="profile-section-heading"><p class="profile-eyebrow">YOUR PROFILE</p><h1>Chỉnh sửa profile</h1><p>Quản lý thông tin hiển thị và quyền riêng tư của bạn.</p></div>
+    @if (TempData["Success"] is string success) { <div class="alert alert-success">@success</div> }
+    @if (TempData["Error"] is string error) { <div class="alert alert-danger">@error</div> }
+    <form asp-controller="Profile" asp-action="Avatar" method="post" enctype="multipart/form-data" class="profile-card profile-form">
+        @Html.AntiForgeryToken()
+        <h2>Ảnh đại diện</h2>
+        <div class="avatar-cropper" data-avatar-cropper>
+            <canvas class="avatar-crop-canvas" data-avatar-canvas width="240" height="240" tabindex="0" aria-label="Khung crop ảnh đại diện"></canvas>
+            <p class="avatar-crop-help">Kéo ảnh hoặc dùng các phím điều hướng trong khung tròn, sau đó điều chỉnh zoom.</p>
+            <input type="range" min="1" max="3" step="0.01" value="1" data-avatar-zoom aria-label="Zoom ảnh đại diện" />
+        </div>
+        <label for="avatar">Chọn ảnh JPG, PNG hoặc WebP</label>
+        <input id="avatar" name="avatar" type="file" accept=".jpg,.jpeg,.png,.webp" />
+        <button class="profile-button" type="submit">Lưu ảnh đại diện</button>
+    </form>
+    <form asp-action="Edit" method="post" class="profile-card profile-form">
+        @Html.AntiForgeryToken()
+        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+        <label asp-for="Username">Username</label><input asp-for="Username" /><span asp-validation-for="Username" class="text-danger"></span>
+        <label asp-for="Bio">Bio</label><textarea asp-for="Bio" rows="4"></textarea><span asp-validation-for="Bio" class="text-danger"></span>
+        <fieldset><legend>Quyền riêng tư</legend><label><input asp-for="IsPublic" /> Profile công khai</label><label><input asp-for="ShowStats" /> Hiển thị thống kê</label><label><input asp-for="ShowBadges" /> Hiển thị huy hiệu</label><label><input asp-for="ShowActivity" /> Hiển thị hoạt động</label><label><input asp-for="ShowPublicSets" /> Hiển thị bộ thẻ công khai</label></fieldset>
+        <button class="profile-button profile-button-dark" type="submit">Lưu thay đổi</button>
+    </form>
+    <form asp-controller="Profile" asp-action="ChangeEmail" method="post" class="profile-card profile-form"><h2>Đổi email</h2>@Html.AntiForgeryToken()<div asp-validation-summary="All" class="text-danger"></div><label for="NewEmail">Email mới</label><input id="NewEmail" name="NewEmail" type="email" value="@Model.Email" required /><button class="profile-button" type="submit">Cập nhật email</button></form>
+    <form asp-controller="Profile" asp-action="ChangePassword" method="post" class="profile-card profile-form"><h2>Đổi mật khẩu</h2>@Html.AntiForgeryToken()<div asp-validation-summary="All" class="text-danger"></div><label for="CurrentPassword">Mật khẩu hiện tại</label><input id="CurrentPassword" name="CurrentPassword" type="password" required /><label for="NewPassword">Mật khẩu mới</label><input id="NewPassword" name="NewPassword" type="password" required /><label for="ConfirmPassword">Nhập lại mật khẩu mới</label><input id="ConfirmPassword" name="ConfirmPassword" type="password" required /><button class="profile-button" type="submit">Đổi mật khẩu</button></form>
+</div>
+@section Scripts { <script src="~/js/profile-avatar.js" asp-append-version="true"></script><partial name="_ValidationScriptsPartial" /> }

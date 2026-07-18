@@ -20,6 +20,7 @@ public class AppDbContext : IdentityUserContext<IdentityUser>
     public DbSet<UserStudySettings> UserStudySettings => Set<UserStudySettings>();
     public DbSet<DictationSessionDetail> DictationSessionDetails => Set<DictationSessionDetail>();
     public DbSet<CardActionLog> CardActionLogs => Set<CardActionLog>();
+    public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
 
     // Bảng thành tích (huy hiệu) user đã mở khóa — do Observer ghi khi có sự kiện học
     public DbSet<UserAchievement> UserAchievements => Set<UserAchievement>();
@@ -34,6 +35,17 @@ public class AppDbContext : IdentityUserContext<IdentityUser>
             .IsUnique()
             .HasDatabaseName("EmailIndex")
             .HasFilter("[NormalizedEmail] IS NOT NULL");
+
+        builder.Entity<UserProfile>(entity =>
+        {
+            entity.HasKey(profile => profile.UserId);
+            entity.Property(profile => profile.UserId).HasMaxLength(450);
+            entity.Property(profile => profile.Bio).HasMaxLength(500);
+            entity.HasOne<IdentityUser>()
+                .WithOne()
+                .HasForeignKey<UserProfile>(profile => profile.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
 
         // Cấu hình bảng FlashcardSets
         builder.Entity<FlashcardSet>(entity =>

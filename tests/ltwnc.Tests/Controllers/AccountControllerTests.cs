@@ -1,4 +1,6 @@
 using ltwnc.Controllers;
+using ltwnc.Data;
+using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Account;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
@@ -40,6 +42,20 @@ public class AccountControllerTests
         ConfirmPassword = "Pass1234"
     };
 
+    private static AccountController CreateController(
+        Mock<UserManager<IdentityUser>> userManager,
+        Mock<SignInManager<IdentityUser>> signInManager)
+    {
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        return new AccountController(
+            userManager.Object,
+            signInManager.Object,
+            new AppDbContext(options),
+            TimeProvider.System);
+    }
+
     [Fact]
     public async Task Register_CreateFails_MapsVietnameseErrorToModelState()
     {
@@ -47,7 +63,7 @@ public class AccountControllerTests
         userManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), "Pass1234"))
             .ReturnsAsync(IdentityResult.Failed(new IdentityError { Code = "DuplicateEmail", Description = "Email taken" }));
         var signInManager = MockSignInManager(userManager);
-        var controller = new AccountController(userManager.Object, signInManager.Object);
+        var controller = CreateController(userManager, signInManager);
 
         var result = await controller.Register(ValidRegister());
 
@@ -68,7 +84,7 @@ public class AccountControllerTests
                 "Unique constraint failed",
                 new Exception("UNIQUE constraint failed: AspNetUsers.EmailIndex")));
         var signInManager = MockSignInManager(userManager);
-        var controller = new AccountController(userManager.Object, signInManager.Object);
+        var controller = CreateController(userManager, signInManager);
 
         var result = await controller.Register(ValidRegister());
 
@@ -89,7 +105,7 @@ public class AccountControllerTests
                 "Database timeout",
                 new Exception("timeout")));
         var signInManager = MockSignInManager(userManager);
-        var controller = new AccountController(userManager.Object, signInManager.Object);
+        var controller = CreateController(userManager, signInManager);
 
         await Assert.ThrowsAsync<DbUpdateException>(() => controller.Register(ValidRegister()));
     }
@@ -101,7 +117,7 @@ public class AccountControllerTests
         userManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), "Pass1234"))
             .ReturnsAsync(IdentityResult.Failed(new IdentityError { Code = "Unexpected", Description = "English fallback" }));
         var signInManager = MockSignInManager(userManager);
-        var controller = new AccountController(userManager.Object, signInManager.Object);
+        var controller = CreateController(userManager, signInManager);
 
         var result = await controller.Register(ValidRegister());
 
@@ -117,7 +133,7 @@ public class AccountControllerTests
         userManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), "Pass1234"))
             .ReturnsAsync(IdentityResult.Success);
         var signInManager = MockSignInManager(userManager);
-        var controller = new AccountController(userManager.Object, signInManager.Object);
+        var controller = CreateController(userManager, signInManager);
 
         var result = await controller.Register(ValidRegister());
 
@@ -135,13 +151,40 @@ public class AccountControllerTests
     }
 
     [Fact]
+    public async Task Register_Success_CreatesDefaultProfile()
+    {
+        var userManager = MockUserManager();
+        userManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), "Pass1234"))
+            .ReturnsAsync(IdentityResult.Success);
+        var signInManager = MockSignInManager(userManager);
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString())
+            .Options;
+        using var db = new AppDbContext(options);
+        var controller = new AccountController(
+            userManager.Object,
+            signInManager.Object,
+            db,
+            TimeProvider.System);
+
+        await controller.Register(ValidRegister());
+
+        UserProfile profile = Assert.Single(db.UserProfiles);
+        Assert.True(profile.IsPublic);
+        Assert.False(profile.ShowStats);
+        Assert.False(profile.ShowBadges);
+        Assert.False(profile.ShowActivity);
+        Assert.False(profile.ShowPublicSets);
+    }
+
+    [Fact]
     public async Task Login_UnknownEmail_ReturnsGenericError()
     {
         var userManager = MockUserManager();
         userManager.Setup(x => x.FindByEmailAsync("nobody@b.com"))
             .ReturnsAsync((IdentityUser?)null);
         var signInManager = MockSignInManager(userManager);
-        var controller = new AccountController(userManager.Object, signInManager.Object);
+        var controller = CreateController(userManager, signInManager);
 
         var result = await controller.Login(new LoginViewModel
         {
@@ -165,7 +208,7 @@ public class AccountControllerTests
         var signInManager = MockSignInManager(userManager);
         signInManager.Setup(x => x.CheckPasswordSignInAsync(user, "Sai1234", false))
             .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Failed);
-        var controller = new AccountController(userManager.Object, signInManager.Object);
+        var controller = CreateController(userManager, signInManager);
 
         var result = await controller.Login(new LoginViewModel
         {
@@ -187,7 +230,7 @@ public class AccountControllerTests
         var signInManager = MockSignInManager(userManager);
         signInManager.Setup(x => x.CheckPasswordSignInAsync(user, "Pass1234", false))
             .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Success);
-        var controller = new AccountController(userManager.Object, signInManager.Object);
+        var controller = CreateController(userManager, signInManager);
 
         var result = await controller.Login(new LoginViewModel
         {
@@ -216,7 +259,7 @@ public class AccountControllerTests
         var signInManager = MockSignInManager(userManager);
         signInManager.Setup(x => x.CheckPasswordSignInAsync(user, "Pass1234", false))
             .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Success);
-        var controller = new AccountController(userManager.Object, signInManager.Object);
+        var controller = CreateController(userManager, signInManager);
 
         var result = await controller.Login(new LoginViewModel
         {
@@ -241,7 +284,7 @@ public class AccountControllerTests
     {
         var userManager = MockUserManager();
         var signInManager = MockSignInManager(userManager);
-        var controller = new AccountController(userManager.Object, signInManager.Object);
+        var controller = CreateController(userManager, signInManager);
 
         var result = await controller.Logout();
 

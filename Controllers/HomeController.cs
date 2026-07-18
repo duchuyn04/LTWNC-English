@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using ltwnc.Models;
 using ltwnc.Models.Entities;
 using ltwnc.Services.FlashcardSets;
@@ -58,6 +59,14 @@ public class HomeController : Controller
     public IActionResult Privacy()
     {
         return View();
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    public IActionResult NotFoundPage()
+    {
+        Response.StatusCode = StatusCodes.Status404NotFound;
+        return View("NotFound");
     }
 
     // GET Error: không cache, gắn RequestId để debug

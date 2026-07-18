@@ -1,3 +1,5 @@
+using ltwnc.Data;
+using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Account;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
@@ -14,13 +16,19 @@ public class AccountController : Controller
 
     private readonly UserManager<IdentityUser> _userManager;
     private readonly SignInManager<IdentityUser> _signInManager;
+    private readonly AppDbContext _db;
+    private readonly TimeProvider _timeProvider;
 
     public AccountController(
         UserManager<IdentityUser> userManager,
-        SignInManager<IdentityUser> signInManager)
+        SignInManager<IdentityUser> signInManager,
+        AppDbContext db,
+        TimeProvider timeProvider)
     {
         _userManager = userManager;
         _signInManager = signInManager;
+        _db = db;
+        _timeProvider = timeProvider;
     }
 
     [HttpGet]
@@ -61,6 +69,23 @@ public class AccountController : Controller
             }
 
             return View(model);
+        }
+
+        DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
+        try
+        {
+            _db.UserProfiles.Add(new UserProfile
+            {
+                UserId = user.Id,
+                CreatedAt = now,
+                UpdatedAt = now
+            });
+            await _db.SaveChangesAsync();
+        }
+        catch
+        {
+            await _userManager.DeleteAsync(user);
+            throw;
         }
 
         await _signInManager.SignInAsync(
