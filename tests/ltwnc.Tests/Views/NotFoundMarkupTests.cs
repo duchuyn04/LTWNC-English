@@ -9,9 +9,10 @@ public class NotFoundMarkupTests
     {
         string view = File.ReadAllText(Path.Combine(Root, "Views", "Shared", "NotFound.cshtml"));
         string css = File.ReadAllText(Path.Combine(Root, "wwwroot", "css", "not-found.css"));
+        string script = File.ReadAllText(Path.Combine(Root, "wwwroot", "js", "not-found.js"));
 
         Assert.Contains("HideLayoutChrome", view);
-        Assert.Contains("FullWidth", view);
+        Assert.Contains("Layout = null", view);
         Assert.Contains("Về trang chủ", view);
         Assert.Contains("Lật thẻ", view);
         Assert.Contains("aria-pressed", view);
@@ -21,5 +22,6 @@ public class NotFoundMarkupTests
         Assert.DoesNotContain("-->", view);
         Assert.DoesNotContain("<--", view);
         Assert.Contains("prefers-reduced-motion", css);
+        Assert.Contains("Enter", script);
     }
 }

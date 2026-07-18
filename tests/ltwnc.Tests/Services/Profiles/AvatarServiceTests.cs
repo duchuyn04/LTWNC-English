@@ -67,6 +67,21 @@ public class AvatarServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ReplaceAvatar_ExcessiveDimensions_ReturnsVietnameseError()
+    {
+        await using var db = CreateContext();
+        db.UserProfiles.Add(new UserProfile { UserId = "user-1" });
+        await db.SaveChangesAsync();
+        AvatarService service = CreateService(db);
+        IFormFile file = await CreatePngAsync(5000, 1);
+
+        AvatarUploadResult result = await service.ReplaceAvatarAsync("user-1", file);
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("4096", result.Error);
+    }
+
+    [Fact]
     public async Task ReplaceAvatar_DatabaseFailure_DeletesNewFileAndKeepsOldAvatar()
     {
         await using var db = CreateContext();

@@ -114,6 +114,7 @@ public class ProfileController : Controller
             ProfileEditViewModel editModel = await _profileService.GetEditModelAsync(
                 _currentUser.UserId,
                 cancellationToken);
+            editModel.Email = model.NewEmail;
             return View("Edit", editModel);
         }
 
@@ -127,6 +128,7 @@ public class ProfileController : Controller
             ProfileEditViewModel editModel = await _profileService.GetEditModelAsync(
                 _currentUser.UserId,
                 cancellationToken);
+            editModel.Email = model.NewEmail;
             return View("Edit", editModel);
         }
 

@@ -11,6 +11,7 @@ namespace ltwnc.Services.Profiles;
 public sealed class AvatarService : IAvatarService
 {
     private const long MaxFileSize = 5 * 1024 * 1024;
+    private const int MaxDimension = 4096;
     private const string AvatarUrlPrefix = "/uploads/avatars/";
 
     private readonly AppDbContext _db;
@@ -51,6 +52,13 @@ public sealed class AvatarService : IAvatarService
             if (format == null || !IsAllowedFormat(format))
             {
                 return Failure("Chỉ chấp nhận ảnh JPG, PNG hoặc WebP.");
+            }
+
+            input.Position = 0;
+            ImageInfo imageInfo = await Image.IdentifyAsync(input, cancellationToken);
+            if (imageInfo.Width > MaxDimension || imageInfo.Height > MaxDimension)
+            {
+                return Failure("Kích thước ảnh không được vượt quá 4096 x 4096 pixel.");
             }
 
             input.Position = 0;

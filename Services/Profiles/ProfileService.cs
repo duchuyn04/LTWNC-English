@@ -3,6 +3,7 @@ using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Profile;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace ltwnc.Services.Profiles;
 
@@ -120,6 +121,15 @@ public sealed class ProfileService : IProfileService
         DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
         string? originalUsername = user.UserName;
         bool usernameChanged = false;
+        string? originalBio = profile.Bio;
+        bool originalIsPublic = profile.IsPublic;
+        bool originalShowStats = profile.ShowStats;
+        bool originalShowBadges = profile.ShowBadges;
+        bool originalShowActivity = profile.ShowActivity;
+        bool originalShowPublicSets = profile.ShowPublicSets;
+        DateTime? originalUsernameChangedAt = profile.LastUsernameChangedAt;
+        DateTime originalUpdatedAt = profile.UpdatedAt;
+        IDbContextTransaction? transaction = null;
 
         if (!string.Equals(user.UserName, username, StringComparison.Ordinal))
         {
@@ -139,9 +149,19 @@ public sealed class ProfileService : IProfileService
                     "Tên đăng nhập đã được sử dụng."));
             }
 
+            if (_db.Database.IsRelational())
+            {
+                transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+            }
+
             IdentityResult usernameResult = await _userManager.SetUserNameAsync(user, username);
             if (!usernameResult.Succeeded)
             {
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync(cancellationToken);
+                    await transaction.DisposeAsync();
+                }
                 return Failure(nameof(ProfileEditViewModel.Username), usernameResult);
             }
 
@@ -159,15 +179,39 @@ public sealed class ProfileService : IProfileService
         try
         {
             await _db.SaveChangesAsync(cancellationToken);
+            if (transaction != null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
         }
         catch
         {
-            if (usernameChanged && originalUsername != null)
+            profile.Bio = originalBio;
+            profile.IsPublic = originalIsPublic;
+            profile.ShowStats = originalShowStats;
+            profile.ShowBadges = originalShowBadges;
+            profile.ShowActivity = originalShowActivity;
+            profile.ShowPublicSets = originalShowPublicSets;
+            profile.LastUsernameChangedAt = originalUsernameChangedAt;
+            profile.UpdatedAt = originalUpdatedAt;
+
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync(cancellationToken);
+            }
+            else if (usernameChanged && originalUsername != null)
             {
                 await _userManager.SetUserNameAsync(user, originalUsername);
             }
 
             throw;
+        }
+        finally
+        {
+            if (transaction != null)
+            {
+                await transaction.DisposeAsync();
+            }
         }
         return ProfileOperationResult.Success();
     }

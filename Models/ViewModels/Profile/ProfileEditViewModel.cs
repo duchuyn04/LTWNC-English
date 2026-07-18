@@ -10,7 +10,7 @@ public sealed class ProfileEditViewModel
     [StringLength(500)]
     public string? Bio { get; set; }
 
-    public string Email { get; init; } = string.Empty;
+    public string Email { get; set; } = string.Empty;
     public string? AvatarPath { get; init; }
     public string AvatarInitial { get; init; } = string.Empty;
     public bool IsPublic { get; set; }
