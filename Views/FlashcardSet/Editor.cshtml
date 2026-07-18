@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="~/css/unified-editor.css" />
 }
 
-<div class="unified-editor" data-set-id="@Model.Id" data-is-new="@(Model.Id.HasValue ? "false" : "true")">
+<div class="unified-editor" data-set-id="@Model.Id" data-is-new="@(Model.Id.HasValue ? "false" : "true")" data-description="@(Model.Description ?? "")" data-is-public="@Model.IsPublic.ToString().ToLowerInvariant()">
     <div class="editor-header">
         <div>
             <h2>Danh sách từ</h2>

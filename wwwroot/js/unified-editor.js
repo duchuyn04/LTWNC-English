@@ -101,6 +101,9 @@
         const setId = getSetId();
         setSaveStatus('Đang lưu...', 'saving');
 
+        const description = editor.dataset.description || '';
+        const isPublic = editor.dataset.isPublic === 'true';
+
         let url = '/api/flashcards/flashcard-sets';
         let method = 'POST';
         if (setId) {
@@ -112,7 +115,7 @@
             const response = await fetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title, description: '', isPublic: false })
+                body: JSON.stringify({ title, description, isPublic })
             });
 
             if (!response.ok) {
@@ -123,6 +126,8 @@
             if (!setId) {
                 const set = await response.json();
                 editor.dataset.setId = set.id;
+                editor.dataset.description = description;
+                editor.dataset.isPublic = isPublic.toString();
                 history.replaceState(null, '', `/flashcardset/editor/${set.id}`);
             }
 
