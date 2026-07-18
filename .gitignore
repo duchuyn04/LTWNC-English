@@ -63,5 +63,8 @@ skills-lock.json
 tests/*
 !tests/ltwnc.Tests/
 
+## Node.js
+node_modules/
+
 ## Git worktrees
 .worktrees/
