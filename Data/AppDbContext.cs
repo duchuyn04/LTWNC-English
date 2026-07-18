@@ -1,17 +1,18 @@
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ltwnc.Models.Entities;
 
 namespace ltwnc.Data;
 
-// DbContext chính của ứng dụng — cookie auth dùng bảng Users (AppUser), không Identity.
+// DbContext chính của ứng dụng — dùng ASP.NET Core Identity không roles.
 // Quản lý kết nối database và cấu hình các bảng (entities)
-public class AppDbContext : DbContext
+public class AppDbContext : IdentityUserContext<IdentityUser>
 {
     // Constructor — nhận DbContextOptions từ DI container (connection string, provider...)
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
     // Định nghĩa các bảng trong database
-    public DbSet<AppUser> Users => Set<AppUser>();
     public DbSet<FlashcardSet> FlashcardSets => Set<FlashcardSet>();
     public DbSet<Flashcard> Flashcards => Set<Flashcard>();
     public DbSet<StudySession> StudySessions => Set<StudySession>();
@@ -26,15 +27,13 @@ public class AppDbContext : DbContext
     // Cấu hình model — indexes, relationships, constraints
     protected override void OnModelCreating(ModelBuilder builder)
     {
-        // DbContext chuẩn — không gọi Identity model configuration
         base.OnModelCreating(builder);
 
-        builder.Entity<AppUser>(entity =>
-        {
-            entity.ToTable("Users");
-            entity.HasIndex(e => e.Email).IsUnique();
-            entity.HasIndex(e => e.UserName).IsUnique();
-        });
+        builder.Entity<IdentityUser>()
+            .HasIndex(u => u.NormalizedEmail)
+            .IsUnique()
+            .HasDatabaseName("EmailIndex")
+            .HasFilter("[NormalizedEmail] IS NOT NULL");
 
         // Cấu hình bảng FlashcardSets
         builder.Entity<FlashcardSet>(entity =>

@@ -4,7 +4,7 @@
 
 ## Tính năng chính
 
-- Đăng ký, đăng nhập, đăng xuất (cookie authentication + bảng `Users`).
+- Đăng ký, đăng nhập, đăng xuất (ASP.NET Core Identity).
 - Tạo, sửa, xóa bộ thẻ công khai hoặc riêng tư.
 - Thêm thẻ với thuật ngữ, định nghĩa, IPA, loại từ, ví dụ tiếng Anh, nghĩa ví dụ tiếng Việt, từ đồng nghĩa.
 - Upload ảnh JPG/PNG/WebP tối đa 2 MB hoặc dùng URL ảnh.
@@ -126,7 +126,7 @@ Ngoài interface của các mẫu GoF, các application service (`FlashcardSetSe
 | Framework  | ASP.NET Core MVC (.NET 10.0)      |
 | Database   | SQL Server                        |
 | ORM        | Entity Framework Core             |
-| Xác thực   | Cookie authentication + custom Users table |
+| Xác thực   | ASP.NET Core Identity (cookie)     |
 | UI         | Razor Views, Bootstrap, CSS riêng |
 | Icons      | Phosphor Icons                    |
 | TTS        | Web Speech API                    |
@@ -137,7 +137,7 @@ Ngoài interface của các mẫu GoF, các application service (`FlashcardSetSe
 ltwnc/
 ├── Controllers/                 # MVC: request, quyền, View/Redirect/JSON
 ├── Services/                    # Nghiệp vụ — tổ chức theo domain/feature
-│   ├── Auth/                    # Cookie auth: register/login, hasher, CurrentUser
+│   ├── Auth/                    # ICurrentUser: đọc claims user hiện tại (Identity cookie)
 │   ├── FlashcardSets/           # CRUD bộ thẻ / thẻ / copy
 │   ├── Study/                   # Study hub, flashcard session, dictation
 │   ├── Achievements/            # Catalog, progress, unlock, observer thành tích
@@ -211,7 +211,7 @@ dotnet ef database update
 
 ### Dev: reset database sau đổi schema auth
 
-Nhánh cookie auth thay bảng Identity (`AspNetUsers`, …) bằng `Users` (`AppUser`). Password hash Identity **không** tương thích với `Pbkdf2PasswordHasher` — dev nên drop DB và tạo lại, rồi đăng ký user mới:
+Auth đã chuyển (trở lại) ASP.NET Core Identity — bảng `Users` (`AppUser`) cũ bị drop, thay bằng `AspNetUsers`, …. Password hash format cũ **không** tương thích Identity — dev drop DB và tạo lại, rồi đăng ký user mới:
 
 ```bash
 dotnet ef database drop --force --project ltwnc.csproj
