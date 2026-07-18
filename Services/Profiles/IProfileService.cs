@@ -8,4 +8,23 @@ public interface IProfileService
         string username,
         string? viewerUserId,
         CancellationToken cancellationToken = default);
+
+    Task<ProfileEditViewModel> GetEditModelAsync(
+        string userId,
+        CancellationToken cancellationToken = default);
+
+    Task<ProfileOperationResult> UpdateProfileAsync(
+        string userId,
+        ProfileEditViewModel model,
+        CancellationToken cancellationToken = default);
+
+    Task<ProfileOperationResult> ChangeEmailAsync(
+        string userId,
+        ChangeEmailViewModel model,
+        CancellationToken cancellationToken = default);
+
+    Task<ProfileOperationResult> ChangePasswordAsync(
+        string userId,
+        ChangePasswordViewModel model,
+        CancellationToken cancellationToken = default);
 }

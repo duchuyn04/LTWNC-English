@@ -25,6 +25,7 @@ public class ProfileServiceTests
         var manager = new Mock<UserManager<IdentityUser>>(
             store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
         manager.Setup(item => item.FindByNameAsync(user.UserName!)).ReturnsAsync(user);
+        manager.Setup(item => item.FindByIdAsync(user.Id)).ReturnsAsync(user);
         return manager;
     }
 
@@ -183,6 +184,108 @@ public class ProfileServiceTests
         PublicProfileViewModel result = (await service.GetPublicProfileAsync("user1", null))!;
 
         Assert.Equal(1, result.Statistics!.CurrentStreak);
+    }
+
+    [Fact]
+    public async Task UpdateProfile_UsernameChangedWithinThirtyDays_ReturnsCooldownError()
+    {
+        using AppDbContext db = CreateContext();
+        var user = new IdentityUser { Id = "user-1", UserName = "user1" };
+        db.UserProfiles.Add(new UserProfile
+        {
+            UserId = user.Id,
+            LastUsernameChangedAt = Now.UtcDateTime.AddDays(-10)
+        });
+        await db.SaveChangesAsync();
+        ProfileService service = CreateService(db, user);
+
+        ProfileOperationResult result = await service.UpdateProfileAsync(
+            user.Id,
+            new ProfileEditViewModel { Username = "new-name", IsPublic = true });
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error =>
+            error.Field == nameof(ProfileEditViewModel.Username) &&
+            error.Message.Contains("30 ngày"));
+    }
+
+    [Fact]
+    public async Task UpdateProfile_UsernameChangedAfterThirtyDays_UpdatesIdentityAndTimestamp()
+    {
+        using AppDbContext db = CreateContext();
+        var user = new IdentityUser
+        {
+            Id = "user-1",
+            UserName = "user1",
+            Email = "user1@example.com"
+        };
+        db.UserProfiles.Add(new UserProfile
+        {
+            UserId = user.Id,
+            LastUsernameChangedAt = Now.UtcDateTime.AddDays(-31)
+        });
+        await db.SaveChangesAsync();
+        var userManager = MockUserManager(user);
+        userManager.Setup(item => item.SetUserNameAsync(user, "new-name"))
+            .ReturnsAsync(IdentityResult.Success);
+        ProfileService service = new(db, userManager.Object, new FixedTimeProvider(Now));
+
+        ProfileOperationResult result = await service.UpdateProfileAsync(
+            user.Id,
+            new ProfileEditViewModel { Username = "new-name", IsPublic = true });
+
+        Assert.True(result.Succeeded);
+        userManager.Verify(item => item.SetUserNameAsync(user, "new-name"), Times.Once);
+        Assert.Equal(Now.UtcDateTime, db.UserProfiles.Single().LastUsernameChangedAt);
+    }
+
+    [Fact]
+    public async Task ChangeEmail_DuplicateEmail_ReturnsVietnameseFieldError()
+    {
+        using AppDbContext db = CreateContext();
+        var user = new IdentityUser { Id = "user-1", UserName = "user1", Email = "old@example.com" };
+        var other = new IdentityUser { Id = "user-2", UserName = "user2", Email = "used@example.com" };
+        db.UserProfiles.Add(new UserProfile { UserId = user.Id });
+        await db.SaveChangesAsync();
+        var userManager = MockUserManager(user);
+        userManager.Setup(item => item.FindByEmailAsync("used@example.com")).ReturnsAsync(other);
+        ProfileService service = new(db, userManager.Object, new FixedTimeProvider(Now));
+
+        ProfileOperationResult result = await service.ChangeEmailAsync(
+            user.Id,
+            new ChangeEmailViewModel { NewEmail = "used@example.com" });
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error =>
+            error.Field == nameof(ChangeEmailViewModel.NewEmail) &&
+            error.Message == "Email đã được sử dụng.");
+    }
+
+    [Fact]
+    public async Task ChangePassword_WrongCurrentPassword_ReturnsVietnameseFieldError()
+    {
+        using AppDbContext db = CreateContext();
+        var user = new IdentityUser { Id = "user-1", UserName = "user1" };
+        db.UserProfiles.Add(new UserProfile { UserId = user.Id });
+        await db.SaveChangesAsync();
+        var userManager = MockUserManager(user);
+        userManager.Setup(item => item.CheckPasswordAsync(user, "Wrong123"))
+            .ReturnsAsync(false);
+        ProfileService service = new(db, userManager.Object, new FixedTimeProvider(Now));
+
+        ProfileOperationResult result = await service.ChangePasswordAsync(
+            user.Id,
+            new ChangePasswordViewModel
+            {
+                CurrentPassword = "Wrong123",
+                NewPassword = "NewPass123",
+                ConfirmPassword = "NewPass123"
+            });
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error =>
+            error.Field == nameof(ChangePasswordViewModel.CurrentPassword) &&
+            error.Message == "Mật khẩu hiện tại không đúng.");
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider

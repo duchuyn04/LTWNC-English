@@ -86,6 +86,183 @@ public sealed class ProfileService : IProfileService
         };
     }
 
+    public async Task<ProfileEditViewModel> GetEditModelAsync(
+        string userId,
+        CancellationToken cancellationToken = default)
+    {
+        IdentityUser user = await FindUserAsync(userId);
+        UserProfile? profile = await _db.UserProfiles
+            .SingleOrDefaultAsync(item => item.UserId == userId, cancellationToken);
+        if (profile == null)
+        {
+            DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
+            profile = new UserProfile
+            {
+                UserId = userId,
+                CreatedAt = now,
+                UpdatedAt = now
+            };
+            _db.UserProfiles.Add(profile);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+
+        return ToEditModel(user, profile);
+    }
+
+    public async Task<ProfileOperationResult> UpdateProfileAsync(
+        string userId,
+        ProfileEditViewModel model,
+        CancellationToken cancellationToken = default)
+    {
+        IdentityUser user = await FindUserAsync(userId);
+        UserProfile profile = await GetOrCreateProfileAsync(userId, cancellationToken);
+        string username = model.Username.Trim();
+        DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
+
+        if (!string.Equals(user.UserName, username, StringComparison.Ordinal))
+        {
+            if (profile.LastUsernameChangedAt.HasValue &&
+                now - profile.LastUsernameChangedAt.Value < TimeSpan.FromDays(30))
+            {
+                return ProfileOperationResult.Failure(new ProfileFieldError(
+                    nameof(ProfileEditViewModel.Username),
+                    "Bạn chỉ có thể đổi tên đăng nhập sau mỗi 30 ngày."));
+            }
+
+            IdentityUser? existing = await _userManager.FindByNameAsync(username);
+            if (existing != null && !string.Equals(existing.Id, userId, StringComparison.Ordinal))
+            {
+                return ProfileOperationResult.Failure(new ProfileFieldError(
+                    nameof(ProfileEditViewModel.Username),
+                    "Tên đăng nhập đã được sử dụng."));
+            }
+
+            IdentityResult usernameResult = await _userManager.SetUserNameAsync(user, username);
+            if (!usernameResult.Succeeded)
+            {
+                return Failure(nameof(ProfileEditViewModel.Username), usernameResult);
+            }
+
+            profile.LastUsernameChangedAt = now;
+        }
+
+        profile.Bio = string.IsNullOrWhiteSpace(model.Bio) ? null : model.Bio.Trim();
+        profile.IsPublic = model.IsPublic;
+        profile.ShowStats = model.ShowStats;
+        profile.ShowBadges = model.ShowBadges;
+        profile.ShowActivity = model.ShowActivity;
+        profile.ShowPublicSets = model.ShowPublicSets;
+        profile.UpdatedAt = now;
+        await _db.SaveChangesAsync(cancellationToken);
+        return ProfileOperationResult.Success();
+    }
+
+    public async Task<ProfileOperationResult> ChangeEmailAsync(
+        string userId,
+        ChangeEmailViewModel model,
+        CancellationToken cancellationToken = default)
+    {
+        IdentityUser user = await FindUserAsync(userId);
+        string email = model.NewEmail.Trim();
+        if (string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase))
+        {
+            return ProfileOperationResult.Success();
+        }
+
+        IdentityUser? existing = await _userManager.FindByEmailAsync(email);
+        if (existing != null && !string.Equals(existing.Id, userId, StringComparison.Ordinal))
+        {
+            return ProfileOperationResult.Failure(new ProfileFieldError(
+                nameof(ChangeEmailViewModel.NewEmail),
+                "Email đã được sử dụng."));
+        }
+
+        IdentityResult result = await _userManager.SetEmailAsync(user, email);
+        return result.Succeeded
+            ? ProfileOperationResult.Success()
+            : Failure(nameof(ChangeEmailViewModel.NewEmail), result);
+    }
+
+    public async Task<ProfileOperationResult> ChangePasswordAsync(
+        string userId,
+        ChangePasswordViewModel model,
+        CancellationToken cancellationToken = default)
+    {
+        IdentityUser user = await FindUserAsync(userId);
+        if (!await _userManager.CheckPasswordAsync(user, model.CurrentPassword))
+        {
+            return ProfileOperationResult.Failure(new ProfileFieldError(
+                nameof(ChangePasswordViewModel.CurrentPassword),
+                "Mật khẩu hiện tại không đúng."));
+        }
+
+        IdentityResult result = await _userManager.ChangePasswordAsync(
+            user,
+            model.CurrentPassword,
+            model.NewPassword);
+        return result.Succeeded
+            ? ProfileOperationResult.Success()
+            : Failure(nameof(ChangePasswordViewModel.NewPassword), result);
+    }
+
+    private async Task<IdentityUser> FindUserAsync(string userId)
+    {
+        return await _userManager.FindByIdAsync(userId)
+            ?? throw new InvalidOperationException("Không tìm thấy tài khoản.");
+    }
+
+    private async Task<UserProfile> GetOrCreateProfileAsync(
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        UserProfile? profile = await _db.UserProfiles
+            .SingleOrDefaultAsync(item => item.UserId == userId, cancellationToken);
+        if (profile != null)
+        {
+            return profile;
+        }
+
+        DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
+        profile = new UserProfile { UserId = userId, CreatedAt = now, UpdatedAt = now };
+        _db.UserProfiles.Add(profile);
+        await _db.SaveChangesAsync(cancellationToken);
+        return profile;
+    }
+
+    private ProfileEditViewModel ToEditModel(IdentityUser user, UserProfile profile) => new()
+    {
+        Username = user.UserName ?? string.Empty,
+        Email = user.Email ?? string.Empty,
+        Bio = profile.Bio,
+        AvatarPath = profile.AvatarPath,
+        AvatarInitial = AvatarInitial(user.UserName ?? string.Empty),
+        IsPublic = profile.IsPublic,
+        ShowStats = profile.ShowStats,
+        ShowBadges = profile.ShowBadges,
+        ShowActivity = profile.ShowActivity,
+        ShowPublicSets = profile.ShowPublicSets
+    };
+
+    private static ProfileOperationResult Failure(string field, IdentityResult result)
+    {
+        ProfileFieldError[] errors = result.Errors
+            .Select(error => new ProfileFieldError(field, MapIdentityError(error)))
+            .ToArray();
+        return ProfileOperationResult.Failure(errors);
+    }
+
+    private static string MapIdentityError(IdentityError error) => error.Code switch
+    {
+        "DuplicateEmail" => "Email đã được sử dụng.",
+        "DuplicateUserName" => "Tên đăng nhập đã được sử dụng.",
+        "InvalidUserName" => "Tên đăng nhập không hợp lệ.",
+        "PasswordTooShort" => "Mật khẩu phải có ít nhất 8 ký tự.",
+        "PasswordRequiresUpper" => "Mật khẩu phải có ít nhất một chữ hoa.",
+        "PasswordRequiresLower" => "Mật khẩu phải có ít nhất một chữ thường.",
+        "PasswordRequiresDigit" => "Mật khẩu phải có ít nhất một chữ số.",
+        _ => "Đã xảy ra lỗi. Vui lòng thử lại."
+    };
+
     private async Task<ProfileStatisticsViewModel> BuildStatisticsAsync(
         string userId,
         CancellationToken cancellationToken)
