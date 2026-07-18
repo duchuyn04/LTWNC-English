@@ -77,4 +77,6 @@ public interface IFlashcardSetService
     Task<int> DeleteCardAsync(int cardId, string userId);
 
     Task<bool> ToggleStarAsync(int cardId, string userId);
+
+    Task ReorderCardsAsync(int setId, int[] orderedCardIds, string userId);
 }

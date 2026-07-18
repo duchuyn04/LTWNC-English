@@ -618,4 +618,29 @@ public class FlashcardSetService : IFlashcardSetService
         await _context.SaveChangesAsync();
         return card.IsStarred;
     }
+
+    // Cập nhật thứ tự các thẻ theo mảng id được sắp xếp
+    public async Task ReorderCardsAsync(int setId, int[] orderedCardIds, string userId)
+    {
+        FlashcardSet? set = await _context.FlashcardSets.FindAsync(setId);
+        if (set == null || set.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("Không có quyền sửa bộ thẻ này.");
+        }
+
+        List<Flashcard> cards = await _context.Flashcards
+            .Where(c => c.FlashcardSetId == setId)
+            .ToListAsync();
+
+        var cardMap = cards.ToDictionary(c => c.Id);
+        for (int i = 0; i < orderedCardIds.Length; i++)
+        {
+            if (cardMap.TryGetValue(orderedCardIds[i], out Flashcard? card))
+            {
+                card.OrderIndex = i;
+            }
+        }
+
+        await _context.SaveChangesAsync();
+    }
 }
