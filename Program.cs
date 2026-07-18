@@ -37,7 +37,11 @@ builder.Services.AddIdentityCore<IdentityUser>(options =>
     .AddDefaultTokenProviders();
 
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
-    .AddCookie(IdentityConstants.ApplicationScheme, options =>
+    .AddIdentityCookies();
+
+builder.Services.Configure<CookieAuthenticationOptions>(
+    IdentityConstants.ApplicationScheme,
+    options =>
     {
         options.LoginPath = "/Account/Login";
         options.LogoutPath = "/Account/Logout";
@@ -45,6 +49,9 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
         options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
     });
+
+builder.Services.Configure<SecurityStampValidatorOptions>(options =>
+    options.ValidationInterval = TimeSpan.Zero);
 
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddSingleton(TimeProvider.System);

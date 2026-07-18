@@ -6,31 +6,171 @@
     <link rel="stylesheet" href="~/css/profile.css" asp-append-version="true" />
 }
 
-<div class="profile-edit-page">
-    <div class="profile-section-heading"><p class="profile-eyebrow">YOUR PROFILE</p><h1>Chỉnh sửa profile</h1><p>Quản lý thông tin hiển thị và quyền riêng tư của bạn.</p></div>
-    @if (TempData["Success"] is string success) { <div class="alert alert-success">@success</div> }
-    @if (TempData["Error"] is string error) { <div class="alert alert-danger">@error</div> }
-    <form asp-controller="Profile" asp-action="Avatar" method="post" enctype="multipart/form-data" class="profile-card profile-form">
-        @Html.AntiForgeryToken()
-        <h2>Ảnh đại diện</h2>
-        <div class="avatar-cropper" data-avatar-cropper>
-            <canvas class="avatar-crop-canvas" data-avatar-canvas width="240" height="240" tabindex="0" aria-label="Khung crop ảnh đại diện"></canvas>
-            <p class="avatar-crop-help">Kéo ảnh hoặc dùng các phím điều hướng trong khung tròn, sau đó điều chỉnh zoom.</p>
-            <input type="range" min="1" max="3" step="0.01" value="1" data-avatar-zoom aria-label="Zoom ảnh đại diện" />
+<div class="settings-layout">
+    <aside class="settings-sidebar">
+        <div class="settings-user">
+            <div class="settings-user-avatar">
+                @if (!string.IsNullOrEmpty(Model.AvatarPath))
+                {
+                    <img src="@Model.AvatarPath" alt="Ảnh đại diện của @Model.Username" />
+                }
+                else
+                {
+                    <span>@Model.AvatarInitial</span>
+                }
+            </div>
+            <div class="settings-user-meta">
+                <strong>@Model.Username</strong>
+                <span>@Model.Email</span>
+            </div>
         </div>
-        <label for="avatar">Chọn ảnh JPG, PNG hoặc WebP</label>
-        <input id="avatar" name="avatar" type="file" accept=".jpg,.jpeg,.png,.webp" />
-        <button class="profile-button" type="submit">Lưu ảnh đại diện</button>
-    </form>
-    <form asp-action="Edit" method="post" class="profile-card profile-form">
-        @Html.AntiForgeryToken()
-        <div asp-validation-summary="ModelOnly" class="text-danger"></div>
-        <label asp-for="Username">Username</label><input asp-for="Username" /><span asp-validation-for="Username" class="text-danger"></span>
-        <label asp-for="Bio">Bio</label><textarea asp-for="Bio" rows="4"></textarea><span asp-validation-for="Bio" class="text-danger"></span>
-        <fieldset><legend>Quyền riêng tư</legend><label><input asp-for="IsPublic" /> Profile công khai</label><label><input asp-for="ShowStats" /> Hiển thị thống kê</label><label><input asp-for="ShowBadges" /> Hiển thị huy hiệu</label><label><input asp-for="ShowActivity" /> Hiển thị hoạt động</label><label><input asp-for="ShowPublicSets" /> Hiển thị bộ thẻ công khai</label></fieldset>
-        <button class="profile-button profile-button-dark" type="submit">Lưu thay đổi</button>
-    </form>
-    <form asp-controller="Profile" asp-action="ChangeEmail" method="post" class="profile-card profile-form"><h2>Đổi email</h2>@Html.AntiForgeryToken()<div asp-validation-summary="All" class="text-danger"></div><label for="NewEmail">Email mới</label><input id="NewEmail" name="NewEmail" type="email" value="@Model.Email" required /><button class="profile-button" type="submit">Cập nhật email</button></form>
-    <form asp-controller="Profile" asp-action="ChangePassword" method="post" class="profile-card profile-form"><h2>Đổi mật khẩu</h2>@Html.AntiForgeryToken()<div asp-validation-summary="All" class="text-danger"></div><label for="CurrentPassword">Mật khẩu hiện tại</label><input id="CurrentPassword" name="CurrentPassword" type="password" required /><label for="NewPassword">Mật khẩu mới</label><input id="NewPassword" name="NewPassword" type="password" required /><label for="ConfirmPassword">Nhập lại mật khẩu mới</label><input id="ConfirmPassword" name="ConfirmPassword" type="password" required /><button class="profile-button" type="submit">Đổi mật khẩu</button></form>
+        <nav class="settings-nav" aria-label="Cài đặt profile">
+            <a href="#section-avatar" class="settings-nav-link active"><i class="ph ph-image-square"></i> Ảnh đại diện</a>
+            <a href="#section-info" class="settings-nav-link"><i class="ph ph-user"></i> Thông tin</a>
+            <a href="#section-privacy" class="settings-nav-link"><i class="ph ph-lock"></i> Quyền riêng tư</a>
+            <a href="#section-email" class="settings-nav-link"><i class="ph ph-envelope-simple"></i> Email</a>
+            <a href="#section-password" class="settings-nav-link"><i class="ph ph-key"></i> Mật khẩu</a>
+        </nav>
+    </aside>
+
+    <div class="settings-content">
+        <header class="settings-heading">
+            <h1>Chỉnh sửa profile</h1>
+            <p>Quản lý thông tin hiển thị và quyền riêng tư của bạn.</p>
+        </header>
+
+        @if (TempData["Success"] is string success)
+        {
+            <div class="settings-alert settings-alert-success"><i class="ph ph-check-circle"></i> @success</div>
+        }
+        @if (TempData["Error"] is string error)
+        {
+            <div class="settings-alert settings-alert-error"><i class="ph ph-warning-circle"></i> @error</div>
+        }
+
+        <section id="section-avatar" class="settings-card">
+            <h2>Ảnh đại diện</h2>
+            <p class="settings-card-desc">Ảnh hiển thị trên trang profile công khai của bạn.</p>
+            <form asp-controller="Profile" asp-action="Avatar" method="post" enctype="multipart/form-data" class="settings-avatar-form">
+                @Html.AntiForgeryToken()
+                <div class="avatar-cropper" data-avatar-cropper>
+                    <canvas class="avatar-crop-canvas" data-avatar-canvas width="240" height="240" tabindex="0" aria-label="Khung crop ảnh đại diện"></canvas>
+                    <p class="avatar-crop-help">Kéo ảnh hoặc dùng các phím mũi tên để căn chỉnh, sau đó điều chỉnh zoom.</p>
+                    <input type="range" min="1" max="3" step="0.01" value="1" data-avatar-zoom aria-label="Zoom ảnh đại diện" />
+                </div>
+                <div class="settings-avatar-controls">
+                    <label class="settings-file-btn" for="avatar"><i class="ph ph-upload-simple"></i> Chọn ảnh</label>
+                    <span class="settings-file-name" data-avatar-filename>Chưa chọn ảnh nào</span>
+                    <input id="avatar" name="avatar" type="file" accept=".jpg,.jpeg,.png,.webp" class="settings-file-input" />
+                    <p class="settings-hint">JPG, PNG hoặc WebP.</p>
+                    <button class="settings-btn settings-btn-primary" type="submit">Lưu ảnh đại diện</button>
+                </div>
+            </form>
+        </section>
+
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <section id="section-info" class="settings-card">
+                <h2>Thông tin cá nhân</h2>
+                <div class="settings-field">
+                    <label asp-for="Username">Username</label>
+                    <input asp-for="Username" class="settings-input" />
+                    <small class="settings-hint">3-50 ký tự; dùng chữ không dấu, số, ., _ hoặc -.</small>
+                    <span asp-validation-for="Username" class="text-danger"></span>
+                </div>
+                <div class="settings-field">
+                    <label asp-for="Bio">Bio</label>
+                    <textarea asp-for="Bio" rows="4" class="settings-input"></textarea>
+                    <span asp-validation-for="Bio" class="text-danger"></span>
+                </div>
+            </section>
+
+            <section id="section-privacy" class="settings-card">
+                <h2>Quyền riêng tư</h2>
+                <p class="settings-card-desc">Kiểm soát những gì người khác nhìn thấy trên profile của bạn.</p>
+                <div class="settings-toggles">
+                    <label class="settings-toggle-row">
+                        <span class="settings-toggle-text">
+                            <strong>Profile công khai</strong>
+                            <small>Cho phép mọi người xem trang profile của bạn.</small>
+                        </span>
+                        <span class="settings-toggle"><input asp-for="IsPublic" /><span class="settings-toggle-slider"></span></span>
+                    </label>
+                    <label class="settings-toggle-row">
+                        <span class="settings-toggle-text">
+                            <strong>Hiển thị thống kê</strong>
+                            <small>Số thẻ đã học, chuỗi ngày học và tiến độ của bạn.</small>
+                        </span>
+                        <span class="settings-toggle"><input asp-for="ShowStats" /><span class="settings-toggle-slider"></span></span>
+                    </label>
+                    <label class="settings-toggle-row">
+                        <span class="settings-toggle-text">
+                            <strong>Hiển thị huy hiệu</strong>
+                            <small>Các huy hiệu thành tích bạn đã đạt được.</small>
+                        </span>
+                        <span class="settings-toggle"><input asp-for="ShowBadges" /><span class="settings-toggle-slider"></span></span>
+                    </label>
+                    <label class="settings-toggle-row">
+                        <span class="settings-toggle-text">
+                            <strong>Hiển thị hoạt động</strong>
+                            <small>Dòng thời gian các phiên học gần đây của bạn.</small>
+                        </span>
+                        <span class="settings-toggle"><input asp-for="ShowActivity" /><span class="settings-toggle-slider"></span></span>
+                    </label>
+                    <label class="settings-toggle-row">
+                        <span class="settings-toggle-text">
+                            <strong>Hiển thị bộ thẻ công khai</strong>
+                            <small>Các bộ thẻ bạn đã chia sẻ công khai.</small>
+                        </span>
+                        <span class="settings-toggle"><input asp-for="ShowPublicSets" /><span class="settings-toggle-slider"></span></span>
+                    </label>
+                </div>
+                <button class="settings-btn settings-btn-primary" type="submit">Lưu thay đổi</button>
+            </section>
+        </form>
+
+        <section id="section-email" class="settings-card">
+            <h2>Đổi email</h2>
+            <p class="settings-card-desc">Email dùng để đăng nhập và nhận thông báo.</p>
+            <form asp-controller="Profile" asp-action="ChangeEmail" method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="All" class="text-danger"></div>
+                <div class="settings-field">
+                    <label for="NewEmail">Email mới</label>
+                    <input id="NewEmail" name="NewEmail" type="email" value="@Model.Email" required class="settings-input" />
+                </div>
+                <button class="settings-btn settings-btn-primary" type="submit">Cập nhật email</button>
+            </form>
+        </section>
+
+        <section id="section-password" class="settings-card">
+            <h2>Đổi mật khẩu</h2>
+            <p class="settings-card-desc">Dùng mật khẩu mạnh, không trùng với các tài khoản khác.</p>
+            <form asp-controller="Profile" asp-action="ChangePassword" method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="All" class="text-danger"></div>
+                <div class="settings-field">
+                    <label for="CurrentPassword">Mật khẩu hiện tại</label>
+                    <input id="CurrentPassword" name="CurrentPassword" type="password" required class="settings-input" />
+                </div>
+                <div class="settings-field">
+                    <label for="NewPassword">Mật khẩu mới</label>
+                    <input id="NewPassword" name="NewPassword" type="password" required class="settings-input" />
+                </div>
+                <div class="settings-field">
+                    <label for="ConfirmPassword">Nhập lại mật khẩu mới</label>
+                    <input id="ConfirmPassword" name="ConfirmPassword" type="password" required class="settings-input" />
+                </div>
+                <button class="settings-btn settings-btn-primary" type="submit">Đổi mật khẩu</button>
+            </form>
+        </section>
+    </div>
 </div>
-@section Scripts { <script src="~/js/profile-avatar.js" asp-append-version="true"></script><partial name="_ValidationScriptsPartial" /> }
+
+@section Scripts {
+    <script src="~/js/profile-avatar.js" asp-append-version="true"></script>
+    <script src="~/js/profile-edit.js" asp-append-version="true"></script>
+    <partial name="_ValidationScriptsPartial" />
+}

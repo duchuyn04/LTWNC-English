@@ -69,3 +69,11 @@ node_modules/
 
 ## Git worktrees
 .worktrees/
+
+## Tool artifacts
+.playwright-mcp/
+.understand-anything/
+.zcode/
+
+## User uploads
+wwwroot/uploads/

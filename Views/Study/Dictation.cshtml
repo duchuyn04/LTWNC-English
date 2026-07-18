@@ -315,7 +315,14 @@
         }
 
         async function checkAnswer() {
-            if (cards.length === 0 || isAnswered) return;
+            if (cards.length === 0) return;
+
+            if (isRetrying) {
+                checkRetryAnswer();
+                return;
+            }
+
+            if (isAnswered) return;
 
             const value = answerInput.value.trim();
             if (!value) {
