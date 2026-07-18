@@ -36,14 +36,25 @@
 
     async function persistOrder() {
         try {
+            const currentSetId = getSetId() || await ensureSetCreated();
+            if (!currentSetId) return false;
+
+            // Save any unsaved new cards so their temp ids become real numeric ids.
+            const newCards = Array.from(container.querySelectorAll('.flashcard-card'))
+                .filter(card => card.dataset.id.startsWith('new-'));
+            for (const card of newCards) {
+                if (pendingSaves.has(card.dataset.id)) {
+                    clearTimeout(pendingSaves.get(card.dataset.id));
+                    pendingSaves.delete(card.dataset.id);
+                }
+                await saveCard(card);
+            }
+
             const orderedIds = Array.from(container.querySelectorAll('.flashcard-card'))
                 .map(card => parseInt(card.dataset.id))
                 .filter(id => !isNaN(id));
 
             if (orderedIds.length === 0) return true;
-
-            const currentSetId = getSetId() || await ensureSetCreated();
-            if (!currentSetId) return false;
 
             setSaveStatus('Đang lưu...', 'saving');
             const response = await fetch('/api/flashcards/reorder', {
@@ -363,7 +374,16 @@
             }
             dirtyCards.delete(id);
             if (!id.startsWith('new-')) {
-                await fetch(`/api/flashcards/flashcards/${id}`, { method: 'DELETE' });
+                try {
+                    const response = await fetch(`/api/flashcards/flashcards/${id}`, { method: 'DELETE' });
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}`);
+                    }
+                } catch (err) {
+                    setSaveStatus('Lỗi xóa thẻ', 'error');
+                    console.error('Delete failed:', err);
+                    return;
+                }
             }
             card.remove();
             updateCardNumbering();
@@ -374,11 +394,21 @@
             const id = card.dataset.id;
             if (id.startsWith('new-')) return;
 
-            const response = await fetch(`/api/flashcards/flashcards/${id}/star`, { method: 'POST' });
-            if (response.ok) {
+            const starButton = card.querySelector('.btn-star');
+            const previousState = card.dataset.starred === 'true';
+            try {
+                const response = await fetch(`/api/flashcards/flashcards/${id}/star`, { method: 'POST' });
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
                 const result = await response.json();
                 card.dataset.starred = result.isStarred;
-                card.querySelector('.btn-star').textContent = result.isStarred ? '★' : '☆';
+                starButton.textContent = result.isStarred ? '★' : '☆';
+            } catch (err) {
+                setSaveStatus('Lỗi đánh sao', 'error');
+                card.dataset.starred = previousState ? 'true' : 'false';
+                starButton.textContent = previousState ? '★' : '☆';
+                console.error('Star toggle failed:', err);
             }
         });
 

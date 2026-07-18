@@ -26,6 +26,8 @@ public interface IFlashcardSetService
 
     Task<FlashcardSet?> GetOwnedSetAsync(int id, string userId);
 
+    Task<Flashcard?> GetCardAsync(int cardId, string userId);
+
     Task<FlashcardSet?> GetExistingCopyAsync(int sourceSetId, string learnerId);
 
     Task<FlashcardSet> CopyPublicSetAsync(int sourceSetId, string learnerId);
@@ -75,6 +77,8 @@ public interface IFlashcardSetService
         string userId);
 
     Task<int> DeleteCardAsync(int cardId, string userId);
+
+    Task DeleteAllCardsAsync(int setId, string userId);
 
     Task<bool> ToggleStarAsync(int cardId, string userId);
 

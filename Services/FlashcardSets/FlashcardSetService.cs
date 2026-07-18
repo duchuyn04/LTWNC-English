@@ -291,6 +291,27 @@ public class FlashcardSetService : IFlashcardSetService
         return set;
     }
 
+    // Lấy thẻ kèm bộ thẻ chỉ khi user là chủ sở hữu; trả null nếu không tìm thấy, ném UnauthorizedAccessException nếu không phải chủ.
+    public async Task<Flashcard?> GetCardAsync(int cardId, string userId)
+    {
+        Flashcard? card = await _context.Flashcards
+            .AsNoTracking()
+            .Include(c => c.FlashcardSet)
+            .FirstOrDefaultAsync(c => c.Id == cardId);
+
+        if (card == null)
+        {
+            return null;
+        }
+
+        if (card.FlashcardSet == null || card.FlashcardSet.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("Không có quyền xem thẻ này.");
+        }
+
+        return card;
+    }
+
     // Kiểm tra user đã sao chép bộ thẻ nguồn này trước đó chưa
     public async Task<FlashcardSet?> GetExistingCopyAsync(int sourceSetId, string learnerId)
     {
@@ -597,6 +618,30 @@ public class FlashcardSetService : IFlashcardSetService
         return setId;
     }
 
+    // Xóa toàn bộ thẻ trong một bộ thẻ (chủ sở hữu).
+    // Load một lần rồi xóa tập trung, tránh vòng lặp xóa từng thẻ (N+1).
+    public async Task DeleteAllCardsAsync(int setId, string userId)
+    {
+        FlashcardSet? set = await _context.FlashcardSets.FindAsync(setId);
+
+        if (set == null || set.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("Không có quyền xóa thẻ trong bộ thẻ này.");
+        }
+
+        List<UserProgress> progresses = await _context.UserProgresses
+            .Where(progress => progress.Flashcard!.FlashcardSetId == setId)
+            .ToListAsync();
+        _context.UserProgresses.RemoveRange(progresses);
+
+        List<Flashcard> cards = await _context.Flashcards
+            .Where(card => card.FlashcardSetId == setId)
+            .ToListAsync();
+        _context.Flashcards.RemoveRange(cards);
+
+        await _context.SaveChangesAsync();
+    }
+
     // Đổi trạng thái đánh sao của thẻ
     public async Task<bool> ToggleStarAsync(int cardId, string userId)
     {
@@ -632,13 +677,30 @@ public class FlashcardSetService : IFlashcardSetService
             .Where(c => c.FlashcardSetId == setId)
             .ToListAsync();
 
-        var cardMap = cards.ToDictionary(c => c.Id);
+        HashSet<int> cardIds = cards.Select(c => c.Id).ToHashSet();
+        HashSet<int> orderedIds = orderedCardIds.ToHashSet();
+
+        List<int> unknownIds = orderedIds.Except(cardIds).ToList();
+        if (unknownIds.Count > 0)
+        {
+            throw new ArgumentException($"Các id thẻ không thuộc bộ thẻ: {string.Join(", ", unknownIds)}.");
+        }
+
+        List<int> missingIds = cardIds.Except(orderedIds).ToList();
+        if (missingIds.Count > 0)
+        {
+            throw new ArgumentException($"Thiếu thứ tự cho các thẻ: {string.Join(", ", missingIds)}.");
+        }
+
+        if (orderedCardIds.Length != cardIds.Count)
+        {
+            throw new ArgumentException("Danh sách thứ tự chứa id thẻ trùng lặp.");
+        }
+
+        Dictionary<int, Flashcard> cardMap = cards.ToDictionary(c => c.Id);
         for (int i = 0; i < orderedCardIds.Length; i++)
         {
-            if (cardMap.TryGetValue(orderedCardIds[i], out Flashcard? card))
-            {
-                card.OrderIndex = i;
-            }
+            cardMap[orderedCardIds[i]].OrderIndex = i;
         }
 
         await _context.SaveChangesAsync();

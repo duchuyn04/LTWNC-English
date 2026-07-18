@@ -47,4 +47,54 @@ public class FlashcardSetServiceReorderTests
         Assert.Equal(card1.Id, cards[1].Id);
         Assert.Equal(card2.Id, cards[2].Id);
     }
+
+    [Fact]
+    public async Task ReorderCardsAsync_MissingCard_ThrowsArgumentException()
+    {
+        using var context = CreateContext();
+        var service = new FlashcardSetService(context, MockEnvironment());
+        var userId = "user-1";
+        var set = await service.CreateSetAsync("Test", null, false, userId);
+
+        var card1 = await service.AddCardAsync(set.Id, "a", "1", null, null, null, null, null, null, null, false, userId);
+        var card2 = await service.AddCardAsync(set.Id, "b", "2", null, null, null, null, null, null, null, false, userId);
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.ReorderCardsAsync(set.Id, new[] { card1.Id }, userId));
+
+        Assert.Contains("Thiếu thứ tự", exception.Message);
+    }
+
+    [Fact]
+    public async Task ReorderCardsAsync_UnknownCard_ThrowsArgumentException()
+    {
+        using var context = CreateContext();
+        var service = new FlashcardSetService(context, MockEnvironment());
+        var userId = "user-1";
+        var set = await service.CreateSetAsync("Test", null, false, userId);
+
+        var card1 = await service.AddCardAsync(set.Id, "a", "1", null, null, null, null, null, null, null, false, userId);
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.ReorderCardsAsync(set.Id, new[] { card1.Id, 9999 }, userId));
+
+        Assert.Contains("không thuộc bộ thẻ", exception.Message);
+    }
+
+    [Fact]
+    public async Task ReorderCardsAsync_DuplicateCard_ThrowsArgumentException()
+    {
+        using var context = CreateContext();
+        var service = new FlashcardSetService(context, MockEnvironment());
+        var userId = "user-1";
+        var set = await service.CreateSetAsync("Test", null, false, userId);
+
+        var card1 = await service.AddCardAsync(set.Id, "a", "1", null, null, null, null, null, null, null, false, userId);
+        var card2 = await service.AddCardAsync(set.Id, "b", "2", null, null, null, null, null, null, null, false, userId);
+
+        var exception = await Assert.ThrowsAsync<ArgumentException>(() =>
+            service.ReorderCardsAsync(set.Id, new[] { card1.Id, card1.Id, card2.Id }, userId));
+
+        Assert.Contains("trùng lặp", exception.Message);
+    }
 }

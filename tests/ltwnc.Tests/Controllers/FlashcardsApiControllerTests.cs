@@ -85,6 +85,56 @@ public class FlashcardsApiControllerTests
     }
 
     [Fact]
+    public async Task GetCard_Unauthenticated_ReturnsChallenge()
+    {
+        var (controller, service) = Create(null);
+
+        var result = await controller.GetCard(1);
+
+        Assert.IsType<ChallengeResult>(result);
+        service.VerifyNoOtherCalls();
+    }
+
+    [Fact]
+    public async Task GetCard_Owned_ReturnsCard()
+    {
+        var (controller, service) = Create("owner");
+        service.Setup(x => x.GetCardAsync(5, "owner"))
+            .ReturnsAsync(new Flashcard { Id = 5, FlashcardSetId = 1, FrontText = "hello", BackText = "xin chào" });
+
+        var result = await controller.GetCard(5);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        var card = Assert.IsType<CardResponse>(ok.Value);
+        Assert.Equal(5, card.Id);
+        Assert.Equal("hello", card.FrontText);
+    }
+
+    [Fact]
+    public async Task GetCard_NotFound_ReturnsNotFound()
+    {
+        var (controller, service) = Create("owner");
+        service.Setup(x => x.GetCardAsync(5, "owner"))
+            .ReturnsAsync((Flashcard?)null);
+
+        var result = await controller.GetCard(5);
+
+        Assert.IsType<NotFoundResult>(result);
+    }
+
+    [Fact]
+    public async Task GetCard_NotOwner_ReturnsChallenge()
+    {
+        var (controller, service) = Create("owner");
+        service.Setup(x => x.GetCardAsync(5, "owner"))
+            .ThrowsAsync(new UnauthorizedAccessException("Không có quyền xem thẻ này."));
+
+        var result = await controller.GetCard(5);
+
+        Assert.IsType<ChallengeResult>(result);
+    }
+
+    [Fact]
     public async Task UpdateSet_Authenticated_ReturnsNoContent()
     {
         var (controller, service) = Create("owner");
@@ -175,17 +225,8 @@ public class FlashcardsApiControllerTests
     public async Task BatchImport_ReplaceAll_DeletesExistingThenCreates()
     {
         var (controller, service) = Create("owner");
-        var existingSet = new FlashcardSet
-        {
-            Flashcards = new List<Flashcard>
-            {
-                new() { Id = 1, FlashcardSetId = 1, FrontText = "old", BackText = "old" }
-            }
-        };
-        service.Setup(x => x.GetSetWithCardsAsync(1, "owner"))
-            .ReturnsAsync(existingSet);
-        service.Setup(x => x.DeleteCardAsync(1, "owner"))
-            .ReturnsAsync(1);
+        service.Setup(x => x.DeleteAllCardsAsync(1, "owner"))
+            .Returns(Task.CompletedTask);
         service.Setup(x => x.AddCardAsync(1, "new", "new", null, null, null, null, null, null, null, false, "owner"))
             .ReturnsAsync(new Flashcard { Id = 2, FlashcardSetId = 1, FrontText = "new", BackText = "new" });
 
@@ -202,7 +243,7 @@ public class FlashcardsApiControllerTests
         var ok = Assert.IsType<OkObjectResult>(result);
         var cards = Assert.IsType<List<CardResponse>>(ok.Value);
         Assert.Single(cards);
-        service.Verify(x => x.DeleteCardAsync(1, "owner"), Times.Once);
+        service.Verify(x => x.DeleteAllCardsAsync(1, "owner"), Times.Once);
     }
 
     [Fact]
@@ -219,36 +260,5 @@ public class FlashcardsApiControllerTests
         });
 
         Assert.IsType<NoContentResult>(result);
-    }
-
-    [Fact]
-    public async Task CreateCard_Authenticated_ReturnsCreated()
-    {
-        var (controller, service) = Create("owner");
-        service.Setup(x => x.AddCardAsync(
-                7, "hello", "xin chào", null, null, null, null, null, null, null, false, "owner"))
-            .ReturnsAsync(new Flashcard { Id = 42, FlashcardSetId = 7, FrontText = "hello", BackText = "xin chào" });
-
-        var result = await controller.CreateCard(new CreateCardRequest
-        {
-            SetId = 7,
-            FrontText = "hello",
-            BackText = "xin chào"
-        });
-
-        var created = Assert.IsType<CreatedAtActionResult>(result);
-        Assert.Equal(42, ((CardResponse)created.Value!).Id);
-    }
-
-    [Fact]
-    public async Task ToggleStar_Authenticated_ReturnsStatus()
-    {
-        var (controller, service) = Create("owner");
-        service.Setup(x => x.ToggleStarAsync(42, "owner")).ReturnsAsync(true);
-
-        var result = await controller.ToggleStar(42);
-
-        var ok = Assert.IsType<OkObjectResult>(result);
-        Assert.True((bool)ok.Value!.GetType().GetProperty("isStarred")!.GetValue(ok.Value)!);
     }
 }

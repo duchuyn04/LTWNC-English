@@ -88,8 +88,19 @@ public class FlashcardsApiController : ControllerBase
     [HttpGet("flashcards/{id}")]
     public async Task<IActionResult> GetCard(int id)
     {
-        // Not strictly required for the editor; stub for CreatedAtAction.
-        return Ok();
+        if (UserId == null) return Challenge();
+
+        try
+        {
+            var card = await _setService.GetCardAsync(id, UserId);
+            if (card == null) return NotFound();
+
+            return Ok(MapToResponse(card));
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Challenge();
+        }
     }
 
     [HttpPut("flashcards/{id}")]
@@ -140,14 +151,7 @@ public class FlashcardsApiController : ControllerBase
 
         if (request.ReplaceAll)
         {
-            var existing = await _setService.GetSetWithCardsAsync(request.SetId, UserId);
-            if (existing != null)
-            {
-                foreach (var card in existing.Flashcards)
-                {
-                    await _setService.DeleteCardAsync(card.Id, UserId);
-                }
-            }
+            await _setService.DeleteAllCardsAsync(request.SetId, UserId);
         }
 
         var created = new List<CardResponse>();
