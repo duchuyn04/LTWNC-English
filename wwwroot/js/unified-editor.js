@@ -19,7 +19,8 @@
     const btnAdd = document.getElementById('btn-add-card');
 
     let pendingSaves = new Map(); // cardId -> timeoutId
-    let hasUnsavedChanges = false;
+    const dirtyCards = new Set(); // card dataset ids with unsaved changes
+    let isTitleDirty = false;
 
     function generateTempId() {
         return 'new-' + crypto.randomUUID();
@@ -38,8 +39,12 @@
         saveStatus.className = 'save-status ' + (type || '');
     }
 
-    function markUnsaved() {
-        hasUnsavedChanges = true;
+    function markCardDirty(card) {
+        dirtyCards.add(card.dataset.id);
+    }
+
+    function markTitleDirty() {
+        isTitleDirty = true;
     }
 
     function getCardData(card) {
@@ -90,6 +95,7 @@
     }
 
     async function saveCard(card) {
+        const originalId = card.dataset.id;
         const data = getCardData(card);
         const errors = validateCard(data);
         if (errors.length > 0) {
@@ -129,7 +135,8 @@
             }
 
             setSaveStatus('Đã lưu', 'saved');
-            hasUnsavedChanges = false;
+            dirtyCards.delete(originalId);
+            dirtyCards.delete(card.dataset.id);
         } catch (err) {
             setSaveStatus('Lỗi lưu', 'error');
             card.classList.add('card-error');
@@ -142,7 +149,7 @@
         if (pendingSaves.has(id)) {
             clearTimeout(pendingSaves.get(id));
         }
-        markUnsaved();
+        markCardDirty(card);
         setSaveStatus('Đang chờ lưu...', 'pending');
         const timeoutId = setTimeout(() => saveCard(card), 1500);
         pendingSaves.set(id, timeoutId);
@@ -243,6 +250,11 @@
             if (!confirm('Xóa thẻ này?')) return;
 
             const id = card.dataset.id;
+            if (pendingSaves.has(id)) {
+                clearTimeout(pendingSaves.get(id));
+                pendingSaves.delete(id);
+            }
+            dirtyCards.delete(id);
             if (!id.startsWith('new-')) {
                 await fetch(`/api/flashcards/flashcards/${id}`, { method: 'DELETE' });
             }
@@ -274,11 +286,14 @@
 
     setTitleInput.addEventListener('input', () => {
         btnFinish.disabled = !setTitleInput.value.trim();
-        markUnsaved();
+        markTitleDirty();
     });
-    setTitleInput.addEventListener('blur', () => {
+    setTitleInput.addEventListener('blur', async () => {
         if (setTitleInput.value.trim()) {
-            ensureSetCreated();
+            const createdId = await ensureSetCreated();
+            if (createdId) {
+                isTitleDirty = false;
+            }
         }
     });
 
@@ -298,7 +313,7 @@
     btnFinish.disabled = !setTitleInput.value.trim();
 
     window.addEventListener('beforeunload', (e) => {
-        if (hasUnsavedChanges) {
+        if (dirtyCards.size > 0 || isTitleDirty) {
             e.preventDefault();
             e.returnValue = '';
         }
