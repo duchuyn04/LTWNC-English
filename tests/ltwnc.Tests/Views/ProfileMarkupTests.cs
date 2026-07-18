@@ -23,5 +23,7 @@ public class ProfileMarkupTests
         Assert.Contains("ChangePassword", view);
         Assert.Contains("AntiForgeryToken", view);
         Assert.Contains("multipart/form-data", view);
+        Assert.Contains("data-avatar-cropper", view);
+        Assert.Contains("profile-avatar.js", view);
     }
 }

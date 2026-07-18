@@ -4,6 +4,7 @@ using ltwnc.Services.Profiles;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Http;
 
 namespace ltwnc.Controllers;
 
@@ -12,15 +13,18 @@ public class ProfileController : Controller
     private readonly IProfileService _profileService;
     private readonly ICurrentUser _currentUser;
     private readonly SignInManager<IdentityUser> _signInManager;
+    private readonly IAvatarService _avatarService;
 
     public ProfileController(
         IProfileService profileService,
         ICurrentUser currentUser,
-        SignInManager<IdentityUser> signInManager)
+        SignInManager<IdentityUser> signInManager,
+        IAvatarService avatarService)
     {
         _profileService = profileService;
         _currentUser = currentUser;
         _signInManager = signInManager;
+        _avatarService = avatarService;
     }
 
     [AllowAnonymous]
@@ -164,6 +168,32 @@ public class ProfileController : Controller
         }
 
         TempData["Success"] = "Đã đổi mật khẩu.";
+        return RedirectToAction(nameof(Edit));
+    }
+
+    [Authorize]
+    [HttpPost("/Account/Profile/Avatar")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Avatar(
+        IFormFile avatar,
+        CancellationToken cancellationToken)
+    {
+        if (_currentUser.UserId == null)
+        {
+            return Challenge();
+        }
+
+        AvatarUploadResult result = await _avatarService.ReplaceAvatarAsync(
+            _currentUser.UserId,
+            avatar,
+            cancellationToken);
+        if (!result.Succeeded)
+        {
+            TempData["Error"] = result.Error;
+            return RedirectToAction(nameof(Edit));
+        }
+
+        TempData["Success"] = "Đã cập nhật ảnh đại diện.";
         return RedirectToAction(nameof(Edit));
     }
 

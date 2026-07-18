@@ -48,6 +48,7 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<IAvatarService, AvatarService>();
 
 // Application services — inject qua interface (swap/decorator sau này không sửa controller)
 builder.Services.AddScoped<IFlashcardSetService, FlashcardSetService>();

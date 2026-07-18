@@ -32,12 +32,14 @@ public class ProfileControllerTests
 
     private static ProfileController CreateController(
         Mock<IProfileService> profileService,
-        Mock<ICurrentUser> currentUser)
+        Mock<ICurrentUser> currentUser,
+        Mock<IAvatarService>? avatarService = null)
     {
         var controller = new ProfileController(
             profileService.Object,
             currentUser.Object,
-            MockSignInManager().Object);
+            MockSignInManager().Object,
+            (avatarService ?? new Mock<IAvatarService>()).Object);
         controller.ControllerContext = new ControllerContext
         {
             HttpContext = new DefaultHttpContext

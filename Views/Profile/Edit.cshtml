@@ -12,6 +12,11 @@
     <form asp-controller="Profile" asp-action="Avatar" method="post" enctype="multipart/form-data" class="profile-card profile-form">
         @Html.AntiForgeryToken()
         <h2>Ảnh đại diện</h2>
+        <div class="avatar-cropper" data-avatar-cropper>
+            <canvas class="avatar-crop-canvas" data-avatar-canvas width="240" height="240" aria-label="Khung crop ảnh đại diện"></canvas>
+            <p class="avatar-crop-help">Kéo ảnh trong khung tròn và điều chỉnh zoom trước khi lưu.</p>
+            <input type="range" min="1" max="3" step="0.01" value="1" data-avatar-zoom aria-label="Zoom ảnh đại diện" />
+        </div>
         <label for="avatar">Chọn ảnh JPG, PNG hoặc WebP</label>
         <input id="avatar" name="avatar" type="file" accept=".jpg,.jpeg,.png,.webp" />
         <button class="profile-button" type="submit">Lưu ảnh đại diện</button>
@@ -27,4 +32,4 @@
     <form asp-controller="Profile" asp-action="ChangeEmail" method="post" class="profile-card profile-form"><h2>Đổi email</h2>@Html.AntiForgeryToken()<label for="NewEmail">Email mới</label><input id="NewEmail" name="NewEmail" type="email" value="@Model.Email" required /><button class="profile-button" type="submit">Cập nhật email</button></form>
     <form asp-controller="Profile" asp-action="ChangePassword" method="post" class="profile-card profile-form"><h2>Đổi mật khẩu</h2>@Html.AntiForgeryToken()<label for="CurrentPassword">Mật khẩu hiện tại</label><input id="CurrentPassword" name="CurrentPassword" type="password" required /><label for="NewPassword">Mật khẩu mới</label><input id="NewPassword" name="NewPassword" type="password" required /><label for="ConfirmPassword">Nhập lại mật khẩu mới</label><input id="ConfirmPassword" name="ConfirmPassword" type="password" required /><button class="profile-button" type="submit">Đổi mật khẩu</button></form>
 </div>
-@section Scripts { <partial name="_ValidationScriptsPartial" /> }
+@section Scripts { <script src="~/js/profile-avatar.js" asp-append-version="true"></script><partial name="_ValidationScriptsPartial" /> }
