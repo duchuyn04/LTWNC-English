@@ -1,13 +1,14 @@
-/* Study Hub — Mode Selector */
-
+/* Study Hub — warm editorial mode selector */
 body {
-    background-color: #FDFBF7;
+    background: var(--paper);
 }
 
 .study-hub {
     max-width: 1200px;
     margin: 0 auto;
     padding: 48px 24px;
+    color: var(--ink);
+    font-family: var(--font-body);
 }
 
 .study-hub-warning {
@@ -15,49 +16,62 @@ body {
     align-items: center;
     gap: 0.75rem;
     padding: 1rem 1.25rem;
-    background: var(--accent-yellow-bg);
-    color: var(--accent-yellow-text);
-    border-radius: 10px;
+    background: var(--brass-soft);
+    color: var(--brass-deep);
+    border: 1px solid color-mix(in srgb, var(--brass) 28%, var(--line));
+    border-radius: var(--radius-control);
     font-size: 0.9375rem;
 }
 
 .study-hub-warning i {
-    font-size: 1.25rem;
     flex-shrink: 0;
+    font-size: 1.25rem;
 }
 
 .study-hub-context {
-    background: var(--bg-surface);
-    border: 1px solid var(--border-default);
-    border-radius: 16px;
+    position: relative;
     padding: 40px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+}
+
+.study-hub-context::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 40px;
+    width: 72px;
+    height: 3px;
+    background: var(--brass);
 }
 
 .study-hub-eyebrow {
     display: inline-block;
-    font-size: 0.75rem;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    color: var(--text-secondary);
     margin-bottom: 0.75rem;
+    color: var(--brass-deep);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
 }
 
 .study-hub-title {
-    font-family: 'Newsreader', 'Playfair Display', 'Instrument Serif', Georgia, serif;
-    font-size: 2.75rem;
-    font-weight: 600;
-    letter-spacing: -0.03em;
-    line-height: 1.1;
-    color: var(--text-primary);
     margin: 0 0 0.75rem;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: clamp(2rem, 4vw, 2.75rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1.12;
 }
 
 .study-hub-description {
-    color: var(--text-secondary);
-    font-size: 1rem;
-    line-height: 1.6;
     margin: 0 0 1.5rem;
+    color: var(--muted);
+    font-size: 1rem;
+    line-height: 1.65;
 }
 
 .study-hub-progress {
@@ -66,9 +80,22 @@ body {
 
 .study-hub-progress-label,
 .study-hub-progress-value {
+    color: var(--ink-soft);
     font-size: 0.875rem;
-    font-weight: 600;
-    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.study-hub-progress .progress-custom {
+    height: 7px;
+    overflow: hidden;
+    background: var(--surface-sunken);
+    border-radius: var(--radius-pill);
+}
+
+.study-hub-progress .progress-custom-bar {
+    height: 100%;
+    background: var(--brass);
+    border-radius: inherit;
 }
 
 .study-hub-stats {
@@ -79,29 +106,30 @@ body {
 }
 
 .study-hub-stat {
-    background: var(--bg-canvas);
-    border: 1px solid var(--border-default);
-    border-radius: 10px;
     padding: 1rem;
     text-align: center;
+    background: var(--surface-sunken);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
 }
 
 .study-hub-stat-value {
     display: block;
+    margin-bottom: 0.3rem;
+    color: var(--ink);
     font-size: 1.5rem;
     font-weight: 700;
+    font-variant-numeric: tabular-nums;
     letter-spacing: -0.02em;
-    color: var(--text-primary);
     line-height: 1;
-    margin-bottom: 0.25rem;
 }
 
 .study-hub-stat-label {
-    font-size: 0.75rem;
-    font-weight: 600;
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: var(--text-secondary);
 }
 
 .study-hub-filters {
@@ -113,10 +141,10 @@ body {
 }
 
 .study-hub-filters-label {
+    margin-right: 0.25rem;
+    color: var(--muted);
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--text-secondary);
-    margin-right: 0.25rem;
 }
 
 .filter-pill {
@@ -124,25 +152,27 @@ body {
     align-items: center;
     gap: 0.35rem;
     padding: 0.45rem 0.9rem;
-    border: 1px solid var(--border-default);
-    border-radius: 9999px;
-    background: var(--bg-surface);
-    color: var(--text-secondary);
+    color: var(--ink-soft);
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-pill);
     font-size: 0.8125rem;
     font-weight: 600;
     text-decoration: none;
-    transition: all 150ms ease;
+    transition: background-color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
 }
 
 .filter-pill:hover {
-    border-color: var(--text-primary);
-    color: var(--text-primary);
+    color: var(--ink);
+    background: var(--sage-soft);
+    border-color: var(--ink-soft);
+    transform: translateY(-1px);
 }
 
 .filter-pill.active {
-    background: var(--text-primary);
-    border-color: var(--text-primary);
-    color: #FFFFFF;
+    color: var(--surface);
+    background: var(--ink);
+    border-color: var(--ink);
 }
 
 .filter-pill-clear {
@@ -154,11 +184,12 @@ body {
     align-items: center;
     gap: 0.5rem;
     margin-bottom: 1.5rem;
+    color: var(--muted);
     font-size: 0.9375rem;
-    color: var(--text-secondary);
 }
 
 .study-hub-estimate i {
+    color: var(--brass-deep);
     font-size: 1.125rem;
 }
 
@@ -173,27 +204,32 @@ body {
     justify-content: center;
     width: 100%;
     padding: 1rem 1.5rem;
-    background: var(--text-primary);
-    color: #FFFFFF;
-    border: none;
-    border-radius: 6px;
+    color: var(--surface);
+    background: var(--ink);
+    border: 1px solid var(--ink);
+    border-radius: var(--radius-control);
+    font-weight: 700;
     text-decoration: none;
-    font-weight: 600;
-    transition: transform 0.1s ease, background 0.2s ease;
+    box-shadow: var(--shadow-card);
+    transition: transform var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
 }
 
 .btn-study-primary:hover {
-    background: #333333;
-    color: #FFFFFF;
+    color: var(--surface);
+    background: var(--ink-soft);
+    box-shadow: var(--shadow-lift);
+    transform: translateY(-2px);
 }
 
 .btn-study-primary:active {
-    transform: scale(0.98);
+    transform: translateY(0) scale(0.99);
 }
 
 .btn-study-primary:disabled {
-    background: #D4D4D4;
-    color: #737373;
+    color: var(--muted);
+    background: var(--surface-sunken);
+    border-color: var(--line);
+    box-shadow: none;
     cursor: not-allowed;
 }
 
@@ -202,10 +238,10 @@ body {
 }
 
 .btn-study-meta {
+    margin-top: 0.25rem;
+    color: color-mix(in srgb, var(--surface) 76%, transparent);
     font-size: 0.8125rem;
     font-weight: 500;
-    color: rgba(255, 255, 255, 0.75);
-    margin-top: 0.25rem;
 }
 
 .btn-study-primary:disabled .btn-study-meta {
@@ -223,29 +259,32 @@ body {
     display: flex;
     align-items: center;
     gap: 1.25rem;
-    background: var(--bg-surface);
-    border: 1px solid var(--border-default);
-    border-radius: 14px;
     padding: 1.5rem;
-    transition: box-shadow 200ms ease, transform 100ms ease;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    transition: box-shadow var(--duration-med) var(--ease-out), transform var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
 }
 
 .mode-card:hover {
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-lift);
+    transform: translateY(-2px);
 }
 
 .mode-card:active {
-    transform: scale(0.99);
+    transform: translateY(0);
 }
 
 .mode-card-recommended {
-    border-color: var(--text-primary);
-    background: #FFFFFF;
+    background: linear-gradient(135deg, var(--surface), var(--sage-soft));
+    border-color: var(--sage);
+    box-shadow: var(--shadow-offset);
 }
 
 .mode-card-primary {
     padding: 2rem 1.75rem;
-    border-radius: 16px;
 }
 
 .mode-card-primary .mode-card-icon {
@@ -263,11 +302,6 @@ body {
 
 .mode-card-secondary {
     padding: 1.25rem;
-    opacity: 0.85;
-}
-
-.mode-card-secondary:hover {
-    opacity: 1;
 }
 
 .mode-card-secondary .mode-card-icon {
@@ -290,29 +324,34 @@ body {
 .mode-card-secondary .mode-card-meta {
     font-size: 0.75rem;
 }
+
+.mode-card-disabled {
     opacity: 0.6;
     cursor: default;
 }
 
 .mode-card-disabled:hover {
-    box-shadow: none;
+    border-color: var(--line);
+    box-shadow: var(--shadow-card);
     transform: none;
 }
 
 .mode-card-icon {
-    width: 56px;
-    height: 56px;
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: center;
-    background: var(--bg-canvas);
-    border-radius: 12px;
-    flex-shrink: 0;
+    width: 56px;
+    height: 56px;
+    color: var(--ink);
+    background: var(--sage-soft);
+    border: 1px solid var(--sage);
+    border-radius: var(--radius-control);
 }
 
 .mode-card-icon i {
+    color: inherit;
     font-size: 1.75rem;
-    color: var(--text-primary);
 }
 
 .mode-card-body {
@@ -328,39 +367,41 @@ body {
 }
 
 .mode-card-title {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--font-body);
     font-size: 1.125rem;
     font-weight: 700;
-    margin: 0;
-    color: var(--text-primary);
 }
 
 .mode-card-badge {
     display: inline-flex;
     align-items: center;
     padding: 0.15rem 0.6rem;
-    border-radius: 9999px;
-    background: var(--accent-blue-bg);
-    color: var(--accent-blue-text);
+    color: var(--brass-deep);
+    background: var(--brass-soft);
+    border: 1px solid color-mix(in srgb, var(--brass) 25%, var(--line));
+    border-radius: var(--radius-pill);
     font-size: 0.6875rem;
     font-weight: 700;
-    text-transform: uppercase;
     letter-spacing: 0.05em;
+    text-transform: uppercase;
 }
 
 .mode-card-desc {
-    color: var(--text-secondary);
-    font-size: 0.9375rem;
     margin: 0 0 0.5rem;
+    color: var(--muted);
+    font-size: 0.9375rem;
 }
 
 .mode-card-meta {
+    color: var(--ink-soft);
     font-size: 0.8125rem;
-    font-weight: 600;
-    color: var(--text-primary);
+    font-weight: 700;
 }
 
 .mode-card-unavailable {
-    color: var(--text-secondary);
+    color: var(--muted);
     font-style: italic;
 }
 
@@ -372,12 +413,12 @@ body {
     gap: 0.75rem;
     margin-top: 3rem;
     padding-top: 1.5rem;
-    border-top: 1px solid var(--border-default);
+    border-top: 1px solid var(--line);
 }
 
 .study-hub-roadmap-label {
+    color: var(--muted);
     font-size: 0.875rem;
-    color: var(--text-secondary);
 }
 
 .roadmap-chip {
@@ -385,10 +426,10 @@ body {
     align-items: center;
     gap: 0.35rem;
     padding: 0.35rem 0.75rem;
-    border: 1px solid var(--border-default);
-    border-radius: 9999px;
-    background: var(--bg-surface);
-    color: var(--text-secondary);
+    color: var(--muted);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
     font-size: 0.8125rem;
     font-weight: 600;
 }
@@ -397,14 +438,13 @@ body {
     font-size: 0.9375rem;
 }
 
-/* Responsive */
 @media (max-width: 991px) {
-    .study-hub-title {
-        font-size: 2.25rem;
-    }
-
     .study-hub-context {
         padding: 28px;
+    }
+
+    .study-hub-context::before {
+        left: 28px;
     }
 }
 
@@ -417,24 +457,27 @@ body {
         padding: 24px;
     }
 
-    .study-hub-title {
-        font-size: 1.875rem;
+    .study-hub-context::before {
+        left: 24px;
     }
 
     .study-hub-stats {
         grid-template-columns: repeat(2, 1fr);
     }
 
-    .mode-card {
+    .mode-card,
+    .mode-card-primary {
         padding: 1.25rem;
     }
 
-    .mode-card-icon {
+    .mode-card-icon,
+    .mode-card-primary .mode-card-icon {
         width: 48px;
         height: 48px;
     }
 
-    .mode-card-icon i {
+    .mode-card-icon i,
+    .mode-card-primary .mode-card-icon i {
         font-size: 1.5rem;
     }
 }

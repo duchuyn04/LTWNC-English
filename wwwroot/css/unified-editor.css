@@ -1,61 +1,228 @@
 .unified-editor {
-    max-width: 900px;
+    --ue-paper: var(--paper);
+    --ue-surface: var(--surface);
+    --ue-sunken: var(--surface-sunken);
+    --ue-ink: var(--ink);
+    --ue-ink-soft: var(--ink-soft);
+    --ue-muted: var(--muted);
+    --ue-muted-light: var(--muted-light);
+    --ue-line: var(--line);
+    --ue-line-strong: var(--line-strong);
+    --ue-accent: var(--brass);
+    --ue-accent-deep: var(--brass-deep);
+    --ue-accent-soft: var(--brass-soft);
+    --ue-success: var(--success);
+    --ue-success-bg: var(--success-bg);
+    --ue-error: var(--error);
+    --ue-error-bg: var(--error-bg);
+    max-width: 960px;
     margin: 0 auto;
-    padding: 24px;
+    padding: clamp(1rem, 3vw, 2rem);
+    color: var(--ue-ink);
+    font-family: var(--font-body);
 }
 
 .editor-header {
     display: flex;
-    justify-content: space-between;
     align-items: flex-start;
-    margin-bottom: 8px;
+    justify-content: space-between;
+    gap: 1.25rem;
+    margin-bottom: 1rem;
 }
 
 .editor-header h2 {
     margin: 0;
+    color: var(--ue-ink);
+    font-family: var(--font-body);
+    font-size: clamp(1.65rem, 3vw, 2.25rem);
+    font-weight: 700;
+    letter-spacing: -0.025em;
+}
+
+.editor-header .subtitle {
+    margin: 0.35rem 0 0;
+    color: var(--ue-muted);
+    font-size: 0.9rem;
 }
 
 .header-actions {
     display: flex;
-    gap: 12px;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+}
+
+.unified-editor .btn,
+#import-modal .btn {
+    min-height: 2.65rem;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-control);
+    font-family: var(--font-body);
+    font-size: 0.875rem;
+    font-weight: 600;
+    line-height: 1.2;
+    transition: background-color var(--duration-fast) var(--ease-out),
+                border-color var(--duration-fast) var(--ease-out),
+                color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+}
+
+.unified-editor .btn-primary,
+#import-modal .btn-primary {
+    border-color: var(--ue-ink, var(--ink));
+    background: var(--ue-ink, var(--ink));
+    color: var(--ue-paper, var(--paper));
+}
+
+.unified-editor .btn-primary:hover,
+#import-modal .btn-primary:hover {
+    border-color: var(--ue-ink-soft, var(--ink-soft));
+    background: var(--ue-ink-soft, var(--ink-soft));
+    color: var(--ue-paper, var(--paper));
+}
+
+.unified-editor .btn-secondary,
+#import-modal .btn-secondary {
+    border-color: var(--ue-line-strong, var(--line-strong));
+    background: var(--ue-surface, var(--surface));
+    color: var(--ue-ink, var(--ink));
+}
+
+.unified-editor .btn-secondary:hover,
+#import-modal .btn-secondary:hover {
+    border-color: var(--ue-ink, var(--ink));
+    background: var(--sage-soft);
+    color: var(--ue-ink, var(--ink));
+}
+
+.unified-editor .btn:active,
+#import-modal .btn:active {
+    transform: scale(0.98);
+}
+
+.unified-editor .btn:focus-visible,
+#import-modal .btn:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--brass) 35%, transparent);
+    outline-offset: 2px;
+    box-shadow: none;
+}
+
+.unified-editor .btn:disabled {
+    border-color: var(--ue-line);
+    background: var(--ue-sunken);
+    color: var(--ue-muted-light);
+    opacity: 1;
+    cursor: not-allowed;
 }
 
 .editor-meta {
-    margin-bottom: 24px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 0.5rem 1rem;
+    margin-bottom: 1.5rem;
+    padding: clamp(1rem, 3vw, 1.5rem);
+    border: 1px solid var(--ue-line);
+    border-radius: var(--radius-card);
+    background: var(--ue-surface);
+    box-shadow: var(--shadow-card);
 }
 
-.editor-meta label {
-    display: block;
-    font-size: 0.85rem;
-    color: #6b7280;
-    margin-bottom: 4px;
+.editor-meta > label {
+    color: var(--ue-ink-soft);
+    font-size: 0.8125rem;
+    font-weight: 700;
+}
+
+.editor-meta > label[for="set-description"],
+.editor-meta #set-description,
+.editor-meta .checkbox-label,
+.editor-meta .save-status {
+    grid-column: 1 / -1;
+}
+
+.editor-meta .checkbox-label {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    gap: 0.55rem;
+    margin-top: 0.25rem;
+    color: var(--ue-ink-soft);
+    cursor: pointer;
+}
+
+.editor-meta .checkbox-label input {
+    width: 1.1rem;
+    height: 1.1rem;
+    margin: 0;
+    accent-color: var(--ue-ink);
 }
 
 .save-status {
-    font-size: 0.85rem;
-    margin-top: 4px;
-    min-height: 1.2em;
+    display: inline-flex;
+    min-height: 1.7rem;
+    width: fit-content;
+    align-items: center;
+    margin-top: 0.15rem;
+    padding: 0.2rem 0.65rem;
+    border-radius: var(--radius-pill);
+    color: var(--ue-muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
 }
 
-.save-status.saving { color: #f59e0b; }
-.save-status.saved { color: #10b981; }
-.save-status.error { color: #ef4444; }
-.save-status.pending { color: #6b7280; }
+.save-status:empty {
+    visibility: hidden;
+}
+
+.save-status.saving {
+    background: var(--ue-accent-soft);
+    color: var(--ue-accent-deep);
+}
+
+.save-status.saved {
+    background: var(--ue-success-bg);
+    color: var(--ue-success);
+}
+
+.save-status.error {
+    background: var(--ue-error-bg);
+    color: var(--ue-error);
+}
+
+.save-status.pending {
+    background: var(--ue-sunken);
+    color: var(--ue-ink-soft);
+}
 
 .cards-container {
     display: flex;
     flex-direction: column;
-    gap: 12px;
-    margin-bottom: 16px;
+    gap: 0.85rem;
+    margin-bottom: 1rem;
 }
 
 .flashcard-card {
-    background: #1e293b;
-    border: 1px solid #334155;
-    border-radius: 12px;
-    padding: 16px;
-    color: #e2e8f0;
-    cursor: pointer;
+    overflow: hidden;
+    padding: 0;
+    border: 1px solid var(--ue-line);
+    border-radius: var(--radius-card);
+    background: var(--ue-surface);
+    color: var(--ue-ink);
+    box-shadow: var(--shadow-card);
+    cursor: default;
+    transition: border-color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-med) var(--ease-out),
+                transform var(--duration-med) var(--ease-out);
+}
+
+.flashcard-card:hover {
+    border-color: var(--ue-line-strong);
+}
+
+.flashcard-card.expanded {
+    border-color: var(--ue-line-strong);
+    box-shadow: var(--shadow-lift);
 }
 
 .flashcard-card.collapsed .card-body {
@@ -63,131 +230,398 @@
 }
 
 .flashcard-card.card-error {
-    border-color: #ef4444;
+    border-color: var(--ue-error);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ue-error) 12%, transparent);
 }
 
-.card-header {
+.flashcard-card .card-header {
     display: flex;
+    min-height: 3.65rem;
     align-items: center;
-    gap: 12px;
+    gap: 0.7rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid transparent;
+    background: var(--ue-surface);
+    cursor: pointer;
+}
+
+.flashcard-card.expanded .card-header {
+    border-bottom-color: var(--ue-line);
+    background: color-mix(in srgb, var(--sage-soft) 48%, var(--ue-surface));
+}
+
+.card-drag-handle {
+    display: inline-flex;
+    min-width: 1.75rem;
+    min-height: 1.75rem;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-control);
+    color: var(--ue-muted);
+    font-weight: 800;
+    letter-spacing: -0.2em;
+    cursor: grab;
+    user-select: none;
+}
+
+.card-drag-handle:hover {
+    background: var(--ue-sunken);
+    color: var(--ue-ink);
+}
+
+.card-drag-handle:active {
+    cursor: grabbing;
 }
 
 .card-number {
-    color: #64748b;
-    font-weight: 600;
-    min-width: 24px;
+    display: inline-grid;
+    min-width: 1.75rem;
+    height: 1.75rem;
+    place-items: center;
+    border-radius: var(--radius-pill);
+    background: var(--ue-sunken);
+    color: var(--ue-ink-soft);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.btn-star,
+.card-actions button {
+    display: inline-grid;
+    width: 2rem;
+    height: 2rem;
+    place-items: center;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    background: transparent;
+    font-family: var(--font-body);
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-out),
+                border-color var(--duration-fast) var(--ease-out),
+                color var(--duration-fast) var(--ease-out);
 }
 
 .btn-star {
-    background: none;
-    border: none;
-    color: #fbbf24;
-    cursor: pointer;
-    font-size: 1.1rem;
+    color: var(--ue-accent);
+    font-size: 1.2rem;
+}
+
+.btn-star:hover {
+    border-color: color-mix(in srgb, var(--ue-accent) 30%, var(--ue-line));
+    background: var(--ue-accent-soft);
+    color: var(--ue-accent-deep);
 }
 
 .card-term {
     flex: 1;
-    font-weight: 600;
+    overflow: hidden;
+    color: var(--ue-ink);
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.card-term:empty::after {
+    color: var(--ue-muted-light);
+    content: "Thẻ chưa có thuật ngữ";
+    font-weight: 500;
 }
 
 .card-actions {
     display: flex;
-    gap: 8px;
+    gap: 0.2rem;
 }
 
 .card-actions button {
-    background: none;
-    border: none;
-    color: #94a3b8;
-    cursor: pointer;
+    color: var(--ue-muted);
+    font-size: 0.95rem;
+}
+
+.card-actions button:hover {
+    border-color: var(--ue-line);
+    background: var(--ue-sunken);
+    color: var(--ue-ink);
+}
+
+.card-actions .btn-delete:hover {
+    border-color: color-mix(in srgb, var(--ue-error) 28%, var(--ue-line));
+    background: var(--ue-error-bg);
+    color: var(--ue-error);
+}
+
+.btn-star:focus-visible,
+.card-actions button:focus-visible,
+.card-drag-handle:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--ue-accent) 35%, transparent);
+    outline-offset: 1px;
 }
 
 .card-body {
-    margin-top: 16px;
+    padding: 1.25rem;
+    background: var(--ue-surface);
 }
 
 .form-row {
     display: grid;
     grid-template-columns: 1fr 1fr;
-    gap: 16px;
+    gap: 1rem;
 }
 
 .form-group {
-    margin-bottom: 12px;
+    min-width: 0;
+    margin-bottom: 0.9rem;
 }
 
-.form-group label {
+.form-group label,
+#import-modal label {
     display: block;
+    margin-bottom: 0.4rem;
+    color: var(--ue-ink-soft, var(--ink-soft));
     font-size: 0.8rem;
-    color: #94a3b8;
-    margin-bottom: 4px;
+    font-weight: 700;
 }
 
-.form-control {
+.unified-editor .form-control,
+.unified-editor .form-select,
+#import-modal .form-control,
+#import-modal .form-select {
     width: 100%;
-    background: #0f172a;
-    border: 1px solid #334155;
-    border-radius: 6px;
-    color: #fff;
-    padding: 10px 12px;
-    font-size: 0.95rem;
+    border: 1px solid var(--ue-line-strong, var(--line-strong));
+    border-radius: var(--radius-control);
+    background: var(--ue-surface, var(--surface));
+    color: var(--ue-ink, var(--ink));
+    font-family: var(--font-body);
+    font-size: 0.9375rem;
 }
 
-.form-control:focus {
+.unified-editor .form-control,
+#import-modal .form-control {
+    padding: 0.7rem 0.8rem;
+}
+
+.unified-editor .form-select,
+#import-modal .form-select {
+    min-height: 2.65rem;
+}
+
+.unified-editor .form-control::placeholder,
+#import-modal .form-control::placeholder {
+    color: var(--ue-muted-light, var(--muted-light));
+}
+
+.unified-editor .form-control:focus,
+.unified-editor .form-select:focus,
+#import-modal .form-control:focus,
+#import-modal .form-select:focus {
     outline: none;
-    border-color: #3b82f6;
+    border-color: var(--ue-ink, var(--ink));
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ue-ink, var(--ink)) 12%, transparent);
+}
+
+.unified-editor textarea.form-control,
+#import-modal textarea.form-control {
+    resize: vertical;
 }
 
 .required {
-    color: #ef4444;
+    color: var(--ue-error);
 }
 
 .card-errors {
-    background: #7f1d1d;
-    color: #fee2e2;
-    padding: 8px 12px;
-    border-radius: 6px;
-    margin-bottom: 12px;
+    margin-bottom: 1rem;
+    padding: 0.75rem 0.9rem;
+    border: 1px solid color-mix(in srgb, var(--ue-error) 30%, var(--ue-line));
+    border-radius: var(--radius-control);
+    background: var(--ue-error-bg);
+    color: var(--ue-error);
+    font-size: 0.875rem;
 }
 
 .btn-add-card {
     width: 100%;
-    padding: 16px;
-    border: 1px dashed #334155;
-    background: transparent;
-    color: #94a3b8;
-    border-radius: 12px;
-    cursor: pointer;
+    padding: 1rem;
+    border: 1px dashed var(--ue-line-strong);
+    background: color-mix(in srgb, var(--ue-surface) 65%, transparent);
+    color: var(--ue-ink-soft);
+}
+
+.btn-add-card:hover {
+    border-color: var(--ue-ink);
+    background: var(--sage-soft);
+    color: var(--ue-ink);
 }
 
 .sortable-ghost {
-    opacity: 0.4;
-    background: #334155;
+    border-color: var(--ue-accent) !important;
+    background: var(--ue-accent-soft) !important;
+    box-shadow: none !important;
+    opacity: 0.65;
 }
 
-.modal {
+.sortable-chosen {
+    border-color: var(--ue-accent);
+    box-shadow: var(--shadow-lift);
+}
+
+#import-modal.modal {
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.7);
     display: flex;
+    overflow-y: auto;
     align-items: center;
     justify-content: center;
-    z-index: 1000;
+    padding: 1rem;
+    background: rgba(41, 50, 38, 0.58);
+    backdrop-filter: blur(3px);
+    z-index: 1055;
 }
 
-.modal-content {
-    background: #1e293b;
-    padding: 24px;
-    border-radius: 12px;
-    width: 90%;
-    max-width: 600px;
-    color: #e2e8f0;
+#import-modal .modal-content {
+    width: min(100%, 600px);
+    max-height: calc(100vh - 2rem);
+    overflow-y: auto;
+    padding: clamp(1.25rem, 4vw, 1.75rem);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    color: var(--ink);
+    box-shadow: var(--shadow-lift);
+}
+
+#import-modal .modal-content h3 {
+    margin: 0 0 0.5rem;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 1.35rem;
+    font-weight: 700;
+}
+
+#import-modal .modal-content > p {
+    margin-bottom: 1rem;
+    color: var(--muted);
+}
+
+#import-modal .form-select,
+#import-modal textarea {
+    margin-bottom: 1rem;
+}
+
+#import-modal .modal-content > label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    width: fit-content;
+    cursor: pointer;
+}
+
+#import-modal input[type="checkbox"] {
+    width: 1.1rem;
+    height: 1.1rem;
+    margin: 0;
+    accent-color: var(--ink);
+}
+
+#import-preview {
+    max-height: 12rem;
+    overflow-y: auto;
+    margin-top: 1rem;
+    padding: 0.85rem;
+    border-radius: var(--radius-control);
+    background: var(--surface-sunken);
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+}
+
+#import-preview:empty {
+    display: none;
+}
+
+#import-preview p,
+#import-preview ul {
+    margin-bottom: 0.5rem;
+}
+
+#import-preview .error {
+    color: var(--error);
 }
 
 .modal-actions {
     display: flex;
     justify-content: flex-end;
-    gap: 12px;
-    margin-top: 16px;
+    gap: 0.65rem;
+    margin-top: 1.25rem;
+}
+
+@media (max-width: 767px) {
+    .editor-header {
+        flex-direction: column;
+    }
+
+    .header-actions {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .header-actions .form-select {
+        flex: 1 1 100%;
+    }
+
+    .editor-meta,
+    .form-row {
+        grid-template-columns: 1fr;
+    }
+
+    .editor-meta > label,
+    .editor-meta > input,
+    .editor-meta #set-description,
+    .editor-meta .checkbox-label,
+    .editor-meta .save-status {
+        grid-column: 1;
+    }
+
+    .flashcard-card .card-header {
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .card-term {
+        min-width: 40%;
+        padding-top: 0.3rem;
+    }
+
+    .card-actions {
+        width: 100%;
+        justify-content: flex-end;
+        padding-top: 0.5rem;
+        border-top: 1px solid var(--ue-line);
+    }
+}
+
+@media (max-width: 480px) {
+    .unified-editor {
+        padding-inline: 0;
+    }
+
+    .header-actions .btn {
+        flex: 1 1 0;
+    }
+
+    .flashcard-card .card-header,
+    .card-body {
+        padding-inline: 0.85rem;
+    }
+
+    .card-drag-handle {
+        min-width: 1.5rem;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .unified-editor *,
+    #import-modal * {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+    }
 }

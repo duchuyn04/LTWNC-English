@@ -59,7 +59,7 @@
         <aside class="profile-side">
             @if (Model.ShowBadges)
             {
-                <section class="profile-card"><p class="profile-eyebrow">BADGES</p><h2>Huy hiệu</h2><div class="badge-list">@foreach (ProfileBadgeViewModel badge in Model.Badges) { <div class="badge-item"><span aria-hidden="true">✦</span><div><strong>@badge.Title</strong><p>@badge.Description</p></div></div> }</div></section>
+                <section class="profile-card"><p class="profile-eyebrow">BADGES</p><h2>Huy hiệu</h2><div class="badge-list">@foreach (ProfileBadgeViewModel badge in Model.Badges) { <div class="badge-item"><span aria-hidden="true"><i class="ph ph-seal-check"></i></span><div><strong>@badge.Title</strong><p>@badge.Description</p></div></div> }</div></section>
             }
             @if (Model.ShowPublicSets)
             {

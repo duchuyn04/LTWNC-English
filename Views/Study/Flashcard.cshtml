@@ -3,7 +3,6 @@
     ViewData["Title"] = "Học flashcard";
 }
 
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 <link rel="stylesheet" href="~/css/flashcard.css" asp-append-version="true" />
 
 <div class="study-shell">
@@ -12,7 +11,7 @@
     <section id="study-view" class="study-stage" aria-label="Học flashcard">
         <header class="study-header gsap-fade-up">
             <a class="exit-link" href="/Study/@Model.SetId" title="Backspace: thoát về trang học">
-                <span class="material-symbols-outlined">arrow_back</span>
+                <i class="ph ph-arrow-left" aria-hidden="true"></i>
                 <span class="exit-label">Thoát</span>
             </a>
 
@@ -21,7 +20,7 @@
             </div>
 
             <button type="button" class="icon-button study-settings-button" onclick="toggleSettingsDrawer(event)" title="Cài đặt học">
-                <span class="material-symbols-outlined">tune</span>
+                <i class="ph ph-sliders-horizontal" aria-hidden="true"></i>
             </button>
         </header>
 
@@ -37,7 +36,7 @@
                 <div id="study-card-core" class="flashcard-core">
                     <article class="card-face card-front">
                         <button type="button" class="card-star-btn" onclick="toggleCurrentCardStar(event)" title="Đánh dấu sao">
-                            <span class="material-symbols-outlined">star</span>
+                            <i class="ph ph-star" aria-hidden="true"></i>
                         </button>
                         <div class="card-topline">
                             <span class="badge badge-blue">English</span>
@@ -50,14 +49,14 @@
                         </div>
                         <div class="card-audio-controls" onclick="event.stopPropagation()">
                             <button type="button" class="card-audio-btn" onclick="playAudioCurrentCard()" title="Phát giọng đọc (Ctrl)">
-                                <span class="material-symbols-outlined">volume_up</span>
+                                <i class="ph ph-speaker-high" aria-hidden="true"></i>
                             </button>
                         </div>
                     </article>
 
                     <article class="card-face card-back">
                         <button type="button" class="card-star-btn" onclick="toggleCurrentCardStar(event)" title="Đánh dấu sao">
-                            <span class="material-symbols-outlined">star</span>
+                            <i class="ph ph-star" aria-hidden="true"></i>
                         </button>
                         <div class="card-topline">
                             <span class="badge badge-green">Nghĩa Việt</span>
@@ -71,7 +70,7 @@
                         </div>
                         <div class="card-audio-controls" onclick="event.stopPropagation()">
                             <button type="button" class="card-audio-btn" onclick="playAudioCurrentCard()" title="Phát giọng đọc (Ctrl)">
-                                <span class="material-symbols-outlined">volume_up</span>
+                                <i class="ph ph-speaker-high" aria-hidden="true"></i>
                             </button>
                         </div>
                     </article>
@@ -81,29 +80,29 @@
 
         <div class="control-bar gsap-fade-up" aria-label="Điều khiển học">
             <button type="button" id="nav-left-btn" class="control-btn control-btn-prev" onclick="handleLeftAction()" title="Thẻ trước (←)">
-                <span class="material-symbols-outlined">arrow_back</span>
+                <i class="ph ph-arrow-left" aria-hidden="true"></i>
             </button>
 
             <div class="control-center">
                 <button type="button" id="flip-btn" class="control-btn control-btn-flip" onclick="toggleCardFlip()" title="Lật thẻ (Space)">
-                    <span class="material-symbols-outlined">flip</span>
+                    <i class="ph ph-arrows-counter-clockwise" aria-hidden="true"></i>
                     <span>Lật</span>
                 </button>
 
                 <div id="rating-group" class="rating-group" hidden>
                     <button type="button" class="control-btn control-btn-rate control-btn-rate-unknown" onclick="markCard(false)" title="Chưa biết (1)">
-                        <span class="material-symbols-outlined">close</span>
+                        <i class="ph ph-x" aria-hidden="true"></i>
                         <span>Chưa biết</span>
                     </button>
                     <button type="button" class="control-btn control-btn-rate control-btn-rate-known" onclick="markCard(true)" title="Đã biết (2)">
-                        <span class="material-symbols-outlined">check</span>
+                        <i class="ph ph-check" aria-hidden="true"></i>
                         <span>Đã biết</span>
                     </button>
                 </div>
             </div>
 
             <button type="button" id="nav-right-btn" class="control-btn control-btn-next" onclick="handleRightAction()" title="Thẻ tiếp (→)">
-                <span class="material-symbols-outlined">arrow_forward</span>
+                <i class="ph ph-arrow-right" aria-hidden="true"></i>
             </button>
         </div>
 
@@ -120,38 +119,38 @@
 
         <details class="study-accordion">
             <summary class="study-accordion-summary">
-                <span class="material-symbols-outlined">school</span>
+                <i class="ph ph-student" aria-hidden="true"></i>
                 <span>Chế độ học</span>
-                <span class="material-symbols-outlined accordion-chevron">expand_more</span>
+                <i class="ph ph-caret-down accordion-chevron" aria-hidden="true"></i>
             </summary>
             <div class="study-accordion-body">
                 <div class="learning-modes-grid">
                     <button type="button" class="btn learning-chip" disabled>
-                        <span class="material-symbols-outlined">chat_bubble</span>
+                        <i class="ph ph-microphone" aria-hidden="true"></i>
                         <span>Speaking</span>
                     </button>
                     <button type="button" class="btn learning-chip" disabled>
-                        <span class="material-symbols-outlined">forum</span>
+                        <i class="ph ph-chats-circle" aria-hidden="true"></i>
                         <span>Hội thoại</span>
                     </button>
                     <button type="button" class="btn learning-chip" disabled>
-                        <span class="material-symbols-outlined">menu_book</span>
+                        <i class="ph ph-book-open" aria-hidden="true"></i>
                         <span>Ngữ pháp</span>
                     </button>
                     <button type="button" class="btn learning-chip" disabled>
-                        <span class="material-symbols-outlined">article</span>
+                        <i class="ph ph-article" aria-hidden="true"></i>
                         <span>Đọc hiểu</span>
                     </button>
                     <button type="button" class="btn learning-chip is-active">
-                        <span class="material-symbols-outlined filled">school</span>
+                        <i class="ph ph-student-fill" aria-hidden="true"></i>
                         <span>Học</span>
                     </button>
                     <button type="button" class="btn learning-chip" disabled>
-                        <span class="material-symbols-outlined">assignment</span>
+                        <i class="ph ph-exam" aria-hidden="true"></i>
                         <span>Kiểm tra</span>
                     </button>
                     <button type="button" class="btn learning-chip" disabled>
-                        <span class="material-symbols-outlined">headphones</span>
+                        <i class="ph ph-headphones" aria-hidden="true"></i>
                         <span>Nghe Chép</span>
                     </button>
                 </div>
@@ -160,15 +159,15 @@
 
         <details class="study-accordion">
             <summary class="study-accordion-summary">
-                <span class="material-symbols-outlined">menu_book</span>
+                <i class="ph ph-book-open" aria-hidden="true"></i>
                 <span>Từ trong bộ (@Model.Flashcards.Count từ)</span>
-                <span class="material-symbols-outlined accordion-chevron">expand_more</span>
+                <i class="ph ph-caret-down accordion-chevron" aria-hidden="true"></i>
             </summary>
             <div class="study-accordion-body">
                 <section class="vocab-panel" aria-label="Danh sách từ vựng">
                     <div class="vocab-panel-toolbar">
                         <a class="vocab-edit-link" href="/Set/@Model.SetId/Edit">
-                            <span class="material-symbols-outlined">edit</span>
+                            <i class="ph ph-pencil-simple" aria-hidden="true"></i>
                             <span>Chỉnh sửa</span>
                         </a>
 
@@ -191,7 +190,7 @@
         <div class="settings-drawer-header">
             <span class="settings-title">Cài đặt học</span>
             <button type="button" class="icon-button" onclick="toggleSettingsDrawer(event)" title="Đóng">
-                <span class="material-symbols-outlined">close</span>
+                <i class="ph ph-x" aria-hidden="true"></i>
             </button>
         </div>
         <div class="settings-drawer-body">
@@ -268,7 +267,7 @@
             <div class="completion-actions">
                 <button type="button" class="study-button is-red" onclick="restartStudy()">
                     <span>Ôn lại</span>
-                    <span class="button-icon"><span class="material-symbols-outlined">refresh</span></span>
+                    <span class="button-icon"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i></span>
                 </button>
                 <button type="button" class="primary-dark" onclick="completeStudySession()">
                     Về trang học
@@ -477,7 +476,7 @@
                         <div class="row g-3 align-items-center">
                             <div class="col-12 col-md-6">
                                 <div class="d-flex align-items-center gap-3">
-                                    <span class="material-symbols-outlined ${card.IsStarred ? 'filled text-dark' : 'text-muted'}">star</span>
+                                    <i class="${card.IsStarred ? 'ph ph-star-fill text-dark' : 'ph ph-star text-muted'}" aria-hidden="true"></i>
                                     <div>
                                         <p class="vocab-word ${isMastered ? 'fw-bold' : ''}">${escapeHtml(card.FrontText || '')}</p>
                                         <p class="vocab-meta">${escapeHtml([card.PartOfSpeech, card.Pronunciation].filter(Boolean).join(' · '))}</p>
@@ -491,7 +490,7 @@
                                         <p class="vocab-example">${escapeHtml(card.ExampleSentence || '')}</p>
                                     </div>
                                     <button type="button" class="btn vocab-audio" title="Phát giọng đọc">
-                                        <span class="material-symbols-outlined">volume_up</span>
+                                        <i class="ph ph-speaker-high" aria-hidden="true"></i>
                                     </button>
                                 </div>
                             </div>
@@ -664,20 +663,20 @@
         }
 
         function updateStarUI(isStarred) {
-            const starIconFront = document.querySelector('.card-front .card-star-btn span');
-            const starIconBack = document.querySelector('.card-back .card-star-btn span');
+            const starIconFront = document.querySelector('.card-front .card-star-btn i');
+            const starIconBack = document.querySelector('.card-back .card-star-btn i');
             const starBtnFront = document.querySelector('.card-front .card-star-btn');
             const starBtnBack = document.querySelector('.card-back .card-star-btn');
 
             if (starIconFront && starIconBack) {
                 if (isStarred) {
-                    starIconFront.className = 'material-symbols-outlined filled';
-                    starIconBack.className = 'material-symbols-outlined filled';
+                    starIconFront.className = 'ph ph-star-fill';
+                    starIconBack.className = 'ph ph-star-fill';
                     starBtnFront.classList.add('is-starred');
                     starBtnBack.classList.add('is-starred');
                 } else {
-                    starIconFront.className = 'material-symbols-outlined';
-                    starIconBack.className = 'material-symbols-outlined';
+                    starIconFront.className = 'ph ph-star';
+                    starIconBack.className = 'ph ph-star';
                     starBtnFront.classList.remove('is-starred');
                     starBtnBack.classList.remove('is-starred');
                 }
@@ -1002,7 +1001,9 @@
         let canvas, ctx, animationFrameId;
         let fireworksList = [];
         let particlesList = [];
-        const celebrateColors = ['#2f6a37', '#1f6c9f', '#9c3430', '#956400', '#151515'];
+        const rootStyles = getComputedStyle(document.documentElement);
+        const celebrateColors = ['--success', '--brass', '--error', '--brass-deep', '--ink']
+            .map(token => rootStyles.getPropertyValue(token).trim());
 
         class CanvasParticle {
             constructor(x, y, color) {

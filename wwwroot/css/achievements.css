@@ -1,0 +1,318 @@
+.ach-page {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 820px;
+    margin: 0 auto;
+    padding: 0 0 3rem;
+    color: var(--ink);
+    font-family: var(--font-body);
+}
+
+.ach-page *,
+.ach-page *::before,
+.ach-page *::after {
+    box-sizing: border-box;
+}
+
+.ach-banner {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 1.5rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--success);
+    border-radius: var(--radius-control);
+    background: var(--success-bg);
+    color: var(--success);
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.ach-banner::before {
+    content: "✓";
+    flex: none;
+    font-weight: 800;
+}
+
+.ach-hero {
+    position: relative;
+    margin-bottom: 2rem;
+    padding: clamp(22px, 4vw, 32px);
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+}
+
+.ach-hero::after {
+    content: "";
+    position: absolute;
+    top: -48px;
+    right: -34px;
+    width: 150px;
+    height: 150px;
+    border: 18px double rgba(183, 121, 31, 0.17);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.ach-hero h1 {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0 0 0.5rem;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: clamp(2rem, 5vw, 3rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    overflow-wrap: anywhere;
+}
+
+.ach-hero h1 i {
+    color: var(--brass-deep);
+}
+
+.ach-hero p {
+    position: relative;
+    z-index: 1;
+    max-width: 610px;
+    margin: 0;
+    color: var(--muted);
+    line-height: 1.65;
+}
+
+.ach-grid {
+    display: grid;
+    gap: 1rem;
+    max-width: 100%;
+}
+
+.ach-card {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    max-width: 100%;
+    padding: 1.25rem;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+}
+
+.ach-card.is-unlocked {
+    border-color: rgba(183, 121, 31, 0.48);
+    background: linear-gradient(135deg, var(--surface) 0 76%, var(--brass-soft) 100%);
+}
+
+.ach-card.is-unlocked::after {
+    content: "UNLOCKED";
+    position: absolute;
+    top: 13px;
+    right: -29px;
+    width: 112px;
+    padding: 3px 0;
+    transform: rotate(36deg);
+    border-block: 1px solid rgba(143, 97, 21, 0.38);
+    background: var(--brass-soft);
+    color: var(--brass-deep);
+    font-size: 0.58rem;
+    font-weight: 800;
+    letter-spacing: 0.11em;
+    text-align: center;
+}
+
+.ach-card.is-locked {
+    border-style: dashed;
+    background: var(--surface-sunken);
+}
+
+.ach-icon {
+    width: 50px;
+    height: 50px;
+    flex: none;
+    display: grid;
+    place-items: center;
+    border: 2px solid var(--brass-deep);
+    border-radius: 50%;
+    background: var(--brass-soft);
+    color: var(--brass-deep);
+    box-shadow: inset 0 0 0 4px var(--surface);
+    font-size: 1.4rem;
+}
+
+.ach-card.is-locked .ach-icon {
+    border-color: var(--line-strong);
+    background: var(--surface-sunken);
+    color: var(--muted);
+    box-shadow: inset 0 0 0 4px var(--surface);
+}
+
+.ach-body {
+    flex: 1;
+    min-width: 0;
+    max-width: 100%;
+    padding-right: 18px;
+}
+
+.ach-title {
+    margin: 0 0 0.25rem;
+    color: var(--ink);
+    font-size: 1rem;
+    font-weight: 700;
+    overflow-wrap: anywhere;
+}
+
+.ach-desc {
+    margin: 0 0 0.55rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+}
+
+.ach-meta {
+    margin: 0 0 0.55rem;
+    color: var(--muted-light);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.ach-done {
+    display: inline-block;
+    margin: 0.7rem 0 0;
+    padding: 3px 10px;
+    border: 1px solid rgba(62, 107, 79, 0.35);
+    border-radius: var(--radius-pill);
+    background: var(--success-bg);
+    color: var(--success);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.ach-progress {
+    max-width: 100%;
+    margin-top: 0.5rem;
+}
+
+.ach-progress__meta {
+    margin-bottom: 0.4rem;
+    color: var(--muted);
+    font-size: 0.78rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.ach-progress__track {
+    width: 100%;
+    height: 8px;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: var(--radius-pill);
+    background: var(--line);
+}
+
+.ach-progress__fill {
+    width: 0;
+    max-width: 100%;
+    height: 100%;
+    border-radius: var(--radius-pill);
+    background: var(--brass-deep);
+    transition: width var(--duration-med) var(--ease-out);
+}
+
+.ach-card.is-unlocked .ach-progress__track {
+    background: var(--success-bg);
+}
+
+.ach-card.is-unlocked .ach-progress__fill {
+    background: var(--success);
+}
+
+.ach-cta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 42px;
+    max-width: 100%;
+    margin-top: 0.85rem;
+    padding: 0.55rem 1rem;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius-control);
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-align: center;
+    text-decoration: none;
+    overflow-wrap: anywhere;
+    transition: background-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+}
+
+.ach-cta:hover {
+    background: var(--ink-soft);
+    color: var(--paper);
+    text-decoration: none;
+}
+
+.ach-cta:active {
+    transform: scale(0.98);
+}
+
+.ach-empty {
+    padding: 2.5rem 1.5rem;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    color: var(--muted);
+    text-align: center;
+}
+
+@media (max-width: 480px) {
+    .ach-page {
+        padding-bottom: 2.5rem;
+    }
+
+    .ach-hero {
+        padding: 22px 20px;
+    }
+
+    .ach-card {
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+
+    .ach-card.is-unlocked::after {
+        display: none;
+    }
+
+    .ach-icon {
+        width: 42px;
+        height: 42px;
+        font-size: 1.2rem;
+    }
+
+    .ach-body {
+        padding-right: 0;
+    }
+
+    .ach-cta {
+        width: 100%;
+        min-height: 44px;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ach-progress__fill,
+    .ach-cta {
+        transition: none;
+    }
+}

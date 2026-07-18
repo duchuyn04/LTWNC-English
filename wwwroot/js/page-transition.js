@@ -4,10 +4,6 @@
     const CLASS_IN = 'pt-overlay--in';
     const CLASS_OUT = 'pt-overlay--out';
 
-    function prefersReducedMotion() {
-        return window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    }
-
     function getOverlay() {
         return document.getElementById(OVERLAY_ID);
     }
@@ -26,11 +22,6 @@
         const overlay = getOverlay();
         if (!overlay) return;
 
-        if (prefersReducedMotion()) {
-            overlay.remove();
-            return;
-        }
-
         overlay.classList.add(CLASS_OUT);
         overlay.addEventListener('transitionend', () => overlay.remove(), { once: true });
         setTimeout(() => overlay.remove(), 600);
@@ -40,11 +31,6 @@
         const overlay = createOverlay();
         overlay.classList.remove(CLASS_VISIBLE);
         overlay.classList.remove(CLASS_OUT);
-
-        if (prefersReducedMotion()) {
-            location.href = href;
-            return;
-        }
 
         void overlay.offsetWidth;
         overlay.classList.add(CLASS_IN);

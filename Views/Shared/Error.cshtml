@@ -1,25 +1,27 @@
 ﻿@model ErrorViewModel
 @{
-    ViewData["Title"] = "Error";
+    ViewData["Title"] = "Có lỗi xảy ra";
 }
 
-<h1 class="text-danger gsap-fade-up">Error.</h1>
-<h2 class="text-danger gsap-fade-up">An error occurred while processing your request.</h2>
+<section class="mx-auto gsap-fade-up col-12 col-lg-8">
+    <div class="card-custom p-4 p-md-5">
+        <p class="eyebrow mb-2">Tạm gián đoạn</p>
+        <h1 class="mb-3">Chúng tôi chưa thể hoàn tất yêu cầu này.</h1>
+        <p class="text-muted-custom mb-4">
+            Hãy thử tải lại trang sau ít phút. Nếu lỗi vẫn tiếp diễn, mã yêu cầu bên dưới sẽ giúp chúng tôi kiểm tra nhanh hơn.
+        </p>
 
-@if (Model.ShowRequestId)
-{
-    <p class="gsap-fade-up">
-        <strong>Request ID:</strong> <code>@Model.RequestId</code>
-    </p>
-}
+        @if (Model.ShowRequestId)
+        {
+            <div class="mb-4 p-3 rounded-3 border bg-body-tertiary">
+                <span class="d-block text-muted-custom small mb-1">Mã yêu cầu</span>
+                <code class="text-dark text-break">@Model.RequestId</code>
+            </div>
+        }
 
-<h3 class="gsap-fade-up">Development Mode</h3>
-<p class="gsap-fade-up">
-    Swapping to <strong>Development</strong> environment will display more detailed information about the error that occurred.
-</p>
-<p class="gsap-fade-up">
-    <strong>The Development environment shouldn't be enabled for deployed applications.</strong>
-    It can result in displaying sensitive information from exceptions to end users.
-    For local debugging, enable the <strong>Development</strong> environment by setting the <strong>ASPNETCORE_ENVIRONMENT</strong> environment variable to <strong>Development</strong>
-    and restarting the app.
-</p>
+        <div class="d-flex flex-wrap gap-2">
+            <a class="btn-primary-custom" href="/">Về trang chủ</a>
+            <button class="btn-secondary-custom" type="button" onclick="window.location.reload()">Thử lại</button>
+        </div>
+    </div>
+</section>

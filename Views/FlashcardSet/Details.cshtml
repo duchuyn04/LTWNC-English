@@ -76,7 +76,7 @@
                 <h3>Danh sách từ</h3>
                 @if (Model.IsOwner)
                 {
-                    <a href="/Set/@Model.Id/Edit" class="btn-secondary-custom" style="padding: 0.4rem 0.8rem; font-size: 0.8125rem;">Quản lý</a>
+                    <a href="/Set/@Model.Id/Edit" class="btn-secondary-custom set-detail-list-action">Quản lý</a>
                 }
             </div>
             @foreach (var card in Model.Flashcards.OrderBy(c => c.OrderIndex))
@@ -84,7 +84,7 @@
                 <div class="set-detail-row">
                     <div>
                         <div class="set-detail-term">@card.FrontText</div>
-                        <small style="color: #78716c;">@card.PartOfSpeech · @card.Pronunciation</small>
+                        <small class="set-detail-meta">@card.PartOfSpeech · @card.Pronunciation</small>
                     </div>
                     <div class="set-detail-definition">@card.BackText</div>
                 </div>
@@ -94,8 +94,8 @@
     else
     {
         <div class="set-empty-state gsap-fade-up">
-            <div class="set-empty-state-icon">📝</div>
-            <p style="font-size: 1.1rem; font-weight: 600; color: var(--sm-ink);">Bộ thẻ này chưa có từ nào.</p>
+            <div class="set-empty-state-icon"><i class="ph ph-note-pencil" aria-hidden="true"></i></div>
+            <p class="set-empty-state-title">Bộ thẻ này chưa có từ nào.</p>
             @if (Model.IsOwner)
             {
                 <a href="/Set/@Model.Id/Edit" class="btn-primary-custom gsap-scale-in">Thêm từ đầu tiên</a>

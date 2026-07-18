@@ -19,9 +19,9 @@
     @if (!Model.Any())
     {
         <div class="set-empty-state gsap-fade-up">
-            <div class="set-empty-state-icon">📚</div>
-            <p style="font-size: 1.1rem; font-weight: 600; color: var(--sm-ink);">Bạn chưa có bộ thẻ nào.</p>
-            <p style="margin-bottom: 1.5rem;">Tạo bộ thẻ đầu tiên để bắt đầu học.</p>
+            <div class="set-empty-state-icon"><i class="ph ph-books" aria-hidden="true"></i></div>
+            <p class="set-empty-state-title">Bạn chưa có bộ thẻ nào.</p>
+            <p class="set-empty-state-copy">Tạo bộ thẻ đầu tiên để bắt đầu học.</p>
             <a href="/Set/Create" class="btn-primary-custom gsap-scale-in">Tạo bộ thẻ đầu tiên</a>
         </div>
     }
@@ -40,7 +40,7 @@
                         </div>
                         @if (!string.IsNullOrEmpty(item.Description))
                         {
-                            <p style="color: #78716c; font-size: 0.875rem; margin: 0 0 0.75rem;">@item.Description</p>
+                            <p class="set-card-description">@item.Description</p>
                         }
                         <p class="set-card-meta">@item.TotalCards từ · Đã học @item.MasteryPercent%</p>
                         <div class="set-card-progress">
