@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ltwnc.Data;
 
@@ -11,9 +12,11 @@ using ltwnc.Data;
 namespace ltwnc.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260718050050_RestoreIdentityAuth")]
+    partial class RestoreIdentityAuth
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -410,48 +413,6 @@ namespace ltwnc.Migrations
                     b.ToTable("UserAchievements");
                 });
 
-            modelBuilder.Entity("ltwnc.Models.Entities.UserProfile", b =>
-                {
-                    b.Property<string>("UserId")
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.Property<string>("AvatarPath")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Bio")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("IsPublic")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastUsernameChangedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<bool>("ShowActivity")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ShowBadges")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ShowPublicSets")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ShowStats")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("UserId");
-
-                    b.ToTable("UserProfiles");
-                });
-
             modelBuilder.Entity("ltwnc.Models.Entities.UserProgress", b =>
                 {
                     b.Property<int>("Id")
@@ -650,15 +611,6 @@ namespace ltwnc.Migrations
                         .IsRequired();
 
                     b.Navigation("FlashcardSet");
-                });
-
-            modelBuilder.Entity("ltwnc.Models.Entities.UserProfile", b =>
-                {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityUser", null)
-                        .WithOne()
-                        .HasForeignKey("ltwnc.Models.Entities.UserProfile", "UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
                 });
 
             modelBuilder.Entity("ltwnc.Models.Entities.UserProgress", b =>
