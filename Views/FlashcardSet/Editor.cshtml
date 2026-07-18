@@ -38,14 +38,15 @@
                  data-order="@card.OrderIndex"
                  data-starred="@card.IsStarred.ToString().ToLowerInvariant()">
                 <div class="card-header">
+                    <span class="card-drag-handle" aria-label="Drag to reorder">⋮⋮</span>
                     <span class="card-number">@(i + 1)</span>
                     <button type="button" class="btn-star" aria-label="Toggle star">
                         @(card.IsStarred ? "★" : "☆")
                     </button>
                     <span class="card-term">@card.FrontText</span>
                     <div class="card-actions">
-                        <button type="button" class="btn-move-up" aria-label="Move up">▲</button>
-                        <button type="button" class="btn-move-down" aria-label="Move down">▼</button>
+                        <button type="button" class="btn-move-up" aria-label="Move up">↑</button>
+                        <button type="button" class="btn-move-down" aria-label="Move down">↓</button>
                         <button type="button" class="btn-toggle" aria-label="Expand/collapse">▲</button>
                         <button type="button" class="btn-delete" aria-label="Delete">🗑</button>
                     </div>

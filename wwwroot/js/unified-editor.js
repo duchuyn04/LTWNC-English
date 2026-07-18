@@ -34,26 +34,53 @@
         cardCountLabel.textContent = cards.length;
     }
 
-    const sortable = Sortable.create(container, {
-        handle: '.card-header',
-        animation: 150,
-        ghostClass: 'sortable-ghost',
-        onEnd: async function () {
+    async function persistOrder() {
+        try {
             const orderedIds = Array.from(container.querySelectorAll('.flashcard-card'))
                 .map(card => parseInt(card.dataset.id))
                 .filter(id => !isNaN(id));
 
-            if (orderedIds.length === 0) return;
+            if (orderedIds.length === 0) return true;
 
             const currentSetId = getSetId() || await ensureSetCreated();
-            if (!currentSetId) return;
+            if (!currentSetId) return false;
 
-            await fetch('/api/flashcards/reorder', {
+            setSaveStatus('Đang lưu...', 'saving');
+            const response = await fetch('/api/flashcards/reorder', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ setId: currentSetId, orderedCardIds: orderedIds })
             });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
             updateCardNumbering();
+            setSaveStatus('Đã lưu', 'saved');
+            return true;
+        } catch (err) {
+            setSaveStatus('Lỗi lưu thứ tự', 'error');
+            console.error('Reorder failed:', err);
+            return false;
+        }
+    }
+
+    let orderBeforeDrag = [];
+    const sortable = Sortable.create(container, {
+        handle: '.card-drag-handle',
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        onStart: function () {
+            orderBeforeDrag = sortable.toArray();
+        },
+        onEnd: async function (evt) {
+            const ok = await persistOrder();
+            if (!ok && evt) {
+                sortable.sort(orderBeforeDrag);
+                updateCardNumbering();
+            }
+            return ok;
         }
     });
 
@@ -256,12 +283,13 @@
         div.dataset.starred = 'false';
         div.innerHTML = `
             <div class="card-header">
+                <span class="card-drag-handle" aria-label="Drag to reorder">⋮⋮</span>
                 <span class="card-number">0</span>
                 <button type="button" class="btn-star" aria-label="Toggle star">☆</button>
                 <span class="card-term"></span>
                 <div class="card-actions">
-                    <button type="button" class="btn-move-up" aria-label="Move up">▲</button>
-                    <button type="button" class="btn-move-down" aria-label="Move down">▼</button>
+                    <button type="button" class="btn-move-up" aria-label="Move up">↑</button>
+                    <button type="button" class="btn-move-down" aria-label="Move down">↓</button>
                     <button type="button" class="btn-toggle" aria-label="Expand/collapse">▲</button>
                     <button type="button" class="btn-delete" aria-label="Delete">🗑</button>
                 </div>
@@ -354,20 +382,34 @@
             }
         });
 
-        card.querySelector('.btn-move-up')?.addEventListener('click', (e) => {
+        card.querySelector('.btn-move-up')?.addEventListener('click', async (e) => {
             e.stopPropagation();
             const prev = card.previousElementSibling;
-            if (prev) container.insertBefore(card, prev);
-            sortable.options.onEnd();
-            updateCardNumbering();
+            if (!prev) return;
+            container.insertBefore(card, prev);
+            try {
+                const ok = await sortable.options.onEnd();
+                if (!ok) {
+                    container.insertBefore(prev, card);
+                }
+            } catch (err) {
+                container.insertBefore(prev, card);
+            }
         });
 
-        card.querySelector('.btn-move-down')?.addEventListener('click', (e) => {
+        card.querySelector('.btn-move-down')?.addEventListener('click', async (e) => {
             e.stopPropagation();
             const next = card.nextElementSibling;
-            if (next) container.insertBefore(next, card);
-            sortable.options.onEnd();
-            updateCardNumbering();
+            if (!next) return;
+            container.insertBefore(next, card);
+            try {
+                const ok = await sortable.options.onEnd();
+                if (!ok) {
+                    container.insertBefore(card, next);
+                }
+            } catch (err) {
+                container.insertBefore(card, next);
+            }
         });
 
         card.addEventListener('click', () => {
