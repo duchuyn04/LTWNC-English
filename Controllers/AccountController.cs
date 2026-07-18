@@ -1,17 +1,25 @@
-using Microsoft.AspNetCore.Mvc;
 using ltwnc.Models.ViewModels.Account;
-using ltwnc.Services.Auth;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Controllers;
 
-// Đăng ký, đăng nhập, đăng xuất (cookie auth + IAuthService).
 public class AccountController : Controller
 {
-    private readonly IAuthService _authService;
+    private static readonly TimeSpan RegisterCookieLifetime = TimeSpan.FromDays(1);
+    private static readonly TimeSpan RememberMeCookieLifetime = TimeSpan.FromDays(30);
+    private static readonly TimeSpan SessionCookieLifetime = TimeSpan.FromDays(1);
 
-    public AccountController(IAuthService authService)
+    private readonly UserManager<IdentityUser> _userManager;
+    private readonly SignInManager<IdentityUser> _signInManager;
+
+    public AccountController(
+        UserManager<IdentityUser> userManager,
+        SignInManager<IdentityUser> signInManager)
     {
-        _authService = authService;
+        _userManager = userManager;
+        _signInManager = signInManager;
     }
 
     [HttpGet]
@@ -26,22 +34,33 @@ public class AccountController : Controller
             return View(model);
         }
 
-        AuthResult result = await _authService.RegisterAsync(
-            model.Username,
-            model.Email,
-            model.Password);
-
-        if (result.Succeeded)
+        var user = new IdentityUser
         {
-            return RedirectToAction("Index", "Home");
+            UserName = model.Username.Trim(),
+            Email = model.Email.Trim()
+        };
+
+        IdentityResult result = await _userManager.CreateAsync(user, model.Password);
+
+        if (!result.Succeeded)
+        {
+            foreach (IdentityError error in result.Errors)
+            {
+                ModelState.AddModelError(string.Empty, MapIdentityError(error));
+            }
+
+            return View(model);
         }
 
-        foreach (string error in result.Errors)
-        {
-            ModelState.AddModelError(string.Empty, error);
-        }
+        await _signInManager.SignInAsync(
+            user,
+            new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.Add(RegisterCookieLifetime)
+            });
 
-        return View(model);
+        return RedirectToAction("Index", "Home");
     }
 
     [HttpGet]
@@ -56,29 +75,53 @@ public class AccountController : Controller
             return View(model);
         }
 
-        AuthResult result = await _authService.LoginAsync(
-            model.Email,
+        IdentityUser? user = await _userManager.FindByEmailAsync(model.Email.Trim());
+        if (user is null)
+        {
+            ModelState.AddModelError(string.Empty, "Email hoặc mật khẩu không đúng.");
+            return View(model);
+        }
+
+        Microsoft.AspNetCore.Identity.SignInResult result = await _signInManager.CheckPasswordSignInAsync(
+            user,
             model.Password,
-            model.RememberMe);
+            lockoutOnFailure: false);
 
-        if (result.Succeeded)
+        if (!result.Succeeded)
         {
-            return Redirect("/Set");
+            ModelState.AddModelError(string.Empty, "Email hoặc mật khẩu không đúng.");
+            return View(model);
         }
 
-        foreach (string error in result.Errors)
-        {
-            ModelState.AddModelError(string.Empty, error);
-        }
+        TimeSpan lifetime = model.RememberMe ? RememberMeCookieLifetime : SessionCookieLifetime;
+        await _signInManager.SignInAsync(
+            user,
+            new AuthenticationProperties
+            {
+                IsPersistent = true,
+                ExpiresUtc = DateTimeOffset.UtcNow.Add(lifetime)
+            });
 
-        return View(model);
+        return Redirect("/Set");
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
-        await _authService.LogoutAsync();
+        await _signInManager.SignOutAsync();
         return RedirectToAction("Index", "Home");
     }
+
+    private static string MapIdentityError(IdentityError error) => error.Code switch
+    {
+        nameof(IdentityErrorDescriber.DuplicateEmail) or "DuplicateEmail" => "Email đã được sử dụng.",
+        nameof(IdentityErrorDescriber.DuplicateUserName) or "DuplicateUserName" => "Tên đăng nhập đã được sử dụng.",
+        nameof(IdentityErrorDescriber.InvalidUserName) or "InvalidUserName" => "Tên đăng nhập không hợp lệ.",
+        nameof(IdentityErrorDescriber.PasswordTooShort) or "PasswordTooShort" => "Mật khẩu phải có ít nhất 8 ký tự.",
+        nameof(IdentityErrorDescriber.PasswordRequiresUpper) or "PasswordRequiresUpper" => "Mật khẩu phải có ít nhất một chữ hoa.",
+        nameof(IdentityErrorDescriber.PasswordRequiresLower) or "PasswordRequiresLower" => "Mật khẩu phải có ít nhất một chữ thường.",
+        nameof(IdentityErrorDescriber.PasswordRequiresDigit) or "PasswordRequiresDigit" => "Mật khẩu phải có ít nhất một chữ số.",
+        _ => error.Description
+    };
 }
