@@ -29,6 +29,12 @@ public class AppDbContext : IdentityUserContext<IdentityUser>
     {
         base.OnModelCreating(builder);
 
+        builder.Entity<IdentityUser>()
+            .HasIndex(u => u.NormalizedEmail)
+            .IsUnique()
+            .HasDatabaseName("EmailIndex")
+            .HasFilter("[NormalizedEmail] IS NOT NULL");
+
         // Cấu hình bảng FlashcardSets
         builder.Entity<FlashcardSet>(entity =>
         {
