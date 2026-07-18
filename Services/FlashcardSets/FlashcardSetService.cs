@@ -458,10 +458,10 @@ public class FlashcardSetService : IFlashcardSetService
         int setId,
         string frontText,
         string backText,
-        string pronunciation,
-        string partOfSpeech,
-        string exampleSentence,
-        string exampleMeaning,
+        string? pronunciation,
+        string? partOfSpeech,
+        string? exampleSentence,
+        string? exampleMeaning,
         string? synonyms,
         string? imageUrl,
         IFormFile? imageFile,
@@ -479,10 +479,10 @@ public class FlashcardSetService : IFlashcardSetService
 
         frontText = RequiredText(frontText, "Thuật ngữ");
         backText = RequiredText(backText, "Định nghĩa");
-        pronunciation = RequiredText(pronunciation, "IPA");
-        partOfSpeech = RequiredText(partOfSpeech, "Loại từ", 80);
-        exampleSentence = RequiredText(exampleSentence, "Ví dụ tiếng Anh");
-        exampleMeaning = RequiredText(exampleMeaning, "Nghĩa câu ví dụ tiếng Việt");
+        pronunciation = (pronunciation ?? string.Empty).Trim();
+        partOfSpeech = (partOfSpeech ?? string.Empty).Trim();
+        exampleSentence = (exampleSentence ?? string.Empty).Trim();
+        exampleMeaning = (exampleMeaning ?? string.Empty).Trim();
         synonyms = OptionalText(synonyms);
         imageUrl = OptionalText(imageUrl);
         string? uploadedImagePath = await SaveImageAsync(imageFile);
@@ -519,10 +519,10 @@ public class FlashcardSetService : IFlashcardSetService
         int cardId,
         string frontText,
         string backText,
-        string pronunciation,
-        string partOfSpeech,
-        string exampleSentence,
-        string exampleMeaning,
+        string? pronunciation,
+        string? partOfSpeech,
+        string? exampleSentence,
+        string? exampleMeaning,
         string? synonyms,
         string? imageUrl,
         IFormFile? imageFile,
@@ -546,10 +546,10 @@ public class FlashcardSetService : IFlashcardSetService
 
         card.FrontText = RequiredText(frontText, "Thuật ngữ");
         card.BackText = RequiredText(backText, "Định nghĩa");
-        card.Pronunciation = RequiredText(pronunciation, "IPA");
-        card.PartOfSpeech = RequiredText(partOfSpeech, "Loại từ", 80);
-        card.ExampleSentence = RequiredText(exampleSentence, "Ví dụ tiếng Anh");
-        card.ExampleMeaning = RequiredText(exampleMeaning, "Nghĩa câu ví dụ tiếng Việt");
+        card.Pronunciation = (pronunciation ?? string.Empty).Trim();
+        card.PartOfSpeech = (partOfSpeech ?? string.Empty).Trim();
+        card.ExampleSentence = (exampleSentence ?? string.Empty).Trim();
+        card.ExampleMeaning = (exampleMeaning ?? string.Empty).Trim();
         card.Synonyms = OptionalText(synonyms);
         card.ImageUrl = OptionalText(imageUrl);
 
