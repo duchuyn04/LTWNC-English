@@ -294,6 +294,7 @@
         const isAuthenticated = @Json.Serialize(Model.IsAuthenticated);
         const settings = { ...initialSettings };
         const setId = @Model.SetId;
+        const sessionId = @Model.SessionId;
         const vocabularyCards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.VocabularyCards.Select(c =>
         {
             Model.ProgressByCardId.TryGetValue(c.Id, out var progress);
@@ -797,15 +798,7 @@
         }
 
         function restartStudy() {
-            currentIndex = 0;
-            sessionStats.learned.clear();
-            sessionStats.unlearned.clear();
-
-            document.getElementById('study-view').style.display = 'flex';
-            document.getElementById('completion-view').style.display = 'none';
-
-            stopFireworks();
-            updateUI();
+            window.location.reload();
         }
 
         function completeStudySession() {
@@ -813,6 +806,7 @@
             const params = new URLSearchParams();
             params.append('__RequestVerificationToken', verificationToken);
             params.append('setId', setId);
+            params.append('sessionId', sessionId);
 
             fetch(`/Study/${setId}/Complete`, {
                 method: 'POST',

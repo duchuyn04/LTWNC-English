@@ -341,8 +341,11 @@ namespace ltwnc.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
 
-                    b.Property<DateTime>("CompletedAt")
+                    b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("DurationSeconds")
+                        .HasColumnType("int");
 
                     b.Property<int>("DictationContentMode")
                         .HasColumnType("int");
@@ -352,6 +355,9 @@ namespace ltwnc.Migrations
 
                     b.Property<int>("Mode")
                         .HasColumnType("int");
+
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
 
                     b.Property<int?>("Score")
                         .HasColumnType("int");
@@ -365,6 +371,8 @@ namespace ltwnc.Migrations
                     b.HasIndex("FlashcardSetId");
 
                     b.HasIndex("UserId", "FlashcardSetId");
+
+                    b.HasIndex("CompletedAt", "UserId");
 
                     b.ToTable("StudySessions");
                 });
@@ -448,6 +456,8 @@ namespace ltwnc.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("UserId");
+
+                    b.HasIndex("IsPublic", "ShowStats");
 
                     b.ToTable("UserProfiles");
                 });

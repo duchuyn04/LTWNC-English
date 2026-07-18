@@ -8,6 +8,9 @@ public class FlashcardStudyViewModel
     // Bộ thẻ
     public int SetId { get; set; }
 
+    // StudySession.Id đang chạy; 0 với khách chưa đăng nhập.
+    public int SessionId { get; set; }
+
     // Tiêu đề header
     public string SetTitle { get; set; } = string.Empty;
 

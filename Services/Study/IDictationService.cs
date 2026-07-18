@@ -20,12 +20,13 @@ public interface IDictationService
 
     Task<DictationCheckResult> CheckAnswerAsync(
         int sessionId,
+        int setId,
         int cardId,
         string answeredText,
         string userId,
         bool acceptSynonyms);
 
-    Task<StudySession> CompleteSessionAsync(int sessionId, int score);
+    Task<StudySession> CompleteSessionAsync(int sessionId, int setId, int score, string userId);
 
     Task<DictationResult> GetSessionResultAsync(int sessionId, string userId);
 }

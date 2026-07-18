@@ -94,16 +94,19 @@ public class DictationService : IDictationService
 
     // Publish sau khi chấm / complete session
     private readonly IStudyEventPublisher _studyEvents;
+    private readonly TimeProvider _timeProvider;
 
     // Inject DbContext, resolver, publisher
     public DictationService(
         AppDbContext context,
         IStudyModeStrategyResolver strategyResolver,
-        IStudyEventPublisher studyEvents)
+        IStudyEventPublisher studyEvents,
+        TimeProvider? timeProvider = null)
     {
         _context = context;
         _strategyResolver = strategyResolver;
         _studyEvents = studyEvents;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     // Lấy danh sách thẻ cho màn hình Dictation.
@@ -167,7 +170,7 @@ public class DictationService : IDictationService
             FlashcardSetId = setId,
             Mode = StudyMode.Dictation,
             DictationContentMode = contentMode,
-            CompletedAt = DateTime.UtcNow
+            StartedAt = _timeProvider.GetUtcNow().UtcDateTime
         };
 
         await _context.StudySessions.AddAsync(session);
@@ -178,6 +181,7 @@ public class DictationService : IDictationService
     // Kiểm tra đáp án của người dùng
     public async Task<DictationCheckResult> CheckAnswerAsync(
         int sessionId,
+        int setId,
         int cardId,
         string answeredText,
         string userId,
@@ -189,7 +193,9 @@ public class DictationService : IDictationService
             throw new KeyNotFoundException("Phiên học không tồn tại.");
         }
 
-        if (session.UserId != userId)
+        if (session.UserId != userId
+            || session.FlashcardSetId != setId
+            || session.Mode != StudyMode.Dictation)
         {
             throw new UnauthorizedAccessException("Không có quyền truy cập phiên học này.");
         }
@@ -524,7 +530,7 @@ public class DictationService : IDictationService
     }
 
     // Đóng phiên học và lưu điểm
-    public async Task<StudySession> CompleteSessionAsync(int sessionId, int score)
+    public async Task<StudySession> CompleteSessionAsync(int sessionId, int setId, int score, string userId)
     {
         StudySession? session = await _context.StudySessions.FindAsync(sessionId);
         if (session == null)
@@ -532,14 +538,30 @@ public class DictationService : IDictationService
             throw new KeyNotFoundException("Phiên học không tồn tại.");
         }
 
+        if (session.UserId != userId
+            || session.FlashcardSetId != setId
+            || session.Mode != StudyMode.Dictation)
+        {
+            throw new UnauthorizedAccessException("Không có quyền hoàn tất phiên nghe chép này.");
+        }
+
+        if (session.CompletedAt.HasValue)
+        {
+            return session;
+        }
+
         session.Score = score;
-        session.CompletedAt = DateTime.UtcNow;
+        DateTime completedAt = _timeProvider.GetUtcNow().UtcDateTime;
+        session.DurationSeconds = StudySessionTiming.CalculateDurationSeconds(
+            session.StartedAt,
+            completedAt);
+        session.CompletedAt = completedAt;
         await _context.SaveChangesAsync();
 
         // Báo buổi nghe chép đã xong; có thể mở huy hiệu Dictation / điểm 100
         await _studyEvents.PublishAsync(new StudySessionCompletedEvent(
             UserId: session.UserId,
-            OccurredAtUtc: DateTime.UtcNow,
+            OccurredAtUtc: completedAt,
             SetId: session.FlashcardSetId,
             SessionId: session.Id,
             Mode: StudyMode.Dictation,

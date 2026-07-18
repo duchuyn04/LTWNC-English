@@ -11,6 +11,7 @@ using ltwnc.Services.Study;
 using ltwnc.Services.StudyEvents;
 using ltwnc.Services.StudyModes;
 using ltwnc.Services.Profiles;
+using ltwnc.Services.Leaderboard;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -57,6 +58,7 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IAvatarService, AvatarService>();
+builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.Configure<RouteOptions>(options =>
     options.ConstraintMap["profileUsername"] = typeof(ProfileUsernameRouteConstraint));
 

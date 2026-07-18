@@ -13,7 +13,7 @@ public enum StudyMode
     Dictation  // Nghe chép chính tả
 }
 
-// Bảng StudySessions: một buổi học đã hoàn thành.
+// Bảng StudySessions: một phiên học đang chạy hoặc đã hoàn thành.
 public class StudySession
 {
     // Khóa chính, tự động tăng
@@ -37,8 +37,14 @@ public class StudySession
     // Điểm: Dictation/Quiz...; Flashcard thường null
     public int? Score { get; set; }
 
-    // Thời gian hoàn thành phiên học
-    public DateTime CompletedAt { get; set; } = DateTime.UtcNow;
+    // Thời điểm bắt đầu phiên học.
+    public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+
+    // Thời gian hoàn thành phiên học; null nếu user bỏ dở.
+    public DateTime? CompletedAt { get; set; }
+
+    // Số giây học được server tính khi hoàn tất; null với session cũ/chưa hoàn tất.
+    public int? DurationSeconds { get; set; }
 
     // Bộ thẻ của buổi học
     [ForeignKey(nameof(FlashcardSetId))]

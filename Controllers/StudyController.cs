@@ -123,9 +123,14 @@ public class StudyController : Controller
             return RedirectToAction("Index", new { setId });
         }
 
+        StudySession? session = userId == null
+            ? null
+            : await _studyService.StartSessionAsync(userId, setId, StudyMode.Flashcard);
+
         FlashcardStudyViewModel model = new FlashcardStudyViewModel
         {
             SetId = setId,
+            SessionId = session?.Id ?? 0,
             SetTitle = set.Title,
             Flashcards = FlashcardViewModelMapper.FromEntities(cards),
             VocabularyCards = FlashcardViewModelMapper.FromEntities(vocabularyCards),
@@ -184,7 +189,7 @@ public class StudyController : Controller
     [HttpPost]
     [Route("/Study/{setId}/Complete")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Complete(int setId)
+    public async Task<IActionResult> Complete(int setId, int sessionId)
     {
         string? userId = _currentUser.UserId;
         if (userId == null)
@@ -199,7 +204,7 @@ public class StudyController : Controller
 
         try
         {
-            await _studyService.CompleteSessionAsync(userId, setId, StudyMode.Flashcard);
+            await _studyService.CompleteSessionAsync(userId, setId, sessionId);
         }
         catch (KeyNotFoundException)
         {
@@ -426,6 +431,7 @@ public class StudyController : Controller
             UserStudySettings settings = await _studyService.GetSettingsAsync(userId);
             DictationCheckResult result = await _dictationService.CheckAnswerAsync(
                 sessionId,
+                setId,
                 cardId,
                 answeredText,
                 userId,
@@ -473,7 +479,7 @@ public class StudyController : Controller
 
         try
         {
-            await _dictationService.CompleteSessionAsync(sessionId, score);
+            await _dictationService.CompleteSessionAsync(sessionId, setId, score, userId);
             return Json(new
             {
                 success = true,
@@ -483,6 +489,10 @@ public class StudyController : Controller
         catch (KeyNotFoundException)
         {
             return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
         }
     }
 

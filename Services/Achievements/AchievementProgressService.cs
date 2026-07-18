@@ -31,13 +31,17 @@ public class AchievementProgressService : IAchievementProgressService
         // Buổi Flashcard đã hoàn thành
         int flashcardSessions = await _context.StudySessions
             .CountAsync(
-                session => session.UserId == userId && session.Mode == StudyMode.Flashcard,
+                session => session.UserId == userId
+                    && session.Mode == StudyMode.Flashcard
+                    && session.CompletedAt.HasValue,
                 cancellationToken);
 
         // Buổi Dictation (mọi điểm)
         int dictationSessions = await _context.StudySessions
             .CountAsync(
-                session => session.UserId == userId && session.Mode == StudyMode.Dictation,
+                session => session.UserId == userId
+                    && session.Mode == StudyMode.Dictation
+                    && session.CompletedAt.HasValue,
                 cancellationToken);
 
         // Buổi Dictation điểm 100
@@ -46,6 +50,7 @@ public class AchievementProgressService : IAchievementProgressService
                 session =>
                     session.UserId == userId
                     && session.Mode == StudyMode.Dictation
+                    && session.CompletedAt.HasValue
                     && session.Score == 100,
                 cancellationToken);
 
@@ -53,7 +58,9 @@ public class AchievementProgressService : IAchievementProgressService
         int dictationCorrectAnswers = await (
             from detail in _context.DictationSessionDetails
             join session in _context.StudySessions on detail.StudySessionId equals session.Id
-            where session.UserId == userId && detail.IsCorrect
+            where session.UserId == userId
+                && session.CompletedAt.HasValue
+                && detail.IsCorrect
             select detail
         ).CountAsync(cancellationToken);
 

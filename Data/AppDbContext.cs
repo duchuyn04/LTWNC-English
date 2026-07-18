@@ -45,6 +45,7 @@ public class AppDbContext : IdentityUserContext<IdentityUser>
                 .WithOne()
                 .HasForeignKey<UserProfile>(profile => profile.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(profile => new { profile.IsPublic, profile.ShowStats });
         });
 
         // Cấu hình bảng FlashcardSets
@@ -78,6 +79,7 @@ public class AppDbContext : IdentityUserContext<IdentityUser>
         {
             // Index composite (UserId + FlashcardSetId) — tăng tốc truy vấn theo người dùng và bộ thẻ
             entity.HasIndex(e => new { e.UserId, e.FlashcardSetId });
+            entity.HasIndex(e => new { e.CompletedAt, e.UserId });
             // Quan hệ: nhiều StudySession thuộc về 1 FlashcardSet
             // Restrict = không cho xóa bộ thẻ nếu còn phiên học (tránh mất dữ liệu)
             entity.HasOne(e => e.FlashcardSet)

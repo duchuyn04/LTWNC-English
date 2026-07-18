@@ -352,7 +352,7 @@ public sealed class ProfileService : IProfileService
             LearnedFlashcardCount = await _db.UserProgresses.CountAsync(
                 progress => progress.UserId == userId && progress.IsLearned, cancellationToken),
             CompletedSessionCount = await _db.StudySessions.CountAsync(
-                session => session.UserId == userId, cancellationToken),
+                session => session.UserId == userId && session.CompletedAt.HasValue, cancellationToken),
             UnlockedBadgeCount = await _db.UserAchievements.CountAsync(
                 achievement => achievement.UserId == userId, cancellationToken),
             CurrentStreak = CalculateStreak(activeDates, now.Date)
@@ -403,7 +403,7 @@ public sealed class ProfileService : IProfileService
         var items = new List<ProfileTimelineItemViewModel>();
         items.AddRange(await _db.StudySessions
             .AsNoTracking()
-            .Where(session => session.UserId == userId)
+            .Where(session => session.UserId == userId && session.CompletedAt.HasValue)
             .Select(session => new ProfileTimelineItemViewModel
             {
                 Kind = "study",
@@ -411,7 +411,7 @@ public sealed class ProfileService : IProfileService
                 Detail = session.Score.HasValue
                     ? $"{session.Mode} · Điểm: {session.Score}"
                     : session.Mode.ToString(),
-                Timestamp = session.CompletedAt
+                Timestamp = session.CompletedAt!.Value
             })
             .ToListAsync(cancellationToken));
         items.AddRange(await _db.UserAchievements
@@ -448,8 +448,8 @@ public sealed class ProfileService : IProfileService
         CancellationToken cancellationToken)
     {
         List<DateTime> dates = await _db.StudySessions
-            .Where(session => session.UserId == userId)
-            .Select(session => session.CompletedAt)
+            .Where(session => session.UserId == userId && session.CompletedAt.HasValue)
+            .Select(session => session.CompletedAt!.Value)
             .ToListAsync(cancellationToken);
         dates.AddRange(await _db.UserAchievements
             .Where(achievement => achievement.UserId == userId)
