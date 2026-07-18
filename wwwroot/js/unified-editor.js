@@ -442,6 +442,101 @@
         window.location.href = '/Set';
     });
 
+    const btnImport = document.getElementById('btn-import');
+    const importModal = document.getElementById('import-modal');
+    const importText = document.getElementById('import-text');
+    const importDelimiter = document.getElementById('import-delimiter');
+    const importReplace = document.getElementById('import-replace');
+    const importPreview = document.getElementById('import-preview');
+    const btnImportCancel = document.getElementById('btn-import-cancel');
+    const btnImportConfirm = document.getElementById('btn-import-confirm');
+
+    function parseImportText(text, delimiter) {
+        return text.split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .map(line => {
+                const parts = line.split(delimiter);
+                return {
+                    frontText: parts[0]?.trim() ?? '',
+                    backText: parts[1]?.trim() ?? ''
+                };
+            });
+    }
+
+    function renderPreview(rows) {
+        const valid = rows.filter(r => r.frontText && r.backText);
+        const invalid = rows.filter(r => !r.frontText || !r.backText);
+        importPreview.innerHTML = `
+            <p>Hợp lệ: ${valid.length}, lỗi: ${invalid.length}</p>
+            <ul>
+                ${valid.slice(0, 5).map(r => `<li>${r.frontText} → ${r.backText}</li>`).join('')}
+                ${invalid.map(r => `<li class="error">Lỗi: "${r.frontText}" / "${r.backText}"</li>`).join('')}
+            </ul>
+        `;
+    }
+
+    btnImport.addEventListener('click', () => {
+        importModal.style.display = 'flex';
+        importText.value = '';
+        importPreview.innerHTML = '';
+    });
+
+    btnImportCancel.addEventListener('click', () => {
+        importModal.style.display = 'none';
+    });
+
+    [importText, importDelimiter].forEach(el => {
+        el.addEventListener('input', () => {
+            const rows = parseImportText(importText.value, importDelimiter.value);
+            renderPreview(rows);
+        });
+    });
+
+    btnImportConfirm.addEventListener('click', async () => {
+        const rows = parseImportText(importText.value, importDelimiter.value)
+            .filter(r => r.frontText && r.backText);
+        if (rows.length === 0) return;
+
+        const currentSetId = getSetId() || await ensureSetCreated();
+        if (!currentSetId) return;
+
+        const payload = {
+            setId: currentSetId,
+            cards: rows.map(r => ({
+                setId: currentSetId,
+                frontText: r.frontText,
+                backText: r.backText,
+                isStarred: false
+            })),
+            replaceAll: importReplace.checked
+        };
+
+        if (importReplace.checked) {
+            container.querySelectorAll('.flashcard-card').forEach(c => c.remove());
+        }
+
+        const response = await fetch('/api/flashcards/flashcards/batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (response.ok) {
+            const created = await response.json();
+            created.forEach(c => {
+                const card = createEmptyCard();
+                card.dataset.id = c.id;
+                card.querySelector('.input-front').value = c.frontText;
+                card.querySelector('.input-back').value = c.backText;
+                card.querySelector('.card-term').textContent = c.frontText;
+                container.appendChild(card);
+            });
+            updateCardNumbering();
+            importModal.style.display = 'none';
+        }
+    });
+
     container.querySelectorAll('.flashcard-card').forEach(bindCardEvents);
     updateCardNumbering();
     btnFinish.disabled = !setTitleInput.value.trim();
