@@ -1,0 +1,14 @@
+@model PublicProfileViewModel
+@{
+    ViewData["Title"] = "Profile riêng tư";
+}
+@section Styles {
+    <link rel="stylesheet" href="~/css/profile.css" asp-append-version="true" />
+}
+<div class="profile-private profile-card">
+    <div class="profile-avatar">@Model.AvatarInitial</div>
+    <p class="profile-eyebrow">PROFILE RIÊNG TƯ</p>
+    <h1>Profile đang ở chế độ riêng tư</h1>
+    <p>User này chưa bật chế độ công khai.</p>
+    <a class="profile-button profile-button-dark" href="/">Về trang chủ</a>
+</div>

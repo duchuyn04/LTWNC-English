@@ -59,6 +59,7 @@
                                     <i class="ph ph-user-circle"></i> @User.Identity?.Name
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" style="border: 1px solid #EAEAEA; border-radius: 8px;">
+                                    <li><a class="dropdown-item" href="/Account/Profile/Edit"><i class="ph ph-user"></i> Profile</a></li>
                                     <li>
                                         <form asp-controller="Account" asp-action="Logout" method="post" class="dropdown-item p-0">
                                             <button type="submit" class="dropdown-item" style="color: #787774;">
