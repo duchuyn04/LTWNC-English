@@ -54,4 +54,51 @@ public class FlashcardSetServiceOptionalFieldsTests
         Assert.Equal(string.Empty, card.ExampleSentence);
         Assert.Equal(string.Empty, card.ExampleMeaning);
     }
+
+    [Fact]
+    public async Task UpdateCardAsync_WithEmptyOptionalFields_SavesEmptyStrings()
+    {
+        using var context = CreateContext();
+        var service = new FlashcardSetService(context, MockEnvironment());
+        var userId = "user-1";
+        var set = await service.CreateSetAsync("Test", null, false, userId);
+
+        var card = await service.AddCardAsync(
+            set.Id,
+            frontText: "hello",
+            backText: "xin chào",
+            pronunciation: "/həˈloʊ/",
+            partOfSpeech: "interjection",
+            exampleSentence: "Hello world",
+            exampleMeaning: "Chào thế giới",
+            synonyms: null,
+            imageUrl: null,
+            imageFile: null,
+            isStarred: false,
+            userId);
+
+        await service.UpdateCardAsync(
+            card.Id,
+            frontText: "hi",
+            backText: "chào",
+            pronunciation: "",
+            partOfSpeech: "",
+            exampleSentence: "",
+            exampleMeaning: "",
+            synonyms: null,
+            imageUrl: null,
+            imageFile: null,
+            removeUploadedImage: false,
+            isStarred: false,
+            userId);
+
+        var updated = await context.Flashcards.FindAsync(card.Id);
+        Assert.NotNull(updated);
+        Assert.Equal("hi", updated.FrontText);
+        Assert.Equal("chào", updated.BackText);
+        Assert.Equal(string.Empty, updated.Pronunciation);
+        Assert.Equal(string.Empty, updated.PartOfSpeech);
+        Assert.Equal(string.Empty, updated.ExampleSentence);
+        Assert.Equal(string.Empty, updated.ExampleMeaning);
+    }
 }
