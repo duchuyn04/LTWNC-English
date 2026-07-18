@@ -60,6 +60,27 @@ public class AccountControllerTests
     }
 
     [Fact]
+    public async Task Register_CreateThrowsDbUpdateException_MapsToDuplicateEmailModelStateError()
+    {
+        var userManager = MockUserManager();
+        userManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), "Pass1234"))
+            .ThrowsAsync(new DbUpdateException(
+                "Unique constraint failed",
+                new Exception("UNIQUE constraint failed: AspNetUsers.Email")));
+        var signInManager = MockSignInManager(userManager);
+        var controller = new AccountController(userManager.Object, signInManager.Object);
+
+        var result = await controller.Register(ValidRegister());
+
+        Assert.IsType<ViewResult>(result);
+        Assert.False(controller.ModelState.IsValid);
+        Assert.Contains(controller.ModelState[string.Empty]!.Errors,
+            e => e.ErrorMessage == "Email đã được sử dụng.");
+        signInManager.Verify(x => x.SignInAsync(
+            It.IsAny<IdentityUser>(), It.IsAny<AuthenticationProperties>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
     public async Task Register_CreateFailsWithUnknownIdentityError_ReturnsGenericVietnameseError()
     {
         var userManager = MockUserManager();

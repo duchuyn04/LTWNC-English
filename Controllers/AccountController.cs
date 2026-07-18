@@ -2,6 +2,7 @@ using ltwnc.Models.ViewModels.Account;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Controllers;
 
@@ -40,7 +41,17 @@ public class AccountController : Controller
             Email = model.Email.Trim()
         };
 
-        IdentityResult result = await _userManager.CreateAsync(user, model.Password);
+        IdentityResult result;
+
+        try
+        {
+            result = await _userManager.CreateAsync(user, model.Password);
+        }
+        catch (DbUpdateException)
+        {
+            ModelState.AddModelError(string.Empty, "Email đã được sử dụng.");
+            return View(model);
+        }
 
         if (!result.Succeeded)
         {
