@@ -41,11 +41,11 @@ public class FlashcardSetController : Controller
         return View(sets);
     }
 
-    // GET form tạo bộ thẻ
+    // GET form tạo bộ thẻ (redirect sang unified editor)
     [Route("/Set/Create")]
     public IActionResult Create()
     {
-        return View();
+        return RedirectToAction("Editor");
     }
 
     // GET unified editor: tạo mới hoặc chỉnh sửa bộ thẻ
@@ -192,23 +192,11 @@ public class FlashcardSetController : Controller
         }
     }
 
-    // GET Edit: typed page model gồm metadata set + danh sách thẻ (chỉ owner)
+    // GET Edit: redirect sang unified editor
     [Route("/Set/{id}/Edit")]
-    public async Task<IActionResult> Edit(int id)
+    public IActionResult Edit(int id)
     {
-        string? userId = _currentUser.UserId;
-        if (userId == null)
-        {
-            return Challenge();
-        }
-
-        EditSetPageViewModel? model = await BuildEditPageViewModelAsync(id, userId);
-        if (model == null)
-        {
-            return NotFound();
-        }
-
-        return View(model);
+        return RedirectToAction("Editor", new { id });
     }
 
     // POST cập nhật title/description/public
