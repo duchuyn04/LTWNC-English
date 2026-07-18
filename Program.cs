@@ -8,6 +8,7 @@ using ltwnc.Services.FlashcardSets;
 using ltwnc.Services.Study;
 using ltwnc.Services.StudyEvents;
 using ltwnc.Services.StudyModes;
+using ltwnc.Services.Profiles;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -46,6 +47,7 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
 
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddScoped<IProfileService, ProfileService>();
 
 // Application services — inject qua interface (swap/decorator sau này không sửa controller)
 builder.Services.AddScoped<IFlashcardSetService, FlashcardSetService>();
