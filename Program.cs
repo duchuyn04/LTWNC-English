@@ -97,6 +97,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
+app.UseStatusCodePagesWithReExecute("/Home/NotFoundPage");
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
@@ -110,3 +111,5 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 app.Run();
+
+public partial class Program { }
