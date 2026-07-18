@@ -222,4 +222,78 @@ public class FlashcardsApiControllerTests
 
         Assert.IsType<NoContentResult>(result);
     }
+
+    [Fact]
+    public async Task UpdateSet_Authenticated_ReturnsNoContent_Task11()
+    {
+        var (controller, service) = Create("owner");
+        service.Setup(x => x.UpdateSetAsync(7, "Updated", null, true, "owner")).Returns(Task.CompletedTask);
+
+        var result = await controller.UpdateSet(7, new UpdateSetRequest
+        {
+            Title = "Updated",
+            Description = null,
+            IsPublic = true
+        });
+
+        Assert.IsType<NoContentResult>(result);
+    }
+
+    [Fact]
+    public async Task CreateCard_Authenticated_ReturnsCreated()
+    {
+        var (controller, service) = Create("owner");
+        service.Setup(x => x.AddCardAsync(
+                7, "hello", "xin chào", null, null, null, null, null, null, null, false, "owner"))
+            .ReturnsAsync(new Flashcard { Id = 42, FlashcardSetId = 7, FrontText = "hello", BackText = "xin chào" });
+
+        var result = await controller.CreateCard(new CreateCardRequest
+        {
+            SetId = 7,
+            FrontText = "hello",
+            BackText = "xin chào"
+        });
+
+        var created = Assert.IsType<CreatedAtActionResult>(result);
+        Assert.Equal(42, ((CardResponse)created.Value!).Id);
+    }
+
+    [Fact]
+    public async Task DeleteCard_Authenticated_ReturnsNoContent_Task11()
+    {
+        var (controller, service) = Create("owner");
+        service.Setup(x => x.DeleteCardAsync(42, "owner")).ReturnsAsync(7);
+
+        var result = await controller.DeleteCard(42);
+
+        Assert.IsType<NoContentResult>(result);
+    }
+
+    [Fact]
+    public async Task ToggleStar_Authenticated_ReturnsStatus()
+    {
+        var (controller, service) = Create("owner");
+        service.Setup(x => x.ToggleStarAsync(42, "owner")).ReturnsAsync(true);
+
+        var result = await controller.ToggleStar(42);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.True((bool)ok.Value!.GetType().GetProperty("isStarred")!.GetValue(ok.Value)!);
+    }
+
+    [Fact]
+    public async Task Reorder_Authenticated_ReturnsNoContent_Task11()
+    {
+        var (controller, service) = Create("owner");
+        service.Setup(x => x.ReorderCardsAsync(7, It.Is<int[]>(ids => ids.Length == 2), "owner"))
+            .Returns(Task.CompletedTask);
+
+        var result = await controller.Reorder(new ReorderRequest
+        {
+            SetId = 7,
+            OrderedCardIds = new[] { 2, 1 }
+        });
+
+        Assert.IsType<NoContentResult>(result);
+    }
 }
