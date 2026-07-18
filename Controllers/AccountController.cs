@@ -47,7 +47,7 @@ public class AccountController : Controller
         {
             result = await _userManager.CreateAsync(user, model.Password);
         }
-        catch (DbUpdateException)
+        catch (DbUpdateException ex) when (IsDuplicateEmailViolation(ex))
         {
             ModelState.AddModelError(string.Empty, "Email đã được sử dụng.");
             return View(model);
@@ -135,4 +135,16 @@ public class AccountController : Controller
         nameof(IdentityErrorDescriber.PasswordRequiresDigit) or "PasswordRequiresDigit" => "Mật khẩu phải có ít nhất một chữ số.",
         _ => "Đăng ký không thành công. Vui lòng kiểm tra lại thông tin."
     };
+
+    private static bool IsDuplicateEmailViolation(DbUpdateException exception)
+    {
+        string message = exception.InnerException?.Message ?? exception.Message;
+
+        return message.Contains("AspNetUsers", StringComparison.OrdinalIgnoreCase)
+            && message.Contains("Email", StringComparison.OrdinalIgnoreCase)
+            && (
+                message.Contains("unique constraint failed", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("EmailIndex", StringComparison.OrdinalIgnoreCase));
+    }
 }

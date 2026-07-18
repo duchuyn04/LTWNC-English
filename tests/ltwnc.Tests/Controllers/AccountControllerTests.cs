@@ -66,7 +66,7 @@ public class AccountControllerTests
         userManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), "Pass1234"))
             .ThrowsAsync(new DbUpdateException(
                 "Unique constraint failed",
-                new Exception("UNIQUE constraint failed: AspNetUsers.Email")));
+                new Exception("UNIQUE constraint failed: AspNetUsers.EmailIndex")));
         var signInManager = MockSignInManager(userManager);
         var controller = new AccountController(userManager.Object, signInManager.Object);
 
@@ -78,6 +78,20 @@ public class AccountControllerTests
             e => e.ErrorMessage == "Email đã được sử dụng.");
         signInManager.Verify(x => x.SignInAsync(
             It.IsAny<IdentityUser>(), It.IsAny<AuthenticationProperties>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Register_CreateThrowsOtherDbUpdateException_Bubbles()
+    {
+        var userManager = MockUserManager();
+        userManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), "Pass1234"))
+            .ThrowsAsync(new DbUpdateException(
+                "Database timeout",
+                new Exception("timeout")));
+        var signInManager = MockSignInManager(userManager);
+        var controller = new AccountController(userManager.Object, signInManager.Object);
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => controller.Register(ValidRegister()));
     }
 
     [Fact]
