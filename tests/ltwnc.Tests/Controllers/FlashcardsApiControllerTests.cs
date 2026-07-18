@@ -88,13 +88,12 @@ public class FlashcardsApiControllerTests
     public async Task UpdateSet_Authenticated_ReturnsNoContent()
     {
         var (controller, service) = Create("owner");
-        service.Setup(x => x.UpdateSetAsync(1, "Updated", "desc", true, "owner"))
-            .Returns(Task.CompletedTask);
+        service.Setup(x => x.UpdateSetAsync(7, "Updated", null, true, "owner")).Returns(Task.CompletedTask);
 
-        var result = await controller.UpdateSet(1, new UpdateSetRequest
+        var result = await controller.UpdateSet(7, new UpdateSetRequest
         {
             Title = "Updated",
-            Description = "desc",
+            Description = null,
             IsPublic = true
         });
 
@@ -150,10 +149,9 @@ public class FlashcardsApiControllerTests
     public async Task DeleteCard_Authenticated_ReturnsNoContent()
     {
         var (controller, service) = Create("owner");
-        service.Setup(x => x.DeleteCardAsync(5, "owner"))
-            .ReturnsAsync(1);
+        service.Setup(x => x.DeleteCardAsync(42, "owner")).ReturnsAsync(7);
 
-        var result = await controller.DeleteCard(5);
+        var result = await controller.DeleteCard(42);
 
         Assert.IsType<NoContentResult>(result);
     }
@@ -211,29 +209,13 @@ public class FlashcardsApiControllerTests
     public async Task Reorder_Authenticated_ReturnsNoContent()
     {
         var (controller, service) = Create("owner");
-        service.Setup(x => x.ReorderCardsAsync(1, new[] { 3, 2, 1 }, "owner"))
+        service.Setup(x => x.ReorderCardsAsync(7, It.Is<int[]>(ids => ids.Length == 2), "owner"))
             .Returns(Task.CompletedTask);
 
         var result = await controller.Reorder(new ReorderRequest
         {
-            SetId = 1,
-            OrderedCardIds = new[] { 3, 2, 1 }
-        });
-
-        Assert.IsType<NoContentResult>(result);
-    }
-
-    [Fact]
-    public async Task UpdateSet_Authenticated_ReturnsNoContent_Task11()
-    {
-        var (controller, service) = Create("owner");
-        service.Setup(x => x.UpdateSetAsync(7, "Updated", null, true, "owner")).Returns(Task.CompletedTask);
-
-        var result = await controller.UpdateSet(7, new UpdateSetRequest
-        {
-            Title = "Updated",
-            Description = null,
-            IsPublic = true
+            SetId = 7,
+            OrderedCardIds = new[] { 2, 1 }
         });
 
         Assert.IsType<NoContentResult>(result);
@@ -259,17 +241,6 @@ public class FlashcardsApiControllerTests
     }
 
     [Fact]
-    public async Task DeleteCard_Authenticated_ReturnsNoContent_Task11()
-    {
-        var (controller, service) = Create("owner");
-        service.Setup(x => x.DeleteCardAsync(42, "owner")).ReturnsAsync(7);
-
-        var result = await controller.DeleteCard(42);
-
-        Assert.IsType<NoContentResult>(result);
-    }
-
-    [Fact]
     public async Task ToggleStar_Authenticated_ReturnsStatus()
     {
         var (controller, service) = Create("owner");
@@ -279,21 +250,5 @@ public class FlashcardsApiControllerTests
 
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.True((bool)ok.Value!.GetType().GetProperty("isStarred")!.GetValue(ok.Value)!);
-    }
-
-    [Fact]
-    public async Task Reorder_Authenticated_ReturnsNoContent_Task11()
-    {
-        var (controller, service) = Create("owner");
-        service.Setup(x => x.ReorderCardsAsync(7, It.Is<int[]>(ids => ids.Length == 2), "owner"))
-            .Returns(Task.CompletedTask);
-
-        var result = await controller.Reorder(new ReorderRequest
-        {
-            SetId = 7,
-            OrderedCardIds = new[] { 2, 1 }
-        });
-
-        Assert.IsType<NoContentResult>(result);
     }
 }
