@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Identity;
 using ltwnc.Data;
 using ltwnc.Services.Achievements;
 using ltwnc.Services.Auth;
@@ -15,12 +15,27 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Cookie authentication + custom auth services (no ASP.NET Identity)
+// ASP.NET Core Identity (UserManager/SignInManager), không roles.
 builder.Services.AddHttpContextAccessor();
 
-builder.Services
-    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie(options =>
+builder.Services.AddIdentityCore<IdentityUser>(options =>
+    {
+        // Password policy giữ nguyên như custom auth cũ
+        options.Password.RequiredLength = 8;
+        options.Password.RequireDigit = true;
+        options.Password.RequireUppercase = true;
+        options.Password.RequireLowercase = true;
+        options.Password.RequireNonAlphanumeric = false;
+        options.User.RequireUniqueEmail = true;
+        // Giữ hành vi cũ: username cho phép mọi ký tự (kể cả có dấu)
+        options.User.AllowedUserNameCharacters = null;
+    })
+    .AddEntityFrameworkStores<AppDbContext>()
+    .AddSignInManager()
+    .AddDefaultTokenProviders();
+
+builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
+    .AddCookie(IdentityConstants.ApplicationScheme, options =>
     {
         options.LoginPath = "/Account/Login";
         options.LogoutPath = "/Account/Logout";
@@ -29,9 +44,6 @@ builder.Services
         options.SlidingExpiration = true;
     });
 
-builder.Services.AddScoped<IPasswordHasher, Pbkdf2PasswordHasher>();
-builder.Services.AddScoped<ISignInService, CookieSignInService>();
-builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 
 // Application services — inject qua interface (swap/decorator sau này không sửa controller)
