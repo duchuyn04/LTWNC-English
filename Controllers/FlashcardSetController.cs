@@ -117,13 +117,21 @@ public class FlashcardSetController : Controller
             return Challenge();
         }
 
-        FlashcardSet set = await _setService.CreateSetAsync(
-            model.Title,
-            model.Description,
-            model.IsPublic,
-            userId);
+        try
+        {
+            FlashcardSet set = await _setService.CreateSetAsync(
+                model.Title,
+                model.Description,
+                model.IsPublic,
+                userId);
 
-        return RedirectToAction("Edit", new { id = set.Id });
+            return RedirectToAction("Edit", new { id = set.Id });
+        }
+        catch (ArgumentException ex)
+        {
+            ModelState.AddModelError(nameof(model.Title), ex.Message);
+            return View(model);
+        }
     }
 
     // GET /Set/{id}: public hoặc owner; map SetDetailViewModel + ExistingCopyId
@@ -231,6 +239,17 @@ public class FlashcardSetController : Controller
                 model.IsPublic,
                 userId);
             return RedirectToAction("Edit", new { id });
+        }
+        catch (ArgumentException ex)
+        {
+            ModelState.AddModelError(nameof(model.Title), ex.Message);
+            EditSetPageViewModel? errorPage = await BuildEditPageViewModelAsync(id, userId, model);
+            if (errorPage == null)
+            {
+                return NotFound();
+            }
+
+            return View(errorPage);
         }
         catch (UnauthorizedAccessException)
         {
