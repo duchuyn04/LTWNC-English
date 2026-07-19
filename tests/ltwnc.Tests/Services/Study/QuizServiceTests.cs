@@ -304,6 +304,45 @@ public class QuizServiceTests
     }
 
     [Fact]
+    public async Task Answer_crossing_deadline_before_its_transactional_write_completes_as_expired()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        DateTimeOffset startedAt = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
+        var timeProvider = new SteppingTimeProvider(
+            startedAt.AddSeconds(59),
+            startedAt.AddSeconds(60));
+        QuizService service = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher(),
+            timeProvider);
+        StudySession session = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        QuizSessionQuestion question = await database.Context.QuizSessionQuestions
+            .OrderBy(row => row.OrderIndex)
+            .FirstAsync();
+        session.QuizStartedAtUtc = startedAt.UtcDateTime;
+        session.QuizTimeLimitSeconds = 60;
+        await database.Context.SaveChangesAsync();
+        database.Context.ChangeTracker.Clear();
+
+        await Assert.ThrowsAsync<QuizExpiredException>(() => service.AnswerAsync(
+            set.Id,
+            session.Id,
+            question.Id,
+            question.CorrectChoiceIndex,
+            set.UserId));
+
+        QuizSessionQuestion storedQuestion = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .SingleAsync(row => row.Id == question.Id);
+        Assert.Null(storedQuestion.SelectedChoiceIndex);
+        Assert.False(storedQuestion.IsCorrect);
+    }
+
+    [Fact]
     public async Task GetCurrentQuestion_timed_attempt_exposes_server_deadline_and_remaining_seconds()
     {
         await using var database = await QuizTestDatabase.CreateAsync();
@@ -330,6 +369,7 @@ public class QuizServiceTests
             set.UserId);
 
         Assert.Equal(new DateTime(2026, 1, 1, 0, 1, 0, DateTimeKind.Utc), state.DeadlineUtc);
+        Assert.Equal(DateTimeKind.Utc, state.DeadlineUtc!.Value.Kind);
         Assert.Equal(43, state.RemainingSeconds);
     }
 
@@ -1403,6 +1443,22 @@ public class QuizServiceTests
         public override DateTimeOffset GetUtcNow() => _utcNow;
 
         public void Advance(TimeSpan elapsed) => _utcNow += elapsed;
+    }
+
+    private sealed class SteppingTimeProvider : TimeProvider
+    {
+        private readonly Queue<DateTimeOffset> _times;
+        private DateTimeOffset _last;
+
+        public SteppingTimeProvider(params DateTimeOffset[] times)
+        {
+            _times = new Queue<DateTimeOffset>(times);
+            _last = times[^1];
+        }
+
+        public override DateTimeOffset GetUtcNow() => _times.Count > 0
+            ? _last = _times.Dequeue()
+            : _last;
     }
 
     private static QuizService CreateService(

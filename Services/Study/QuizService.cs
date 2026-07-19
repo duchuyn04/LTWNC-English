@@ -363,13 +363,30 @@ public class QuizService : IQuizService
         QuizAnswerResult answerResult;
         try
         {
+            StudySession persistedSession = await _context.StudySessions
+                .AsNoTracking()
+                .SingleAsync(row => row.Id == sessionId);
+            DateTime writeNow = GetUtcNow();
+            if (IsExpired(persistedSession, writeNow))
+            {
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync();
+                    await transaction.DisposeAsync();
+                    transaction = null;
+                }
+
+                await CompleteExpiredSessionAsync(persistedSession, writeNow);
+                throw new QuizExpiredException();
+            }
+
             bool isCorrect = selectedChoiceIndex == question.CorrectChoiceIndex;
             int affected = await _context.QuizSessionQuestions
                 .Where(row => row.Id == questionId && row.IsCorrect == null)
                 .ExecuteUpdateAsync(updates => updates
                     .SetProperty(row => row.SelectedChoiceIndex, selectedChoiceIndex)
                     .SetProperty(row => row.IsCorrect, isCorrect)
-                    .SetProperty(row => row.AnsweredAt, now));
+                    .SetProperty(row => row.AnsweredAt, writeNow));
             if (affected == 0)
             {
                 QuizSessionQuestion storedQuestion = await _context.QuizSessionQuestions
@@ -577,7 +594,8 @@ public class QuizService : IQuizService
             return null;
         }
 
-        return startedAtUtc.AddSeconds(timeLimitSeconds);
+        return DateTime.SpecifyKind(startedAtUtc, DateTimeKind.Utc)
+            .AddSeconds(timeLimitSeconds);
     }
 
     private static int? GetRemainingSeconds(StudySession session, DateTime now)
