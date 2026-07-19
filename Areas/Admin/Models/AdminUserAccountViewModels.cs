@@ -67,7 +67,6 @@ public sealed class AdminUserDetailsViewModel
     public required string StatusTone { get; init; }
     public required string ConcurrencyStamp { get; init; }
     public bool EmailConfirmed { get; init; }
-    public bool TwoFactorEnabled { get; init; }
     public bool LockoutEnabled { get; init; }
     public bool IsAdmin { get; init; }
     public bool IsLocked { get; init; }
@@ -123,7 +122,6 @@ public static class AdminUserViewModelMapper
             StatusTone = statusTone,
             ConcurrencyStamp = user.ConcurrencyStamp,
             EmailConfirmed = user.EmailConfirmed,
-            TwoFactorEnabled = user.TwoFactorEnabled,
             LockoutEnabled = user.LockoutEnabled,
             IsAdmin = user.IsAdmin,
             IsLocked = user.IsLocked,

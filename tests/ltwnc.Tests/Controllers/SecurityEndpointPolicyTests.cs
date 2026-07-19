@@ -64,16 +64,15 @@ public sealed class SecurityEndpointPolicyTests
     [Theory]
     [InlineData(nameof(AiProvidersController.Save))]
     [InlineData(nameof(AiProvidersController.Delete))]
-    public void SensitiveAiProviderChanges_RequireRecentAdminAuthentication(
+    [InlineData(nameof(AiProvidersController.SetPrimary))]
+    public void SensitiveAiProviderChanges_RequireAntiforgery(
         string methodName)
     {
         MethodInfo method = typeof(AiProvidersController).GetMethods()
             .Single(candidate => candidate.Name == methodName
                 && candidate.GetCustomAttribute<HttpPostAttribute>() != null);
 
-        Assert.Contains(
-            method.GetCustomAttributes<AuthorizeAttribute>(),
-            attribute => attribute.Policy == AdminAreaPolicy.RecentAuthenticationName);
+        Assert.NotEmpty(method.GetCustomAttributes<ValidateAntiForgeryTokenAttribute>());
     }
 
     [Fact]

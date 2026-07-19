@@ -1,6 +1,7 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Account;
+using ltwnc.Services.Audit;
 using ltwnc.Services.Auth;
 using ltwnc.Services.Profiles;
 using Microsoft.AspNetCore.Authentication;
@@ -21,17 +22,20 @@ public class AccountController : Controller
     private readonly SignInManager<IdentityUser> _signInManager;
     private readonly AppDbContext _db;
     private readonly TimeProvider _timeProvider;
+    private readonly IAdminAuditService _adminAuditService;
 
     public AccountController(
         UserManager<IdentityUser> userManager,
         SignInManager<IdentityUser> signInManager,
         AppDbContext db,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        IAdminAuditService adminAuditService)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _db = db;
         _timeProvider = timeProvider;
+        _adminAuditService = adminAuditService;
     }
 
     [HttpGet]
@@ -124,19 +128,14 @@ public class AccountController : Controller
     }
 
     [HttpGet]
-    public async Task<IActionResult> Login()
+    public Task<IActionResult> Login()
     {
         if (User?.Identity?.IsAuthenticated == true)
         {
-            return Redirect(GetAuthenticatedLandingPath());
+            return Task.FromResult<IActionResult>(Redirect(GetAuthenticatedLandingPath()));
         }
 
-        if (await _signInManager.GetTwoFactorAuthenticationUserAsync() != null)
-        {
-            return Redirect("/Account/AdminTwoFactor/Verify");
-        }
-
-        return View();
+        return Task.FromResult<IActionResult>(View());
     }
 
     [HttpPost]
@@ -164,36 +163,6 @@ public class AccountController : Controller
         bool isAdmin = await _userManager.IsInRoleAsync(
             user,
             AdminRoleBootstrapper.AdminRole);
-        if (isAdmin && await _userManager.GetTwoFactorEnabledAsync(user))
-        {
-            await _signInManager.ForgetTwoFactorClientAsync();
-            Microsoft.AspNetCore.Identity.SignInResult adminSignInResult =
-                await _signInManager.PasswordSignInAsync(
-                    user,
-                    model.Password,
-                    model.RememberMe,
-                    lockoutOnFailure: true);
-
-            if (adminSignInResult.RequiresTwoFactor)
-            {
-                return Redirect("/Account/AdminTwoFactor/Verify");
-            }
-
-            if (adminSignInResult.IsLockedOut)
-            {
-                AddLockedAccountMessage();
-                return View(model);
-            }
-
-            if (!adminSignInResult.Succeeded)
-            {
-                ModelState.AddModelError(string.Empty, "Email hoặc mật khẩu không đúng.");
-                return View(model);
-            }
-
-            return Redirect("/Account/AdminTwoFactor/Verify");
-        }
-
         Microsoft.AspNetCore.Identity.SignInResult result = await _signInManager.CheckPasswordSignInAsync(
             user,
             model.Password,
@@ -222,7 +191,8 @@ public class AccountController : Controller
 
         if (isAdmin)
         {
-            return Redirect("/Account/AdminTwoFactor/Setup");
+            await RecordAdminSignInAuditAsync(user);
+            return Redirect("/Admin");
         }
 
         return Redirect("/Set");
@@ -250,6 +220,19 @@ public class AccountController : Controller
 
     private string GetAuthenticatedLandingPath() =>
         User.IsInRole(AdminRoleBootstrapper.AdminRole) ? "/Admin" : "/Set";
+
+    // Ghi audit sau khi Admin đăng nhập thành công; không ghi mật khẩu hoặc thông tin nhạy cảm.
+    private async Task RecordAdminSignInAuditAsync(IdentityUser user)
+    {
+        await _adminAuditService.RecordAsync(new AdminAuditEntry(
+            ActorUserId: user.Id,
+            ActorDisplay: user.Email ?? user.UserName ?? user.Id,
+            Action: AdminAuditActions.AdminAreaSignIn,
+            Outcome: AdminAuditOutcome.Success,
+            TargetType: "IdentityUser",
+            TargetId: user.Id,
+            CorrelationId: HttpContext.TraceIdentifier));
+    }
 
     // Thông báo chung cho tài khoản bị khóa, không lộ lý do nội bộ do Admin nhập.
     private void AddLockedAccountMessage()

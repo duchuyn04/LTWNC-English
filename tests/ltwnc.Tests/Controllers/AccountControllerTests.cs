@@ -2,6 +2,7 @@ using ltwnc.Controllers;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Account;
+using ltwnc.Services.Audit;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
@@ -120,7 +121,8 @@ public class AccountControllerTests
             userManager.Object,
             signInManager.Object,
             new AppDbContext(options),
-            TimeProvider.System);
+            TimeProvider.System,
+            Mock.Of<IAdminAuditService>());
     }
 
     private static void SetAuthenticatedUser(AccountController controller)
@@ -265,7 +267,8 @@ public class AccountControllerTests
             userManager.Object,
             signInManager.Object,
             db,
-            TimeProvider.System);
+            TimeProvider.System,
+            Mock.Of<IAdminAuditService>());
 
         await controller.Register(ValidRegister());
 

@@ -87,7 +87,6 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
             UserName: user.UserName ?? string.Empty,
             Email: user.Email ?? string.Empty,
             EmailConfirmed: user.EmailConfirmed,
-            TwoFactorEnabled: user.TwoFactorEnabled,
             LockoutEnabled: user.LockoutEnabled,
             IsAdmin: isAdmin,
             IsLocked: isLocked,

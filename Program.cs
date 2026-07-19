@@ -60,15 +60,6 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy(AdminAreaPolicy.Name, policy =>
     {
         policy.RequireRole(AdminRoleBootstrapper.AdminRole);
-        policy.RequireClaim(AdminAuthenticationSession.VerifiedAtClaim);
-        policy.AddRequirements(new AdminTwoFactorEnabledRequirement());
-    });
-    options.AddPolicy(AdminAreaPolicy.RecentAuthenticationName, policy =>
-    {
-        policy.RequireRole(AdminRoleBootstrapper.AdminRole);
-        policy.AddRequirements(new AdminTwoFactorEnabledRequirement());
-        policy.AddRequirements(new RecentAdminAuthenticationRequirement(
-            AdminAreaPolicy.RecentAuthenticationLifetime));
     });
 });
 
@@ -83,16 +74,6 @@ builder.Services.Configure<CookieAuthenticationOptions>(
         {
             if (context.Request.Path.StartsWithSegments("/Admin"))
             {
-                if (context.HttpContext.User.IsInRole(AdminRoleBootstrapper.AdminRole))
-                {
-                    string returnUrl = context.Request.PathBase
-                        + context.Request.Path
-                        + context.Request.QueryString;
-                    context.Response.Redirect(
-                        $"/Account/AdminTwoFactor?returnUrl={Uri.EscapeDataString(returnUrl)}");
-                    return Task.CompletedTask;
-                }
-
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 return Task.CompletedTask;
             }
@@ -141,8 +122,6 @@ builder.Services.Configure<CookieAuthenticationOptions>(
 builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 {
     options.ValidationInterval = TimeSpan.Zero;
-    options.OnRefreshingPrincipal =
-        AdminAuthenticationSession.PreserveVerificationClaimsAsync;
 });
 
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
@@ -158,11 +137,6 @@ if (!builder.Environment.IsEnvironment("Testing"))
     builder.Services.AddHostedService<EnglishMissionConversationCleanupHostedService>();
 }
 builder.Services.AddScoped<AdminRoleBootstrapper>();
-builder.Services.AddScoped<AdminAuthenticationSession>();
-builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler,
-    RecentAdminAuthenticationHandler>();
-builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler,
-    AdminTwoFactorEnabledHandler>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IAvatarService, AvatarService>();

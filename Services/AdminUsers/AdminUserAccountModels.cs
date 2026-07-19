@@ -43,7 +43,6 @@ public sealed record AdminUserAccountDetails(
     string UserName,
     string Email,
     bool EmailConfirmed,
-    bool TwoFactorEnabled,
     bool LockoutEnabled,
     bool IsAdmin,
     bool IsLocked,

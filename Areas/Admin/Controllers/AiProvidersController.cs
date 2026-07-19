@@ -51,10 +51,9 @@ public sealed class AiProvidersController : Controller
         return View(ToEditViewModel(provider));
     }
 
-    // Lưu tạo mới hoặc cập nhật cấu hình quan trọng bằng POST, antiforgery, lý do và phiên Admin mới.
+    // Lưu tạo mới hoặc cập nhật cấu hình quan trọng bằng POST, antiforgery, lý do và audit.
     [HttpPost("Save")]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = AdminAreaPolicy.RecentAuthenticationName)]
     public async Task<IActionResult> Save(
         AiProviderEditViewModel model,
         CancellationToken cancellationToken)
@@ -83,7 +82,6 @@ public sealed class AiProvidersController : Controller
     // Bật lại provider đã vô hiệu hóa; yêu cầu lý do và khóa phiên bản để tránh ghi đè thao tác mới hơn.
     [HttpPost("{id:int}/Enable")]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = AdminAreaPolicy.RecentAuthenticationName)]
     public async Task<IActionResult> Enable(
         int id,
         AiProviderLifecycleActionViewModel model,
@@ -104,7 +102,6 @@ public sealed class AiProvidersController : Controller
     // Vô hiệu hóa thay cho xóa cứng để giữ nguyên lịch sử vận hành và audit.
     [HttpPost("{id:int}/Disable")]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = AdminAreaPolicy.RecentAuthenticationName)]
     public async Task<IActionResult> Disable(
         int id,
         AiProviderLifecycleActionViewModel model,
@@ -125,7 +122,6 @@ public sealed class AiProvidersController : Controller
     // Giữ endpoint cũ để không có thao tác xóa cứng song song; form cũ nếu còn gọi vào đây cũng chỉ disable.
     [HttpPost("{id:int}/Delete")]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = AdminAreaPolicy.RecentAuthenticationName)]
     public async Task<IActionResult> Delete(
         int id,
         AiProviderLifecycleActionViewModel model,
@@ -143,10 +139,9 @@ public sealed class AiProvidersController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // Chọn nhà cung cấp chính duy nhất, có xác nhận phiên Admin mới qua policy.
+    // Chọn nhà cung cấp chính duy nhất, có antiforgery, lý do và audit.
     [HttpPost("{id:int}/Primary")]
     [ValidateAntiForgeryToken]
-    [Authorize(Policy = AdminAreaPolicy.RecentAuthenticationName)]
     public async Task<IActionResult> SetPrimary(
         int id,
         AiProviderLifecycleActionViewModel model,
