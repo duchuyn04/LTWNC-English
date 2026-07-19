@@ -59,6 +59,8 @@ artifacts/
 .superpowers/
 docs/superpowers/
 skills-lock.json
+AGENTS.md
+CONTEXT.md
 
 ## Tests
 tests/*
