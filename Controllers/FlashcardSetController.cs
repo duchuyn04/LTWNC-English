@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using ltwnc.Services.Auth;
 using ltwnc.Services.FlashcardSets;
+using ltwnc.Services.ContentReports;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Flashcards;
 using ltwnc.Models.ViewModels.FlashcardSet;
@@ -23,15 +24,18 @@ public class FlashcardSetController : Controller
     // User hiện tại từ cookie claims
     private readonly ICurrentUser _currentUser;
     private readonly IFlashcardImportService _importService;
+    private readonly IContentReportService _contentReportService;
 
     public FlashcardSetController(
         IFlashcardSetService setService,
         ICurrentUser currentUser,
-        IFlashcardImportService importService)
+        IFlashcardImportService importService,
+        IContentReportService contentReportService)
     {
         _setService = setService;
         _currentUser = currentUser;
         _importService = importService;
+        _contentReportService = contentReportService;
     }
 
     // GET /Set: thư viện cá nhân kèm progress
@@ -167,6 +171,12 @@ public class FlashcardSetController : Controller
             }
         }
 
+        bool hasOpenReport = false;
+        if (userId != null && userId != set.UserId)
+        {
+            hasOpenReport = await _contentReportService.HasOpenReportAsync(set.Id, userId);
+        }
+
         SetDetailViewModel model = new SetDetailViewModel
         {
             Id = set.Id,
@@ -175,10 +185,57 @@ public class FlashcardSetController : Controller
             IsPublic = set.IsPublic,
             Flashcards = FlashcardViewModelMapper.FromEntities(set.Flashcards),
             IsOwner = userId == set.UserId,
-            ExistingCopyId = existingCopyId
+            ExistingCopyId = existingCopyId,
+            ReportReasonOptions = _contentReportService.GetReasonOptions(),
+            CanReport = userId != null && userId != set.UserId && set.IsPublic && !hasOpenReport,
+            HasOpenReport = hasOpenReport
         };
 
         return View(model);
+    }
+
+    // POST gửi báo cáo nội dung cho bộ công khai, dùng antiforgery và chỉ nhận lý do cố định.
+    [HttpPost]
+    [Route("/Set/{id}/Report")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Report(
+        int id,
+        ContentReportInputModel input,
+        CancellationToken cancellationToken = default)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            TempData["ContentReportError"] = FirstModelStateError();
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        ContentReportSubmitResult result = await _contentReportService.SubmitAsync(
+            new SubmitContentReportCommand(
+                FlashcardSetId: id,
+                ReporterUserId: userId,
+                Reason: input.Reason,
+                Description: input.Description),
+            cancellationToken);
+
+        if (result.Succeeded)
+        {
+            TempData["ContentReportSuccess"] = result.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (result.Failure == ContentReportSubmitFailure.NotFoundOrPrivate)
+        {
+            return NotFound();
+        }
+
+        TempData["ContentReportError"] = result.Message;
+        return RedirectToAction(nameof(Details), new { id });
     }
 
     // POST copy public set vào thư viện; về Study hub của bản sao

@@ -19,6 +19,72 @@
     font-family: var(--font-body);
 }
 
+.set-report-panel {
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    border-radius: 8px;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    display: grid;
+    gap: 1rem;
+    margin: 1.5rem 0;
+    padding: 1.25rem;
+}
+
+.set-report-panel h3 {
+    color: var(--app-ink);
+    font-size: 1.2rem;
+    font-weight: 800;
+    margin: 0;
+}
+
+.set-report-panel p {
+    color: var(--app-muted);
+    margin: 0.25rem 0 0;
+}
+
+.set-report-form {
+    display: grid;
+    gap: 0.85rem;
+}
+
+.set-report-form label {
+    color: var(--app-ink);
+    display: block;
+    font-weight: 700;
+    margin-bottom: 0.35rem;
+}
+
+.set-report-form select,
+.set-report-form textarea {
+    border: 1px solid rgba(15, 23, 42, 0.14);
+    border-radius: 8px;
+    color: var(--app-ink);
+    min-height: 44px;
+    padding: 0.7rem 0.85rem;
+    width: 100%;
+}
+
+.set-report-alert {
+    background: #f8fafc;
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 8px;
+    color: #334155;
+    margin: 1rem 0;
+    padding: 0.9rem 1rem;
+}
+
+.set-report-alert--success {
+    background: #ecfdf5;
+    border-color: #a7f3d0;
+    color: #047857;
+}
+
+.set-report-alert--danger {
+    background: #fef2f2;
+    border-color: #fecaca;
+    color: #b91c1c;
+}
+
 .set-page-header {
     display: flex;
     justify-content: space-between;

@@ -1,4 +1,5 @@
 using ltwnc.Models.ViewModels.Flashcards;
+using ltwnc.Services.ContentReports;
 
 namespace ltwnc.Models.ViewModels.FlashcardSet;
 
@@ -25,4 +26,14 @@ public class SetDetailViewModel
 
     // Nếu viewer đã copy set public này: id bản sao; null = chưa copy
     public int? ExistingCopyId { get; set; }
+
+    // Danh mục lý do báo cáo cố định cho người học.
+    public IReadOnlyList<ContentReportReasonOption> ReportReasonOptions { get; set; } =
+        Array.Empty<ContentReportReasonOption>();
+
+    // Bật form báo cáo khi viewer đã đăng nhập, không phải chủ sở hữu và chưa có báo cáo đang mở.
+    public bool CanReport { get; set; }
+
+    // Nhắc người học rằng báo cáo đang chờ nên không thể gửi trùng.
+    public bool HasOpenReport { get; set; }
 }

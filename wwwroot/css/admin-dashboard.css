@@ -5,6 +5,40 @@
     background: var(--paper);
 }
 
+.admin-status--warning {
+    background: #fef3c7;
+    color: #92400e;
+}
+
+.admin-status--neutral {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.admin-inline-action-form {
+    display: grid;
+    gap: 0.5rem;
+    min-width: 220px;
+}
+
+.admin-inline-action-form label {
+    color: #475569;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.admin-inline-action-form textarea {
+    border: 1px solid rgba(15, 23, 42, 0.12);
+    border-radius: 8px;
+    min-height: 76px;
+    padding: 0.65rem 0.75rem;
+    resize: vertical;
+}
+
+.admin-content-report-table td {
+    vertical-align: top;
+}
+
 .admin-skip-link {
     position: fixed;
     z-index: 1100;

@@ -13,6 +13,7 @@ using ltwnc.Services.Achievements;
 using ltwnc.Services.Auth;
 using ltwnc.Services.CardActions;
 using ltwnc.Services.FlashcardSets;
+using ltwnc.Services.ContentReports;
 using ltwnc.Services.AdminDashboard;
 using ltwnc.Services.AdminUsers;
 using ltwnc.Services.Study;
@@ -161,6 +162,7 @@ builder.Services.Configure<RouteOptions>(options =>
 
 // Application services — inject qua interface (swap/decorator sau này không sửa controller)
 builder.Services.AddScoped<IFlashcardSetService, FlashcardSetService>();
+builder.Services.AddScoped<IContentReportService, ContentReportService>();
 builder.Services.AddScoped<IFlashcardImportService, FlashcardImportService>();
 builder.Services.AddScoped<CsvFlashcardFileParser>();
 builder.Services.AddScoped<XlsxFlashcardFileParser>();

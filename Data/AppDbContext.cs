@@ -30,6 +30,7 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
     public DbSet<EnglishMissionTurn> EnglishMissionTurns => Set<EnglishMissionTurn>();
     public DbSet<AdminAuditLog> AdminAuditLogs => Set<AdminAuditLog>();
     public DbSet<AiOperationLog> AiOperationLogs => Set<AiOperationLog>();
+    public DbSet<ContentReport> ContentReports => Set<ContentReport>();
 
     // Cấu hình model — indexes, relationships, constraints
     protected override void OnModelCreating(ModelBuilder builder)
@@ -220,6 +221,25 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
             entity.HasIndex(log => log.Action);
             entity.HasIndex(log => log.ActorUserId);
             entity.HasIndex(log => new { log.TargetType, log.TargetId });
+        });
+
+        builder.Entity<ContentReport>(entity =>
+        {
+            entity.HasIndex(report => report.CreatedAtUtc);
+            entity.HasIndex(report => new { report.Status, report.CreatedAtUtc });
+            entity.HasIndex(report => new { report.FlashcardSetId, report.Status });
+            entity.HasIndex(report => new { report.ReporterUserId, report.FlashcardSetId, report.Status })
+                .IsUnique()
+                .HasFilter("[Status] = 'Pending'");
+            entity.Property(report => report.Reason).HasMaxLength(80).IsRequired();
+            entity.Property(report => report.Status).HasMaxLength(40).IsRequired();
+            entity.Property(report => report.Description).HasMaxLength(1000);
+            entity.Property(report => report.ResolutionReason).HasMaxLength(500);
+            entity.Property(report => report.Version).IsConcurrencyToken();
+            entity.HasOne(report => report.FlashcardSet)
+                .WithMany()
+                .HasForeignKey(report => report.FlashcardSetId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
     }
 }

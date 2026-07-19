@@ -69,6 +69,52 @@
         </div>
     </div>
 
+    @if (TempData["ContentReportSuccess"] is string reportSuccess)
+    {
+        <div class="set-report-alert set-report-alert--success" role="status">@reportSuccess</div>
+    }
+
+    @if (TempData["ContentReportError"] is string reportError)
+    {
+        <div class="set-report-alert set-report-alert--danger" role="alert">@reportError</div>
+    }
+
+    @if (Model.CanReport)
+    {
+        <section class="set-report-panel gsap-fade-up" aria-labelledby="report-content-heading">
+            <div>
+                <h3 id="report-content-heading">Báo cáo bộ flashcard</h3>
+                <p>Chọn lý do cố định và thêm mô tả nếu cần.</p>
+            </div>
+            <form asp-action="Report" asp-route-id="@Model.Id" method="post" class="set-report-form">
+                @Html.AntiForgeryToken()
+                <div>
+                    <label for="report-reason">Lý do</label>
+                    <select id="report-reason" name="Reason" required>
+                        <option value="">Chọn lý do</option>
+                        @foreach (var option in Model.ReportReasonOptions)
+                        {
+                            <option value="@option.Value">@option.Label</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label for="report-description">Mô tả thêm</label>
+                    <textarea id="report-description" name="Description" maxlength="1000" rows="4"></textarea>
+                </div>
+                <button type="submit" class="btn-secondary-custom">
+                    <i class="ph ph-flag" aria-hidden="true"></i> Gửi báo cáo
+                </button>
+            </form>
+        </section>
+    }
+    else if (Model.HasOpenReport)
+    {
+        <div class="set-report-alert" role="status">
+            Bạn đã có một báo cáo đang chờ xử lý cho bộ flashcard này.
+        </div>
+    }
+
     @if (Model.Flashcards.Any())
     {
         <div class="set-detail-list gsap-stagger">

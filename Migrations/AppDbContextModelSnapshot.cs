@@ -440,6 +440,73 @@ namespace ltwnc.Migrations
                     b.ToTable("CardActionLogs");
                 });
 
+            modelBuilder.Entity("ltwnc.Models.Entities.ContentReport", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<int>("FlashcardSetId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ResolvedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ResolutionOutcome")
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("ResolutionReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ReporterUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatedAtUtc");
+
+                    b.HasIndex("FlashcardSetId", "Status");
+
+                    b.HasIndex("ReporterUserId", "FlashcardSetId", "Status")
+                        .IsUnique()
+                        .HasFilter("[Status] = 'Pending'");
+
+                    b.HasIndex("Status", "CreatedAtUtc");
+
+                    b.ToTable("ContentReports");
+                });
+
             modelBuilder.Entity("ltwnc.Models.Entities.DictationSessionDetail", b =>
                 {
                     b.Property<int>("Id")
@@ -1109,6 +1176,17 @@ namespace ltwnc.Migrations
                     b.Navigation("Flashcard");
 
                     b.Navigation("StudySession");
+                });
+
+            modelBuilder.Entity("ltwnc.Models.Entities.ContentReport", b =>
+                {
+                    b.HasOne("ltwnc.Models.Entities.FlashcardSet", "FlashcardSet")
+                        .WithMany()
+                        .HasForeignKey("FlashcardSetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FlashcardSet");
                 });
 
             modelBuilder.Entity("ltwnc.Models.Entities.EnglishMission", b =>

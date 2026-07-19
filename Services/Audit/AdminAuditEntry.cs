@@ -6,6 +6,8 @@ public static class AdminAuditActions
     public const string UsersLock = "Users.Lock";
     public const string UsersUnlock = "Users.Unlock";
     public const string UsersRevokeSessions = "Users.RevokeSessions";
+    public const string StudyRecordsViewDetails = "StudyRecords.ViewDetails";
+    public const string ContentReportsDismiss = "ContentReports.Dismiss";
 }
 
 public static class AdminAuditOutcome
