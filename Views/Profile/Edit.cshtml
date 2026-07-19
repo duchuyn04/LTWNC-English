@@ -141,6 +141,14 @@
                     <label for="NewEmail">Email mới</label>
                     <input id="NewEmail" name="NewEmail" type="email" value="@Model.Email" required class="settings-input" />
                 </div>
+                <div class="settings-field">
+                    <label for="ConfirmEmail">Nhập lại email mới</label>
+                    <input id="ConfirmEmail" name="ConfirmEmail" type="email" required class="settings-input" />
+                </div>
+                <div class="settings-field">
+                    <label for="CurrentPasswordEmail">Mật khẩu hiện tại</label>
+                    <input id="CurrentPasswordEmail" name="CurrentPassword" type="password" required autocomplete="current-password" class="settings-input" />
+                </div>
                 <button class="settings-btn settings-btn-primary" type="submit">Cập nhật email</button>
             </form>
         </section>

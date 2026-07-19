@@ -279,17 +279,49 @@ public class ProfileServiceTests
         db.UserProfiles.Add(new UserProfile { UserId = user.Id });
         await db.SaveChangesAsync();
         var userManager = MockUserManager(user);
+        userManager.Setup(item => item.CheckPasswordAsync(user, "Pass1234")).ReturnsAsync(true);
         userManager.Setup(item => item.FindByEmailAsync("used@example.com")).ReturnsAsync(other);
         ProfileService service = new(db, userManager.Object, new FixedTimeProvider(Now));
 
         ProfileOperationResult result = await service.ChangeEmailAsync(
             user.Id,
-            new ChangeEmailViewModel { NewEmail = "used@example.com" });
+            new ChangeEmailViewModel
+            {
+                NewEmail = "used@example.com",
+                ConfirmEmail = "used@example.com",
+                CurrentPassword = "Pass1234"
+            });
 
         Assert.False(result.Succeeded);
         Assert.Contains(result.Errors, error =>
             error.Field == nameof(ChangeEmailViewModel.NewEmail) &&
             error.Message == "Email đã được sử dụng.");
+    }
+
+    [Fact]
+    public async Task ChangeEmail_WrongCurrentPassword_DoesNotChangeLoginEmail()
+    {
+        using AppDbContext db = CreateContext();
+        var user = new IdentityUser { Id = "user-1", UserName = "user1", Email = "old@example.com" };
+        Mock<UserManager<IdentityUser>> userManager = MockUserManager(user);
+        userManager.Setup(item => item.CheckPasswordAsync(user, "Wrong123")).ReturnsAsync(false);
+        ProfileService service = new(db, userManager.Object, new FixedTimeProvider(Now));
+
+        ProfileOperationResult result = await service.ChangeEmailAsync(
+            user.Id,
+            new ChangeEmailViewModel
+            {
+                NewEmail = "new@example.com",
+                ConfirmEmail = "new@example.com",
+                CurrentPassword = "Wrong123"
+            });
+
+        Assert.False(result.Succeeded);
+        Assert.Contains(result.Errors, error =>
+            error.Field == nameof(ChangeEmailViewModel.CurrentPassword));
+        userManager.Verify(
+            item => item.ChangeEmailAsync(It.IsAny<IdentityUser>(), It.IsAny<string>(), It.IsAny<string>()),
+            Times.Never);
     }
 
     [Fact]

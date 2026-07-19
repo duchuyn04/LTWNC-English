@@ -231,6 +231,13 @@ public sealed class ProfileService : IProfileService
     {
         IdentityUser user = await FindUserAsync(userId);
         string email = model.NewEmail.Trim();
+        if (!await _userManager.CheckPasswordAsync(user, model.CurrentPassword))
+        {
+            return ProfileOperationResult.Failure(new ProfileFieldError(
+                nameof(ChangeEmailViewModel.CurrentPassword),
+                "Mật khẩu hiện tại không đúng."));
+        }
+
         if (string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase))
         {
             return ProfileOperationResult.Success();
@@ -244,7 +251,8 @@ public sealed class ProfileService : IProfileService
                 "Email đã được sử dụng."));
         }
 
-        IdentityResult result = await _userManager.SetEmailAsync(user, email);
+        string token = await _userManager.GenerateChangeEmailTokenAsync(user, email);
+        IdentityResult result = await _userManager.ChangeEmailAsync(user, email, token);
         return result.Succeeded
             ? ProfileOperationResult.Success()
             : Failure(nameof(ChangeEmailViewModel.NewEmail), result);
