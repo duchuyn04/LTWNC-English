@@ -346,7 +346,7 @@ public class StudyController : Controller
         {
             ModelState.AddModelError(
                 nameof(QuizSetupViewModel.CustomMinutes),
-                $"Thá»i lÆ°á»£ng pháº£i tÆ° 1 Ä‘áº¿n {QuizService.MaximumQuizMinutes} phÃºt.");
+                $"Thời lượng phải từ 1 đến {QuizService.MaximumQuizMinutes} phút.");
         }
 
         if (!ModelState.IsValid)
@@ -373,7 +373,7 @@ public class StudyController : Controller
         {
             ModelState.AddModelError(
                 nameof(QuizSetupViewModel.CustomMinutes),
-                $"Thá»i lÆ°á»£ng pháº£i tÆ° 1 Ä‘áº¿n {QuizService.MaximumQuizMinutes} phÃºt.");
+                $"Thời lượng phải từ 1 đến {QuizService.MaximumQuizMinutes} phút.");
             return await RenderQuizSetupAsync(setId, userId, input);
         }
         catch (KeyNotFoundException)

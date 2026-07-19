@@ -63,6 +63,10 @@ public class StudyControllerQuizTests
         ViewResult view = Assert.IsType<ViewResult>(result);
         Assert.Equal("QuizSetup", view.ViewName);
         Assert.False(controller.ModelState.IsValid);
+        Assert.Contains(
+            $"Thời lượng phải từ 1 đến {QuizService.MaximumQuizMinutes} phút.",
+            controller.ModelState[nameof(QuizSetupViewModel.CustomMinutes)]!.Errors
+                .Select(error => error.ErrorMessage));
         _quizService.Verify(
             service => service.StartNewAsync(
                 It.IsAny<int>(),

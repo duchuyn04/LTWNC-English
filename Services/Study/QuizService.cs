@@ -68,7 +68,7 @@ public class QuizService : IQuizService
         if (sourceCards.Count == 0)
         {
             throw new QuizUnavailableException(
-                "KhÃ´ng cÃ³ tháº» phÃ¹ há»£p vá»›i bá»™ lá»c hiá»‡n táº¡i.");
+                "Không có thẻ phù hợp với bộ lọc hiện tại.");
         }
 
         IDbContextTransaction? transaction = null;
@@ -763,12 +763,12 @@ public class QuizService : IQuizService
             .FirstOrDefaultAsync(row => row.Id == setId);
         if (set == null)
         {
-            throw new KeyNotFoundException("Bá»™ tháº» khÃ´ng tá»“n táº¡i.");
+            throw new KeyNotFoundException("Bộ thẻ không tồn tại.");
         }
 
         if (set.UserId != userId)
         {
-            throw new UnauthorizedAccessException("KhÃ´ng cÃ³ quyá»n há»c bá»™ tháº» nÃ y.");
+            throw new UnauthorizedAccessException("Không có quyền học bộ thẻ này.");
         }
 
         return set;
