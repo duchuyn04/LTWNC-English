@@ -162,7 +162,8 @@ public class DictationService : IDictationService
     public async Task<StudySession> CreateSessionAsync(
         string userId,
         int setId,
-        DictationContentMode contentMode = DictationContentMode.Vocabulary)
+        DictationContentMode contentMode = DictationContentMode.Vocabulary,
+        int plannedItemCount = 0)
     {
         StudySession session = new StudySession
         {
@@ -170,6 +171,7 @@ public class DictationService : IDictationService
             FlashcardSetId = setId,
             Mode = StudyMode.Dictation,
             DictationContentMode = contentMode,
+            PlannedItemCount = Math.Max(0, plannedItemCount),
             StartedAt = _timeProvider.GetUtcNow().UtcDateTime
         };
 
@@ -530,7 +532,7 @@ public class DictationService : IDictationService
     }
 
     // Đóng phiên học và lưu điểm
-    public async Task<StudySession> CompleteSessionAsync(int sessionId, int setId, int score, string userId)
+    public async Task<StudySession> CompleteSessionAsync(int sessionId, int setId, string userId)
     {
         StudySession? session = await _context.StudySessions.FindAsync(sessionId);
         if (session == null)
@@ -550,7 +552,22 @@ public class DictationService : IDictationService
             return session;
         }
 
-        session.Score = score;
+        List<DictationSessionDetail> details = await _context.DictationSessionDetails
+            .AsNoTracking()
+            .Where(detail => detail.StudySessionId == sessionId)
+            .OrderBy(detail => detail.Id)
+            .ToListAsync();
+        int answeredCount = details.Select(detail => detail.FlashcardId).Distinct().Count();
+        int denominator = session.PlannedItemCount > 0
+            ? session.PlannedItemCount
+            : answeredCount;
+        int correctCount = details
+            .GroupBy(detail => detail.FlashcardId)
+            .Count(group => group.First().IsCorrect);
+        int score = denominator == 0
+            ? 0
+            : (int)Math.Round(correctCount * 100d / denominator, MidpointRounding.AwayFromZero);
+        session.Score = Math.Clamp(score, 0, 100);
         DateTime completedAt = _timeProvider.GetUtcNow().UtcDateTime;
         session.DurationSeconds = StudySessionTiming.CalculateDurationSeconds(
             session.StartedAt,
@@ -565,7 +582,7 @@ public class DictationService : IDictationService
             SetId: session.FlashcardSetId,
             SessionId: session.Id,
             Mode: StudyMode.Dictation,
-            Score: score));
+            Score: session.Score));
 
         return session;
     }

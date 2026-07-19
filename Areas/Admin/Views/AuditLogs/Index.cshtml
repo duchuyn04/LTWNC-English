@@ -1,0 +1,124 @@
+@model AdminAuditLogIndexViewModel
+@{
+    ViewData["Title"] = "Bản ghi kiểm toán quản trị";
+    ViewData["Heading"] = "Bản ghi kiểm toán quản trị";
+}
+
+<section class="admin-panel" aria-labelledby="audit-filter-heading">
+    <h2 id="audit-filter-heading" class="visually-hidden">Bộ lọc bản ghi kiểm toán</h2>
+    <form method="get" action="/Admin/AuditLogs" class="admin-filter-form">
+        <div class="admin-filter-field">
+            <label for="search">Tìm kiếm</label>
+            <input type="search" id="search" name="search" value="@Model.Search"
+                   placeholder="Quản trị viên, hành động, mã đối tượng" maxlength="200" />
+        </div>
+        <div class="admin-filter-field">
+            <label for="action">Hành động</label>
+            <input type="text" id="action" name="action" value="@Model.Action"
+                   placeholder="Ví dụ: AdminArea.SignIn" maxlength="100" />
+        </div>
+        <div class="admin-filter-field">
+            <label for="outcome">Kết quả</label>
+            <select id="outcome" name="outcome">
+                <option value="" selected="@(string.IsNullOrEmpty(Model.Outcome))">Tất cả</option>
+                <option value="Success" selected="@(Model.Outcome == "Success")">Thành công</option>
+                <option value="Failure" selected="@(Model.Outcome == "Failure")">Thất bại</option>
+                <option value="Denied" selected="@(Model.Outcome == "Denied")">Bị từ chối</option>
+            </select>
+        </div>
+        <button type="submit" class="admin-filter-submit">
+            <i class="ph ph-funnel" aria-hidden="true"></i> Lọc
+        </button>
+    </form>
+</section>
+
+<section class="admin-panel" aria-labelledby="audit-table-heading">
+    <div class="admin-panel-header">
+        <h2 id="audit-table-heading">Nhật ký quản trị</h2>
+        <p>@Model.TotalCount bản ghi — trang @Model.Page/@Model.TotalPages</p>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <p class="admin-empty">Không có bản ghi nào khớp bộ lọc hiện tại.</p>
+    }
+    else
+    {
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Thời gian</th>
+                        <th scope="col">Quản trị viên</th>
+                        <th scope="col">Hành động</th>
+                        <th scope="col">Đối tượng</th>
+                        <th scope="col">Kết quả</th>
+                        <th scope="col">Lý do</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (AdminAuditLogRow row in Model.Items)
+                    {
+                        <tr>
+                            <td>@row.OccurredAtDisplay</td>
+                            <td>@row.ActorDisplay</td>
+                            <td><code>@row.Action</code></td>
+                            <td>@row.Target</td>
+                            <td>
+                                <span class="admin-outcome admin-outcome-@row.Outcome.ToLowerInvariant()">
+                                    @(row.Outcome switch
+                                    {
+                                        "Success" => "Thành công",
+                                        "Failure" => "Thất bại",
+                                        "Denied" => "Bị từ chối",
+                                        _ => row.Outcome
+                                    })
+                                </span>
+                            </td>
+                            <td>@(row.Reason ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <nav class="admin-pagination" aria-label="Phân trang bản ghi kiểm toán">
+            @if (Model.HasPreviousPage)
+            {
+                <a href="@PageUrl(Model.Page - 1)">
+                    <i class="ph ph-caret-left" aria-hidden="true"></i> Trang trước
+                </a>
+            }
+            <span aria-current="page">Trang @Model.Page / @Model.TotalPages</span>
+            @if (Model.HasNextPage)
+            {
+                <a href="@PageUrl(Model.Page + 1)">
+                    Trang sau <i class="ph ph-caret-right" aria-hidden="true"></i>
+                </a>
+            }
+        </nav>
+    }
+</section>
+
+@functions {
+    private string PageUrl(int page)
+    {
+        var query = new List<string> { $"page={page}" };
+        if (!string.IsNullOrEmpty(Model.Search))
+        {
+            query.Add($"search={Uri.EscapeDataString(Model.Search)}");
+        }
+
+        if (!string.IsNullOrEmpty(Model.Action))
+        {
+            query.Add($"action={Uri.EscapeDataString(Model.Action)}");
+        }
+
+        if (!string.IsNullOrEmpty(Model.Outcome))
+        {
+            query.Add($"outcome={Uri.EscapeDataString(Model.Outcome)}");
+        }
+
+        return $"/Admin/AuditLogs?{string.Join("&", query)}";
+    }
+}

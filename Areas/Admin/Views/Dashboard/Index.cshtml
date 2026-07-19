@@ -1,39 +1,68 @@
+@model AdminDashboardViewModel
 @{
     ViewData["Title"] = "Tổng quan";
     ViewData["Heading"] = "Trung tâm quản trị";
 }
 
-<section class="admin-intro" aria-labelledby="admin-intro-title">
+<section class="admin-dashboard-header" aria-labelledby="admin-dashboard-title">
     <div>
         <p class="eyebrow">TRUNG TÂM VẬN HÀNH</p>
-        <h2 id="admin-intro-title">Khung quản trị đã sẵn sàng</h2>
+        <h2 id="admin-dashboard-title">Dashboard KPI hệ thống</h2>
         <p>
-            Theo dõi người học, nội dung và dịch vụ vận hành từ một khu vực riêng được bảo vệ bằng vai trò Admin.
+            Dữ liệu từ @Model.PeriodStartVietnam.ToString("dd/MM/yyyy") đến
+            @Model.PeriodEndVietnam.ToString("dd/MM/yyyy"), tính theo múi giờ Việt Nam.
         </p>
     </div>
-    <span class="admin-ready-badge"><i class="ph ph-check-circle" aria-hidden="true"></i> Khung sẵn sàng</span>
+    <form class="admin-range-filter" method="get" action="/Admin" aria-label="Chọn khoảng thời gian KPI">
+        @foreach (int option in Model.AllowedDays)
+        {
+            bool isSelectedRange = Model.Days == option;
+            string rangeButtonClass = string.Empty;
+            string rangePressedValue = "false";
+            if (isSelectedRange)
+            {
+                rangeButtonClass = "active";
+                rangePressedValue = "true";
+            }
+
+            <button
+                type="submit"
+                name="days"
+                value="@option"
+                class="@rangeButtonClass"
+                aria-pressed="@rangePressedValue">
+                @option ngày
+            </button>
+        }
+    </form>
 </section>
 
-<section class="admin-foundation-grid" aria-label="Nền tảng quản trị">
-    <article class="admin-foundation-card">
-        <i class="ph ph-shield-check" aria-hidden="true"></i>
-        <div>
-            <h2>Truy cập được bảo vệ</h2>
-            <p>Chỉ tài khoản thuộc vai trò Admin mới có thể mở khu vực này.</p>
-        </div>
-    </article>
-    <article class="admin-foundation-card">
-        <i class="ph ph-layout" aria-hidden="true"></i>
-        <div>
-            <h2>Một hệ thống thiết kế</h2>
-            <p>Giao diện quản trị tái sử dụng màu sắc, kiểu chữ và thành phần chung của LTWNC.</p>
-        </div>
-    </article>
-    <article class="admin-foundation-card">
-        <i class="ph ph-chart-line-up" aria-hidden="true"></i>
-        <div>
-            <h2>Sẵn sàng mở rộng</h2>
-            <p>Các chỉ số và chức năng vận hành sẽ được bổ sung theo từng hạng mục đã duyệt.</p>
-        </div>
-    </article>
+<section class="admin-kpi-grid" aria-label="Chỉ số quản trị">
+    @foreach (AdminDashboardKpiCardViewModel kpi in Model.Kpis)
+    {
+        <article class="admin-kpi-card admin-kpi-card--@kpi.Tone">
+            <div class="admin-kpi-icon" aria-hidden="true">
+                <i class="ph @kpi.Icon"></i>
+            </div>
+            <div class="admin-kpi-content">
+                <h2>@kpi.Label</h2>
+                <strong>@kpi.Value</strong>
+                <p>@kpi.Detail</p>
+                <span>@kpi.Comparison</span>
+            </div>
+        </article>
+    }
+</section>
+
+<section class="admin-kpi-notes" aria-labelledby="admin-kpi-notes-title">
+    <h2 id="admin-kpi-notes-title">Quy tắc tính</h2>
+    <div>
+        <p>
+            Người dùng hoạt động được đếm một lần khi có phiên học hoặc lượt ôn thẻ trong khoảng chọn.
+        </p>
+        <p>
+            Tỷ lệ hoàn thành bỏ qua phiên đang hoạt động dưới 30 phút; tỷ lệ lỗi AI chỉ hiện khi đạt ít nhất 20 yêu cầu.
+        </p>
+    </div>
+    <small>Cập nhật lúc @Model.GeneratedAtVietnam.ToString("HH:mm dd/MM/yyyy") giờ Việt Nam.</small>
 </section>

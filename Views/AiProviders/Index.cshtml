@@ -1,0 +1,22 @@
+@model IReadOnlyList<ltwnc.Models.Entities.AiProvider>
+@{
+    ViewData["Title"] = "AI Providers";
+}
+@section Styles { <link rel="stylesheet" href="~/css/ai-providers.css" asp-append-version="true" /> }
+<div class="provider-page">
+    <header class="provider-header"><div><span class="eyebrow">Quản trị hệ thống</span><h1>AI Providers</h1><p>Cấu hình các endpoint AI theo thứ tự fallback. API key được mã hóa và không thể xem lại.</p></div><a class="provider-primary" href="/Admin/AiProviders/Create"><i class="ph ph-plus"></i> Thêm provider</a></header>
+    @if(TempData["ProviderMessage"] is string message){<div class="provider-message">@message</div>}
+    @Html.AntiForgeryToken()
+    <div class="provider-list">
+        @foreach(var provider in Model){
+            <article class="provider-card" data-provider-id="@provider.Id">
+                <div class="provider-priority">@provider.Priority</div>
+                <div class="provider-main"><div class="provider-title"><h2>@provider.Name</h2><span class="@(provider.IsEnabled ? "is-enabled" : "")">@(provider.IsEnabled ? "Đang bật" : "Đã tắt")</span></div><p>@provider.BaseUrl</p><div class="provider-meta"><span><i class="ph ph-cube"></i> @provider.ModelId</span><span><i class="ph ph-key"></i> @(string.IsNullOrWhiteSpace(provider.ApiKeyLastFour) ? "Không API key" : $"••••{provider.ApiKeyLastFour}")</span><span><i class="ph ph-clock"></i> @provider.TimeoutSeconds giây</span></div>@if(provider.LastCheckedAt.HasValue){<small class="provider-check @(provider.LastCheckSucceeded == true ? "success" : "error")">@(provider.LastCheckSucceeded == true ? "Kết nối thành công" : provider.LastError) · @provider.LastCheckedAt.Value.ToLocalTime().ToString("g")</small>}</div>
+                <div class="provider-actions"><button class="provider-test" type="button">Test</button><button class="provider-models" type="button">Models</button><a href="/Admin/AiProviders/@provider.Id/Edit">Sửa</a><form method="post" action="/Admin/AiProviders/@provider.Id/Delete">@Html.AntiForgeryToken()<button class="danger" type="submit" onclick="return confirm('Xóa provider này?')">Xóa</button></form></div>
+            </article>
+        }
+        @if(Model.Count == 0){<div class="provider-empty"><i class="ph ph-plugs"></i><h2>Chưa có provider</h2><p>Thêm một OpenAI-compatible provider để English Mission hoạt động.</p></div>}
+    </div>
+    <div id="provider-dialog" class="provider-dialog" hidden><div><button type="button" class="provider-dialog-close"><i class="ph ph-x"></i></button><h2>Models</h2><p></p><ul></ul></div></div>
+</div>
+@section Scripts { <script src="~/js/ai-providers.js" asp-append-version="true"></script> }

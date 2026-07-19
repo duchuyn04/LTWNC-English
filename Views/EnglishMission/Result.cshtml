@@ -1,0 +1,20 @@
+@model ltwnc.Models.ViewModels.EnglishMission.EnglishMissionChatViewModel
+@{
+    ViewData["Title"] = "Kết quả English Mission";
+    var used = Model.TargetWords.Count(word => word.IsUsed);
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/english-mission.css" asp-append-version="true" />
+}
+
+<div class="mission-result-page">
+    <span class="mission-eyebrow">Mission debrief</span>
+    <h1>@Model.Mission.Title</h1>
+    <p>@Model.Mission.Situation</p>
+    <div class="mission-result-score"><strong>@(Model.Mission.Score ?? 0)</strong><span>/ 100 điểm</span></div>
+    <div class="mission-result-stats"><div><strong>@Model.Mission.TurnCount</strong><span>lượt hội thoại</span></div><div><strong>@used / @Model.TargetWords.Count</strong><span>từ mục tiêu đã dùng</span></div><div><strong>@(Model.Mission.CompletedAt.HasValue ? "Hoàn thành" : "Dở dang")</strong><span>trạng thái</span></div></div>
+    <section class="mission-result-card"><h2>Từ mục tiêu</h2><div class="mission-result-words">@foreach(var word in Model.TargetWords){<span class="@(word.IsUsed ? "is-used" : "")"><i class="ph @(word.IsUsed ? "ph-check-circle" : "ph-circle")"></i> @word.Term <small>@word.Definition</small></span>}</div></section>
+    <section class="mission-result-card"><h2>Các câu nên xem lại</h2>@if(!Model.Turns.Any(turn => !string.IsNullOrWhiteSpace(turn.CorrectionEn))){<p class="text-muted-custom">Không có câu sửa nào trong mission này.</p>}@foreach(var turn in Model.Turns.Where(turn => !string.IsNullOrWhiteSpace(turn.CorrectionEn))){<div class="mission-result-correction"><span>Bạn nói</span><p lang="en">@turn.UserText</p><span>Tự nhiên hơn</span><strong lang="en">@turn.CorrectionEn</strong><small>@turn.CorrectionExplanationVi</small></div>}</section>
+    <div class="mission-result-actions"><a class="mission-btn-secondary" href="/Study/@Model.SetId"><i class="ph ph-arrow-left"></i> Về Study Hub</a><a class="mission-btn-primary" href="/Study/@Model.SetId/Mission">Chơi mission khác <i class="ph ph-arrow-right"></i></a></div>
+</div>

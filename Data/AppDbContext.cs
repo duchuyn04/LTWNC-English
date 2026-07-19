@@ -7,7 +7,7 @@ namespace ltwnc.Data;
 
 // DbContext chính của ứng dụng — dùng ASP.NET Core Identity không roles.
 // Quản lý kết nối database và cấu hình các bảng (entities)
-public class AppDbContext : IdentityUserContext<IdentityUser>
+public class AppDbContext : IdentityDbContext<IdentityUser>
 {
     // Constructor — nhận DbContextOptions từ DI container (connection string, provider...)
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
@@ -24,6 +24,12 @@ public class AppDbContext : IdentityUserContext<IdentityUser>
 
     // Bảng thành tích (huy hiệu) user đã mở khóa — do Observer ghi khi có sự kiện học
     public DbSet<UserAchievement> UserAchievements => Set<UserAchievement>();
+    public DbSet<AiProvider> AiProviders => Set<AiProvider>();
+    public DbSet<EnglishMission> EnglishMissions => Set<EnglishMission>();
+    public DbSet<EnglishMissionTargetWord> EnglishMissionTargetWords => Set<EnglishMissionTargetWord>();
+    public DbSet<EnglishMissionTurn> EnglishMissionTurns => Set<EnglishMissionTurn>();
+    public DbSet<AdminAuditLog> AdminAuditLogs => Set<AdminAuditLog>();
+    public DbSet<AiOperationLog> AiOperationLogs => Set<AiOperationLog>();
 
     // Cấu hình model — indexes, relationships, constraints
     protected override void OnModelCreating(ModelBuilder builder)
@@ -46,6 +52,7 @@ public class AppDbContext : IdentityUserContext<IdentityUser>
                 .HasForeignKey<UserProfile>(profile => profile.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(profile => new { profile.IsPublic, profile.ShowStats });
+            entity.HasIndex(profile => profile.CreatedAt);
         });
 
         // Cấu hình bảng FlashcardSets
@@ -80,6 +87,7 @@ public class AppDbContext : IdentityUserContext<IdentityUser>
             // Index composite (UserId + FlashcardSetId) — tăng tốc truy vấn theo người dùng và bộ thẻ
             entity.HasIndex(e => new { e.UserId, e.FlashcardSetId });
             entity.HasIndex(e => new { e.CompletedAt, e.UserId });
+            entity.HasIndex(e => e.StartedAt);
             // Quan hệ: nhiều StudySession thuộc về 1 FlashcardSet
             // Restrict = không cho xóa bộ thẻ nếu còn phiên học (tránh mất dữ liệu)
             entity.HasOne(e => e.FlashcardSet)
@@ -93,6 +101,7 @@ public class AppDbContext : IdentityUserContext<IdentityUser>
         {
             // Unique index (UserId + FlashcardId) — mỗi người chỉ có 1 tiến trình cho mỗi thẻ
             entity.HasIndex(e => new { e.UserId, e.FlashcardId }).IsUnique();
+            entity.HasIndex(e => e.LastReviewed);
             // Quan hệ: nhiều UserProgress thuộc về 1 Flashcard
             // Restrict = không cho xóa thẻ nếu còn tiến trình học
             entity.HasOne(e => e.Flashcard)
@@ -137,6 +146,80 @@ public class AppDbContext : IdentityUserContext<IdentityUser>
                   .WithMany()
                   .HasForeignKey(e => e.FlashcardId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<AiProvider>(entity =>
+        {
+            entity.HasIndex(provider => new { provider.IsEnabled, provider.Priority });
+            entity.Property(provider => provider.Name).HasMaxLength(120).IsRequired();
+            entity.Property(provider => provider.AdapterType).HasMaxLength(80).IsRequired();
+            entity.Property(provider => provider.BaseUrl).HasMaxLength(500).IsRequired();
+            entity.Property(provider => provider.ModelId).HasMaxLength(200).IsRequired();
+            entity.Property(provider => provider.ApiKeyLastFour).HasMaxLength(4);
+        });
+
+        builder.Entity<AiOperationLog>(entity =>
+        {
+            entity.HasIndex(log => log.OccurredAtUtc);
+            entity.HasIndex(log => new { log.OccurredAtUtc, log.Succeeded });
+            entity.HasIndex(log => new { log.ProviderId, log.OccurredAtUtc });
+            entity.Property(log => log.ProviderName).HasMaxLength(120);
+            entity.Property(log => log.ModelId).HasMaxLength(200);
+            entity.Property(log => log.Operation).HasMaxLength(80).IsRequired();
+            entity.Property(log => log.FailureKind).HasMaxLength(80);
+        });
+
+        builder.Entity<EnglishMission>(entity =>
+        {
+            entity.HasIndex(mission => mission.StudySessionId).IsUnique();
+            entity.HasIndex(mission => mission.CreatedAt);
+            entity.HasOne(mission => mission.StudySession)
+                .WithOne()
+                .HasForeignKey<EnglishMission>(mission => mission.StudySessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(mission => mission.Topic).HasMaxLength(80).IsRequired();
+            entity.Property(mission => mission.Title).HasMaxLength(200).IsRequired();
+            entity.Property(mission => mission.Status).HasMaxLength(40).IsRequired();
+            entity.Property(mission => mission.GoalsJson).IsRequired();
+            entity.Property(mission => mission.RowVersion).IsRowVersion();
+        });
+
+        builder.Entity<EnglishMissionTargetWord>(entity =>
+        {
+            entity.HasIndex(word => word.EnglishMissionId);
+            entity.HasOne(word => word.Mission)
+                .WithMany(mission => mission.TargetWords)
+                .HasForeignKey(word => word.EnglishMissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(word => word.Flashcard)
+                .WithMany()
+                .HasForeignKey(word => word.FlashcardId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.Property(word => word.Term).HasMaxLength(160).IsRequired();
+            entity.Property(word => word.Definition).HasMaxLength(500).IsRequired();
+        });
+
+        builder.Entity<EnglishMissionTurn>(entity =>
+        {
+            entity.HasIndex(turn => turn.EnglishMissionId);
+            entity.HasIndex(turn => new { turn.EnglishMissionId, turn.ClientTurnId }).IsUnique();
+            entity.HasOne(turn => turn.Mission)
+                .WithMany(mission => mission.Turns)
+                .HasForeignKey(turn => turn.EnglishMissionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.Property(turn => turn.UserText).HasMaxLength(1000).IsRequired();
+            entity.Property(turn => turn.ClientTurnId).HasMaxLength(64).IsRequired();
+            entity.Property(turn => turn.NpcText).HasMaxLength(2000).IsRequired();
+            entity.Property(turn => turn.UsedWordsJson).IsRequired();
+            entity.Property(turn => turn.AchievedGoalsJson).IsRequired();
+        });
+
+        builder.Entity<AdminAuditLog>(entity =>
+        {
+            entity.HasIndex(log => log.OccurredAtUtc);
+            entity.HasIndex(log => log.Action);
+            entity.HasIndex(log => log.ActorUserId);
+            entity.HasIndex(log => new { log.TargetType, log.TargetId });
         });
     }
 }

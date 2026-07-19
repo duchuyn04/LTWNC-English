@@ -295,7 +295,9 @@ public class StudyController : Controller
 
     // GET tắt StarredOnly + UnlearnedOnly rồi về hub (thoát lọc rỗng)
     [Authorize]
+    [HttpPost]
     [Route("/Study/{setId}/ClearFilters")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ClearFilters(int setId)
     {
         string? userId = _currentUser.UserId;
@@ -361,7 +363,8 @@ public class StudyController : Controller
         StudySession session = await _dictationService.CreateSessionAsync(
             userId,
             setId,
-            settings.DictationContentMode);
+            settings.DictationContentMode,
+            cards.Count);
 
         List<DictationCardViewModel> cardViewModels = new List<DictationCardViewModel>();
         foreach (Flashcard card in cards)
@@ -469,7 +472,7 @@ public class StudyController : Controller
     [HttpPost]
     [Route("/Study/{setId}/Dictation/Complete")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DictationComplete(int setId, int sessionId, int score)
+    public async Task<IActionResult> DictationComplete(int setId, int sessionId)
     {
         string? userId = _currentUser.UserId;
         if (userId == null)
@@ -479,7 +482,7 @@ public class StudyController : Controller
 
         try
         {
-            await _dictationService.CompleteSessionAsync(sessionId, setId, score, userId);
+            await _dictationService.CompleteSessionAsync(sessionId, setId, userId);
             return Json(new
             {
                 success = true,

@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
@@ -12,6 +13,8 @@ using ltwnc.Services.Achievements;
 using ltwnc.Services.Auth;
 using ltwnc.Services.CardActions;
 using ltwnc.Services.FlashcardSets;
+using ltwnc.Services.AdminDashboard;
+using ltwnc.Services.AdminUsers;
 using ltwnc.Services.Study;
 using ltwnc.Services.StudyEvents;
 using ltwnc.Services.StudyModes;
@@ -94,6 +97,40 @@ builder.Services.Configure<CookieAuthenticationOptions>(
             context.Response.Redirect(context.RedirectUri);
             return Task.CompletedTask;
         };
+        options.Events.OnValidatePrincipal = async context =>
+        {
+            // Giữ kiểm tra security stamp mặc định của Identity để cookie cũ mất hiệu lực khi stamp đổi.
+            await SecurityStampValidator.ValidatePrincipalAsync(context);
+            if (context.Principal?.Identity?.IsAuthenticated != true)
+            {
+                return;
+            }
+
+            string? userId = context.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
+            if (string.IsNullOrWhiteSpace(userId))
+            {
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+                return;
+            }
+
+            UserManager<IdentityUser> userManager =
+                context.HttpContext.RequestServices.GetRequiredService<UserManager<IdentityUser>>();
+            IdentityUser? user = await userManager.FindByIdAsync(userId);
+            if (user == null)
+            {
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+                return;
+            }
+
+            // Tài khoản đã bị khóa không được tiếp tục dùng cookie còn tồn tại ở trình duyệt.
+            if (await userManager.IsLockedOutAsync(user))
+            {
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+            }
+        };
         options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
     });
@@ -106,6 +143,9 @@ builder.Services.Configure<SecurityStampValidatorOptions>(options =>
 });
 
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddScoped<ltwnc.Services.Audit.IAdminAuditService, ltwnc.Services.Audit.AdminAuditService>();
+builder.Services.AddScoped<IAdminDashboardKpiService, AdminDashboardKpiService>();
+builder.Services.AddScoped<IAdminUserAccountService, AdminUserAccountService>();
 builder.Services.AddScoped<AdminRoleBootstrapper>();
 builder.Services.AddScoped<AdminAuthenticationSession>();
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler,
@@ -136,6 +176,7 @@ builder.Services.AddScoped<IStudyCardQueryService, StudyCardQueryService>();
 builder.Services.AddScoped<IStudyModeStrategyResolver, StudyModeStrategyResolver>();
 builder.Services.AddScoped<IStudyModeStrategy, FlashcardModeStrategy>();
 builder.Services.AddScoped<IStudyModeStrategy, DictationModeStrategy>();
+builder.Services.AddScoped<IStudyModeStrategy, EnglishMissionModeStrategy>();
 
 // ============================================================
 // Mẫu Observer — đăng ký "trạm phát" và các "người theo dõi"
@@ -151,6 +192,65 @@ builder.Services.AddScoped<IAchievementService, AchievementService>();
 builder.Services.AddScoped<IAchievementProgressService, AchievementProgressService>();
 // Service đồng bộ mở khóa huy hiệu đủ điều kiện (Observer + rescan trang)
 builder.Services.AddScoped<IAchievementUnlockService, AchievementUnlockService>();
+
+builder.Services.AddHttpClient("AiProvider")
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
+    {
+        AllowAutoRedirect = false
+    });
+int authRateLimit = builder.Environment.IsEnvironment("Testing") ? 10_000 : 10;
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddPolicy("auth", context =>
+    {
+        string key = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            $"auth:{key}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = authRateLimit,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
+    options.AddPolicy("ai", context =>
+    {
+        string key = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? context.Connection.RemoteIpAddress?.ToString()
+            ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            $"ai:{key}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 30,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
+    options.AddPolicy("uploads", context =>
+    {
+        string key = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? context.Connection.RemoteIpAddress?.ToString()
+            ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            $"uploads:{key}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 20,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
+});
+builder.Services.AddDataProtection();
+builder.Services.AddScoped<ltwnc.Services.Ai.OpenAiCompatibleClient>();
+builder.Services.AddScoped<ltwnc.Services.Ai.IAiProviderAdapter, ltwnc.Services.Ai.OpenAiCompatibleAdapter>();
+builder.Services.AddScoped<ltwnc.Services.Ai.IAiCompletionRouter, ltwnc.Services.Ai.AiCompletionRouter>();
+builder.Services.AddScoped<ltwnc.Services.Ai.IAiProviderService, ltwnc.Services.Ai.AiProviderService>();
+builder.Services.AddScoped<ltwnc.Services.EnglishMission.IEnglishMissionService, ltwnc.Services.EnglishMission.EnglishMissionService>();
 
 
 // Add MVC
@@ -184,6 +284,7 @@ app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();
+app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapStaticAssets();

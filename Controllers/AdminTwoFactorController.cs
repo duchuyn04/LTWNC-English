@@ -1,5 +1,6 @@
 using ltwnc.Areas.Admin;
 using ltwnc.Models.ViewModels.Account;
+using ltwnc.Services.Audit;
 using ltwnc.Services.Auth;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
@@ -17,17 +18,20 @@ public sealed class AdminTwoFactorController : Controller
     private readonly UserManager<IdentityUser> _userManager;
     private readonly SignInManager<IdentityUser> _signInManager;
     private readonly AdminAuthenticationSession _adminAuthenticationSession;
+    private readonly IAdminAuditService _auditService;
     private readonly TimeProvider _timeProvider;
 
     public AdminTwoFactorController(
         UserManager<IdentityUser> userManager,
         SignInManager<IdentityUser> signInManager,
         AdminAuthenticationSession adminAuthenticationSession,
+        IAdminAuditService auditService,
         TimeProvider timeProvider)
     {
         _userManager = userManager;
         _signInManager = signInManager;
         _adminAuthenticationSession = adminAuthenticationSession;
+        _auditService = auditService;
         _timeProvider = timeProvider;
     }
 
@@ -262,6 +266,7 @@ public sealed class AdminTwoFactorController : Controller
         AuthenticationProperties properties = await GetCurrentAuthenticationPropertiesAsync();
         properties.IsPersistent = properties.IsPersistent || model.RememberMe;
         await _adminAuthenticationSession.SignInVerifiedAsync(user, properties);
+        await RecordAdminAreaSignInAsync(user, "authenticator");
         return LocalRedirect(model.ReturnUrl);
     }
 
@@ -370,7 +375,19 @@ public sealed class AdminTwoFactorController : Controller
         await _adminAuthenticationSession.SignInVerifiedAsync(
             user,
             await GetCurrentAuthenticationPropertiesAsync());
+        await RecordAdminAreaSignInAsync(user, "recoveryCode");
         return LocalRedirect(model.ReturnUrl);
+    }
+
+    private async Task RecordAdminAreaSignInAsync(IdentityUser user, string method)
+    {
+        await _auditService.RecordAsync(new AdminAuditEntry(
+            ActorUserId: user.Id,
+            ActorDisplay: user.Email ?? user.UserName ?? user.Id,
+            Action: AdminAuditActions.AdminAreaSignIn,
+            Outcome: AdminAuditOutcome.Success,
+            CorrelationId: HttpContext.TraceIdentifier,
+            Metadata: new Dictionary<string, string?> { ["method"] = method }));
     }
 
     private static AdminTwoFactorSetupViewModel CreateSetupModel(

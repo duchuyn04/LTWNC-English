@@ -179,6 +179,12 @@ public class AccountController : Controller
                 return Redirect("/Account/AdminTwoFactor/Verify");
             }
 
+            if (adminSignInResult.IsLockedOut)
+            {
+                AddLockedAccountMessage();
+                return View(model);
+            }
+
             if (!adminSignInResult.Succeeded)
             {
                 ModelState.AddModelError(string.Empty, "Email hoặc mật khẩu không đúng.");
@@ -195,6 +201,12 @@ public class AccountController : Controller
 
         if (!result.Succeeded)
         {
+            if (result.IsLockedOut)
+            {
+                AddLockedAccountMessage();
+                return View(model);
+            }
+
             ModelState.AddModelError(string.Empty, "Email hoặc mật khẩu không đúng.");
             return View(model);
         }
@@ -238,6 +250,14 @@ public class AccountController : Controller
 
     private string GetAuthenticatedLandingPath() =>
         User.IsInRole(AdminRoleBootstrapper.AdminRole) ? "/Admin" : "/Set";
+
+    // Thông báo chung cho tài khoản bị khóa, không lộ lý do nội bộ do Admin nhập.
+    private void AddLockedAccountMessage()
+    {
+        ModelState.AddModelError(
+            string.Empty,
+            "Tài khoản hiện không thể đăng nhập. Vui lòng liên hệ bộ phận hỗ trợ để được kiểm tra.");
+    }
 
     private static bool IsDuplicateEmailViolation(DbUpdateException exception)
     {

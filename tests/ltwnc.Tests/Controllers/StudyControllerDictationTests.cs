@@ -159,7 +159,7 @@ public class StudyControllerDictationTests
         var dictationResult = await controller.Dictation(1);
         var viewModel = Assert.IsType<DictationStudyViewModel>(Assert.IsType<ViewResult>(dictationResult).Model);
 
-        var result = await controller.DictationComplete(1, viewModel.SessionId, 100);
+        var result = await controller.DictationComplete(1, viewModel.SessionId);
 
         var jsonResult = Assert.IsType<JsonResult>(result);
         var element = JsonSerializer.SerializeToElement(jsonResult.Value);
@@ -178,7 +178,7 @@ public class StudyControllerDictationTests
         var dictationResult = await controller.Dictation(1);
         var viewModel = Assert.IsType<DictationStudyViewModel>(Assert.IsType<ViewResult>(dictationResult).Model);
         await controller.DictationCheck(1, viewModel.SessionId, 1, "hello");
-        await controller.DictationComplete(1, viewModel.SessionId, 100);
+        await controller.DictationComplete(1, viewModel.SessionId);
 
         var result = await controller.DictationResult(1, viewModel.SessionId);
 
@@ -260,7 +260,7 @@ public class StudyControllerDictationTests
         var dictation = await controller.Dictation(1);
         var studyModel = Assert.IsType<DictationStudyViewModel>(Assert.IsType<ViewResult>(dictation).Model);
         await controller.DictationCheck(1, studyModel.SessionId, 1, "wrong answer");
-        await controller.DictationComplete(1, studyModel.SessionId, 0);
+        await controller.DictationComplete(1, studyModel.SessionId);
 
         settings.DictationContentMode = DictationContentMode.Vocabulary;
         await context.SaveChangesAsync();

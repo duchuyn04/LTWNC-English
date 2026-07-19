@@ -550,12 +550,10 @@
         }
 
         async function completeSession() {
-            const score = cards.length === 0 ? 0 : Math.round((correctCount / cards.length) * 100);
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
             const params = new URLSearchParams();
             params.append('__RequestVerificationToken', token);
             params.append('sessionId', sessionId);
-            params.append('score', score);
 
             try {
                 const response = await fetch(`/Study/${setId}/Dictation/Complete`, {

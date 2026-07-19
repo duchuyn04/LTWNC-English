@@ -1,0 +1,81 @@
+@model AdminDashboardPrototypeViewModel
+@{
+    Layout = "~/Areas/Admin/Views/Shared/_AdminPrototypeLayout.cshtml";
+    ViewData["Title"] = $"Dashboard Prototype {Model.Variant}";
+}
+
+<div class="prototype-notice">
+    <i class="ph ph-flask" aria-hidden="true"></i>
+    <span>PROTOTYPE · dữ liệu minh họa · không có thao tác nào ghi vào hệ thống</span>
+</div>
+
+@if (Model.Variant == "A")
+{
+    <div class="variant-a admin-shell" data-variant-name="Command Center">
+        <aside class="a-sidebar">
+            <a class="admin-brand" href="/Admin/Prototype/Dashboard?variant=A"><span>LT</span><strong>LTWNC</strong><small>ADMIN</small></a>
+            <nav aria-label="Điều hướng quản trị">
+                <a class="active" href="#"><i class="ph ph-squares-four"></i><span>Tổng quan</span></a>
+                <a href="#"><i class="ph ph-users-three"></i><span>Người dùng</span><b>12,4k</b></a>
+                <a href="#"><i class="ph ph-stack"></i><span>Nội dung</span></a>
+                <a href="#"><i class="ph ph-graduation-cap"></i><span>Phiên học</span></a>
+                <a href="#"><i class="ph ph-chats-circle"></i><span>English Mission</span></a>
+                <a href="#"><i class="ph ph-medal"></i><span>Thành tích</span></a>
+                <a href="/Admin/AiProviders"><i class="ph ph-plugs-connected"></i><span>AI Providers</span><em>1</em></a>
+                <a href="#"><i class="ph ph-scroll"></i><span>Nhật ký</span></a>
+            </nav>
+            <div class="a-sidebar-foot"><a href="/Set"><i class="ph ph-arrow-left"></i> Về ứng dụng</a><div><span class="avatar">AD</span><p><strong>Administrator</strong><small>Toàn quyền hệ thống</small></p><i class="ph ph-dots-three"></i></div></div>
+        </aside>
+        <main class="a-main">
+            <header class="a-topbar"><div><p>Chủ nhật, 19 tháng 7</p><h1>Trung tâm vận hành</h1></div><div class="top-actions"><label><i class="ph ph-magnifying-glass"></i><input type="search" placeholder="Tìm người dùng, bộ thẻ..." /></label><button type="button" aria-label="Thông báo"><i class="ph ph-bell"></i><span></span></button><button class="primary" type="button"><i class="ph ph-lightning"></i> Tác vụ nhanh</button></div></header>
+            <section class="metric-grid" aria-label="Chỉ số tổng quan">
+                @foreach (AdminPrototypeMetric metric in Model.Metrics)
+                {
+                    <article class="metric-card tone-@metric.Tone"><div><span>@metric.Label</span><i class="ph @metric.Icon"></i></div><strong>@metric.Value</strong><small><i class="ph ph-trend-up"></i> @metric.Change</small></article>
+                }
+            </section>
+            <section class="a-grid-primary">
+                <article class="panel chart-panel"><header><div><span class="section-kicker">TƯƠNG TÁC</span><h2>Hoạt động học tập</h2></div><select aria-label="Khoảng thời gian"><option>30 ngày qua</option></select></header><div class="chart-summary"><strong>48.902</strong><span>phiên học</span><small>+12,7% so với kỳ trước</small></div><div class="bar-chart" aria-label="Biểu đồ phiên học 14 ngày">@foreach (int height in new[] { 38, 54, 47, 70, 62, 84, 73, 58, 78, 66, 91, 82, 76, 96 }) { <span style="--bar-height:@(height)%"></span> }</div><div class="chart-labels"><span>06/07</span><span>13/07</span><span>19/07</span></div></article>
+                <article class="panel activity-panel"><header><div><span class="section-kicker">TRỰC TIẾP</span><h2>Dòng hoạt động</h2></div><button type="button"><i class="ph ph-funnel"></i></button></header><div class="activity-list">@foreach (AdminPrototypeActivity item in Model.Activities) { <div class="activity-item"><span class="activity-icon tone-@item.Tone"><i class="ph @item.Icon"></i></span><p><strong>@item.Title</strong><small>@item.Detail</small></p><time>@item.Time</time></div> }</div><button class="text-button" type="button">Xem toàn bộ nhật ký <i class="ph ph-arrow-right"></i></button></article>
+            </section>
+            <section class="a-grid-secondary">
+                <article class="panel content-panel"><header><div><span class="section-kicker">NỘI DUNG</span><h2>Bộ thẻ nổi bật</h2></div><button class="text-button" type="button">Quản lý nội dung</button></header><div class="data-table"><div class="table-row table-head"><span>Bộ thẻ</span><span>Thẻ</span><span>Phiên học</span><span>Hoàn tất</span></div>@foreach (AdminPrototypeContentRow row in Model.PopularSets) { <div class="table-row"><span><b>@row.Title</b><small>@@@row.Owner</small></span><span>@row.Cards</span><span>@row.Sessions.ToString("N0")</span><span><strong>@row.CompletionRate</strong></span></div> }</div></article>
+                <article class="panel health-panel"><header><div><span class="section-kicker">HỆ THỐNG</span><h2>Sức khỏe dịch vụ</h2></div><span class="all-operational"><i></i> Đang giám sát</span></header>@foreach (AdminPrototypeHealthItem item in Model.Health) { <div class="health-row"><i class="health-dot tone-@item.Tone"></i><p><strong>@item.Label</strong><small>@item.Detail</small></p><span>@item.Value</span></div> }</article>
+            </section>
+        </main>
+    </div>
+}
+else if (Model.Variant == "B")
+{
+    <div class="variant-b admin-shell" data-variant-name="Editorial Briefing">
+        <header class="b-header"><a class="b-brand" href="/Admin/Prototype/Dashboard?variant=B"><i class="ph ph-book-open"></i><span>LTWNC</span><small>ADMIN BRIEFING</small></a><nav><a class="active" href="#">Hôm nay</a><a href="#">Con người</a><a href="#">Nội dung</a><a href="#">Học tập</a><a href="#">Hệ thống</a></nav><div><button type="button"><i class="ph ph-magnifying-glass"></i></button><button type="button"><i class="ph ph-bell"></i></button><span class="avatar">AD</span></div></header>
+        <main class="b-main">
+            <section class="b-hero"><div><span class="b-date">BẢN TIN VẬN HÀNH · @Model.GeneratedAt.ToString("dd.MM.yyyy")</span><h1>Hệ thống đang tăng trưởng tốt,<br /><em>nhưng có 3 việc cần chú ý.</em></h1><p>Toàn cảnh người học, nội dung và hạ tầng trong một bản tin ưu tiên theo mức ảnh hưởng.</p></div><aside><span>HEALTH SCORE</span><strong>94<small>/100</small></strong><p><i></i> 7 dịch vụ ổn định</p></aside></section>
+            <section class="b-priorities"><article class="priority urgent"><span>01 · CẦN XỬ LÝ</span><i class="ph ph-warning-octagon"></i><h2>3 bộ thẻ đang chờ kiểm duyệt</h2><p>Một bộ thẻ đã nhận ba báo cáo từ cộng đồng trong 24 giờ.</p><button type="button">Mở hàng đợi <i class="ph ph-arrow-up-right"></i></button></article><article class="priority"><span>02 · HẠ TẦNG AI</span><i class="ph ph-plugs"></i><h2>Gemini Gateway chậm hơn 2,1×</h2><p>Fallback vẫn hoạt động. Chưa ghi nhận phiên English Mission thất bại.</p><button type="button">Kiểm tra provider <i class="ph ph-arrow-up-right"></i></button></article><article class="priority positive"><span>03 · TÍN HIỆU TỐT</span><i class="ph ph-trend-up"></i><h2>Phiên học tăng 12,7%</h2><p>Khung 20:00–22:00 đạt đỉnh mới với 4.218 phiên hoạt động.</p><button type="button">Xem phân tích <i class="ph ph-arrow-up-right"></i></button></article></section>
+            <section class="b-numbers"><header><span>NHỮNG CON SỐ CẦN BIẾT</span><p>Cập nhật lúc @Model.GeneratedAt.ToString("HH:mm")</p></header><div>@foreach (AdminPrototypeMetric metric in Model.Metrics) { <article><i class="ph @metric.Icon"></i><span>@metric.Label</span><strong>@metric.Value</strong><small>@metric.Change</small></article> }</div></section>
+            <section class="b-editorial-grid"><article class="b-story"><span class="story-no">01</span><div><span class="section-kicker">HÀNH VI NGƯỜI HỌC</span><h2>English Mission đang giữ chân người học lâu hơn flashcard truyền thống.</h2><p>Người hoàn tất ít nhất một mission có chuỗi học trung bình 8,4 ngày, cao hơn 37% so với nhóm còn lại.</p><div class="b-line-chart"><svg viewBox="0 0 600 180" role="img" aria-label="Xu hướng giữ chân"><path d="M0 145 C80 140, 100 115, 170 120 S260 85, 330 92 S420 55, 600 25" /><path class="secondary" d="M0 150 C100 148, 120 135, 200 138 S330 112, 410 118 S500 95, 600 88" /></svg><div><span><i></i> Có dùng Mission</span><span><i></i> Chưa dùng Mission</span></div></div></div></article><article class="b-feed"><span class="section-kicker">5 SỰ KIỆN GẦN NHẤT</span>@foreach (AdminPrototypeActivity item in Model.Activities) { <div><time>@item.Time</time><span class="activity-icon tone-@item.Tone"><i class="ph @item.Icon"></i></span><p><strong>@item.Title</strong><small>@item.Detail</small></p></div> }</article></section>
+            <footer class="b-footer"><p>Bản tin được tổng hợp từ 12.480 người dùng và 48.902 phiên học.</p><div><button type="button"><i class="ph ph-download-simple"></i> Xuất báo cáo</button><a href="/Set">Về ứng dụng <i class="ph ph-arrow-right"></i></a></div></footer>
+        </main>
+    </div>
+}
+else
+{
+    <div class="variant-c admin-shell" data-variant-name="Operations Desk">
+        <aside class="c-rail"><a class="c-logo" href="/Admin/Prototype/Dashboard?variant=C">LT</a><nav><button class="active" type="button" title="Tổng quan"><i class="ph ph-squares-four"></i></button><button type="button" title="Người dùng"><i class="ph ph-users"></i></button><button type="button" title="Nội dung"><i class="ph ph-stack"></i></button><button type="button" title="Phiên học"><i class="ph ph-graduation-cap"></i></button><button type="button" title="AI"><i class="ph ph-cpu"></i><span></span></button><button type="button" title="Nhật ký"><i class="ph ph-terminal-window"></i></button></nav><div><a href="/Set" title="Về ứng dụng"><i class="ph ph-arrow-left"></i></a><span class="avatar">AD</span></div></aside>
+        <main class="c-main"><header class="c-header"><div><span>OPERATIONS / OVERVIEW</span><h1>System desk</h1></div><div class="c-status"><span><i></i> LIVE</span><time>@Model.GeneratedAt.ToString("HH:mm:ss")</time><button type="button"><i class="ph ph-command"></i> K</button></div></header>
+            <section class="c-ticker"><div><span>USERS</span><strong>12,480</strong><small class="up">▲ 8.4%</small></div><div><span>ACTIVE NOW</span><strong>1,284</strong><small class="up">▲ 4.1%</small></div><div><span>SESSIONS / 24H</span><strong>6,902</strong><small class="up">▲ 12.7%</small></div><div><span>ERROR RATE</span><strong>0.18%</strong><small class="down">▼ 0.03</small></div><div><span>AI LATENCY</span><strong>1.42s</strong><small class="warn">▲ 0.28</small></div></section>
+            <section class="c-workspace"><article class="c-monitor"><header><h2>TRAFFIC MONITOR</h2><div><button class="active" type="button">1H</button><button type="button">6H</button><button type="button">24H</button></div></header><div class="c-area-chart"><svg viewBox="0 0 900 250" preserveAspectRatio="none" role="img" aria-label="Lưu lượng hệ thống"><defs><linearGradient id="areaFill" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#61d6a7" stop-opacity=".35"/><stop offset="1" stop-color="#61d6a7" stop-opacity="0"/></linearGradient></defs><path class="grid" d="M0 50H900M0 100H900M0 150H900M0 200H900"/><path class="area" d="M0 205 L45 190 L90 198 L135 160 L180 174 L225 132 L270 145 L315 100 L360 122 L405 78 L450 92 L495 68 L540 110 L585 88 L630 54 L675 70 L720 42 L765 60 L810 30 L855 48 L900 22 L900 250 L0 250Z"/><path class="line" d="M0 205 L45 190 L90 198 L135 160 L180 174 L225 132 L270 145 L315 100 L360 122 L405 78 L450 92 L495 68 L540 110 L585 88 L630 54 L675 70 L720 42 L765 60 L810 30 L855 48 L900 22"/></svg><div class="c-chart-label"><span>11:00</span><span>11:15</span><span>11:30</span><span>11:45</span><span>12:00</span></div></div></article>
+                <article class="c-health"><header><h2>SERVICE HEALTH</h2><span>4 SERVICES</span></header>@foreach (AdminPrototypeHealthItem item in Model.Health) { <div><span class="health-dot tone-@item.Tone"></span><p><strong>@item.Label</strong><small>@item.Detail</small></p><b>@item.Value</b><button type="button"><i class="ph ph-dots-three"></i></button></div> }</article>
+                <article class="c-table"><header><h2>CONTENT PERFORMANCE</h2><div><button type="button"><i class="ph ph-funnel"></i> FILTER</button><button type="button"><i class="ph ph-export"></i> EXPORT</button></div></header><table><thead><tr><th>SET / OWNER</th><th>CARDS</th><th>SESSIONS</th><th>COMPLETION</th><th>STATUS</th><th></th></tr></thead><tbody>@foreach (AdminPrototypeContentRow row in Model.PopularSets) { <tr><td><strong>@row.Title</strong><small>@@@row.Owner</small></td><td>@row.Cards</td><td>@row.Sessions.ToString("N0")</td><td><span class="progress"><i style="width:@row.CompletionRate"></i></span>@row.CompletionRate</td><td><span class="status-ok">ACTIVE</span></td><td><button type="button"><i class="ph ph-caret-right"></i></button></td></tr> }</tbody></table></article>
+                <article class="c-events"><header><h2>EVENT STREAM</h2><span><i></i> REALTIME</span></header>@foreach (AdminPrototypeActivity item in Model.Activities) { <div><time>@item.Time</time><i class="ph @item.Icon tone-@item.Tone"></i><p><strong>@item.Title</strong><small>@item.Detail</small></p></div> }</article>
+            </section>
+        </main>
+    </div>
+}
+
+<nav class="prototype-switcher" aria-label="Chọn biến thể prototype" data-current-variant="@Model.Variant">
+    <button type="button" data-direction="previous" aria-label="Biến thể trước"><i class="ph ph-arrow-left"></i></button>
+    <div><small>ADMIN DASHBOARD</small><strong><span>@Model.Variant</span> — <em></em></strong></div>
+    <div class="variant-dots" aria-hidden="true"><i class="@(Model.Variant == "A" ? "active" : "")"></i><i class="@(Model.Variant == "B" ? "active" : "")"></i><i class="@(Model.Variant == "C" ? "active" : "")"></i></div>
+    <button type="button" data-direction="next" aria-label="Biến thể tiếp theo"><i class="ph ph-arrow-right"></i></button>
+</nav>

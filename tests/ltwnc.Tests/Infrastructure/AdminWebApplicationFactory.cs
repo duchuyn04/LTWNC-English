@@ -196,6 +196,29 @@ public sealed class AdminWebApplicationFactory : WebApplicationFactory<Program>
         return await userManager.IsLockedOutAsync(user);
     }
 
+    // Lấy mã IdentityUser theo email để test có thể gọi trang chi tiết Admin/Users.
+    public async Task<string> GetUserIdAsync(string email)
+    {
+        using IServiceScope scope = Services.CreateScope();
+        UserManager<IdentityUser> userManager =
+            scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        IdentityUser user = await userManager.FindByEmailAsync(email)
+            ?? throw new InvalidOperationException("Không tìm thấy người dùng thử nghiệm.");
+        return user.Id;
+    }
+
+    // Lấy security stamp hiện tại để test giả lập form hợp lệ hoặc form bị cũ.
+    public async Task<string> GetSecurityStampAsync(string email)
+    {
+        using IServiceScope scope = Services.CreateScope();
+        UserManager<IdentityUser> userManager =
+            scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        IdentityUser user = await userManager.FindByEmailAsync(email)
+            ?? throw new InvalidOperationException("Không tìm thấy người dùng thử nghiệm.");
+        return user.ConcurrencyStamp
+            ?? throw new InvalidOperationException("Người dùng thử nghiệm chưa có concurrency stamp.");
+    }
+
     public async Task DisableTwoFactorAsync(string email)
     {
         using IServiceScope scope = Services.CreateScope();

@@ -16,7 +16,8 @@ public interface IDictationService
     Task<StudySession> CreateSessionAsync(
         string userId,
         int setId,
-        DictationContentMode contentMode = DictationContentMode.Vocabulary);
+        DictationContentMode contentMode = DictationContentMode.Vocabulary,
+        int plannedItemCount = 0);
 
     Task<DictationCheckResult> CheckAnswerAsync(
         int sessionId,
@@ -26,7 +27,7 @@ public interface IDictationService
         string userId,
         bool acceptSynonyms);
 
-    Task<StudySession> CompleteSessionAsync(int sessionId, int setId, int score, string userId);
+    Task<StudySession> CompleteSessionAsync(int sessionId, int setId, string userId);
 
     Task<DictationResult> GetSessionResultAsync(int sessionId, string userId);
 }

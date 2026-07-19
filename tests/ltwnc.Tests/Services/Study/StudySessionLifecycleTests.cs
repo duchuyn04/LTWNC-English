@@ -72,7 +72,7 @@ public sealed class StudySessionLifecycleTests
     }
 
     [Fact]
-    public async Task DictationCompletion_ComputesDurationAndRejectsFlashcardSession()
+    public async Task DictationCompletion_ComputesScoreOnServerAndRejectsFlashcardSession()
     {
         await using var context = CreateContext();
         var clock = new MutableTimeProvider(DateTimeOffset.UtcNow);
@@ -83,9 +83,23 @@ public sealed class StudySessionLifecycleTests
             TestStudyEvents.NoOpPublisher(),
             clock);
 
-        var dictation = await service.CreateSessionAsync("user-1", 1);
+        var dictation = await service.CreateSessionAsync("user-1", 1, plannedItemCount: 2);
+        context.DictationSessionDetails.AddRange(
+            new DictationSessionDetail
+            {
+                StudySessionId = dictation.Id,
+                FlashcardId = 1,
+                IsCorrect = true
+            },
+            new DictationSessionDetail
+            {
+                StudySessionId = dictation.Id,
+                FlashcardId = 2,
+                IsCorrect = false
+            });
+        await context.SaveChangesAsync();
         clock.Advance(TimeSpan.FromMinutes(12));
-        await service.CompleteSessionAsync(dictation.Id, 1, 95, "user-1");
+        await service.CompleteSessionAsync(dictation.Id, 1, "user-1");
 
         var flashcard = new StudySession
         {
@@ -98,11 +112,11 @@ public sealed class StudySessionLifecycleTests
         await context.SaveChangesAsync();
 
         await Assert.ThrowsAsync<UnauthorizedAccessException>(
-            () => service.CompleteSessionAsync(flashcard.Id, 1, 100, "user-1"));
+            () => service.CompleteSessionAsync(flashcard.Id, 1, "user-1"));
 
         var saved = await context.StudySessions.SingleAsync(session => session.Id == dictation.Id);
         Assert.Equal(12 * 60, saved.DurationSeconds);
-        Assert.Equal(95, saved.Score);
+        Assert.Equal(50, saved.Score);
     }
 
     [Fact]
