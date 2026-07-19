@@ -5,9 +5,25 @@ namespace ltwnc.Tests.Views;
 public class QuizViewTests
 {
     private static readonly string QuizView = ReadFile("Views", "Study", "Quiz.cshtml");
+    private static readonly string QuizSetupView = ReadFile("Views", "Study", "QuizSetup.cshtml");
     private static readonly string ResultView = ReadFile("Views", "Study", "QuizResult.cshtml");
     private static readonly string QuizScript = ReadFile("wwwroot", "js", "quiz.js");
     private static readonly string QuizStyles = ReadFile("wwwroot", "css", "quiz.css");
+
+    [Fact]
+    public void Quiz_setup_view_offers_presets_custom_duration_and_active_continuation()
+    {
+        Assert.Contains("value=\"5\"", QuizSetupView);
+        Assert.Contains("value=\"10\"", QuizSetupView);
+        Assert.Contains("value=\"15\"", QuizSetupView);
+        Assert.Contains("value=\"20\"", QuizSetupView);
+        Assert.Contains("type=\"number\"", QuizSetupView);
+        Assert.Contains("min=\"1\"", QuizSetupView);
+        Assert.Contains("max=\"120\"", QuizSetupView);
+        Assert.Contains("@Html.AntiForgeryToken()", QuizSetupView);
+        Assert.Contains("Model.ActiveSessionId.HasValue", QuizSetupView);
+        Assert.Contains("asp-action=\"Quiz\"", QuizSetupView);
+    }
 
     [Fact]
     public void Quiz_view_renders_server_choices_and_submission_contract_without_answer_leakage()

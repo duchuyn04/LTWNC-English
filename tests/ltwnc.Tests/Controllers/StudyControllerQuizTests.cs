@@ -23,42 +23,71 @@ public class StudyControllerQuizTests
     private readonly Mock<IFlashcardSetService> _setService = new();
 
     [Fact]
-    public async Task QuizStart_redirects_to_created_or_resumed_session()
+    public async Task QuizStart_renders_setup_with_active_session_continuation()
     {
-        UserStudySettings settings = new() { StarredOnly = true };
-        _studyService.Setup(service => service.GetSettingsAsync("user-1"))
-            .ReturnsAsync(settings);
-        _quizService.Setup(service => service.StartOrResumeAsync(7, "user-1", settings))
-            .ReturnsAsync(new StudySession { Id = 42 });
+        _quizService.Setup(service => service.GetSetupAsync(7, "user-1"))
+            .ReturnsAsync(new QuizSetupState
+            {
+                SetId = 7,
+                SetTitle = "Core English",
+                ActiveSession = new StudySession { Id = 42 }
+            });
         StudyController controller = CreateController("user-1");
 
         IActionResult result = await controller.QuizStart(7);
 
-        RedirectToActionResult redirect = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal(nameof(StudyController.Quiz), redirect.ActionName);
-        Assert.Equal(7, redirect.RouteValues!["setId"]);
-        Assert.Equal(42, redirect.RouteValues["sessionId"]);
+        ViewResult view = Assert.IsType<ViewResult>(result);
+        Assert.Equal("QuizSetup", view.ViewName);
+        QuizSetupViewModel model = Assert.IsType<QuizSetupViewModel>(view.Model);
+        Assert.Equal(7, model.SetId);
+        Assert.Equal("Core English", model.SetTitle);
+        Assert.Equal(QuizService.DefaultQuizMinutes, model.SelectedPresetMinutes);
+        Assert.Equal(42, model.ActiveSessionId);
         _quizService.Verify(
-            service => service.StartOrResumeAsync(7, "user-1", settings),
+            service => service.GetSetupAsync(7, "user-1"),
             Times.Once);
     }
 
     [Fact]
-    public async Task QuizStart_unavailable_redirects_to_hub_with_message()
+    public async Task QuizStart_post_rejects_invalid_duration()
     {
-        UserStudySettings settings = new();
-        _studyService.Setup(service => service.GetSettingsAsync("user-1"))
-            .ReturnsAsync(settings);
-        _quizService.Setup(service => service.StartOrResumeAsync(7, "user-1", settings))
-            .ThrowsAsync(new QuizUnavailableException("Không đủ đáp án nhiễu."));
+        _quizService.Setup(service => service.GetSetupAsync(7, "user-1"))
+            .ReturnsAsync(new QuizSetupState { SetId = 7, SetTitle = "Core English" });
         StudyController controller = CreateController("user-1");
 
-        IActionResult result = await controller.QuizStart(7);
+        IActionResult result = await controller.QuizStart(7, new QuizSetupViewModel
+        {
+            SelectedPresetMinutes = 121
+        });
 
-        RedirectToActionResult redirect = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal(nameof(StudyController.Index), redirect.ActionName);
-        Assert.Equal(7, redirect.RouteValues!["setId"]);
-        Assert.Equal("Không đủ đáp án nhiễu.", controller.TempData["Message"]);
+        ViewResult view = Assert.IsType<ViewResult>(result);
+        Assert.Equal("QuizSetup", view.ViewName);
+        Assert.False(controller.ModelState.IsValid);
+        _quizService.Verify(
+            service => service.StartNewAsync(
+                It.IsAny<int>(),
+                It.IsAny<string>(),
+                It.IsAny<UserStudySettings>(),
+                It.IsAny<int>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task QuizStart_post_starts_fresh_attempt_with_selected_duration()
+    {
+        UserStudySettings settings = new() { StarredOnly = true };
+        _studyService.Setup(service => service.GetSettingsAsync("user-1"))
+            .ReturnsAsync(settings);
+        _quizService.Setup(service => service.StartNewAsync(7, "user-1", settings, 15))
+            .ReturnsAsync(new StudySession { Id = 42 });
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.QuizStart(7, new QuizSetupViewModel
+        {
+            SelectedPresetMinutes = 15
+        });
+
+        AssertQuizSessionRedirect(result, setId: 7, sessionId: 42);
     }
 
     [Fact]

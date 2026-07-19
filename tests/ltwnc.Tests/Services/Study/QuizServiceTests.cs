@@ -12,6 +12,49 @@ namespace ltwnc.Tests.Services;
 
 public class QuizServiceTests
 {
+    [Theory]
+    [InlineData(0)]
+    [InlineData(121)]
+    public async Task StartNew_rejects_duration_outside_supported_range(int timeLimitMinutes)
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            timeLimitMinutes));
+    }
+
+    [Fact]
+    public async Task StartNew_abandons_active_attempt_and_creates_fresh_timed_session()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession oldSession = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+
+        StudySession newSession = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            15);
+
+        database.Context.ChangeTracker.Clear();
+        StudySession storedOldSession = await database.Context.StudySessions.SingleAsync(
+            session => session.Id == oldSession.Id);
+        Assert.NotNull(storedOldSession.CompletedAt);
+        Assert.Null(storedOldSession.Score);
+        Assert.Equal(15 * 60, newSession.QuizTimeLimitSeconds);
+        Assert.NotNull(newSession.QuizStartedAtUtc);
+        Assert.NotEqual(oldSession.Id, newSession.Id);
+    }
+
     [Fact]
     public async Task StartOrResume_creates_session_and_persisted_questions()
     {

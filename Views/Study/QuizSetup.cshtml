@@ -1,0 +1,47 @@
+@model QuizSetupViewModel
+@{
+    ViewData["Title"] = "Thiáº¿t láº­p tráº¯c nghiá»‡m";
+}
+
+<div class="quiz-shell">
+    <main class="quiz-stage">
+        <header class="quiz-header">
+            <a class="quiz-exit" asp-action="Index" asp-route-setId="@Model.SetId">ThoÃ¡t</a>
+            <div class="quiz-heading">
+                <span class="quiz-eyebrow">Tráº¯c nghiá»‡m</span>
+                <h1>@Model.SetTitle</h1>
+            </div>
+        </header>
+
+        <section class="quiz-card" aria-labelledby="quiz-setup-title">
+            <h2 id="quiz-setup-title">Chá»n thá»i gian lÃ m bÃ i</h2>
+            <form asp-action="QuizStart" asp-route-setId="@Model.SetId" method="post">
+                @Html.AntiForgeryToken()
+                <div asp-validation-summary="ModelOnly" role="alert"></div>
+                <fieldset>
+                    <legend>Thá»i lÆ°á»£ng</legend>
+                    <label><input asp-for="SelectedPresetMinutes" type="radio" value="5" /> 5 phÃºt</label>
+                    <label><input asp-for="SelectedPresetMinutes" type="radio" value="10" /> 10 phÃºt</label>
+                    <label><input asp-for="SelectedPresetMinutes" type="radio" value="15" /> 15 phÃºt</label>
+                    <label><input asp-for="SelectedPresetMinutes" type="radio" value="20" /> 20 phÃºt</label>
+                </fieldset>
+
+                <label asp-for="CustomMinutes">Hoáº·c nháº­p sá»‘ phÃºt khÃ¡c</label>
+                <input asp-for="CustomMinutes" type="number" min="1" max="120" step="1" />
+                <span asp-validation-for="CustomMinutes"></span>
+
+                <button type="submit" class="quiz-action quiz-action-primary">Báº¯t Ä‘áº§u bÃ i kiá»ƒm tra</button>
+            </form>
+
+            @if (Model.ActiveSessionId.HasValue)
+            {
+                <p>
+                    Báº¡n cÃ²n má»™t bÃ i Ä‘ang dÆ°á»Ÿ dang.
+                    <a asp-action="Quiz"
+                       asp-route-setId="@Model.SetId"
+                       asp-route-sessionId="@Model.ActiveSessionId">Tiáº¿p tá»¥c lÃ m bÃ i</a>
+                </p>
+            }
+        </section>
+    </main>
+</div>

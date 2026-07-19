@@ -4,6 +4,14 @@ namespace ltwnc.Services.Study;
 
 public interface IQuizService
 {
+    Task<QuizSetupState> GetSetupAsync(int setId, string userId);
+
+    Task<StudySession> StartNewAsync(
+        int setId,
+        string userId,
+        UserStudySettings settings,
+        int timeLimitMinutes);
+
     Task<StudySession> StartOrResumeAsync(
         int setId,
         string userId,

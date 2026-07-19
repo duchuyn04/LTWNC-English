@@ -308,18 +308,96 @@ public class StudyController : Controller
 
         try
         {
+            QuizSetupState state = await _quizService.GetSetupAsync(setId, userId);
+            return View("QuizSetup", new QuizSetupViewModel
+            {
+                SetId = state.SetId,
+                SetTitle = state.SetTitle,
+                SelectedPresetMinutes = QuizService.DefaultQuizMinutes,
+                ActiveSessionId = state.ActiveSession?.Id
+            });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+    }
+
+    [HttpPost]
+    [Route("/Study/{setId}/Quiz/Start")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> QuizStart(int setId, QuizSetupViewModel input)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        int? timeLimitMinutes = input.CustomMinutes ?? input.SelectedPresetMinutes;
+        bool isPreset = input.SelectedPresetMinutes is 5 or 10 or 15 or 20;
+        bool isCustom = input.CustomMinutes is >= QuizService.MinimumQuizMinutes
+            and <= QuizService.MaximumQuizMinutes;
+        if (timeLimitMinutes == null || (input.CustomMinutes.HasValue ? !isCustom : !isPreset))
+        {
+            ModelState.AddModelError(
+                nameof(QuizSetupViewModel.CustomMinutes),
+                $"Thá»i lÆ°á»£ng pháº£i tÆ° 1 Ä‘áº¿n {QuizService.MaximumQuizMinutes} phÃºt.");
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return await RenderQuizSetupAsync(setId, userId, input);
+        }
+
+        try
+        {
             UserStudySettings settings = await _studyService.GetSettingsAsync(userId);
-            StudySession session = await _quizService.StartOrResumeAsync(setId, userId, settings);
+            StudySession session = await _quizService.StartNewAsync(
+                setId,
+                userId,
+                settings,
+                timeLimitMinutes!.Value);
             return RedirectToAction(nameof(Quiz), new { setId, sessionId = session.Id });
         }
         catch (QuizUnavailableException exception)
         {
-            TempData["Message"] = exception.Message;
-            return RedirectToAction(nameof(Index), new { setId });
+            ModelState.AddModelError(string.Empty, exception.Message);
+            return await RenderQuizSetupAsync(setId, userId, input);
         }
         catch (ArgumentOutOfRangeException)
         {
-            return BadRequest();
+            ModelState.AddModelError(
+                nameof(QuizSetupViewModel.CustomMinutes),
+                $"Thá»i lÆ°á»£ng pháº£i tÆ° 1 Ä‘áº¿n {QuizService.MaximumQuizMinutes} phÃºt.");
+            return await RenderQuizSetupAsync(setId, userId, input);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+    }
+
+    private async Task<IActionResult> RenderQuizSetupAsync(
+        int setId,
+        string userId,
+        QuizSetupViewModel input)
+    {
+        try
+        {
+            QuizSetupState state = await _quizService.GetSetupAsync(setId, userId);
+            input.SetId = state.SetId;
+            input.SetTitle = state.SetTitle;
+            input.ActiveSessionId = state.ActiveSession?.Id;
+            return View("QuizSetup", input);
         }
         catch (KeyNotFoundException)
         {

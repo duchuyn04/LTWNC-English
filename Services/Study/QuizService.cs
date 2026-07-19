@@ -9,6 +9,10 @@ namespace ltwnc.Services.Study;
 
 public class QuizService : IQuizService
 {
+    public const int DefaultQuizMinutes = 10;
+    public const int MinimumQuizMinutes = 1;
+    public const int MaximumQuizMinutes = 120;
+
     private readonly AppDbContext _context;
     private readonly IStudyModeStrategyResolver _strategyResolver;
     private readonly QuizQuestionFactory _questionFactory;
@@ -24,6 +28,111 @@ public class QuizService : IQuizService
         _strategyResolver = strategyResolver;
         _questionFactory = questionFactory;
         _studyEvents = studyEvents;
+    }
+
+    public async Task<QuizSetupState> GetSetupAsync(int setId, string userId)
+    {
+        FlashcardSet set = await GetOwnedSetAsync(setId, userId);
+        StudySession? activeSession = await _context.StudySessions
+            .AsNoTracking()
+            .Where(session => session.FlashcardSetId == setId
+                && session.UserId == userId
+                && session.Mode == StudyMode.Quiz
+                && session.Score == null
+                && session.CompletedAt == null)
+            .OrderByDescending(session => session.Id)
+            .FirstOrDefaultAsync();
+
+        return new QuizSetupState
+        {
+            SetId = set.Id,
+            SetTitle = set.Title,
+            ActiveSession = activeSession
+        };
+    }
+
+    public async Task<StudySession> StartNewAsync(
+        int setId,
+        string userId,
+        UserStudySettings settings,
+        int timeLimitMinutes)
+    {
+        if (timeLimitMinutes is < MinimumQuizMinutes or > MaximumQuizMinutes)
+        {
+            throw new ArgumentOutOfRangeException(nameof(timeLimitMinutes));
+        }
+
+        await GetOwnedSetAsync(setId, userId);
+        IStudyModeStrategy strategy = _strategyResolver.Resolve(StudyMode.Quiz);
+        List<Flashcard> sourceCards = await strategy.GetCardsAsync(setId, settings, userId);
+        if (sourceCards.Count == 0)
+        {
+            throw new QuizUnavailableException(
+                "KhÃ´ng cÃ³ tháº» phÃ¹ há»£p vá»›i bá»™ lá»c hiá»‡n táº¡i.");
+        }
+
+        IDbContextTransaction? transaction = null;
+        if (_context.Database.IsRelational())
+        {
+            transaction = await _context.Database.BeginTransactionAsync();
+        }
+
+        try
+        {
+            DateTime now = DateTime.UtcNow;
+            await _context.StudySessions
+                .Where(session => session.FlashcardSetId == setId
+                    && session.UserId == userId
+                    && session.Mode == StudyMode.Quiz
+                    && session.Score == null
+                    && session.CompletedAt == null)
+                .ExecuteUpdateAsync(updates => updates
+                    .SetProperty(session => session.CompletedAt, now));
+
+            var session = new StudySession
+            {
+                FlashcardSetId = setId,
+                UserId = userId,
+                Mode = StudyMode.Quiz,
+                CompletedAt = null,
+                QuizStartedAtUtc = now,
+                QuizTimeLimitSeconds = timeLimitMinutes * 60
+            };
+            List<QuizSessionQuestion> questions = await _questionFactory.BuildQuestionsAsync(
+                setId,
+                userId,
+                sourceCards);
+            foreach (QuizSessionQuestion question in questions)
+            {
+                question.StudySession = session;
+            }
+
+            _context.QuizSessionQuestions.AddRange(questions);
+            await _context.SaveChangesAsync();
+
+            if (transaction != null)
+            {
+                await transaction.CommitAsync();
+            }
+
+            return session;
+        }
+        catch
+        {
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync();
+            }
+
+            throw;
+        }
+        finally
+        {
+            if (transaction != null)
+            {
+                await transaction.DisposeAsync();
+            }
+        }
     }
 
     public async Task<StudySession> StartOrResumeAsync(
@@ -49,7 +158,8 @@ public class QuizService : IQuizService
             .Where(session => session.FlashcardSetId == setId
                 && session.UserId == userId
                 && session.Mode == StudyMode.Quiz
-                && session.Score == null)
+                && session.Score == null
+                && session.CompletedAt == null)
             .OrderByDescending(session => session.Id)
             .FirstOrDefaultAsync();
         if (existingSession != null)
@@ -120,7 +230,8 @@ public class QuizService : IQuizService
                 .Where(row => row.FlashcardSetId == setId
                     && row.UserId == userId
                     && row.Mode == StudyMode.Quiz
-                    && row.Score == null)
+                    && row.Score == null
+                    && row.CompletedAt == null)
                 .OrderByDescending(row => row.Id)
                 .FirstOrDefaultAsync();
             if (winner != null)
@@ -337,7 +448,8 @@ public class QuizService : IQuizService
                 && row.FlashcardSetId == session.FlashcardSetId
                 && row.UserId == session.UserId
                 && row.Mode == StudyMode.Quiz
-                && row.Score == null)
+                && row.Score == null
+                && row.CompletedAt == null)
             .ExecuteUpdateAsync(updates => updates
                 .SetProperty(row => row.Score, score)
                 .SetProperty(row => row.CompletedAt, completedAt));
@@ -639,9 +751,28 @@ public class QuizService : IQuizService
             .Where(session => session.FlashcardSetId == sourceSession.FlashcardSetId
                 && session.UserId == sourceSession.UserId
                 && session.Mode == StudyMode.Quiz
-                && session.Score == null)
+                && session.Score == null
+                && session.CompletedAt == null)
             .OrderByDescending(session => session.Id)
             .FirstOrDefaultAsync();
+
+    private async Task<FlashcardSet> GetOwnedSetAsync(int setId, string userId)
+    {
+        FlashcardSet? set = await _context.FlashcardSets
+            .AsNoTracking()
+            .FirstOrDefaultAsync(row => row.Id == setId);
+        if (set == null)
+        {
+            throw new KeyNotFoundException("Bá»™ tháº» khÃ´ng tá»“n táº¡i.");
+        }
+
+        if (set.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("KhÃ´ng cÃ³ quyá»n há»c bá»™ tháº» nÃ y.");
+        }
+
+        return set;
+    }
 
     private static bool IsActiveQuizUniqueConflict(DbUpdateException exception)
     {
