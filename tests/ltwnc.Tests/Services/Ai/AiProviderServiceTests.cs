@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using ltwnc.Data;
 using ltwnc.Services.Ai;
+using ltwnc.Services.Audit;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -16,12 +17,16 @@ public sealed class AiProviderServiceTests
         var handler = new RecordingHandler("{\"data\":[{\"id\":\"model-a\"}]}");
         await using AppDbContext context = CreateContext();
         var service = CreateService(context, handler, allowPrivateNetworks: true);
-        var provider = await service.SaveAsync(null, new AiProviderInput
+        AiProviderOperationResult result = await service.SaveAsync(null, new AiProviderInput
         {
             Name = "Local",
             BaseUrl = "http://localhost:1234/v1",
-            ModelId = "model-a"
-        });
+            ModelId = "model-a",
+            Reason = "Tạo provider local để test models"
+        }, Actor());
+        Assert.True(result.Succeeded);
+
+        var provider = await context.AiProviders.SingleAsync();
 
         var models = await service.DiscoverModelsAsync(provider.Id);
 
@@ -35,13 +40,17 @@ public sealed class AiProviderServiceTests
         var handler = new RecordingHandler("{\"data\":[{\"id\":\"model-a\"}]}");
         await using AppDbContext context = CreateContext();
         var service = CreateService(context, handler, allowPrivateNetworks: true);
-        var provider = await service.SaveAsync(null, new AiProviderInput
+        AiProviderOperationResult result = await service.SaveAsync(null, new AiProviderInput
         {
             Name = "Remote",
             BaseUrl = "https://example.test/v1",
             ModelId = "model-a",
-            ApiKey = "secret-key"
-        });
+            ApiKey = "secret-key",
+            Reason = "Tạo provider remote có API key"
+        }, Actor());
+        Assert.True(result.Succeeded);
+
+        var provider = await context.AiProviders.SingleAsync();
 
         await service.DiscoverModelsAsync(provider.Id);
 
@@ -57,14 +66,16 @@ public sealed class AiProviderServiceTests
         await using AppDbContext context = CreateContext();
         var service = CreateService(context, handler, allowPrivateNetworks: true);
 
-        var exception = await Assert.ThrowsAsync<ArgumentException>(() => service.SaveAsync(null, new AiProviderInput
+        AiProviderOperationResult result = await service.SaveAsync(null, new AiProviderInput
         {
             Name = "Unsafe",
             BaseUrl = "http://example.com/v1",
-            ModelId = "model-a"
-        }));
+            ModelId = "model-a",
+            Reason = "Test URL không an toàn"
+        }, Actor());
 
-        Assert.Contains("HTTPS", exception.Message);
+        Assert.False(result.Succeeded);
+        Assert.Contains("HTTPS", result.Message);
     }
 
     [Fact]
@@ -74,14 +85,101 @@ public sealed class AiProviderServiceTests
         await using AppDbContext context = CreateContext();
         var service = CreateService(context, handler, allowPrivateNetworks: false);
 
-        ArgumentException exception = await Assert.ThrowsAsync<ArgumentException>(() => service.SaveAsync(null, new AiProviderInput
+        AiProviderOperationResult result = await service.SaveAsync(null, new AiProviderInput
         {
             Name = "Metadata",
             BaseUrl = "https://169.254.169.254/v1",
-            ModelId = "model-a"
-        }));
+            ModelId = "model-a",
+            Reason = "Test địa chỉ metadata"
+        }, Actor());
 
-        Assert.Contains("mạng nội bộ", exception.Message);
+        Assert.False(result.Succeeded);
+        Assert.Contains("mạng nội bộ", result.Message);
+    }
+
+    [Fact]
+    public async Task Save_WritesAuditWithoutPlainApiKey()
+    {
+        var handler = new RecordingHandler("{}");
+        await using AppDbContext context = CreateContext();
+        var service = CreateService(context, handler, allowPrivateNetworks: true);
+
+        AiProviderOperationResult result = await service.SaveAsync(null, new AiProviderInput
+        {
+            Name = "Audit",
+            BaseUrl = "https://example.test/v1",
+            ModelId = "model-a",
+            ApiKey = "secret-key",
+            Reason = "Ghi audit khi tạo provider"
+        }, Actor());
+
+        Assert.True(result.Succeeded);
+        var audit = await context.AdminAuditLogs.SingleAsync();
+        Assert.Equal(AdminAuditActions.AiProvidersCreate, audit.Action);
+        Assert.Equal(AdminAuditOutcome.Success, audit.Outcome);
+        Assert.NotEqual("0", audit.TargetId);
+        Assert.Equal("Ghi audit khi tạo provider", audit.Reason);
+        Assert.DoesNotContain("secret-key", audit.MetadataJson ?? string.Empty);
+    }
+
+    [Fact]
+    public async Task SetPrimary_RejectsStaleVersion()
+    {
+        var handler = new RecordingHandler("{}");
+        await using AppDbContext context = CreateContext();
+        var service = CreateService(context, handler, allowPrivateNetworks: true);
+        AiProviderOperationResult saveResult = await service.SaveAsync(null, new AiProviderInput
+        {
+            Name = "Primary",
+            BaseUrl = "https://example.test/v1",
+            ModelId = "model-a",
+            Reason = "Tạo provider để chọn chính"
+        }, Actor());
+        Assert.True(saveResult.Succeeded);
+        var provider = await context.AiProviders.SingleAsync();
+
+        AiProviderOperationResult result = await service.SetPrimaryAsync(
+            provider.Id,
+            version: provider.Version - 1,
+            "Dùng version cũ",
+            Actor());
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("tải lại", result.Message);
+    }
+
+    [Fact]
+    public async Task Disable_ReplacesHardDeleteAndWritesAudit()
+    {
+        var handler = new RecordingHandler("{}");
+        await using AppDbContext context = CreateContext();
+        var service = CreateService(context, handler, allowPrivateNetworks: true);
+        AiProviderOperationResult saveResult = await service.SaveAsync(null, new AiProviderInput
+        {
+            Name = "Disable",
+            BaseUrl = "https://example.test/v1",
+            ModelId = "model-a",
+            Reason = "Tạo provider để vô hiệu hóa"
+        }, Actor());
+        Assert.True(saveResult.Succeeded);
+        var provider = await context.AiProviders.SingleAsync();
+
+        AiProviderOperationResult result = await service.SetEnabledAsync(
+            provider.Id,
+            enable: false,
+            provider.Version,
+            "Ngừng dùng provider này",
+            Actor());
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(1, await context.AiProviders.CountAsync());
+        Assert.False(provider.IsEnabled);
+        Assert.Contains(context.AdminAuditLogs, log => log.Action == AdminAuditActions.AiProvidersDisable);
+    }
+
+    private static AiProviderActorContext Actor()
+    {
+        return new AiProviderActorContext("admin-1", "Admin Test", "trace-1");
     }
 
     private static AiProviderService CreateService(
@@ -99,7 +197,13 @@ public sealed class AiProviderServiceTests
             })
             .Build();
         var client = new OpenAiCompatibleClient(new FakeHttpClientFactory(handler), configuration);
-        return new AiProviderService(context, protection, [new OpenAiCompatibleAdapter(client)], configuration);
+        var auditService = new AdminAuditService(context, TimeProvider.System);
+        return new AiProviderService(
+            context,
+            protection,
+            [new OpenAiCompatibleAdapter(client)],
+            auditService,
+            configuration);
     }
 
     private static AppDbContext CreateContext() => new(new DbContextOptionsBuilder<AppDbContext>()

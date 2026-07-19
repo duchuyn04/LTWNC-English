@@ -1,5 +1,6 @@
 using System.Reflection;
 using ltwnc.Areas.Admin;
+using ltwnc.Areas.Admin.Controllers;
 using ltwnc.Controllers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

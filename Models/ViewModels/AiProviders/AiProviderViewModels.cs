@@ -5,6 +5,11 @@ namespace ltwnc.Models.ViewModels.AiProviders;
 public sealed class AiProviderEditViewModel
 {
     public int? Id { get; set; }
+
+    public int Version { get; set; } = 1;
+
+    public bool IsPrimary { get; set; }
+
     [Required, MaxLength(120)] public string Name { get; set; } = string.Empty;
     [Required] public string AdapterType { get; set; } = "OpenAICompatible";
     [Required, Url, MaxLength(500)] public string BaseUrl { get; set; } = string.Empty;
@@ -16,4 +21,15 @@ public sealed class AiProviderEditViewModel
     public bool IsEnabled { get; set; } = true;
     [Range(0, 10000)] public int Priority { get; set; }
     [Range(5, 300)] public int TimeoutSeconds { get; set; } = 60;
+
+    [Required, MaxLength(500)]
+    public string Reason { get; set; } = string.Empty;
+}
+
+public sealed class AiProviderLifecycleActionViewModel
+{
+    public int Version { get; set; }
+
+    [Required, MaxLength(500)]
+    public string Reason { get; set; } = string.Empty;
 }

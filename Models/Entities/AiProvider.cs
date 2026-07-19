@@ -19,14 +19,28 @@ public class AiProvider
     [Required, MaxLength(200)]
     public string ModelId { get; set; } = string.Empty;
 
+    // Khóa bí mật chỉ được lưu ở dạng đã mã hóa; không bao giờ trả khóa gốc ra ngoài.
     public string? EncryptedApiKey { get; set; }
-    [MaxLength(4)] public string? ApiKeyLastFour { get; set; }
+
+    // Chỉ giữ bốn ký tự cuối để giao diện hiển thị trạng thái khóa.
+    [MaxLength(4)]
+    public string? ApiKeyLastFour { get; set; }
+
     public bool IsEnabled { get; set; } = true;
+
+    // Đánh dấu nhà cung cấp chính; toàn hệ thống chỉ có tối đa một nhà cung cấp chính.
+    public bool IsPrimary { get; set; }
+
     public int Priority { get; set; }
     public int TimeoutSeconds { get; set; } = 60;
     public DateTime? LastCheckedAt { get; set; }
     public bool? LastCheckSucceeded { get; set; }
     public string? LastError { get; set; }
+
+    // Khóa phiên bản lạc quan: mỗi lần ghi thay đổi đều tăng lên một
+    // để phát hiện hai quản trị viên sửa cùng một bản ghi.
+    public int Version { get; set; } = 1;
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }

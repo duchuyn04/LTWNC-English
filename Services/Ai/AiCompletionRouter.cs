@@ -26,6 +26,7 @@ public class AiCompletionRouter : IAiCompletionRouter
         _timeProvider = timeProvider;
     }
 
+    // Chạy completion qua provider chính trước, sau đó fallback theo priority nếu provider chính lỗi tạm thời.
     public async Task<AiCompletionResult> CompleteAsync(
         AiCompletionRequest request,
         Func<string, bool>? responseValidator = null,
@@ -34,7 +35,8 @@ public class AiCompletionRouter : IAiCompletionRouter
         List<AiProvider> providers = await _context.AiProviders
             .AsNoTracking()
             .Where(provider => provider.IsEnabled)
-            .OrderBy(provider => provider.Priority)
+            .OrderByDescending(provider => provider.IsPrimary)
+            .ThenBy(provider => provider.Priority)
             .ThenBy(provider => provider.Id)
             .ToListAsync(cancellationToken);
 
@@ -61,9 +63,12 @@ public class AiCompletionRouter : IAiCompletionRouter
             Stopwatch stopwatch = Stopwatch.StartNew();
             try
             {
-                string? key = string.IsNullOrWhiteSpace(provider.EncryptedApiKey)
-                    ? null
-                    : _protector.Unprotect(provider.EncryptedApiKey);
+                string? key = null;
+                if (!string.IsNullOrWhiteSpace(provider.EncryptedApiKey))
+                {
+                    key = _protector.Unprotect(provider.EncryptedApiKey);
+                }
+
                 string content = await adapter.CompleteAsync(provider, key, request, cancellationToken);
                 if (responseValidator != null && !responseValidator(content))
                 {
@@ -108,6 +113,7 @@ public class AiCompletionRouter : IAiCompletionRouter
             "Không provider nào phản hồi thành công. " + string.Join(" | ", failures));
     }
 
+    // Ghi log từng lần thử provider để vẫn có lịch sử khi provider bị vô hiệu hóa sau này.
     private async Task RecordAttemptAsync(
         AiProvider provider,
         bool succeeded,
@@ -126,6 +132,7 @@ public class AiCompletionRouter : IAiCompletionRouter
             cancellationToken);
     }
 
+    // Chốt thời gian chạy và ép về int an toàn cho cột LatencyMs.
     private static int ElapsedMilliseconds(Stopwatch stopwatch)
     {
         stopwatch.Stop();

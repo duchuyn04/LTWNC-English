@@ -1,0 +1,164 @@
+@model IReadOnlyList<ltwnc.Models.Entities.AiProvider>
+@{
+    ViewData["Title"] = "Nhà cung cấp AI";
+    ViewData["Heading"] = "Nhà cung cấp AI";
+}
+
+@section Styles
+{
+    <link rel="stylesheet" href="~/css/ai-providers.css" asp-append-version="true" />
+}
+
+<section class="provider-page">
+    <header class="provider-header">
+        <div>
+            <span class="eyebrow">Quản trị hệ thống</span>
+            <h1>Nhà cung cấp AI</h1>
+            <p>Cấu hình endpoint, model, thứ tự fallback và nhà cung cấp chính. Khóa bí mật chỉ được nhập mới hoặc thay thế.</p>
+        </div>
+        <a class="provider-primary" href="/Admin/AiProviders/Create">
+            <i class="ph ph-plus" aria-hidden="true"></i> Thêm provider
+        </a>
+    </header>
+
+    @if (TempData["ProviderMessage"] is string message)
+    {
+        <div class="provider-message" role="status">@message</div>
+    }
+
+    @if (TempData["ProviderError"] is string error)
+    {
+        <div class="provider-error" role="alert">@error</div>
+    }
+
+    @Html.AntiForgeryToken()
+
+    <div class="provider-list">
+        @foreach (ltwnc.Models.Entities.AiProvider provider in Model)
+        {
+            string statusText = "Đã tắt";
+            string statusClass = string.Empty;
+            if (provider.IsEnabled)
+            {
+                statusText = "Đang bật";
+                statusClass = "is-enabled";
+            }
+
+            string primaryText = string.Empty;
+            if (provider.IsPrimary)
+            {
+                primaryText = "Nhà cung cấp chính";
+            }
+
+            string apiKeyText = "Không API key";
+            if (!string.IsNullOrWhiteSpace(provider.ApiKeyLastFour))
+            {
+                apiKeyText = "****" + provider.ApiKeyLastFour;
+            }
+
+            <article class="provider-card" data-provider-id="@provider.Id">
+                <div class="provider-priority">@provider.Priority</div>
+                <div class="provider-main">
+                    <div class="provider-title">
+                        <h2>@provider.Name</h2>
+                        <span class="@statusClass">@statusText</span>
+                        @if (!string.IsNullOrWhiteSpace(primaryText))
+                        {
+                            <span class="is-primary">@primaryText</span>
+                        }
+                    </div>
+                    <p>@provider.BaseUrl</p>
+                    <div class="provider-meta">
+                        <span><i class="ph ph-cube" aria-hidden="true"></i> @provider.ModelId</span>
+                        <span><i class="ph ph-key" aria-hidden="true"></i> @apiKeyText</span>
+                        <span><i class="ph ph-clock" aria-hidden="true"></i> @provider.TimeoutSeconds giây</span>
+                        <span><i class="ph ph-lock-key" aria-hidden="true"></i> Phiên bản @provider.Version</span>
+                    </div>
+                    @if (provider.LastCheckedAt.HasValue)
+                    {
+                        string checkClass = "error";
+                        string checkText = provider.LastError ?? "Kết nối thất bại";
+                        if (provider.LastCheckSucceeded == true)
+                        {
+                            checkClass = "success";
+                            checkText = "Kết nối thành công";
+                        }
+
+                        <small class="provider-check @checkClass">
+                            @checkText · @provider.LastCheckedAt.Value.ToLocalTime().ToString("g")
+                        </small>
+                    }
+                </div>
+                <div class="provider-actions">
+                    <button class="provider-test" type="button">Test</button>
+                    <button class="provider-models" type="button">Models</button>
+                    <a href="/Admin/AiProviders/@provider.Id/Edit">Sửa</a>
+                </div>
+                <div class="provider-lifecycle">
+                    @if (!provider.IsPrimary && provider.IsEnabled)
+                    {
+                        <form method="post"
+                              action="/Admin/AiProviders/@provider.Id/Primary"
+                              onsubmit="return confirm('Chọn provider này làm nhà cung cấp chính?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="Version" value="@provider.Version" />
+                            <label for="primary-reason-@provider.Id">Lý do đặt chính</label>
+                            <input id="primary-reason-@provider.Id" name="Reason" maxlength="500" required />
+                            <button type="submit">Đặt chính</button>
+                        </form>
+                    }
+
+                    @if (provider.IsEnabled)
+                    {
+                        <form method="post"
+                              action="/Admin/AiProviders/@provider.Id/Disable"
+                              onsubmit="return confirm('Vô hiệu hóa provider này?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="Version" value="@provider.Version" />
+                            <label for="disable-reason-@provider.Id">Lý do vô hiệu hóa</label>
+                            <input id="disable-reason-@provider.Id" name="Reason" maxlength="500" required />
+                            <button type="submit" class="danger">Vô hiệu hóa</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <form method="post"
+                              action="/Admin/AiProviders/@provider.Id/Enable"
+                              onsubmit="return confirm('Bật lại provider này?');">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="Version" value="@provider.Version" />
+                            <label for="enable-reason-@provider.Id">Lý do bật lại</label>
+                            <input id="enable-reason-@provider.Id" name="Reason" maxlength="500" required />
+                            <button type="submit">Bật lại</button>
+                        </form>
+                    }
+                </div>
+            </article>
+        }
+
+        @if (Model.Count == 0)
+        {
+            <div class="provider-empty">
+                <i class="ph ph-plugs" aria-hidden="true"></i>
+                <h2>Chưa có provider</h2>
+                <p>Thêm một OpenAI-compatible provider để English Mission hoạt động.</p>
+            </div>
+        }
+    </div>
+
+    <div id="provider-dialog" class="provider-dialog" hidden>
+        <div>
+            <button type="button" class="provider-dialog-close" aria-label="Đóng">
+                <i class="ph ph-x" aria-hidden="true"></i>
+            </button>
+            <h2>Models</h2>
+            <p></p>
+            <ul></ul>
+        </div>
+    </div>
+</section>
+
+@section Scripts
+{
+    <script src="~/js/ai-providers.js" asp-append-version="true"></script>
+}
