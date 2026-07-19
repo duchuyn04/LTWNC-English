@@ -298,6 +298,9 @@ namespace ltwnc.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
+                    b.Property<int>("FallbackAttempt")
+                        .HasColumnType("int");
+
                     b.Property<int>("LatencyMs")
                         .HasColumnType("int");
 
@@ -329,7 +332,7 @@ namespace ltwnc.Migrations
 
                     b.HasIndex("OccurredAtUtc", "Succeeded");
 
-                    b.HasIndex("ProviderId", "OccurredAtUtc");
+                    b.HasIndex("ProviderId", "OccurredAtUtc", "Succeeded");
 
                     b.ToTable("AiOperationLogs");
                 });
@@ -355,6 +358,9 @@ namespace ltwnc.Migrations
                         .IsRequired()
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("ConsecutiveFailureCount")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("datetime2");

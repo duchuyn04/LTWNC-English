@@ -37,6 +37,9 @@ public class AiProvider
     public bool? LastCheckSucceeded { get; set; }
     public string? LastError { get; set; }
 
+    // Số lần kiểm tra kết nối thất bại liên tiếp; lần thành công sẽ reset về 0.
+    public int ConsecutiveFailureCount { get; set; }
+
     // Khóa phiên bản lạc quan: mỗi lần ghi thay đổi đều tăng lên một
     // để phát hiện hai quản trị viên sửa cùng một bản ghi.
     public int Version { get; set; } = 1;

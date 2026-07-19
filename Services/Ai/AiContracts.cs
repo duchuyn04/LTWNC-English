@@ -10,13 +10,23 @@ public sealed record AiCompletionResult(
     string ProviderName,
     string ModelId);
 
+public sealed record AiProviderHealthSnapshot(
+    int ProviderId,
+    int ConsecutiveFailureCount,
+    bool IsUnstable,
+    int SampleSize,
+    decimal? ErrorRatePercent,
+    bool ErrorRateExceeded);
+
 public sealed class AiProviderUnavailableException : Exception
 {
+    // Tạo lỗi chung khi router không còn provider phù hợp để phục vụ người học.
     public AiProviderUnavailableException(string message) : base(message) { }
 }
 
 public sealed class AiProviderConfigurationException : Exception
 {
+    // Tạo lỗi cấu hình provider để service và router có thể phân loại fallback.
     public AiProviderConfigurationException(string message) : base(message) { }
 }
 
@@ -78,6 +88,7 @@ public sealed class AiProviderOperationResult
 
 public interface IAiCompletionRouter
 {
+    // Hoàn tất một request AI qua router, có thể truyền validator để kiểm tra output.
     Task<AiCompletionResult> CompleteAsync(
         AiCompletionRequest request,
         Func<string, bool>? responseValidator = null,
@@ -87,13 +98,20 @@ public interface IAiCompletionRouter
 public interface IAiProviderAdapter
 {
     string AdapterType { get; }
+
+    // Lấy danh sách model mà provider hiện tại hỗ trợ.
     Task<IReadOnlyList<string>> GetModelsAsync(AiProvider provider, string? apiKey, CancellationToken cancellationToken);
+
+    // Gửi request completion tới provider cụ thể.
     Task<string> CompleteAsync(AiProvider provider, string? apiKey, AiCompletionRequest request, CancellationToken cancellationToken);
 }
 
 public interface IAiProviderService
 {
+    // Lấy toàn bộ provider theo thứ tự vận hành để hiển thị trong Admin.
     Task<List<AiProvider>> GetAllAsync(CancellationToken cancellationToken = default);
+
+    // Lấy một provider theo id để mở form chỉnh sửa hoặc thao tác vòng đời.
     Task<AiProvider?> GetAsync(int id, CancellationToken cancellationToken = default);
 
     // Tạo mới hoặc cập nhật cấu hình; mọi thay đổi đều cần lý do và được audit.
@@ -120,6 +138,12 @@ public interface IAiProviderService
         AiProviderActorContext actor,
         CancellationToken cancellationToken = default);
 
+    // Đọc danh sách model từ provider để Admin kiểm tra cấu hình.
     Task<IReadOnlyList<string>> DiscoverModelsAsync(int id, CancellationToken cancellationToken = default);
+
+    // Chạy health check thủ công và cập nhật kết quả gần nhất của provider.
     Task TestAsync(int id, CancellationToken cancellationToken = default);
+
+    // Tính snapshot sức khỏe vận hành từ health check và log AI an toàn.
+    Task<IReadOnlyList<AiProviderHealthSnapshot>> GetHealthSnapshotsAsync(CancellationToken cancellationToken = default);
 }

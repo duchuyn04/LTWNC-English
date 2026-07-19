@@ -26,4 +26,7 @@ public class AiOperationLog
     public string? FailureKind { get; set; }
 
     public int LatencyMs { get; set; }
+
+    // 0 là provider đầu tiên trong snapshot; 1+ là các lần chuyển sang provider dự phòng.
+    public int FallbackAttempt { get; set; }
 }

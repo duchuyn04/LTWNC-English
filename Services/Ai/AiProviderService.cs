@@ -8,10 +8,17 @@ namespace ltwnc.Services.Ai;
 
 public class AiProviderService : IAiProviderService
 {
+    private const int DefaultHealthWindowMinutes = 5;
+    private const int DefaultMinimumSampleSize = 20;
+    private const decimal DefaultErrorRateThresholdPercent = 10m;
+    private const int DefaultUnstableFailureThreshold = 3;
+
     private readonly AppDbContext _context;
     private readonly IDataProtector _protector;
     private readonly IReadOnlyDictionary<string, IAiProviderAdapter> _adapters;
     private readonly IAdminAuditService _auditService;
+    private readonly IConfiguration _configuration;
+    private readonly TimeProvider _timeProvider;
     private readonly bool _allowPrivateNetworks;
 
     public AiProviderService(
@@ -19,12 +26,15 @@ public class AiProviderService : IAiProviderService
         IDataProtectionProvider dataProtection,
         IEnumerable<IAiProviderAdapter> adapters,
         IAdminAuditService auditService,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        TimeProvider? timeProvider = null)
     {
         _context = context;
         _protector = dataProtection.CreateProtector("AiProvider.ApiKey.v1");
         _adapters = adapters.ToDictionary(adapter => adapter.AdapterType, StringComparer.OrdinalIgnoreCase);
         _auditService = auditService;
+        _configuration = configuration;
+        _timeProvider = timeProvider ?? TimeProvider.System;
         _allowPrivateNetworks = configuration.GetValue<bool>("AiProviders:AllowPrivateNetworks");
     }
 
@@ -42,6 +52,74 @@ public class AiProviderService : IAiProviderService
     public Task<AiProvider?> GetAsync(int id, CancellationToken cancellationToken = default)
     {
         return _context.AiProviders.FirstOrDefaultAsync(provider => provider.Id == id, cancellationToken);
+    }
+
+    // Tính trạng thái sức khỏe provider từ bộ đếm test liên tiếp và log vận hành trong cửa sổ cấu hình.
+    public async Task<IReadOnlyList<AiProviderHealthSnapshot>> GetHealthSnapshotsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        int windowMinutes = ReadHealthWindowMinutes();
+        int minimumSampleSize = ReadMinimumSampleSize();
+        decimal thresholdPercent = ReadErrorRateThresholdPercent();
+        int unstableFailureThreshold = ReadUnstableFailureThreshold();
+        DateTime windowStartUtc = _timeProvider.GetUtcNow().UtcDateTime.AddMinutes(-windowMinutes);
+
+        List<AiProvider> providers = await _context.AiProviders
+            .AsNoTracking()
+            .OrderBy(provider => provider.Id)
+            .ToListAsync(cancellationToken);
+        Dictionary<int, AiOperationWindowAggregate> aggregates = await _context.AiOperationLogs
+            .AsNoTracking()
+            .Where(log => log.ProviderId != null && log.OccurredAtUtc >= windowStartUtc)
+            .GroupBy(log => log.ProviderId!.Value)
+            .Select(group => new AiOperationWindowAggregate(
+                group.Key,
+                group.Count(),
+                group.Count(log => !log.Succeeded)))
+            .ToDictionaryAsync(item => item.ProviderId, item => item, cancellationToken);
+
+        List<AiProviderHealthSnapshot> snapshots = new();
+        foreach (AiProvider provider in providers)
+        {
+            aggregates.TryGetValue(provider.Id, out AiOperationWindowAggregate? aggregate);
+            int sampleSize = 0;
+            int failedCount = 0;
+            if (aggregate != null)
+            {
+                sampleSize = aggregate.SampleSize;
+                failedCount = aggregate.FailedCount;
+            }
+
+            decimal? errorRatePercent = null;
+            bool errorRateExceeded = false;
+            if (sampleSize >= minimumSampleSize)
+            {
+                decimal rawRate = failedCount * 100m / sampleSize;
+                errorRatePercent = decimal.Round(rawRate, 1);
+                errorRateExceeded = errorRatePercent.Value > thresholdPercent;
+            }
+
+            bool isUnstable = false;
+            if (provider.ConsecutiveFailureCount >= unstableFailureThreshold)
+            {
+                isUnstable = true;
+            }
+
+            if (errorRateExceeded)
+            {
+                isUnstable = true;
+            }
+
+            snapshots.Add(new AiProviderHealthSnapshot(
+                provider.Id,
+                provider.ConsecutiveFailureCount,
+                isUnstable,
+                sampleSize,
+                errorRatePercent,
+                errorRateExceeded));
+        }
+
+        return snapshots;
     }
 
     // Tạo mới hoặc cập nhật provider, kèm lý do, khóa phiên bản và audit.
@@ -327,10 +405,12 @@ public class AiProviderService : IAiProviderService
                 cancellationToken);
             provider.LastCheckSucceeded = true;
             provider.LastError = null;
+            provider.ConsecutiveFailureCount = 0;
         }
         catch (Exception exception) when (exception is AiProviderUnavailableException or AiProviderConfigurationException)
         {
             provider.LastCheckSucceeded = false;
+            provider.ConsecutiveFailureCount++;
             if (exception.Message.Length > 1000)
             {
                 provider.LastError = exception.Message[..1000];
@@ -343,7 +423,7 @@ public class AiProviderService : IAiProviderService
         }
         finally
         {
-            provider.LastCheckedAt = DateTime.UtcNow;
+            provider.LastCheckedAt = _timeProvider.GetUtcNow().UtcDateTime;
             await _context.SaveChangesAsync(CancellationToken.None);
         }
     }
@@ -449,4 +529,41 @@ public class AiProviderService : IAiProviderService
 
         throw new AiProviderConfigurationException($"Adapter {provider.AdapterType} chưa được đăng ký.");
     }
+
+    // Đọc cửa sổ tính lỗi từ cấu hình hệ thống; giá trị sai sẽ quay về 5 phút.
+    private int ReadHealthWindowMinutes()
+    {
+        int value = _configuration.GetValue<int?>("AiProviders:Health:WindowMinutes")
+            ?? DefaultHealthWindowMinutes;
+        return Math.Clamp(value, 1, 60);
+    }
+
+    // Đọc số mẫu tối thiểu từ cấu hình hệ thống; giá trị sai sẽ quay về 20 request.
+    private int ReadMinimumSampleSize()
+    {
+        int value = _configuration.GetValue<int?>("AiProviders:Health:MinimumSampleSize")
+            ?? DefaultMinimumSampleSize;
+        return Math.Clamp(value, 1, 10_000);
+    }
+
+    // Đọc ngưỡng tỷ lệ lỗi từ cấu hình hệ thống; giá trị sai sẽ quay về 10%.
+    private decimal ReadErrorRateThresholdPercent()
+    {
+        decimal value = _configuration.GetValue<decimal?>("AiProviders:Health:ErrorRateThresholdPercent")
+            ?? DefaultErrorRateThresholdPercent;
+        return Math.Clamp(value, 0m, 100m);
+    }
+
+    // Đọc số lần test fail liên tiếp để xem provider không ổn định.
+    private int ReadUnstableFailureThreshold()
+    {
+        int value = _configuration.GetValue<int?>("AiProviders:Health:UnstableFailureThreshold")
+            ?? DefaultUnstableFailureThreshold;
+        return Math.Clamp(value, 1, 100);
+    }
+
+    private sealed record AiOperationWindowAggregate(
+        int ProviderId,
+        int SampleSize,
+        int FailedCount);
 }

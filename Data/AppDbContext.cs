@@ -178,7 +178,7 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
         {
             entity.HasIndex(log => log.OccurredAtUtc);
             entity.HasIndex(log => new { log.OccurredAtUtc, log.Succeeded });
-            entity.HasIndex(log => new { log.ProviderId, log.OccurredAtUtc });
+            entity.HasIndex(log => new { log.ProviderId, log.OccurredAtUtc, log.Succeeded });
             entity.Property(log => log.ProviderName).HasMaxLength(120);
             entity.Property(log => log.ModelId).HasMaxLength(200);
             entity.Property(log => log.Operation).HasMaxLength(80).IsRequired();

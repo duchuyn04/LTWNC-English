@@ -26,7 +26,9 @@ public sealed class AiProvidersController : Controller
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         IReadOnlyList<AiProvider> providers = await _service.GetAllAsync(cancellationToken);
-        return View(providers);
+        IReadOnlyList<AiProviderHealthSnapshot> healthSnapshots =
+            await _service.GetHealthSnapshotsAsync(cancellationToken);
+        return View(ToIndexViewModel(providers, healthSnapshots));
     }
 
     // Mở form tạo mới; khóa bí mật chỉ có ô nhập mới, không có giá trị cũ.
@@ -195,6 +197,65 @@ public sealed class AiProvidersController : Controller
         {
             return BadRequest(new { success = false, error = exception.Message });
         }
+    }
+
+    // Chuyển danh sách entity và health snapshot sang view model chỉ đọc cho trang Admin.
+    private static AiProviderIndexViewModel ToIndexViewModel(
+        IReadOnlyList<AiProvider> providers,
+        IReadOnlyList<AiProviderHealthSnapshot> healthSnapshots)
+    {
+        Dictionary<int, AiProviderHealthSnapshot> healthByProviderId = healthSnapshots
+            .ToDictionary(snapshot => snapshot.ProviderId);
+        List<AiProviderRowViewModel> rows = new();
+
+        foreach (AiProvider provider in providers)
+        {
+            healthByProviderId.TryGetValue(provider.Id, out AiProviderHealthSnapshot? health);
+            string apiKeyDisplay = "Không API key";
+            if (!string.IsNullOrWhiteSpace(provider.ApiKeyLastFour))
+            {
+                apiKeyDisplay = "****" + provider.ApiKeyLastFour;
+            }
+
+            int healthSampleSize = 0;
+            decimal? errorRatePercent = null;
+            bool errorRateExceeded = false;
+            bool isUnstable = false;
+            if (health != null)
+            {
+                healthSampleSize = health.SampleSize;
+                errorRatePercent = health.ErrorRatePercent;
+                errorRateExceeded = health.ErrorRateExceeded;
+                isUnstable = health.IsUnstable;
+            }
+
+            rows.Add(new AiProviderRowViewModel
+            {
+                Id = provider.Id,
+                Version = provider.Version,
+                Name = provider.Name,
+                BaseUrl = provider.BaseUrl,
+                ModelId = provider.ModelId,
+                ApiKeyDisplay = apiKeyDisplay,
+                IsEnabled = provider.IsEnabled,
+                IsPrimary = provider.IsPrimary,
+                Priority = provider.Priority,
+                TimeoutSeconds = provider.TimeoutSeconds,
+                LastCheckedAt = provider.LastCheckedAt,
+                LastCheckSucceeded = provider.LastCheckSucceeded,
+                LastError = provider.LastError,
+                ConsecutiveFailureCount = provider.ConsecutiveFailureCount,
+                HealthSampleSize = healthSampleSize,
+                ErrorRatePercent = errorRatePercent,
+                ErrorRateExceeded = errorRateExceeded,
+                IsUnstable = isUnstable
+            });
+        }
+
+        return new AiProviderIndexViewModel
+        {
+            Providers = rows
+        };
     }
 
     // Chuyển entity sang form, chỉ đưa trạng thái khóa và bốn ký tự cuối ra giao diện.
