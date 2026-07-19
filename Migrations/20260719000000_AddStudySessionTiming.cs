@@ -1,10 +1,14 @@
 using System;
+using ltwnc.Data;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace ltwnc.Migrations;
 
+[DbContext(typeof(AppDbContext))]
+[Migration("20260719000000_AddStudySessionTiming")]
 public partial class AddStudySessionTiming : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
