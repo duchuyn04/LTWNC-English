@@ -681,6 +681,49 @@ public class StudyController : Controller
     }
 
     [HttpPost]
+    [Route("/Study/{setId}/Quiz/{sessionId:int}/Restart")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> QuizRestart(int setId, int sessionId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            StudySession session = await _quizService.RestartAsync(setId, sessionId, userId);
+            return RedirectToAction(nameof(Quiz), new { setId, sessionId = session.Id });
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return BadRequest();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (QuizUnavailableException exception)
+        {
+            TempData["Message"] = exception.Message;
+            return RedirectToAction(nameof(Quiz), new { setId, sessionId });
+        }
+        catch (QuizConflictException exception)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new
+            {
+                success = false,
+                message = exception.Message
+            });
+        }
+    }
+
+    [HttpPost]
     [Route("/Study/{setId}/Quiz/{sessionId:int}/RetryAll")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RetryAll(int setId, int sessionId)

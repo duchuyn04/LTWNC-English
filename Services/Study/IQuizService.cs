@@ -33,6 +33,7 @@ public interface IQuizService
     Task CompleteExpiredAsync(int setId, int sessionId, string userId);
 
     Task<QuizSessionResult> GetResultAsync(int setId, int sessionId, string userId);
+    Task<StudySession> RestartAsync(int setId, int sessionId, string userId);
     Task<StudySession> RetryWrongAsync(int setId, int sessionId, string userId);
     Task<StudySession> RetryAllAsync(int setId, int sessionId, string userId);
 }

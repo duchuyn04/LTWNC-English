@@ -1097,45 +1097,122 @@ public class QuizServiceTests
     }
 
     [Theory]
-    [InlineData("wrong")]
-    [InlineData("all")]
-    public async Task Retry_returns_existing_active_quiz_for_same_user_and_set(string retryMode)
+    [InlineData(true, 15 * 60)]
+    [InlineData(false, QuizService.DefaultQuizMinutes * 60)]
+    public async Task Restart_abandons_active_attempt_reuses_scope_and_starts_fresh_timer(
+        bool sourceIsTimed,
+        int expectedTimeLimitSeconds)
     {
         await using var database = await QuizTestDatabase.CreateAsync();
         FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
-        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
-        StudySession sourceSession = await service.StartOrResumeAsync(
-            set.Id,
-            set.UserId,
-            new UserStudySettings());
+        var timeProvider = new FixedTimeProvider(new DateTimeOffset(
+            2026, 7, 19, 8, 0, 0, TimeSpan.Zero));
+        QuizService service = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher(),
+            timeProvider);
+        StudySession sourceSession = sourceIsTimed
+            ? await service.StartNewAsync(set.Id, set.UserId, new UserStudySettings(), 15)
+            : await service.StartOrResumeAsync(set.Id, set.UserId, new UserStudySettings());
         List<QuizSessionQuestion> questions = await database.Context.QuizSessionQuestions
             .AsNoTracking()
             .Where(question => question.StudySessionId == sourceSession.Id)
             .OrderBy(question => question.OrderIndex)
             .ToListAsync();
-        foreach (QuizSessionQuestion question in questions)
+        await service.AnswerAsync(
+            set.Id,
+            sourceSession.Id,
+            questions[0].Id,
+            questions[0].CorrectChoiceIndex,
+            set.UserId);
+        timeProvider.Advance(TimeSpan.FromMinutes(2));
+
+        StudySession restarted = await service.RestartAsync(
+            set.Id,
+            sourceSession.Id,
+            set.UserId);
+
+        database.Context.ChangeTracker.Clear();
+        StudySession storedSource = await database.Context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(session => session.Id == sourceSession.Id);
+        List<QuizSessionQuestion> restartedQuestions = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(question => question.StudySessionId == restarted.Id)
+            .OrderBy(question => question.OrderIndex)
+            .ToListAsync();
+        Assert.NotEqual(sourceSession.Id, restarted.Id);
+        Assert.NotNull(storedSource.CompletedAt);
+        Assert.Null(storedSource.Score);
+        Assert.Equal(expectedTimeLimitSeconds, restarted.QuizTimeLimitSeconds);
+        Assert.Equal(timeProvider.GetUtcNow().UtcDateTime, restarted.QuizStartedAtUtc);
+        Assert.Equal(
+            questions.Select(question => question.FlashcardId).Order(),
+            restartedQuestions.Select(question => question.FlashcardId).Order());
+        Assert.All(restartedQuestions, question =>
         {
-            int selectedChoice = question.Id == questions[0].Id
-                ? DifferentChoice(question.CorrectChoiceIndex)
-                : question.CorrectChoiceIndex;
+            Assert.Null(question.SelectedChoiceIndex);
+            Assert.Null(question.IsCorrect);
+            Assert.Null(question.AnsweredAt);
+        });
+    }
+
+    [Fact]
+    public async Task Retry_switch_from_wrong_to_all_replaces_active_attempt_with_full_scope()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        var timeProvider = new FixedTimeProvider(new DateTimeOffset(
+            2026, 7, 19, 8, 0, 0, TimeSpan.Zero));
+        QuizService service = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher(),
+            timeProvider);
+        StudySession sourceSession = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            15);
+        List<QuizSessionQuestion> sourceQuestions = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(question => question.StudySessionId == sourceSession.Id)
+            .OrderBy(question => question.OrderIndex)
+            .ToListAsync();
+        foreach (QuizSessionQuestion question in sourceQuestions)
+        {
             await service.AnswerAsync(
                 set.Id,
                 sourceSession.Id,
                 question.Id,
-                selectedChoice,
+                question == sourceQuestions[0]
+                    ? DifferentChoice(question.CorrectChoiceIndex)
+                    : question.CorrectChoiceIndex,
                 set.UserId);
         }
 
-        StudySession active = await service.StartOrResumeAsync(
+        StudySession wrongOnly = await service.RetryWrongAsync(
             set.Id,
-            set.UserId,
-            new UserStudySettings());
-        StudySession resumed = retryMode == "wrong"
-            ? await service.RetryWrongAsync(set.Id, sourceSession.Id, set.UserId)
-            : await service.RetryAllAsync(set.Id, sourceSession.Id, set.UserId);
+            sourceSession.Id,
+            set.UserId);
+        timeProvider.Advance(TimeSpan.FromMinutes(1));
+        StudySession retryAll = await service.RetryAllAsync(
+            set.Id,
+            sourceSession.Id,
+            set.UserId);
 
-        Assert.Equal(active.Id, resumed.Id);
-        Assert.Equal(2, await database.Context.StudySessions.CountAsync());
+        database.Context.ChangeTracker.Clear();
+        StudySession storedWrongOnly = await database.Context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(session => session.Id == wrongOnly.Id);
+        List<QuizSessionQuestion> retryAllQuestions = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(question => question.StudySessionId == retryAll.Id)
+            .ToListAsync();
+        Assert.NotEqual(wrongOnly.Id, retryAll.Id);
+        Assert.NotNull(storedWrongOnly.CompletedAt);
+        Assert.Equal(sourceQuestions.Count, retryAllQuestions.Count);
+        Assert.Equal(15 * 60, retryAll.QuizTimeLimitSeconds);
+        Assert.Equal(timeProvider.GetUtcNow().UtcDateTime, retryAll.QuizStartedAtUtc);
     }
 
     [Fact]

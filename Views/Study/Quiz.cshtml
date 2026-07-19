@@ -23,6 +23,14 @@
                 <i class="ph ph-arrow-left" aria-hidden="true"></i>
                 <span>Thoát</span>
             </a>
+            <form asp-action="QuizRestart"
+                  asp-route-setId="@Model.SetId"
+                  asp-route-sessionId="@Model.SessionId"
+                  method="post"
+                  onsubmit="return confirm('Làm lại từ đầu sẽ xóa các câu trả lời hiện tại.');">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="quiz-restart">Làm lại từ đầu</button>
+            </form>
             <div class="quiz-heading">
                 <span class="quiz-eyebrow">Trắc nghiệm</span>
                 <h1>@Model.SetTitle</h1>

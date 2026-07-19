@@ -348,6 +348,18 @@ public class StudyControllerQuizTests
         AssertQuizSessionRedirect(result, setId: 7, sessionId: 85);
     }
 
+    [Fact]
+    public async Task QuizRestart_redirects_to_fresh_session()
+    {
+        _quizService.Setup(service => service.RestartAsync(7, 42, "user-1"))
+            .ReturnsAsync(new StudySession { Id = 86 });
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.QuizRestart(7, 42);
+
+        AssertQuizSessionRedirect(result, setId: 7, sessionId: 86);
+    }
+
     [Theory]
     [InlineData("wrong")]
     [InlineData("all")]
@@ -393,6 +405,7 @@ public class StudyControllerQuizTests
     [Theory]
     [InlineData("answer")]
     [InlineData("timeout")]
+    [InlineData("restart")]
     [InlineData("retry-wrong")]
     [InlineData("retry-all")]
     public async Task Quiz_ajax_post_actions_unauthorize_anonymous_users(string action)
@@ -404,6 +417,7 @@ public class StudyControllerQuizTests
         {
             "answer" => await controller.QuizAnswer(7, 42, 501, 2),
             "timeout" => await controller.QuizTimeout(7, 42),
+            "restart" => await controller.QuizRestart(7, 42),
             "retry-wrong" => await controller.RetryWrong(7, 42),
             "retry-all" => await controller.RetryAll(7, 42),
             _ => throw new ArgumentOutOfRangeException(nameof(action))
@@ -420,12 +434,14 @@ public class StudyControllerQuizTests
         AssertRoute(nameof(StudyController.Quiz), 3, "/Study/{setId}/Quiz/{sessionId:int}", typeof(HttpGetAttribute));
         AssertRoute(nameof(StudyController.QuizAnswer), 4, "/Study/{setId}/Quiz/{sessionId:int}/Answer", typeof(HttpPostAttribute));
         AssertRoute(nameof(StudyController.QuizTimeout), 2, "/Study/{setId}/Quiz/{sessionId:int}/Timeout", typeof(HttpPostAttribute));
+        AssertRoute(nameof(StudyController.QuizRestart), 2, "/Study/{setId}/Quiz/{sessionId:int}/Restart", typeof(HttpPostAttribute));
         AssertRoute(nameof(StudyController.QuizResult), 2, "/Study/{setId}/Quiz/Result/{sessionId:int}", typeof(HttpGetAttribute));
         AssertRoute(nameof(StudyController.RetryWrong), 2, "/Study/{setId}/Quiz/{sessionId:int}/RetryWrong", typeof(HttpPostAttribute));
         AssertRoute(nameof(StudyController.RetryAll), 2, "/Study/{setId}/Quiz/{sessionId:int}/RetryAll", typeof(HttpPostAttribute));
 
         AssertPostValidatesAntiforgery(nameof(StudyController.QuizAnswer));
         AssertPostValidatesAntiforgery(nameof(StudyController.QuizTimeout));
+        AssertPostValidatesAntiforgery(nameof(StudyController.QuizRestart));
         AssertPostValidatesAntiforgery(nameof(StudyController.RetryWrong));
         AssertPostValidatesAntiforgery(nameof(StudyController.RetryAll));
         MethodInfo quizStartPost = typeof(StudyController).GetMethods()

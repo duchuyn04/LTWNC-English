@@ -736,12 +736,7 @@ public class QuizService : IQuizService
         string userId)
     {
         (StudySession sourceSession, List<QuizSessionQuestion> sourceQuestions) =
-            await LoadRetrySourceAsync(setId, sessionId, userId);
-        StudySession? activeSession = await FindActiveQuizSessionAsync(sourceSession);
-        if (activeSession != null)
-        {
-            return activeSession;
-        }
+            await LoadQuizSourceAsync(setId, sessionId, userId, requireCompleted: true);
 
         List<QuizSessionQuestion> wrongQuestions = sourceQuestions
             .Where(question => question.IsCorrect == false)
@@ -751,10 +746,11 @@ public class QuizService : IQuizService
             throw new QuizConflictException("Phiên trắc nghiệm không có câu trả lời sai.");
         }
 
-        return await CreateRetrySessionAsync(
+        return await CreateReplacementSessionAsync(
             sourceSession,
             wrongQuestions,
-            preserveDirections: true);
+            preserveDirections: true,
+            reuseMatchingActiveSession: true);
     }
 
     public async Task<StudySession> RetryAllAsync(
@@ -763,21 +759,36 @@ public class QuizService : IQuizService
         string userId)
     {
         (StudySession sourceSession, List<QuizSessionQuestion> sourceQuestions) =
-            await LoadRetrySourceAsync(setId, sessionId, userId);
-        StudySession? activeSession = await FindActiveQuizSessionAsync(sourceSession);
-        if (activeSession != null)
-        {
-            return activeSession;
-        }
+            await LoadQuizSourceAsync(setId, sessionId, userId, requireCompleted: true);
 
-        return await CreateRetrySessionAsync(
+        return await CreateReplacementSessionAsync(
             sourceSession,
             sourceQuestions,
-            preserveDirections: false);
+            preserveDirections: false,
+            reuseMatchingActiveSession: true);
+    }
+
+    public async Task<StudySession> RestartAsync(
+        int setId,
+        int sessionId,
+        string userId)
+    {
+        (StudySession sourceSession, List<QuizSessionQuestion> sourceQuestions) =
+            await LoadQuizSourceAsync(setId, sessionId, userId, requireCompleted: false);
+
+        return await CreateReplacementSessionAsync(
+            sourceSession,
+            sourceQuestions,
+            preserveDirections: false,
+            reuseMatchingActiveSession: false);
     }
 
     private async Task<(StudySession Session, List<QuizSessionQuestion> Questions)>
-        LoadRetrySourceAsync(int setId, int sessionId, string userId)
+        LoadQuizSourceAsync(
+            int setId,
+            int sessionId,
+            string userId,
+            bool requireCompleted)
     {
         StudySession? sourceSession = await _context.StudySessions
             .AsNoTracking()
@@ -795,9 +806,15 @@ public class QuizService : IQuizService
                 "Không có quyền tạo lại phiên trắc nghiệm này.");
         }
 
-        if (sourceSession.Score == null)
+        if (requireCompleted && sourceSession.Score == null)
         {
             throw new QuizConflictException("Phiên trắc nghiệm chưa hoàn thành.");
+        }
+
+        if (!requireCompleted
+            && (sourceSession.Score != null || sourceSession.CompletedAt != null))
+        {
+            throw new QuizConflictException("Phiên trắc nghiệm không còn đang làm.");
         }
 
         List<QuizSessionQuestion> sourceQuestions = await _context.QuizSessionQuestions
@@ -808,15 +825,23 @@ public class QuizService : IQuizService
         return (sourceSession, sourceQuestions);
     }
 
-    private async Task<StudySession> CreateRetrySessionAsync(
+    private async Task<StudySession> CreateReplacementSessionAsync(
         StudySession sourceSession,
         IReadOnlyList<QuizSessionQuestion> sourceQuestions,
-        bool preserveDirections)
+        bool preserveDirections,
+        bool reuseMatchingActiveSession)
     {
-        StudySession? activeSession = await FindActiveQuizSessionAsync(sourceSession);
-        if (activeSession != null)
+        if (reuseMatchingActiveSession)
         {
-            return activeSession;
+            StudySession? activeSession = await FindActiveQuizSessionAsync(sourceSession);
+            if (activeSession != null
+                && await MatchesRequestedRetryAsync(
+                    activeSession,
+                    sourceQuestions,
+                    preserveDirections))
+            {
+                return activeSession;
+            }
         }
 
         IDbContextTransaction? transaction = null;
@@ -852,25 +877,56 @@ public class QuizService : IQuizService
                         question => question.FlashcardId,
                         question => question.Direction)
                     : null;
-            var retrySession = new StudySession
+            if (reuseMatchingActiveSession)
+            {
+                StudySession? activeSession = await FindActiveQuizSessionAsync(sourceSession);
+                if (activeSession != null
+                    && await MatchesRequestedRetryAsync(
+                        activeSession,
+                        sourceQuestions,
+                        preserveDirections))
+                {
+                    if (transaction != null)
+                    {
+                        await transaction.CommitAsync();
+                    }
+
+                    return activeSession;
+                }
+            }
+
+            DateTime now = GetUtcNow();
+            await _context.StudySessions
+                .Where(session => session.FlashcardSetId == sourceSession.FlashcardSetId
+                    && session.UserId == sourceSession.UserId
+                    && session.Mode == StudyMode.Quiz
+                    && session.Score == null
+                    && session.CompletedAt == null)
+                .ExecuteUpdateAsync(updates => updates
+                    .SetProperty(session => session.CompletedAt, now));
+
+            var replacementSession = new StudySession
             {
                 FlashcardSetId = sourceSession.FlashcardSetId,
                 UserId = sourceSession.UserId,
                 Mode = StudyMode.Quiz,
-                CompletedAt = null
+                CompletedAt = null,
+                QuizStartedAtUtc = now,
+                QuizTimeLimitSeconds = sourceSession.QuizTimeLimitSeconds
+                    ?? DefaultQuizMinutes * 60
             };
-            List<QuizSessionQuestion> retryQuestions =
+            List<QuizSessionQuestion> replacementQuestions =
                 await _questionFactory.BuildQuestionsAsync(
                     sourceSession.FlashcardSetId,
                     sourceSession.UserId,
                     sourceCards,
                     fixedDirections);
-            foreach (QuizSessionQuestion question in retryQuestions)
+            foreach (QuizSessionQuestion question in replacementQuestions)
             {
-                question.StudySession = retrySession;
+                question.StudySession = replacementSession;
             }
 
-            _context.QuizSessionQuestions.AddRange(retryQuestions);
+            _context.QuizSessionQuestions.AddRange(replacementQuestions);
             await _context.SaveChangesAsync();
 
             if (transaction != null)
@@ -878,7 +934,7 @@ public class QuizService : IQuizService
                 await transaction.CommitAsync();
             }
 
-            return retrySession;
+            return replacementSession;
         }
         catch (DbUpdateException exception) when (IsActiveQuizUniqueConflict(exception))
         {
@@ -888,10 +944,15 @@ public class QuizService : IQuizService
             }
 
             _context.ChangeTracker.Clear();
-            StudySession? winner = await FindActiveQuizSessionAsync(sourceSession);
-            if (winner != null)
+            StudySession? activeSession = await FindActiveQuizSessionAsync(sourceSession);
+            if (reuseMatchingActiveSession
+                && activeSession != null
+                && await MatchesRequestedRetryAsync(
+                    activeSession,
+                    sourceQuestions,
+                    preserveDirections))
             {
-                return winner;
+                return activeSession;
             }
 
             throw;
@@ -924,6 +985,28 @@ public class QuizService : IQuizService
                 && session.CompletedAt == null)
             .OrderByDescending(session => session.Id)
             .FirstOrDefaultAsync();
+
+    private async Task<bool> MatchesRequestedRetryAsync(
+        StudySession activeSession,
+        IReadOnlyList<QuizSessionQuestion> sourceQuestions,
+        bool preserveDirections)
+    {
+        List<QuizSessionQuestion> activeQuestions = await _context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(question => question.StudySessionId == activeSession.Id)
+            .ToListAsync();
+        if (activeQuestions.Count != sourceQuestions.Count)
+        {
+            return false;
+        }
+
+        Dictionary<int, QuizSessionQuestion> sourceByCardId = sourceQuestions
+            .ToDictionary(question => question.FlashcardId);
+        return activeQuestions.All(question => sourceByCardId.TryGetValue(
+                question.FlashcardId,
+                out QuizSessionQuestion? sourceQuestion)
+            && (!preserveDirections || question.Direction == sourceQuestion.Direction));
+    }
 
     private async Task<FlashcardSet> GetOwnedSetAsync(int setId, string userId)
     {
