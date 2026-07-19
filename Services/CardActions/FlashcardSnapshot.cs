@@ -47,6 +47,21 @@ public class FlashcardSnapshot
 
     // Chi tiết câu nghe chép gắn thẻ (cũng restore kèm)
     public List<DictationSessionDetailSnapshot> DictationSessionDetails { get; set; } = new();
+
+    public List<EnglishMissionTargetWordSnapshot> EnglishMissionTargetWords { get; set; } = new();
+}
+
+public class EnglishMissionTargetWordSnapshot
+{
+    public int Id { get; set; }
+    public int EnglishMissionId { get; set; }
+    public int FlashcardId { get; set; }
+    public string Term { get; set; } = string.Empty;
+    public string Definition { get; set; } = string.Empty;
+    public string? PartOfSpeech { get; set; }
+    public string? ExampleSentence { get; set; }
+    public bool IsUsed { get; set; }
+    public int? FirstUsedTurn { get; set; }
 }
 
 // Bản chụp một dòng DictationSessionDetail trước khi xóa thẻ

@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.IO;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 
 namespace ltwnc.Services.FlashcardSets;
 
@@ -13,6 +15,7 @@ namespace ltwnc.Services.FlashcardSets;
 // Sửa/xóa chỉ chủ sở hữu.
 public class FlashcardSetService : IFlashcardSetService
 {
+    private const string UploadedImageUrlPrefix = "/uploads/flashcards/";
     // FlashcardSets, Flashcards, progress liên quan
     private readonly AppDbContext _context;
 
@@ -102,18 +105,81 @@ public class FlashcardSetService : IFlashcardSetService
             throw new ArgumentException("Ảnh chỉ hỗ trợ JPG, PNG hoặc WebP.");
         }
 
+        await using Stream input = imageFile.OpenReadStream();
+        Image image;
+        try
+        {
+            IImageFormat? format = await Image.DetectFormatAsync(input);
+            if (format == null || !IsAllowedImageFormat(format))
+            {
+                throw new ArgumentException("File ảnh không đúng định dạng JPG, PNG hoặc WebP.");
+            }
+
+            input.Position = 0;
+            ImageInfo info = await Image.IdentifyAsync(input);
+            if (info.Width > 4096 || info.Height > 4096)
+            {
+                throw new ArgumentException("Kích thước ảnh không được vượt quá 4096 x 4096 pixel.");
+            }
+
+            input.Position = 0;
+            image = await Image.LoadAsync(input);
+        }
+        catch (UnknownImageFormatException exception)
+        {
+            throw new ArgumentException("File ảnh không hợp lệ.", exception);
+        }
+        catch (InvalidImageContentException exception)
+        {
+            throw new ArgumentException("File ảnh không hợp lệ.", exception);
+        }
+
         string uploadRoot = Path.Combine(_environment.WebRootPath, "uploads", "flashcards");
         Directory.CreateDirectory(uploadRoot);
 
-        string fileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+        string fileName = $"{Guid.NewGuid():N}.png";
         string absolutePath = Path.Combine(uploadRoot, fileName);
-
-        await using (FileStream stream = File.Create(absolutePath))
+        using (image)
         {
-            await imageFile.CopyToAsync(stream);
+            await image.SaveAsPngAsync(absolutePath);
+        }
+
+        const long maxStoredBytes = 5L * 1024 * 1024;
+        if (new FileInfo(absolutePath).Length > maxStoredBytes)
+        {
+            File.Delete(absolutePath);
+            throw new ArgumentException("Ảnh sau khi xử lý vượt quá 5 MB.");
         }
 
         return $"/uploads/flashcards/{fileName}";
+    }
+
+    private static bool IsAllowedImageFormat(IImageFormat format) =>
+        format.Name.Equals("JPEG", StringComparison.OrdinalIgnoreCase)
+        || format.Name.Equals("PNG", StringComparison.OrdinalIgnoreCase)
+        || format.Name.Equals("WEBP", StringComparison.OrdinalIgnoreCase);
+
+    private void DeleteUploadedImage(string? uploadedImagePath)
+    {
+        if (string.IsNullOrWhiteSpace(uploadedImagePath)
+            || !uploadedImagePath.StartsWith(UploadedImageUrlPrefix, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        string relativeName = uploadedImagePath[UploadedImageUrlPrefix.Length..];
+        string fileName = Path.GetFileName(relativeName);
+        if (!string.Equals(relativeName, fileName, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        string uploadRoot = Path.GetFullPath(Path.Combine(_environment.WebRootPath, "uploads", "flashcards"));
+        string physicalPath = Path.GetFullPath(Path.Combine(uploadRoot, fileName));
+        if (physicalPath.StartsWith(uploadRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        {
+            File.Delete(physicalPath);
+        }
     }
 
     // Lấy tất cả bộ thẻ thuộc về một người dùng
@@ -462,6 +528,11 @@ public class FlashcardSetService : IFlashcardSetService
             throw new UnauthorizedAccessException("Không có quyền xóa bộ thẻ này.");
         }
 
+        List<string> uploadedImagePaths = await _context.Flashcards
+            .Where(card => card.FlashcardSetId == id && card.UploadedImagePath != null)
+            .Select(card => card.UploadedImagePath!)
+            .ToListAsync();
+
         await _context.UserProgresses
             .Where(progress => progress.Flashcard!.FlashcardSetId == id)
             .ExecuteDeleteAsync();
@@ -472,6 +543,10 @@ public class FlashcardSetService : IFlashcardSetService
 
         _context.FlashcardSets.Remove(set);
         await _context.SaveChangesAsync();
+        foreach (string path in uploadedImagePaths)
+        {
+            DeleteUploadedImage(path);
+        }
     }
 
     // Thêm thẻ mới vào bộ
@@ -531,7 +606,15 @@ public class FlashcardSetService : IFlashcardSetService
         };
 
         await _context.Flashcards.AddAsync(card);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch
+        {
+            DeleteUploadedImage(uploadedImagePath);
+            throw;
+        }
         return card;
     }
 
@@ -574,6 +657,7 @@ public class FlashcardSetService : IFlashcardSetService
         card.Synonyms = OptionalText(synonyms);
         card.ImageUrl = OptionalText(imageUrl);
 
+        string? oldUploadedImagePath = card.UploadedImagePath;
         if (removeUploadedImage)
         {
             card.UploadedImagePath = null;
@@ -588,7 +672,23 @@ public class FlashcardSetService : IFlashcardSetService
         card.IsStarred = isStarred;
 
         _context.Flashcards.Update(card);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch
+        {
+            if (!string.Equals(newUpload, oldUploadedImagePath, StringComparison.Ordinal))
+            {
+                DeleteUploadedImage(newUpload);
+            }
+            throw;
+        }
+
+        if (!string.Equals(oldUploadedImagePath, card.UploadedImagePath, StringComparison.Ordinal))
+        {
+            DeleteUploadedImage(oldUploadedImagePath);
+        }
         return setId;
     }
 
@@ -613,8 +713,18 @@ public class FlashcardSetService : IFlashcardSetService
             .Where(progress => progress.FlashcardId == cardId)
             .ExecuteDeleteAsync();
 
+        await _context.DictationSessionDetails
+            .Where(detail => detail.FlashcardId == cardId)
+            .ExecuteDeleteAsync();
+
+        await _context.EnglishMissionTargetWords
+            .Where(word => word.FlashcardId == cardId)
+            .ExecuteDeleteAsync();
+
+        string? uploadedImagePath = card.UploadedImagePath;
         _context.Flashcards.Remove(card);
         await _context.SaveChangesAsync();
+        DeleteUploadedImage(uploadedImagePath);
         return setId;
     }
 
@@ -629,22 +739,41 @@ public class FlashcardSetService : IFlashcardSetService
             throw new UnauthorizedAccessException("Không có quyền xóa thẻ trong bộ thẻ này.");
         }
 
-        await RemoveAllCardsInternalAsync(setId);
+        List<string> uploadedImagePaths = await RemoveAllCardsInternalAsync(setId);
         await _context.SaveChangesAsync();
+        foreach (string path in uploadedImagePaths)
+        {
+            DeleteUploadedImage(path);
+        }
     }
 
     // Xóa progress + thẻ của một bộ nhưng KHÔNG SaveChanges — dùng chung cho batch import trong transaction.
-    private async Task RemoveAllCardsInternalAsync(int setId)
+    private async Task<List<string>> RemoveAllCardsInternalAsync(int setId)
     {
         List<UserProgress> progresses = await _context.UserProgresses
             .Where(progress => progress.Flashcard!.FlashcardSetId == setId)
             .ToListAsync();
         _context.UserProgresses.RemoveRange(progresses);
 
+        List<DictationSessionDetail> details = await _context.DictationSessionDetails
+            .Where(detail => detail.Flashcard!.FlashcardSetId == setId)
+            .ToListAsync();
+        _context.DictationSessionDetails.RemoveRange(details);
+
+        List<EnglishMissionTargetWord> missionWords = await _context.EnglishMissionTargetWords
+            .Where(word => word.Flashcard!.FlashcardSetId == setId)
+            .ToListAsync();
+        _context.EnglishMissionTargetWords.RemoveRange(missionWords);
+
         List<Flashcard> cards = await _context.Flashcards
             .Where(card => card.FlashcardSetId == setId)
             .ToListAsync();
         _context.Flashcards.RemoveRange(cards);
+        return cards
+            .Select(card => card.UploadedImagePath)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(path => path!)
+            .ToList();
     }
 
     // Import hàng loạt thẻ một cách nguyên tử:
@@ -657,6 +786,11 @@ public class FlashcardSetService : IFlashcardSetService
         bool replaceAll,
         string userId)
     {
+        if (cards.Count > FlashcardImportValidation.MaxRows)
+        {
+            throw new ArgumentException($"Mỗi lần chỉ được nhập tối đa {FlashcardImportValidation.MaxRows} thẻ.");
+        }
+
         FlashcardSet? set = await _context.FlashcardSets
             .Include(row => row.Flashcards)
             .FirstOrDefaultAsync(row => row.Id == setId);
@@ -667,9 +801,10 @@ public class FlashcardSetService : IFlashcardSetService
         }
 
         int nextOrder = 0;
+        List<string> uploadedImagePaths = [];
         if (replaceAll)
         {
-            await RemoveAllCardsInternalAsync(setId);
+            uploadedImagePaths = await RemoveAllCardsInternalAsync(setId);
         }
         else if (set.Flashcards.Any())
         {
@@ -701,6 +836,10 @@ public class FlashcardSetService : IFlashcardSetService
 
         await _context.Flashcards.AddRangeAsync(created);
         await _context.SaveChangesAsync();
+        foreach (string path in uploadedImagePaths)
+        {
+            DeleteUploadedImage(path);
+        }
         return created;
     }
 

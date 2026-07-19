@@ -2,6 +2,14 @@
     const editor = document.querySelector('.unified-editor');
     if (!editor) return;
 
+    const antiforgeryToken = document.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
+    function apiFetch(url, options) {
+        const requestOptions = options || {};
+        const headers = new Headers(requestOptions.headers || {});
+        headers.set('RequestVerificationToken', antiforgeryToken);
+        return fetch(url, { ...requestOptions, headers });
+    }
+
     const container = document.getElementById('cards-container');
 
     function getSetId() {
@@ -66,7 +74,7 @@
             if (orderedIds.length === 0) return true;
 
             setSaveStatus('Đang lưu...', 'saving');
-            const response = await fetch('/api/flashcards/flashcards/reorder', {
+            const response = await apiFetch('/api/flashcards/flashcards/reorder', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ setId: currentSetId, orderedCardIds: orderedIds })
@@ -165,7 +173,7 @@
         setSaveStatus('Đang lưu...', 'saving');
         setCreationPromise = (async () => {
             try {
-                const response = await fetch('/api/flashcards/flashcard-sets', {
+                const response = await apiFetch('/api/flashcards/flashcard-sets', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(metadata)
@@ -200,7 +208,7 @@
         setSaveStatus('Đang lưu...', 'saving');
 
         try {
-            const response = await fetch(`/api/flashcards/flashcard-sets/${setId}`, {
+            const response = await apiFetch(`/api/flashcards/flashcard-sets/${setId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(metadata)
@@ -262,7 +270,7 @@
         const method = isNewCard ? 'POST' : 'PUT';
 
         try {
-            const response = await fetch(url, {
+            const response = await apiFetch(url, {
                 method,
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data)
@@ -405,7 +413,7 @@
             dirtyCards.delete(id);
             if (!id.startsWith('new-')) {
                 try {
-                    const response = await fetch(`/api/flashcards/flashcards/${id}`, { method: 'DELETE' });
+                    const response = await apiFetch(`/api/flashcards/flashcards/${id}`, { method: 'DELETE' });
                     if (!response.ok) {
                         throw new Error(`HTTP ${response.status}`);
                     }
@@ -427,7 +435,7 @@
             const starButton = card.querySelector('.btn-star');
             const previousState = card.dataset.starred === 'true';
             try {
-                const response = await fetch(`/api/flashcards/flashcards/${id}/star`, { method: 'POST' });
+                const response = await apiFetch(`/api/flashcards/flashcards/${id}/star`, { method: 'POST' });
                 if (!response.ok) {
                     throw new Error(`HTTP ${response.status}`);
                 }
@@ -588,7 +596,7 @@
 
         setSaveStatus('Đang import...', 'saving');
         try {
-            const response = await fetch('/api/flashcards/flashcards/batch', {
+            const response = await apiFetch('/api/flashcards/flashcards/batch', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

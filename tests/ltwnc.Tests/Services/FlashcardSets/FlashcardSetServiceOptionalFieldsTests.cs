@@ -101,4 +101,36 @@ public class FlashcardSetServiceOptionalFieldsTests
         Assert.Equal(string.Empty, updated.ExampleSentence);
         Assert.Equal(string.Empty, updated.ExampleMeaning);
     }
+
+    [Fact]
+    public async Task UpdateCardAsync_RemoveUploadedImage_DeletesTheStoredFile()
+    {
+        string webRoot = Path.Combine(Path.GetTempPath(), "ltwnc-image-cleanup", Guid.NewGuid().ToString());
+        string uploadDirectory = Path.Combine(webRoot, "uploads", "flashcards");
+        Directory.CreateDirectory(uploadDirectory);
+        string physicalPath = Path.Combine(uploadDirectory, "old.png");
+        await File.WriteAllBytesAsync(physicalPath, [1, 2, 3]);
+        try
+        {
+            using var context = CreateContext();
+            var environment = new Mock<IWebHostEnvironment>();
+            environment.Setup(item => item.WebRootPath).Returns(webRoot);
+            var service = new FlashcardSetService(context, environment.Object);
+            var set = await service.CreateSetAsync("Test", null, false, "user-1");
+            var card = await service.AddCardAsync(
+                set.Id, "hello", "xin chào", null, null, null, null, null, null, null, false, "user-1");
+            card.UploadedImagePath = "/uploads/flashcards/old.png";
+            await context.SaveChangesAsync();
+
+            await service.UpdateCardAsync(
+                card.Id, "hello", "xin chào", null, null, null, null, null, null, null,
+                removeUploadedImage: true, isStarred: false, "user-1");
+
+            Assert.False(File.Exists(physicalPath));
+        }
+        finally
+        {
+            Directory.Delete(webRoot, recursive: true);
+        }
+    }
 }

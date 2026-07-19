@@ -81,12 +81,47 @@ public class FlashcardSetServiceCardTests
             FlashcardId = card1.Id,
             IsLearned = true
         });
+        var session = new StudySession
+        {
+            UserId = userId,
+            FlashcardSetId = set.Id,
+            Mode = StudyMode.Dictation
+        };
+        context.StudySessions.Add(session);
+        await context.SaveChangesAsync();
+        context.DictationSessionDetails.Add(new DictationSessionDetail
+        {
+            StudySessionId = session.Id,
+            FlashcardId = card1.Id,
+            AnsweredText = "a"
+        });
+        var mission = new ltwnc.Models.Entities.EnglishMission
+        {
+            StudySessionId = session.Id,
+            Topic = "travel",
+            Title = "Trip",
+            Situation = "Station",
+            NpcName = "Alex",
+            NpcRole = "Clerk",
+            OpeningLine = "Hello"
+        };
+        context.EnglishMissions.Add(mission);
+        await context.SaveChangesAsync();
+        context.EnglishMissionTargetWords.Add(new EnglishMissionTargetWord
+        {
+            EnglishMissionId = mission.Id,
+            FlashcardId = card2.Id,
+            Term = card2.FrontText,
+            Definition = card2.BackText
+        });
         await context.SaveChangesAsync();
 
         await service.DeleteAllCardsAsync(set.Id, userId);
 
         Assert.Empty(await context.Flashcards.Where(c => c.FlashcardSetId == set.Id).ToListAsync());
         Assert.Empty(await context.UserProgresses.Where(p => p.UserId == userId).ToListAsync());
+        Assert.Empty(await context.DictationSessionDetails.ToListAsync());
+        Assert.Empty(await context.EnglishMissionTargetWords.ToListAsync());
     }
 
     [Fact]

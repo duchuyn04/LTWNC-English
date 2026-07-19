@@ -108,7 +108,7 @@ public class BatchImportRequest
     [Range(1, int.MaxValue, ErrorMessage = "SetId không hợp lệ.")]
     public int SetId { get; set; }
 
-    [Required]
+    [Required, MaxLength(5000)]
     public List<CreateCardRequest> Cards { get; set; } = new();
 
     public bool ReplaceAll { get; set; }

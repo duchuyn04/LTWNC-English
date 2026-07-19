@@ -11,6 +11,7 @@ namespace ltwnc.Controllers;
 // Route cố định: [controller] sẽ resolve thành "FlashcardsApi" (sai so với JS gọi /api/flashcards).
 [Route("api/flashcards")]
 [ApiController]
+[AutoValidateAntiforgeryToken]
 [ServiceFilter(typeof(ApiExceptionFilter))]
 public class FlashcardsApiController : ControllerBase
 {

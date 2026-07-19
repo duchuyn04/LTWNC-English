@@ -52,6 +52,10 @@ public class DeleteCardsCommand : ICardActionCommand
             .Where(detail => CardIds.Contains(detail.FlashcardId))
             .ToListAsync();
 
+        List<EnglishMissionTargetWord> missionWords = await _context.EnglishMissionTargetWords
+            .Where(word => CardIds.Contains(word.FlashcardId))
+            .ToListAsync();
+
         _snapshots.Clear();
 
         foreach (Flashcard card in cards)
@@ -98,6 +102,22 @@ public class DeleteCardsCommand : ICardActionCommand
                 });
             }
 
+            List<EnglishMissionTargetWordSnapshot> missionWordSnapshots = missionWords
+                .Where(word => word.FlashcardId == card.Id)
+                .Select(word => new EnglishMissionTargetWordSnapshot
+                {
+                    Id = word.Id,
+                    EnglishMissionId = word.EnglishMissionId,
+                    FlashcardId = word.FlashcardId,
+                    Term = word.Term,
+                    Definition = word.Definition,
+                    PartOfSpeech = word.PartOfSpeech,
+                    ExampleSentence = word.ExampleSentence,
+                    IsUsed = word.IsUsed,
+                    FirstUsedTurn = word.FirstUsedTurn
+                })
+                .ToList();
+
             _snapshots.Add(new FlashcardSnapshot
             {
                 Id = card.Id,
@@ -114,12 +134,14 @@ public class DeleteCardsCommand : ICardActionCommand
                 IsStarred = card.IsStarred,
                 OrderIndex = card.OrderIndex,
                 UserProgresses = progressSnapshots,
-                DictationSessionDetails = detailSnapshots
+                DictationSessionDetails = detailSnapshots,
+                EnglishMissionTargetWords = missionWordSnapshots
             });
         }
 
         _context.UserProgresses.RemoveRange(progresses);
         _context.DictationSessionDetails.RemoveRange(details);
+        _context.EnglishMissionTargetWords.RemoveRange(missionWords);
         _context.Flashcards.RemoveRange(cards);
         await _context.SaveChangesAsync();
     }
@@ -201,6 +223,32 @@ public class DeleteCardsCommand : ICardActionCommand
         {
             await SaveWithIdentityInsertAsync<DictationSessionDetail>();
         }
+
+        List<EnglishMissionTargetWord> missionWords = new List<EnglishMissionTargetWord>();
+        foreach (FlashcardSnapshot snapshot in _snapshots)
+        {
+            foreach (EnglishMissionTargetWordSnapshot wordSnapshot in snapshot.EnglishMissionTargetWords)
+            {
+                missionWords.Add(new EnglishMissionTargetWord
+                {
+                    Id = wordSnapshot.Id,
+                    EnglishMissionId = wordSnapshot.EnglishMissionId,
+                    FlashcardId = wordSnapshot.FlashcardId,
+                    Term = wordSnapshot.Term,
+                    Definition = wordSnapshot.Definition,
+                    PartOfSpeech = wordSnapshot.PartOfSpeech,
+                    ExampleSentence = wordSnapshot.ExampleSentence,
+                    IsUsed = wordSnapshot.IsUsed,
+                    FirstUsedTurn = wordSnapshot.FirstUsedTurn
+                });
+            }
+        }
+
+        _context.EnglishMissionTargetWords.AddRange(missionWords);
+        if (missionWords.Count > 0)
+        {
+            await SaveWithIdentityInsertAsync<EnglishMissionTargetWord>();
+        }
     }
 
     // Serialize list FlashcardSnapshot
@@ -250,6 +298,10 @@ public class DeleteCardsCommand : ICardActionCommand
         else if (entityName == nameof(DictationSessionDetail))
         {
             tableName = "DictationSessionDetails";
+        }
+        else if (entityName == nameof(EnglishMissionTargetWord))
+        {
+            tableName = "EnglishMissionTargetWords";
         }
         else
         {

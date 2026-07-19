@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ltwnc.Services.Auth;
 using ltwnc.Services.FlashcardSets;
 using ltwnc.Models.Entities;
@@ -270,6 +271,7 @@ public class FlashcardSetController : Controller
     [HttpPost]
     [Route("/Set/{id}/Import")]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("uploads")]
     public async Task<IActionResult> Import(int id, IFormFile? file)
     {
         string? userId = _currentUser.UserId;
@@ -336,6 +338,7 @@ public class FlashcardSetController : Controller
     [HttpPost]
     [Route("/Set/{setId}/Cards/Create")]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("uploads")]
     public async Task<IActionResult> AddCard(int setId, AddCardInputModel input)
     {
         string? userId = _currentUser.UserId;
@@ -409,6 +412,7 @@ public class FlashcardSetController : Controller
     [HttpPost]
     [Route("/Cards/{id}/Edit")]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("uploads")]
     public async Task<IActionResult> EditCard(int id, EditCardInputModel input)
     {
         string? userId = _currentUser.UserId;

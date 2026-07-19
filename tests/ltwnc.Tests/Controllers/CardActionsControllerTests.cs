@@ -7,6 +7,7 @@ using ltwnc.Services.FlashcardSets;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
+using Microsoft.Extensions.Logging;
 
 namespace ltwnc.Tests.Controllers;
 
@@ -92,7 +93,7 @@ public class CardActionsControllerTests
         ObjectResult error = Assert.IsType<ObjectResult>(result);
         Assert.Equal(StatusCodes.Status500InternalServerError, error.StatusCode);
         AssertProperty(error.Value, "success", false);
-        AssertProperty(error.Value, "message", "Batch failed");
+        AssertProperty(error.Value, "message", "Không thể thực hiện thao tác. Vui lòng thử lại.");
         fixture.Factory.VerifyAll();
         fixture.ActionService.VerifyAll();
     }
@@ -167,7 +168,8 @@ public class CardActionsControllerTests
             actionService.Object,
             factory.Object,
             setService.Object,
-            currentUser.Object);
+            currentUser.Object,
+            Mock.Of<ILogger<CardActionsController>>());
         var httpContext = new DefaultHttpContext();
         if (ajax)
         {
