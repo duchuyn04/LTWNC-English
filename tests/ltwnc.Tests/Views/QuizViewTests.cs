@@ -7,6 +7,7 @@ public class QuizViewTests
     private static readonly string QuizView = ReadFile("Views", "Study", "Quiz.cshtml");
     private static readonly string QuizSetupView = ReadFile("Views", "Study", "QuizSetup.cshtml");
     private static readonly string ResultView = ReadFile("Views", "Study", "QuizResult.cshtml");
+    private static readonly string ResultActionsPartial = ReadFile("Views", "Study", "_QuizResultActions.cshtml");
     private static readonly string QuizScript = ReadFile("wwwroot", "js", "quiz.js");
     private static readonly string QuizStyles = ReadFile("wwwroot", "css", "quiz.css");
 
@@ -189,23 +190,30 @@ public class QuizViewTests
     }
 
     [Fact]
-    public void Result_view_encodes_snapshots_and_offers_expected_actions()
+    public void Result_actions_are_rendered_twice_from_a_shared_partial()
     {
-        string retryWrongConditional = RequiredMatch(
-            ResultView,
-            "<div class=\"quiz-result-actions\">\\s*" +
-            "@if \\(Model\\.WrongAnswers\\.Any\\(\\)\\)\\s*\\{\\s*" +
-            "<form(?=[^>]*asp-action=\"RetryWrong\")[\\s\\S]*?</form>\\s*\\}");
-
         Assert.Contains("@answer.PromptText", ResultView);
         Assert.Contains("@answer.SelectedAnswer", ResultView);
         Assert.Contains("@answer.CorrectAnswer", ResultView);
+        Assert.Equal(2, Regex.Matches(
+            ResultView,
+            "<partial(?=[^>]*name=\"_QuizResultActions\")(?=[^>]*model=\"Model\")[^>]*/>",
+            RegexOptions.Singleline).Count);
+        Assert.DoesNotContain("asp-action=\"RetryWrong\"", ResultView);
+        Assert.DoesNotContain("asp-action=\"RetryAll\"", ResultView);
+        Assert.DoesNotContain("@Html.AntiForgeryToken()", ResultView);
+        Assert.DoesNotContain("asp-action=\"Index\"", ResultView);
+
+        string retryWrongConditional = RequiredMatch(
+            ResultActionsPartial,
+            "@if \\(Model\\.WrongAnswers\\.Any\\(\\)\\)\\s*\\{\\s*" +
+            "<form(?=[^>]*asp-action=\"RetryWrong\")[\\s\\S]*?</form>\\s*\\}");
+
         Assert.Contains("Model.WrongAnswers.Any()", retryWrongConditional);
-        Assert.Contains("asp-action=\"RetryWrong\"", retryWrongConditional);
         Assert.Contains("@Html.AntiForgeryToken()", retryWrongConditional);
-        Assert.Contains("RetryAll", ResultView);
-        Assert.Contains("@Html.AntiForgeryToken()", ResultView);
-        Assert.Contains("asp-action=\"Index\"", ResultView);
+        Assert.Contains("asp-action=\"RetryAll\"", ResultActionsPartial);
+        Assert.Equal(2, Regex.Matches(ResultActionsPartial, "@Html.AntiForgeryToken\\(\\)").Count);
+        Assert.Contains("asp-action=\"Index\"", ResultActionsPartial);
     }
 
     [Fact]

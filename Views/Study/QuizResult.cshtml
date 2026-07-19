@@ -1,5 +1,13 @@
 @model QuizResultViewModel
 @{
+    ViewDataDictionary topActionsViewData = new(ViewData)
+    {
+        ["ResultActionsModifier"] = "quiz-result-actions--top"
+    };
+    ViewDataDictionary bottomActionsViewData = new(ViewData)
+    {
+        ["ResultActionsModifier"] = "quiz-result-actions--bottom"
+    };
     ViewData["Title"] = "Kết quả trắc nghiệm";
 }
 
@@ -30,6 +38,8 @@
                 <span>Câu trả lời đúng</span>
             </div>
         </section>
+
+        <partial name="_QuizResultActions" model="Model" view-data="topActionsViewData" />
 
         @if (Model.WrongAnswers.Any())
         {
@@ -64,27 +74,6 @@
             <p class="quiz-perfect">Tuyệt vời! Bạn đã trả lời đúng tất cả câu hỏi.</p>
         }
 
-        <div class="quiz-result-actions">
-            @if (Model.WrongAnswers.Any())
-            {
-                <form asp-action="RetryWrong"
-                      asp-route-setId="@Model.SetId"
-                      asp-route-sessionId="@Model.SessionId"
-                      method="post">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="quiz-action quiz-action-secondary">Làm lại câu sai</button>
-                </form>
-            }
-
-            <form asp-action="RetryAll"
-                  asp-route-setId="@Model.SetId"
-                  asp-route-sessionId="@Model.SessionId"
-                  method="post">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="quiz-action quiz-action-primary">Làm lại tất cả</button>
-            </form>
-
-            <a class="quiz-action quiz-action-link" asp-action="Index" asp-route-setId="@Model.SetId">Về trang học</a>
-        </div>
+        <partial name="_QuizResultActions" model="Model" view-data="bottomActionsViewData" />
     </main>
 </div>

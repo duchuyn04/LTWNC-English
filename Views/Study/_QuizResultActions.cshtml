@@ -1,0 +1,27 @@
+@model QuizResultViewModel
+@{
+    string modifier = ViewData["ResultActionsModifier"] as string ?? string.Empty;
+}
+
+<div class="quiz-result-actions @modifier">
+    @if (Model.WrongAnswers.Any())
+    {
+        <form asp-action="RetryWrong"
+              asp-route-setId="@Model.SetId"
+              asp-route-sessionId="@Model.SessionId"
+              method="post">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="quiz-action quiz-action-secondary">Làm lại câu sai</button>
+        </form>
+    }
+
+    <form asp-action="RetryAll"
+          asp-route-setId="@Model.SetId"
+          asp-route-sessionId="@Model.SessionId"
+          method="post">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="quiz-action quiz-action-primary">Làm lại tất cả</button>
+    </form>
+
+    <a class="quiz-action quiz-action-link" asp-action="Index" asp-route-setId="@Model.SetId">Về trang học</a>
+</div>
