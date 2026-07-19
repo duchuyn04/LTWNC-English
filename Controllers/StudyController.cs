@@ -411,7 +411,7 @@ public class StudyController : Controller
 
     [HttpGet]
     [Route("/Study/{setId}/Quiz/{sessionId:int}")]
-    public async Task<IActionResult> Quiz(int setId, int sessionId)
+    public async Task<IActionResult> Quiz(int setId, int sessionId, int? questionId = null)
     {
         string? userId = _currentUser.UserId;
         if (userId == null)
@@ -424,7 +424,8 @@ public class StudyController : Controller
             QuizQuestionState state = await _quizService.GetCurrentQuestionAsync(
                 setId,
                 sessionId,
-                userId);
+                userId,
+                questionId);
             if (state.IsComplete)
             {
                 return RedirectToAction(nameof(QuizResult), new { setId, sessionId });
@@ -437,14 +438,21 @@ public class StudyController : Controller
                 SetTitle = state.SetTitle,
                 SessionId = state.SessionId,
                 QuestionId = question.Id,
-                CurrentNumber = state.AnsweredCount + 1,
+                CurrentNumber = question.OrderIndex + 1,
                 TotalQuestions = state.TotalQuestions,
                 CorrectCount = state.CorrectCount,
                 DeadlineUtc = state.DeadlineUtc,
                 RemainingSeconds = state.RemainingSeconds,
                 Direction = question.Direction,
                 PromptText = question.PromptText,
-                Choices = question.Choices.ToList()
+                Choices = question.Choices.ToList(),
+                IsReviewOnly = state.IsReviewOnly,
+                SelectedChoiceIndex = state.SelectedChoiceIndex,
+                CorrectChoiceIndex = state.CorrectChoiceIndex,
+                IsCorrect = state.IsCorrect,
+                PreviousQuestionId = state.PreviousQuestionId,
+                NextQuestionId = state.NextQuestionId,
+                CurrentPendingQuestionId = state.CurrentPendingQuestionId
             };
 
             return View(model);

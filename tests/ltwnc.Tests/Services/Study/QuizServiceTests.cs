@@ -185,6 +185,83 @@ public class QuizServiceTests
     }
 
     [Fact]
+    public async Task GetCurrentQuestion_Review_requested_answered_question_returns_read_only_review_navigation()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession session = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        List<QuizSessionQuestion> questions = await database.Context.QuizSessionQuestions
+            .Where(question => question.StudySessionId == session.Id)
+            .OrderBy(question => question.OrderIndex)
+            .ToListAsync();
+
+        await service.AnswerAsync(
+            set.Id,
+            session.Id,
+            questions[0].Id,
+            questions[0].CorrectChoiceIndex,
+            set.UserId);
+        await service.AnswerAsync(
+            set.Id,
+            session.Id,
+            questions[1].Id,
+            (questions[1].CorrectChoiceIndex + 1) % 4,
+            set.UserId);
+
+        QuizQuestionState state = await service.GetCurrentQuestionAsync(
+            set.Id,
+            session.Id,
+            set.UserId,
+            questions[0].Id);
+
+        Assert.True(state.IsReviewOnly);
+        Assert.Equal(questions[0].CorrectChoiceIndex, state.CorrectChoiceIndex);
+        Assert.Equal(questions[0].CorrectChoiceIndex, state.SelectedChoiceIndex);
+        Assert.Null(state.PreviousQuestionId);
+        Assert.Equal(questions[1].Id, state.NextQuestionId);
+        Assert.Equal(questions[2].Id, state.CurrentPendingQuestionId);
+        Assert.Equal(questions[0].Id, state.Question!.Id);
+
+        QuizSessionQuestion stored = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .SingleAsync(question => question.Id == questions[0].Id);
+        Assert.Equal(questions[0].CorrectChoiceIndex, stored.SelectedChoiceIndex);
+        Assert.True(stored.IsCorrect);
+    }
+
+    [Fact]
+    public async Task GetCurrentQuestion_rejects_question_from_another_session()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession firstSession = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        int foreignQuestionId = await database.Context.QuizSessionQuestions
+            .Where(question => question.StudySessionId == firstSession.Id)
+            .OrderBy(question => question.OrderIndex)
+            .Select(question => question.Id)
+            .FirstAsync();
+        StudySession secondSession = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            QuizService.DefaultQuizMinutes);
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.GetCurrentQuestionAsync(
+            set.Id,
+            secondSession.Id,
+            set.UserId,
+            foreignQuestionId));
+    }
+
+    [Fact]
     public async Task GetCurrentQuestion_expired_attempt_completes_pending_questions_as_wrong()
     {
         await using var database = await QuizTestDatabase.CreateAsync();

@@ -256,7 +256,8 @@ public class QuizService : IQuizService
     public async Task<QuizQuestionState> GetCurrentQuestionAsync(
         int setId,
         int sessionId,
-        string userId)
+        string userId,
+        int? questionId = null)
     {
         StudySession? session = await _context.StudySessions
             .AsNoTracking()
@@ -281,21 +282,33 @@ public class QuizService : IQuizService
             throw new QuizExpiredException();
         }
 
-        IQueryable<QuizSessionQuestion> questions = _context.QuizSessionQuestions
+        List<QuizSessionQuestion> questions = await _context.QuizSessionQuestions
             .AsNoTracking()
-            .Where(question => question.StudySessionId == sessionId);
-        int totalQuestions = await questions.CountAsync();
-        int answeredCount = await questions.CountAsync(question =>
-            question.IsCorrect != null);
-        int correctCount = await questions.CountAsync(question => question.IsCorrect == true);
-        QuizSessionQuestion? currentQuestion = await questions
-            .Where(question => question.IsCorrect == null)
+            .Where(question => question.StudySessionId == sessionId)
             .OrderBy(question => question.OrderIndex)
-            .FirstOrDefaultAsync();
+            .ToListAsync();
+        int totalQuestions = questions.Count;
+        int answeredCount = questions.Count(question => question.IsCorrect != null);
+        int correctCount = questions.Count(question => question.IsCorrect == true);
+        QuizSessionQuestion? pendingQuestion = questions
+            .FirstOrDefault(question => question.IsCorrect == null);
+        QuizSessionQuestion? currentQuestion = questionId.HasValue
+            ? questions.SingleOrDefault(question => question.Id == questionId.Value)
+            : pendingQuestion;
+        if (questionId.HasValue && currentQuestion == null)
+        {
+            throw new KeyNotFoundException("CÃ¢u há»i tráº¯c nghiá»‡m khÃ´ng tá»“n táº¡i.");
+        }
+
         if (currentQuestion == null && session.Score == null)
         {
             await RecoverCompletedSessionIfNeededAsync(session);
         }
+
+        bool isReviewOnly = currentQuestion?.IsCorrect != null;
+        int currentQuestionIndex = currentQuestion == null
+            ? -1
+            : questions.FindIndex(question => question.Id == currentQuestion.Id);
 
         return new QuizQuestionState
         {
@@ -307,7 +320,19 @@ public class QuizService : IQuizService
             CorrectCount = correctCount,
             DeadlineUtc = GetDeadlineUtc(session),
             RemainingSeconds = GetRemainingSeconds(session, now),
-            Question = currentQuestion
+            Question = currentQuestion,
+            IsReviewOnly = isReviewOnly,
+            SelectedChoiceIndex = isReviewOnly ? currentQuestion!.SelectedChoiceIndex : null,
+            CorrectChoiceIndex = isReviewOnly ? currentQuestion!.CorrectChoiceIndex : null,
+            IsCorrect = isReviewOnly ? currentQuestion!.IsCorrect : null,
+            PreviousQuestionId = currentQuestionIndex > 0
+                ? questions[currentQuestionIndex - 1].Id
+                : null,
+            NextQuestionId = currentQuestionIndex >= 0
+                && currentQuestionIndex < questions.Count - 1
+                    ? questions[currentQuestionIndex + 1].Id
+                    : null,
+            CurrentPendingQuestionId = pendingQuestion?.Id
         };
     }
 

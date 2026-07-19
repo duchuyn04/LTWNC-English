@@ -14,6 +14,7 @@
     <main class="quiz-stage"
           data-quiz-root
           data-question-id="@Model.QuestionId"
+          data-quiz-review-only="@Model.IsReviewOnly.ToString().ToLowerInvariant()"
           data-answer-url="@Url.Action("QuizAnswer", "Study", new { setId = Model.SetId, sessionId = Model.SessionId })">
         @Html.AntiForgeryToken()
 
@@ -46,10 +47,21 @@
             <div class="quiz-choices" role="group" aria-label="Các lựa chọn trả lời">
                 @for (int index = 0; index < Model.Choices.Count; index++)
                 {
+                    string choiceClass = "quiz-choice";
+                    if (Model.IsReviewOnly && index == Model.CorrectChoiceIndex)
+                    {
+                        choiceClass += " is-correct";
+                    }
+                    else if (Model.IsReviewOnly && index == Model.SelectedChoiceIndex)
+                    {
+                        choiceClass += " is-wrong";
+                    }
+
                     <button type="button"
-                            class="quiz-choice"
+                            class="@choiceClass"
                             data-quiz-answer
-                            data-choice-index="@index">
+                            data-choice-index="@index"
+                            disabled="@Model.IsReviewOnly">
                         <span class="quiz-choice-key" aria-hidden="true">@(index + 1)</span>
                         <span>@Model.Choices[index]</span>
                     </button>
@@ -59,6 +71,43 @@
             <p class="quiz-feedback" data-quiz-feedback role="status" aria-live="polite"></p>
 
             <div class="quiz-actions">
+                @if (Model.PreviousQuestionId.HasValue)
+                {
+                    <a class="quiz-previous"
+                       asp-action="Quiz"
+                       asp-route-setId="@Model.SetId"
+                       asp-route-sessionId="@Model.SessionId"
+                       asp-route-questionId="@Model.PreviousQuestionId">
+                        <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                        <span>Câu trước</span>
+                    </a>
+                }
+
+                @if (Model.IsReviewOnly && Model.NextQuestionId.HasValue)
+                {
+                    <a class="quiz-next-question"
+                       asp-action="Quiz"
+                       asp-route-setId="@Model.SetId"
+                       asp-route-sessionId="@Model.SessionId"
+                       asp-route-questionId="@Model.NextQuestionId">
+                        <span>Câu tiếp theo</span>
+                        <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                    </a>
+                }
+
+                @if (Model.IsReviewOnly
+                    && Model.CurrentPendingQuestionId.HasValue
+                    && Model.CurrentPendingQuestionId != Model.QuestionId)
+                {
+                    <a class="quiz-return-current"
+                       asp-action="Quiz"
+                       asp-route-setId="@Model.SetId"
+                       asp-route-sessionId="@Model.SessionId"
+                       asp-route-questionId="@Model.CurrentPendingQuestionId">
+                        Quay lại câu đang làm
+                    </a>
+                }
+
                 <a class="quiz-next" data-quiz-next href="#" hidden>
                     <span data-quiz-next-label>Câu tiếp theo</span>
                     <i class="ph ph-arrow-right" aria-hidden="true"></i>

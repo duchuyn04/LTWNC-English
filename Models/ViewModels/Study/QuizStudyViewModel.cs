@@ -1,4 +1,5 @@
 using ltwnc.Models.Entities;
+using System.Text.Json.Serialization;
 
 namespace ltwnc.Models.ViewModels.Study;
 
@@ -16,4 +17,14 @@ public class QuizStudyViewModel
     public QuizQuestionDirection Direction { get; set; }
     public string PromptText { get; set; } = string.Empty;
     public List<string> Choices { get; set; } = new();
+    public bool IsReviewOnly { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? SelectedChoiceIndex { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public int? CorrectChoiceIndex { get; set; }
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? IsCorrect { get; set; }
+    public int? PreviousQuestionId { get; set; }
+    public int? NextQuestionId { get; set; }
+    public int? CurrentPendingQuestionId { get; set; }
 }

@@ -98,7 +98,7 @@ public class StudyControllerQuizTests
     public async Task Quiz_returns_view_without_correct_answer()
     {
         QuizQuestionState state = CreateQuestionState();
-        _quizService.Setup(service => service.GetCurrentQuestionAsync(7, 42, "user-1"))
+        _quizService.Setup(service => service.GetCurrentQuestionAsync(7, 42, "user-1", null))
             .ReturnsAsync(state);
         StudyController controller = CreateController("user-1");
 
@@ -124,9 +124,47 @@ public class StudyControllerQuizTests
     }
 
     [Fact]
+    public async Task Quiz_requested_answered_question_maps_read_only_review_navigation()
+    {
+        QuizQuestionState state = new()
+        {
+            SetId = 7,
+            SetTitle = "Core English",
+            SessionId = 42,
+            TotalQuestions = 10,
+            AnsweredCount = 2,
+            CorrectCount = 1,
+            Question = CreateQuestionState().Question,
+            IsReviewOnly = true,
+            SelectedChoiceIndex = 0,
+            CorrectChoiceIndex = 2,
+            IsCorrect = false,
+            PreviousQuestionId = 500,
+            NextQuestionId = 502,
+            CurrentPendingQuestionId = 503
+        };
+        _quizService.Setup(service => service.GetCurrentQuestionAsync(7, 42, "user-1", 501))
+            .ReturnsAsync(state);
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.Quiz(7, 42, 501);
+
+        QuizStudyViewModel model = Assert.IsType<QuizStudyViewModel>(
+            Assert.IsType<ViewResult>(result).Model);
+        Assert.True(model.IsReviewOnly);
+        Assert.Equal(0, model.SelectedChoiceIndex);
+        Assert.Equal(2, model.CorrectChoiceIndex);
+        Assert.False(model.IsCorrect);
+        Assert.Equal(500, model.PreviousQuestionId);
+        Assert.Equal(502, model.NextQuestionId);
+        Assert.Equal(503, model.CurrentPendingQuestionId);
+        _quizService.Verify(service => service.GetCurrentQuestionAsync(7, 42, "user-1", 501));
+    }
+
+    [Fact]
     public async Task Quiz_completed_redirects_to_result()
     {
-        _quizService.Setup(service => service.GetCurrentQuestionAsync(7, 42, "user-1"))
+        _quizService.Setup(service => service.GetCurrentQuestionAsync(7, 42, "user-1", null))
             .ReturnsAsync(new QuizQuestionState
             {
                 SetId = 7,
@@ -149,7 +187,7 @@ public class StudyControllerQuizTests
     [Fact]
     public async Task Quiz_expired_redirects_to_result()
     {
-        _quizService.Setup(service => service.GetCurrentQuestionAsync(7, 42, "user-1"))
+        _quizService.Setup(service => service.GetCurrentQuestionAsync(7, 42, "user-1", null))
             .ThrowsAsync(new QuizExpiredException());
         StudyController controller = CreateController("user-1");
 
@@ -379,7 +417,7 @@ public class StudyControllerQuizTests
     {
         AssertRoute(nameof(StudyController.QuizStart), 1, "/Study/{setId}/Quiz", typeof(HttpGetAttribute));
         AssertRoute(nameof(StudyController.QuizStart), 2, "/Study/{setId}/Quiz/Start", typeof(HttpPostAttribute));
-        AssertRoute(nameof(StudyController.Quiz), 2, "/Study/{setId}/Quiz/{sessionId:int}", typeof(HttpGetAttribute));
+        AssertRoute(nameof(StudyController.Quiz), 3, "/Study/{setId}/Quiz/{sessionId:int}", typeof(HttpGetAttribute));
         AssertRoute(nameof(StudyController.QuizAnswer), 4, "/Study/{setId}/Quiz/{sessionId:int}/Answer", typeof(HttpPostAttribute));
         AssertRoute(nameof(StudyController.QuizTimeout), 2, "/Study/{setId}/Quiz/{sessionId:int}/Timeout", typeof(HttpPostAttribute));
         AssertRoute(nameof(StudyController.QuizResult), 2, "/Study/{setId}/Quiz/Result/{sessionId:int}", typeof(HttpGetAttribute));

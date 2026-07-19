@@ -31,6 +31,13 @@ public sealed class QuizQuestionState
     public DateTime? DeadlineUtc { get; init; }
     public int? RemainingSeconds { get; init; }
     public QuizSessionQuestion? Question { get; init; }
+    public bool IsReviewOnly { get; init; }
+    public int? SelectedChoiceIndex { get; init; }
+    public int? CorrectChoiceIndex { get; init; }
+    public bool? IsCorrect { get; init; }
+    public int? PreviousQuestionId { get; init; }
+    public int? NextQuestionId { get; init; }
+    public int? CurrentPendingQuestionId { get; init; }
     public bool IsComplete => Question is null;
 }
 

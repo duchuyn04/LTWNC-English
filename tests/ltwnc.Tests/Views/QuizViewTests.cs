@@ -38,7 +38,7 @@ public class QuizViewTests
         Assert.Contains("data-choice-index=\"@index\"", QuizView);
         Assert.Contains("@Html.AntiForgeryToken()", QuizView);
         Assert.Contains("aria-live=\"polite\"", QuizView);
-        Assert.DoesNotContain("CorrectChoiceIndex", QuizView);
+        Assert.Contains("if (Model.IsReviewOnly", QuizView);
     }
 
     [Fact]
@@ -49,6 +49,24 @@ public class QuizViewTests
         Assert.Contains("asp-append-version=\"true\"", QuizView);
         Assert.Contains("data-quiz-next", QuizView);
         Assert.Contains("hidden", QuizView);
+    }
+
+    [Fact]
+    public void Quiz_view_renders_read_only_review_choices_and_question_navigation()
+    {
+        Assert.Contains("data-quiz-review-only", QuizView);
+        Assert.Contains("Model.IsReviewOnly", QuizView);
+        Assert.Contains("Model.SelectedChoiceIndex", QuizView);
+        Assert.Contains("Model.CorrectChoiceIndex", QuizView);
+        Assert.Contains("is-correct", QuizView);
+        Assert.Contains("is-wrong", QuizView);
+        Assert.Contains("disabled", QuizView);
+        Assert.Contains("Model.PreviousQuestionId", QuizView);
+        Assert.Contains("Model.NextQuestionId", QuizView);
+        Assert.Contains("Model.IsReviewOnly && Model.NextQuestionId.HasValue", QuizView);
+        Assert.Contains("Model.CurrentPendingQuestionId", QuizView);
+        Assert.Contains("asp-route-questionId", QuizView);
+        Assert.Contains("Quay lại câu đang làm", QuizView);
     }
 
     [Fact]

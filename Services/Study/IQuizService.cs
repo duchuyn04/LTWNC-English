@@ -20,7 +20,8 @@ public interface IQuizService
     Task<QuizQuestionState> GetCurrentQuestionAsync(
         int setId,
         int sessionId,
-        string userId);
+        string userId,
+        int? questionId = null);
 
     Task<QuizAnswerResult> AnswerAsync(
         int setId,
