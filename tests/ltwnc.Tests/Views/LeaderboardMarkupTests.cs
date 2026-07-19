@@ -16,4 +16,15 @@ public sealed class LeaderboardMarkupTests
         Assert.DoesNotContain("mock", view, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("A. Podium", view, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void ProductionLeaderboard_UsesModerateHeadingScale()
+    {
+        string css = File.ReadAllText(Path.Combine(Root, "wwwroot", "css", "leaderboard.css"));
+
+        Assert.Contains("font-size:clamp(2rem,4vw,3rem)", css);
+        Assert.Contains("font-size:clamp(1.625rem,3vw,2.25rem)", css);
+        Assert.DoesNotContain("font-size:clamp(2rem,5vw,4.25rem)", css);
+        Assert.DoesNotContain("font-size:clamp(2rem,5vw,3.6rem)", css);
+    }
 }
