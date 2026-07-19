@@ -18,6 +18,8 @@ public static class AdminAuditActions
     public const string AiProvidersDisable = "AiProviders.Disable";
     public const string AiProvidersEnable = "AiProviders.Enable";
     public const string EnglishMissionsViewConversation = "EnglishMissions.ViewConversation";
+    public const string AchievementsResyncUser = "Achievements.ResyncUser";
+    public const string AchievementsResyncAll = "Achievements.ResyncAll";
 }
 
 public static class AdminAuditOutcome

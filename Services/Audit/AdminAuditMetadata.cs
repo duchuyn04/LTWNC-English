@@ -31,7 +31,12 @@ public static class AdminAuditMetadata
         "incidentType",
         "caseReference",
         "topic",
-        "turnCount"
+        "turnCount",
+        "processedCount",
+        "changedCount",
+        "failedCount",
+        "batchSize",
+        "failureKind"
     };
 
     // Mật khẩu, khóa bí mật, câu lệnh AI và hội thoại không bao giờ được ghi.

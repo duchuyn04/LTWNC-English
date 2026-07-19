@@ -75,6 +75,20 @@ public sealed class SecurityEndpointPolicyTests
         Assert.NotEmpty(method.GetCustomAttributes<ValidateAntiForgeryTokenAttribute>());
     }
 
+    [Theory]
+    [InlineData(nameof(ltwnc.Areas.Admin.Controllers.AchievementsController.ResyncUser))]
+    [InlineData(nameof(ltwnc.Areas.Admin.Controllers.AchievementsController.ResyncAll))]
+    public void AchievementResyncChanges_RequireAntiforgery(
+        string methodName)
+    {
+        MethodInfo method = typeof(ltwnc.Areas.Admin.Controllers.AchievementsController)
+            .GetMethods()
+            .Single(candidate => candidate.Name == methodName
+                && candidate.GetCustomAttribute<HttpPostAttribute>() != null);
+
+        Assert.NotEmpty(method.GetCustomAttributes<ValidateAntiForgeryTokenAttribute>());
+    }
+
     [Fact]
     public void UnifiedEditor_SendsTheAntiforgeryTokenOnApiWrites()
     {
