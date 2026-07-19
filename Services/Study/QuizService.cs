@@ -275,6 +275,11 @@ public class QuizService : IQuizService
             throw new UnauthorizedAccessException("Không có quyền xem phiên trắc nghiệm này.");
         }
 
+        if (IsAbandoned(session))
+        {
+            throw await CreateAbandonedExceptionAsync(session);
+        }
+
         DateTime now = GetUtcNow();
         if (IsExpired(session, now))
         {
@@ -297,7 +302,7 @@ public class QuizService : IQuizService
             : pendingQuestion;
         if (questionId.HasValue && currentQuestion == null)
         {
-            throw new KeyNotFoundException("CÃ¢u há»i tráº¯c nghiá»‡m khÃ´ng tá»“n táº¡i.");
+            throw new KeyNotFoundException("Câu hỏi trắc nghiệm không tồn tại.");
         }
 
         if (currentQuestion == null && session.Score == null)
@@ -363,6 +368,11 @@ public class QuizService : IQuizService
             throw new UnauthorizedAccessException("Không có quyền trả lời phiên trắc nghiệm này.");
         }
 
+        if (IsAbandoned(session))
+        {
+            throw await CreateAbandonedExceptionAsync(session);
+        }
+
         DateTime now = GetUtcNow();
         if (IsExpired(session, now))
         {
@@ -407,13 +417,24 @@ public class QuizService : IQuizService
 
             bool isCorrect = selectedChoiceIndex == question.CorrectChoiceIndex;
             int affected = await _context.QuizSessionQuestions
-                .Where(row => row.Id == questionId && row.IsCorrect == null)
+                .Where(row => row.Id == questionId
+                    && row.IsCorrect == null
+                    && row.StudySession!.Score == null
+                    && row.StudySession.CompletedAt == null)
                 .ExecuteUpdateAsync(updates => updates
                     .SetProperty(row => row.SelectedChoiceIndex, selectedChoiceIndex)
                     .SetProperty(row => row.IsCorrect, isCorrect)
                     .SetProperty(row => row.AnsweredAt, writeNow));
             if (affected == 0)
             {
+                StudySession currentSession = await _context.StudySessions
+                    .AsNoTracking()
+                    .SingleAsync(row => row.Id == sessionId);
+                if (IsAbandoned(currentSession))
+                {
+                    throw await CreateAbandonedExceptionAsync(currentSession);
+                }
+
                 QuizSessionQuestion storedQuestion = await _context.QuizSessionQuestions
                     .AsNoTracking()
                     .SingleAsync(row => row.Id == questionId);
@@ -499,10 +520,15 @@ public class QuizService : IQuizService
             throw new UnauthorizedAccessException("Không có quyền hoàn thành phiên trắc nghiệm này.");
         }
 
+        if (IsAbandoned(session))
+        {
+            throw await CreateAbandonedExceptionAsync(session);
+        }
+
         DateTime now = GetUtcNow();
         if (!IsExpired(session, now))
         {
-            throw new QuizConflictException("Phiên trắc nghiệm chưa hết thời gian.");
+            throw new QuizNotExpiredException(GetRemainingSeconds(session, now) ?? 0);
         }
 
         await CompleteExpiredSessionAsync(session, now);
@@ -521,7 +547,9 @@ public class QuizService : IQuizService
         {
             await _context.QuizSessionQuestions
                 .Where(question => question.StudySessionId == session.Id
-                    && question.IsCorrect == null)
+                    && question.IsCorrect == null
+                    && question.StudySession!.Score == null
+                    && question.StudySession.CompletedAt == null)
                 .ExecuteUpdateAsync(updates => updates
                     .SetProperty(question => question.IsCorrect, false)
                     .SetProperty(question => question.AnsweredAt, now));
@@ -750,7 +778,8 @@ public class QuizService : IQuizService
             sourceSession,
             wrongQuestions,
             preserveDirections: true,
-            reuseMatchingActiveSession: true);
+            reuseMatchingActiveSession: true,
+            retryKind: QuizRetryKind.Wrong);
     }
 
     public async Task<StudySession> RetryAllAsync(
@@ -765,7 +794,8 @@ public class QuizService : IQuizService
             sourceSession,
             sourceQuestions,
             preserveDirections: false,
-            reuseMatchingActiveSession: true);
+            reuseMatchingActiveSession: true,
+            retryKind: QuizRetryKind.All);
     }
 
     public async Task<StudySession> RestartAsync(
@@ -776,11 +806,19 @@ public class QuizService : IQuizService
         (StudySession sourceSession, List<QuizSessionQuestion> sourceQuestions) =
             await LoadQuizSourceAsync(setId, sessionId, userId, requireCompleted: false);
 
+        DateTime restartNow = GetUtcNow();
+        if (IsExpired(sourceSession, restartNow))
+        {
+            await CompleteExpiredSessionAsync(sourceSession, restartNow);
+            throw new QuizExpiredException();
+        }
+
         return await CreateReplacementSessionAsync(
             sourceSession,
             sourceQuestions,
             preserveDirections: false,
-            reuseMatchingActiveSession: false);
+            reuseMatchingActiveSession: false,
+            retryKind: null);
     }
 
     private async Task<(StudySession Session, List<QuizSessionQuestion> Questions)>
@@ -811,8 +849,12 @@ public class QuizService : IQuizService
             throw new QuizConflictException("Phiên trắc nghiệm chưa hoàn thành.");
         }
 
-        if (!requireCompleted
-            && (sourceSession.Score != null || sourceSession.CompletedAt != null))
+        if (!requireCompleted && IsAbandoned(sourceSession))
+        {
+            throw await CreateAbandonedExceptionAsync(sourceSession);
+        }
+
+        if (!requireCompleted && sourceSession.Score != null)
         {
             throw new QuizConflictException("Phiên trắc nghiệm không còn đang làm.");
         }
@@ -829,7 +871,8 @@ public class QuizService : IQuizService
         StudySession sourceSession,
         IReadOnlyList<QuizSessionQuestion> sourceQuestions,
         bool preserveDirections,
-        bool reuseMatchingActiveSession)
+        bool reuseMatchingActiveSession,
+        QuizRetryKind? retryKind)
     {
         if (reuseMatchingActiveSession)
         {
@@ -838,7 +881,9 @@ public class QuizService : IQuizService
                 && await MatchesRequestedRetryAsync(
                     activeSession,
                     sourceQuestions,
-                    preserveDirections))
+                    preserveDirections,
+                    sourceSession,
+                    retryKind))
             {
                 return activeSession;
             }
@@ -884,7 +929,9 @@ public class QuizService : IQuizService
                     && await MatchesRequestedRetryAsync(
                         activeSession,
                         sourceQuestions,
-                        preserveDirections))
+                        preserveDirections,
+                        sourceSession,
+                        retryKind))
                 {
                     if (transaction != null)
                     {
@@ -896,6 +943,19 @@ public class QuizService : IQuizService
             }
 
             DateTime now = GetUtcNow();
+            if (retryKind is null && IsExpired(sourceSession, now))
+            {
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync();
+                    await transaction.DisposeAsync();
+                    transaction = null;
+                }
+
+                await CompleteExpiredSessionAsync(sourceSession, now);
+                throw new QuizExpiredException();
+            }
+
             await _context.StudySessions
                 .Where(session => session.FlashcardSetId == sourceSession.FlashcardSetId
                     && session.UserId == sourceSession.UserId
@@ -913,7 +973,9 @@ public class QuizService : IQuizService
                 CompletedAt = null,
                 QuizStartedAtUtc = now,
                 QuizTimeLimitSeconds = sourceSession.QuizTimeLimitSeconds
-                    ?? DefaultQuizMinutes * 60
+                    ?? DefaultQuizMinutes * 60,
+                QuizRetrySourceSessionId = retryKind.HasValue ? sourceSession.Id : null,
+                QuizRetryKind = retryKind
             };
             List<QuizSessionQuestion> replacementQuestions =
                 await _questionFactory.BuildQuestionsAsync(
@@ -950,7 +1012,9 @@ public class QuizService : IQuizService
                 && await MatchesRequestedRetryAsync(
                     activeSession,
                     sourceQuestions,
-                    preserveDirections))
+                    preserveDirections,
+                    sourceSession,
+                    retryKind))
             {
                 return activeSession;
             }
@@ -986,11 +1050,32 @@ public class QuizService : IQuizService
             .OrderByDescending(session => session.Id)
             .FirstOrDefaultAsync();
 
+    private static bool IsAbandoned(StudySession session) =>
+        session.Score == null && session.CompletedAt != null;
+
+    private async Task<QuizSessionAbandonedException> CreateAbandonedExceptionAsync(
+        StudySession session)
+    {
+        StudySession? activeSession = await FindActiveQuizSessionAsync(session);
+        return new QuizSessionAbandonedException(activeSession?.Id);
+    }
+
     private async Task<bool> MatchesRequestedRetryAsync(
         StudySession activeSession,
         IReadOnlyList<QuizSessionQuestion> sourceQuestions,
-        bool preserveDirections)
+        bool preserveDirections,
+        StudySession sourceSession,
+        QuizRetryKind? retryKind)
     {
+        if (retryKind is null
+            || activeSession.QuizRetrySourceSessionId != sourceSession.Id
+            || activeSession.QuizRetryKind != retryKind
+            || activeSession.QuizTimeLimitSeconds
+                != (sourceSession.QuizTimeLimitSeconds ?? DefaultQuizMinutes * 60))
+        {
+            return false;
+        }
+
         List<QuizSessionQuestion> activeQuestions = await _context.QuizSessionQuestions
             .AsNoTracking()
             .Where(question => question.StudySessionId == activeSession.Id)

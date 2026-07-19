@@ -199,6 +199,26 @@ public class StudyControllerQuizTests
         Assert.Equal(42, redirect.RouteValues["sessionId"]);
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task Quiz_abandoned_redirects_to_replacement_or_setup(bool hasReplacement)
+    {
+        _quizService.Setup(service => service.GetCurrentQuestionAsync(7, 42, "user-1", null))
+            .ThrowsAsync(new QuizSessionAbandonedException(hasReplacement ? 84 : null));
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.Quiz(7, 42);
+
+        RedirectToActionResult redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(hasReplacement ? nameof(StudyController.Quiz) : nameof(StudyController.QuizStart), redirect.ActionName);
+        Assert.Equal(7, redirect.RouteValues!["setId"]);
+        if (hasReplacement)
+        {
+            Assert.Equal(84, redirect.RouteValues["sessionId"]);
+        }
+    }
+
     [Fact]
     public async Task QuizAnswer_maps_success_json()
     {
@@ -257,6 +277,40 @@ public class StudyControllerQuizTests
         JsonElement json = JsonSerializer.SerializeToElement(conflict.Value);
         Assert.True(json.GetProperty("expired").GetBoolean());
         Assert.Equal("/Study/7/Quiz/Result/42", json.GetProperty("nextUrl").GetString());
+    }
+
+    [Fact]
+    public async Task QuizAnswer_abandoned_returns_replacement_navigation_json()
+    {
+        _quizService.Setup(service => service.AnswerAsync(7, 42, 501, 2, "user-1"))
+            .ThrowsAsync(new QuizSessionAbandonedException(84));
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.QuizAnswer(7, 42, 501, 2);
+
+        ObjectResult conflict = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
+        JsonElement json = JsonSerializer.SerializeToElement(conflict.Value);
+        Assert.True(json.GetProperty("stale").GetBoolean());
+        Assert.Equal("/Study/7/Quiz/84", json.GetProperty("nextUrl").GetString());
+    }
+
+    [Fact]
+    public async Task QuizTimeout_not_expired_returns_server_remaining_seconds_for_resume()
+    {
+        _quizService.Setup(service => service.CompleteExpiredAsync(7, 42, "user-1"))
+            .ThrowsAsync(new QuizNotExpiredException(37));
+        StudyController controller = CreateController("user-1");
+        controller.Request.Headers["X-Requested-With"] = "XMLHttpRequest";
+
+        IActionResult result = await controller.QuizTimeout(7, 42);
+
+        ObjectResult conflict = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
+        JsonElement json = JsonSerializer.SerializeToElement(conflict.Value);
+        Assert.False(json.GetProperty("expired").GetBoolean());
+        Assert.Equal(37, json.GetProperty("remainingSeconds").GetInt32());
+        Assert.Equal("/Study/7/Quiz/42", json.GetProperty("nextUrl").GetString());
     }
 
     [Theory]
@@ -358,6 +412,21 @@ public class StudyControllerQuizTests
         IActionResult result = await controller.QuizRestart(7, 42);
 
         AssertQuizSessionRedirect(result, setId: 7, sessionId: 86);
+    }
+
+    [Fact]
+    public async Task QuizRestart_expired_redirects_to_result()
+    {
+        _quizService.Setup(service => service.RestartAsync(7, 42, "user-1"))
+            .ThrowsAsync(new QuizExpiredException());
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.QuizRestart(7, 42);
+
+        RedirectToActionResult redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(StudyController.QuizResult), redirect.ActionName);
+        Assert.Equal(7, redirect.RouteValues!["setId"]);
+        Assert.Equal(42, redirect.RouteValues["sessionId"]);
     }
 
     [Theory]
@@ -564,7 +633,13 @@ public class StudyControllerQuizTests
         {
             RouteValueDictionary values = new(actionContext.Values);
             int setId = (int)values["setId"]!;
+            if (actionContext.Action == nameof(StudyController.QuizStart))
+            {
+                return $"/Study/{setId}/Quiz";
+            }
+
             int sessionId = (int)values["sessionId"]!;
+
             return actionContext.Action == nameof(StudyController.QuizResult)
                 ? $"/Study/{setId}/Quiz/Result/{sessionId}"
                 : $"/Study/{setId}/Quiz/{sessionId}";

@@ -51,6 +51,28 @@ public sealed class QuizConflictException : InvalidOperationException
     public QuizConflictException(string message) : base(message) { }
 }
 
+public sealed class QuizSessionAbandonedException : InvalidOperationException
+{
+    public QuizSessionAbandonedException(int? activeSessionId)
+        : base("Phiên trắc nghiệm này đã được thay thế.")
+    {
+        ActiveSessionId = activeSessionId;
+    }
+
+    public int? ActiveSessionId { get; }
+}
+
+public sealed class QuizNotExpiredException : InvalidOperationException
+{
+    public QuizNotExpiredException(int remainingSeconds)
+        : base("Phiên trắc nghiệm chưa hết thời gian.")
+    {
+        RemainingSeconds = remainingSeconds;
+    }
+
+    public int RemainingSeconds { get; }
+}
+
 public sealed class QuizExpiredException : InvalidOperationException
 {
     public QuizExpiredException() : base("Phiên trắc nghiệm đã hết thời gian.") { }

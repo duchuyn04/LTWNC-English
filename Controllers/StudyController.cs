@@ -328,7 +328,7 @@ public class StudyController : Controller
     }
 
     [HttpPost]
-    [Route("/Study/{setId}/Quiz/Start")]
+    [Route("/Study/{setId}/Quiz/Start", Name = "QuizStartPost")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> QuizStart(int setId, QuizSetupViewModel input)
     {
@@ -469,6 +469,10 @@ public class StudyController : Controller
         {
             return Forbid();
         }
+        catch (QuizSessionAbandonedException exception)
+        {
+            return RedirectStaleQuiz(setId, exception);
+        }
         catch (QuizExpiredException)
         {
             return RedirectToAction(nameof(QuizResult), new { setId, sessionId });
@@ -523,6 +527,15 @@ public class StudyController : Controller
         {
             return NotFound();
         }
+        catch (QuizSessionAbandonedException exception)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new
+            {
+                success = false,
+                stale = true,
+                nextUrl = GetStaleQuizUrl(setId, exception)
+            });
+        }
         catch (QuizExpiredException exception)
         {
             return StatusCode(StatusCodes.Status409Conflict, new
@@ -572,6 +585,36 @@ public class StudyController : Controller
         catch (KeyNotFoundException)
         {
             return NotFound();
+        }
+        catch (QuizSessionAbandonedException exception)
+        {
+            if (IsAjaxRequest())
+            {
+                return StatusCode(StatusCodes.Status409Conflict, new
+                {
+                    success = false,
+                    stale = true,
+                    nextUrl = GetStaleQuizUrl(setId, exception)
+                });
+            }
+
+            return RedirectStaleQuiz(setId, exception);
+        }
+        catch (QuizNotExpiredException exception)
+        {
+            string? nextUrl = Url.Action(nameof(Quiz), new { setId, sessionId });
+            if (IsAjaxRequest())
+            {
+                return StatusCode(StatusCodes.Status409Conflict, new
+                {
+                    success = false,
+                    expired = false,
+                    remainingSeconds = exception.RemainingSeconds,
+                    nextUrl
+                });
+            }
+
+            return RedirectToAction(nameof(Quiz), new { setId, sessionId });
         }
         catch (QuizConflictException exception)
         {
@@ -707,6 +750,14 @@ public class StudyController : Controller
         catch (KeyNotFoundException)
         {
             return NotFound();
+        }
+        catch (QuizExpiredException)
+        {
+            return RedirectToAction(nameof(QuizResult), new { setId, sessionId });
+        }
+        catch (QuizSessionAbandonedException exception)
+        {
+            return RedirectStaleQuiz(setId, exception);
         }
         catch (QuizUnavailableException exception)
         {
@@ -1010,5 +1061,23 @@ public class StudyController : Controller
     private bool IsAjaxRequest()
     {
         return Request.Headers["X-Requested-With"] == "XMLHttpRequest";
+    }
+
+    private IActionResult RedirectStaleQuiz(
+        int setId,
+        QuizSessionAbandonedException exception)
+    {
+        return exception.ActiveSessionId is int activeSessionId
+            ? RedirectToAction(nameof(Quiz), new { setId, sessionId = activeSessionId })
+            : RedirectToAction(nameof(QuizStart), new { setId });
+    }
+
+    private string? GetStaleQuizUrl(
+        int setId,
+        QuizSessionAbandonedException exception)
+    {
+        return exception.ActiveSessionId is int activeSessionId
+            ? Url.Action(nameof(Quiz), new { setId, sessionId = activeSessionId })
+            : Url.Action(nameof(QuizStart), new { setId });
     }
 }

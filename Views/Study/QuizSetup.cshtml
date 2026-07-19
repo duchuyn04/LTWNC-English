@@ -3,6 +3,10 @@
     ViewData["Title"] = "Thiết lập trắc nghiệm";
 }
 
+@section Styles {
+    <link rel="stylesheet" href="~/css/quiz.css" asp-append-version="true" />
+}
+
 <div class="quiz-shell">
     <main class="quiz-stage">
         <header class="quiz-header">
@@ -15,7 +19,10 @@
 
         <section class="quiz-card" aria-labelledby="quiz-setup-title">
             <h2 id="quiz-setup-title">Chọn thời gian làm bài</h2>
-            <form action="/Study/@Model.SetId/Quiz/Start" method="post">
+            <form asp-controller="Study"
+                  asp-route="QuizStartPost"
+                  asp-route-setId="@Model.SetId"
+                  method="post">
                 @Html.AntiForgeryToken()
                 <div asp-validation-summary="ModelOnly" role="alert"></div>
                 <fieldset>

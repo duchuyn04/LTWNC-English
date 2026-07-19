@@ -14,6 +14,7 @@ public class QuizViewTests
     [Fact]
     public void Quiz_setup_view_offers_presets_custom_duration_and_active_continuation()
     {
+        Assert.Contains("~/css/quiz.css", QuizSetupView);
         Assert.Contains("value=\"5\"", QuizSetupView);
         Assert.Contains("value=\"10\"", QuizSetupView);
         Assert.Contains("value=\"15\"", QuizSetupView);
@@ -22,7 +23,8 @@ public class QuizViewTests
         Assert.Contains("min=\"1\"", QuizSetupView);
         Assert.Contains("max=\"120\"", QuizSetupView);
         Assert.Contains("@Html.AntiForgeryToken()", QuizSetupView);
-        Assert.Contains("action=\"/Study/@Model.SetId/Quiz/Start\"", QuizSetupView);
+        Assert.Contains("asp-route=\"QuizStartPost\"", QuizSetupView);
+        Assert.Contains("asp-controller=\"Study\"", QuizSetupView);
         Assert.Contains("Model.ActiveSessionId.HasValue", QuizSetupView);
         Assert.Contains("asp-action=\"Quiz\"", QuizSetupView);
         Assert.DoesNotContain("Ã", QuizSetupView);
@@ -61,6 +63,7 @@ public class QuizViewTests
         Assert.Contains("QuizTimeout", QuizView);
         Assert.Contains("data-quiz-timer", QuizView);
         Assert.Contains("@Html.AntiForgeryToken()", QuizView);
+        Assert.Contains("data-quiz-remaining-seconds=\"@Model.RemainingSeconds\"", QuizView);
     }
 
     [Fact]
@@ -161,6 +164,11 @@ public class QuizViewTests
         Assert.Contains("root.dataset.quizTimeoutUrl", QuizScript);
         Assert.Contains("'RequestVerificationToken': token", QuizScript);
         Assert.Contains("window.location.assign(result.nextUrl)", QuizScript);
+        Assert.Contains("serverRemainingSeconds", QuizScript);
+        Assert.Contains("calibratedDeadlineUtc", QuizScript);
+        Assert.Contains("result.expired === false", QuizScript);
+        Assert.Contains("timeoutRequested = false", QuizScript);
+        Assert.Contains("setPending(false)", QuizScript);
     }
 
     [Fact]

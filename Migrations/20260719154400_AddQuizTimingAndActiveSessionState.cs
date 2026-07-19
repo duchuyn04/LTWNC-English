@@ -50,6 +50,26 @@ namespace ltwnc.Migrations
                 name: "QuizTimeLimitSeconds",
                 table: "StudySessions");
 
+            migrationBuilder.Sql(
+                """
+                ;WITH RankedQuizRows AS
+                (
+                    SELECT [Id],
+                        ROW_NUMBER() OVER
+                        (
+                            PARTITION BY [UserId], [FlashcardSetId], [Mode]
+                            ORDER BY CASE WHEN [CompletedAt] IS NULL THEN 0 ELSE 1 END, [Id] DESC
+                        ) AS [RowNumber]
+                    FROM [StudySessions]
+                    WHERE [Mode] = 1 AND [Score] IS NULL
+                )
+                UPDATE session
+                SET [Score] = 0
+                FROM [StudySessions] AS session
+                INNER JOIN RankedQuizRows AS ranked ON ranked.[Id] = session.[Id]
+                WHERE ranked.[RowNumber] > 1;
+                """);
+
             migrationBuilder.CreateIndex(
                 name: "IX_StudySessions_UserId_FlashcardSetId_Mode",
                 table: "StudySessions",

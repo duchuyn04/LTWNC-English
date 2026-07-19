@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Data.Common;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Study;
@@ -7,6 +8,7 @@ using ltwnc.Services.StudyModes;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 
 namespace ltwnc.Tests.Services;
 
@@ -182,6 +184,163 @@ public class QuizServiceTests
         Assert.NotNull(state.Question);
         Assert.Equal(1, state.Question.OrderIndex);
         Assert.False(state.IsComplete);
+    }
+
+    [Fact]
+    public async Task Abandoned_session_is_rejected_by_reads_answers_and_timeout_with_replacement()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession abandoned = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            15);
+        QuizSessionQuestion question = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(row => row.StudySessionId == abandoned.Id)
+            .OrderBy(row => row.OrderIndex)
+            .FirstAsync();
+        StudySession replacement = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            10);
+        database.Context.ChangeTracker.Clear();
+
+        QuizSessionAbandonedException readException = await Assert.ThrowsAsync<QuizSessionAbandonedException>(
+            () => service.GetCurrentQuestionAsync(set.Id, abandoned.Id, set.UserId));
+        QuizSessionAbandonedException answerException = await Assert.ThrowsAsync<QuizSessionAbandonedException>(
+            () => service.AnswerAsync(
+                set.Id,
+                abandoned.Id,
+                question.Id,
+                question.CorrectChoiceIndex,
+                set.UserId));
+        QuizSessionAbandonedException timeoutException = await Assert.ThrowsAsync<QuizSessionAbandonedException>(
+            () => service.CompleteExpiredAsync(set.Id, abandoned.Id, set.UserId));
+
+        Assert.Equal(replacement.Id, readException.ActiveSessionId);
+        Assert.Equal(replacement.Id, answerException.ActiveSessionId);
+        Assert.Equal(replacement.Id, timeoutException.ActiveSessionId);
+        QuizSessionQuestion storedQuestion = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .SingleAsync(row => row.Id == question.Id);
+        Assert.Null(storedQuestion.SelectedChoiceIndex);
+        Assert.Null(storedQuestion.IsCorrect);
+    }
+
+    [Fact]
+    public async Task Restart_expired_attempt_completes_once_and_does_not_replace_it()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        var publisher = new RecordingStudyEventPublisher();
+        var timeProvider = new FixedTimeProvider(new DateTimeOffset(
+            2026, 7, 19, 8, 0, 0, TimeSpan.Zero));
+        QuizService service = CreateService(database.Context, publisher, timeProvider);
+        StudySession source = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            1);
+        timeProvider.Advance(TimeSpan.FromMinutes(1));
+
+        await Assert.ThrowsAsync<QuizExpiredException>(() => service.RestartAsync(
+            set.Id,
+            source.Id,
+            set.UserId));
+
+        database.Context.ChangeTracker.Clear();
+        StudySession stored = await database.Context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(row => row.Id == source.Id);
+        Assert.Equal(0, stored.Score);
+        Assert.Equal(timeProvider.GetUtcNow().UtcDateTime, stored.CompletedAt);
+        Assert.All(
+            await database.Context.QuizSessionQuestions
+                .AsNoTracking()
+                .Where(row => row.StudySessionId == source.Id)
+                .ToListAsync(),
+            question => Assert.False(question.IsCorrect));
+        Assert.Single(publisher.Events);
+        Assert.Equal(1, await database.Context.StudySessions.CountAsync());
+    }
+
+    [Fact]
+    public async Task Restart_crossing_deadline_during_replacement_completes_source_instead()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        DateTimeOffset startedAt = new(2026, 7, 19, 8, 0, 0, TimeSpan.Zero);
+        QuizService setupService = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher(),
+            new FixedTimeProvider(startedAt));
+        StudySession source = await setupService.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            1);
+        var publisher = new RecordingStudyEventPublisher();
+        QuizService restartService = CreateService(
+            database.Context,
+            publisher,
+            new SteppingTimeProvider(startedAt.AddSeconds(59), startedAt.AddSeconds(60)));
+
+        await Assert.ThrowsAsync<QuizExpiredException>(() => restartService.RestartAsync(
+            set.Id,
+            source.Id,
+            set.UserId));
+
+        database.Context.ChangeTracker.Clear();
+        Assert.Equal(0, await database.Context.StudySessions
+            .Where(row => row.Id == source.Id)
+            .Select(row => row.Score)
+            .SingleAsync());
+        Assert.Equal(1, await database.Context.StudySessions.CountAsync());
+        Assert.Single(publisher.Events);
+    }
+
+    [Fact]
+    public async Task Answer_race_rejects_write_when_parent_is_replaced_before_question_update()
+    {
+        var interceptor = new ReplaceSessionBeforeAnswerInterceptor();
+        await using var database = await QuizTestDatabase.CreateAsync(interceptor);
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession source = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            15);
+        QuizSessionQuestion question = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(row => row.StudySessionId == source.Id)
+            .OrderBy(row => row.OrderIndex)
+            .FirstAsync();
+        interceptor.SourceSessionId = source.Id;
+        interceptor.SetId = set.Id;
+        interceptor.UserId = set.UserId;
+        interceptor.Armed = true;
+
+        QuizSessionAbandonedException exception = await Assert.ThrowsAsync<QuizSessionAbandonedException>(
+            () => service.AnswerAsync(
+                set.Id,
+                source.Id,
+                question.Id,
+                question.CorrectChoiceIndex,
+                set.UserId));
+
+        database.Context.ChangeTracker.Clear();
+        QuizSessionQuestion storedQuestion = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .SingleAsync(row => row.Id == question.Id);
+        Assert.NotNull(exception.ActiveSessionId);
+        Assert.True(exception.ActiveSessionId.Value > 0);
+        Assert.Null(storedQuestion.SelectedChoiceIndex);
+        Assert.Null(storedQuestion.IsCorrect);
     }
 
     [Fact]
@@ -1216,6 +1375,81 @@ public class QuizServiceTests
     }
 
     [Fact]
+    public async Task Retry_all_after_every_answer_is_wrong_does_not_reuse_wrong_only_attempt()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession source = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            15);
+        List<QuizSessionQuestion> sourceQuestions = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(row => row.StudySessionId == source.Id)
+            .OrderBy(row => row.OrderIndex)
+            .ToListAsync();
+        foreach (QuizSessionQuestion question in sourceQuestions)
+        {
+            await service.AnswerAsync(
+                set.Id,
+                source.Id,
+                question.Id,
+                DifferentChoice(question.CorrectChoiceIndex),
+                set.UserId);
+        }
+
+        StudySession wrongOnly = await service.RetryWrongAsync(set.Id, source.Id, set.UserId);
+        StudySession retryAll = await service.RetryAllAsync(set.Id, source.Id, set.UserId);
+
+        database.Context.ChangeTracker.Clear();
+        StudySession storedWrongOnly = await database.Context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(row => row.Id == wrongOnly.Id);
+        List<QuizSessionQuestion> retryAllQuestions = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(row => row.StudySessionId == retryAll.Id)
+            .ToListAsync();
+        Assert.NotEqual(wrongOnly.Id, retryAll.Id);
+        Assert.NotNull(storedWrongOnly.CompletedAt);
+        Assert.Equal(sourceQuestions.Count, retryAllQuestions.Count);
+        Assert.Equal(source.QuizTimeLimitSeconds, retryAll.QuizTimeLimitSeconds);
+    }
+
+    [Fact]
+    public async Task Retry_identity_requires_matching_source_and_time_limit()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession firstSource = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            5);
+        await CompleteQuizAsync(database.Context, service, set, firstSource);
+        StudySession secondSource = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            15);
+        await CompleteQuizAsync(database.Context, service, set, secondSource);
+
+        StudySession firstRetry = await service.RetryAllAsync(set.Id, firstSource.Id, set.UserId);
+        StudySession secondRetry = await service.RetryAllAsync(set.Id, secondSource.Id, set.UserId);
+
+        Assert.NotEqual(firstRetry.Id, secondRetry.Id);
+        Assert.Equal(5 * 60, firstRetry.QuizTimeLimitSeconds);
+        Assert.Equal(15 * 60, secondRetry.QuizTimeLimitSeconds);
+        Assert.NotNull(await database.Context.StudySessions
+            .AsNoTracking()
+            .Where(row => row.Id == firstRetry.Id)
+            .Select(row => row.CompletedAt)
+            .SingleAsync());
+    }
+
+    [Fact]
     public async Task RetryAll_concurrent_requests_return_one_active_quiz_session()
     {
         await using var database = await SharedQuizTestDatabase.CreateAsync();
@@ -1673,6 +1907,59 @@ public class QuizServiceTests
         }
     }
 
+    private sealed class ReplaceSessionBeforeAnswerInterceptor : DbCommandInterceptor
+    {
+        public int SourceSessionId { get; set; }
+        public int SetId { get; set; }
+        public string UserId { get; set; } = string.Empty;
+        public bool Armed { get; set; }
+        private int _studySessionReads;
+
+        public override InterceptionResult<DbDataReader> ReaderExecuting(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result)
+        {
+            MaybeReplaceBeforeSecondSessionRead(command);
+            return base.ReaderExecuting(command, eventData, result);
+        }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            MaybeReplaceBeforeSecondSessionRead(command);
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        private void MaybeReplaceBeforeSecondSessionRead(DbCommand command)
+        {
+            if (!Armed
+                || SourceSessionId == 0
+                || !command.CommandText.Contains("StudySessions", StringComparison.Ordinal)
+                || !command.CommandText.Contains("SELECT", StringComparison.OrdinalIgnoreCase)
+                || command.CommandText.Contains("QuizSessionQuestions", StringComparison.Ordinal))
+            {
+                return;
+            }
+
+            if (++_studySessionReads != 2) return;
+            using DbCommand abandon = command.Connection!.CreateCommand();
+            abandon.Transaction = command.Transaction;
+            abandon.CommandText = $"UPDATE StudySessions SET CompletedAt = '2026-07-19T08:01:00' WHERE Id = {SourceSessionId};";
+            abandon.ExecuteNonQuery();
+
+            using DbCommand replacement = command.Connection.CreateCommand();
+            replacement.Transaction = command.Transaction;
+            replacement.CommandText = $"INSERT INTO StudySessions (UserId, FlashcardSetId, Mode, DictationContentMode, Score, CompletedAt, QuizStartedAtUtc, QuizTimeLimitSeconds, QuizRetryKind, QuizRetrySourceSessionId) VALUES ('{UserId}', {SetId}, 1, 0, NULL, NULL, '2026-07-19T08:01:00', 900, NULL, NULL);";
+            replacement.ExecuteNonQuery();
+            Armed = false;
+        }
+
+    }
+
     private sealed class SharedQuizTestDatabase : IAsyncDisposable
     {
         private readonly string _databasePath;
@@ -1734,13 +2021,15 @@ public class QuizServiceTests
 
         public AppDbContext Context { get; }
 
-        public static async Task<QuizTestDatabase> CreateAsync()
+        public static async Task<QuizTestDatabase> CreateAsync(
+            params DbCommandInterceptor[] interceptors)
         {
             var connection = new SqliteConnection("DataSource=:memory:");
             await connection.OpenAsync();
 
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseSqlite(connection)
+                .AddInterceptors(interceptors)
                 .Options;
             var context = new AppDbContext(options);
             await context.Database.EnsureCreatedAsync();

@@ -13,6 +13,12 @@ public enum StudyMode
     Dictation  // Nghe chép chính tả
 }
 
+public enum QuizRetryKind
+{
+    Wrong,
+    All
+}
+
 // Bảng StudySessions: một buổi học đã hoàn thành.
 public class StudySession
 {
@@ -42,6 +48,8 @@ public class StudySession
 
     public DateTime? QuizStartedAtUtc { get; set; }
     public int? QuizTimeLimitSeconds { get; set; }
+    public int? QuizRetrySourceSessionId { get; set; }
+    public QuizRetryKind? QuizRetryKind { get; set; }
 
     // Bộ thẻ của buổi học
     [ForeignKey(nameof(FlashcardSetId))]

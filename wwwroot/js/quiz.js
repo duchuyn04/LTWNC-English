@@ -10,16 +10,34 @@
     const nextLabel = root.querySelector('[data-quiz-next-label]');
     const timer = root.querySelector('[data-quiz-timer]');
     const token = root.querySelector('input[name="__RequestVerificationToken"]')?.value || '';
-    const deadlineUtc = Date.parse(root.dataset.quizDeadlineUtc);
+    let calibratedDeadlineUtc = Date.parse(root.dataset.quizDeadlineUtc);
+    const rawRemainingSeconds = root.dataset.quizRemainingSeconds;
+    const serverRemainingSeconds = rawRemainingSeconds === ''
+        ? Number.NaN
+        : Number(rawRemainingSeconds);
+    if (Number.isFinite(serverRemainingSeconds)) {
+        calibratedDeadlineUtc = Date.now() + serverRemainingSeconds * 1000;
+    }
+    let deadlineUtc = calibratedDeadlineUtc;
     let timerIntervalId;
     let timeoutRequested = false;
+    const reviewOnly = root.dataset.quizReviewOnly === 'true';
 
     const setPending = (pending) => {
         root.setAttribute('aria-busy', pending ? 'true' : 'false');
         buttons.forEach((button) => {
-            button.disabled = true;
-            if (!pending) button.disabled = false;
+            button.disabled = pending || reviewOnly;
+            if (pending) button.disabled = true;
+            if (!pending && !reviewOnly) button.disabled = false;
         });
+    };
+
+    const startTimer = () => {
+        if (timerIntervalId) window.clearInterval(timerIntervalId);
+        if (timer && Number.isFinite(deadlineUtc)) {
+            updateTimer();
+            timerIntervalId = window.setInterval(updateTimer, 250);
+        }
     };
 
     const showRetryableError = () => {
@@ -46,6 +64,23 @@
                 },
                 credentials: 'same-origin'
             });
+            if (!response.ok && response.status === 409) {
+                const result = await response.json();
+                if (result.stale && result.nextUrl) {
+                    window.location.assign(result.nextUrl);
+                    return;
+                }
+                if (result.expired && result.nextUrl) {
+                    window.location.assign(result.nextUrl);
+                    return;
+                }
+                if (result.expired === false && Number.isFinite(Number(result.remainingSeconds))) {
+                    resumeFromServer(Number(result.remainingSeconds));
+                    feedback.textContent = 'Máy chủ vẫn còn thời gian. Bạn có thể tiếp tục.';
+                    feedback.className = 'quiz-feedback is-error';
+                    return;
+                }
+            }
             if (!response.ok) throw new Error('Timeout request failed');
 
             const result = await response.json();
@@ -67,10 +102,15 @@
         if (remainingSeconds === 0) requestTimeout();
     };
 
-    if (timer && Number.isFinite(deadlineUtc)) {
-        updateTimer();
-        timerIntervalId = window.setInterval(updateTimer, 250);
-    }
+    const resumeFromServer = (remainingSeconds) => {
+        calibratedDeadlineUtc = Date.now() + remainingSeconds * 1000;
+        deadlineUtc = calibratedDeadlineUtc;
+        timeoutRequested = false;
+        setPending(false);
+        startTimer();
+    };
+
+    startTimer();
 
     buttons.forEach((button) => {
         button.addEventListener('click', async () => {
@@ -102,6 +142,16 @@
                     const result = await response.json();
                     if (result.expired && result.nextUrl) {
                         window.location.assign(result.nextUrl);
+                        return;
+                    }
+                    if (result.stale && result.nextUrl) {
+                        window.location.assign(result.nextUrl);
+                        return;
+                    }
+                    if (result.expired === false && Number.isFinite(Number(result.remainingSeconds))) {
+                        resumeFromServer(Number(result.remainingSeconds));
+                        feedback.textContent = 'Máy chủ vẫn còn thời gian. Bạn có thể tiếp tục.';
+                        feedback.className = 'quiz-feedback is-error';
                         return;
                     }
 

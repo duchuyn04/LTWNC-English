@@ -19,6 +19,7 @@
           data-quiz-review-only="@Model.IsReviewOnly.ToString().ToLowerInvariant()"
           data-answer-url="@Url.Action("QuizAnswer", "Study", new { setId = Model.SetId, sessionId = Model.SessionId })"
           data-quiz-deadline-utc="@deadlineUtc"
+          data-quiz-remaining-seconds="@Model.RemainingSeconds"
           data-quiz-timeout-url="@timeoutUrl">
         @Html.AntiForgeryToken()
 
