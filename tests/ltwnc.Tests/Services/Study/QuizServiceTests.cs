@@ -232,6 +232,80 @@ public class QuizServiceTests
     }
 
     [Fact]
+    public async Task GetCurrentQuestion_race_rejects_source_replaced_after_initial_activity_read()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        DateTimeOffset startedAt = new(2026, 7, 19, 8, 0, 0, TimeSpan.Zero);
+        QuizService setupService = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher(),
+            new FixedTimeProvider(startedAt));
+        StudySession source = await setupService.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            15);
+        int replacementId = 0;
+        var replacingClock = new CallbackTimeProvider(
+            startedAt.AddMinutes(1),
+            () => replacementId = ReplaceActiveSession(database.Context, source, startedAt.AddMinutes(1)));
+        QuizService raceService = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher(),
+            replacingClock);
+
+        QuizSessionAbandonedException exception = await Assert.ThrowsAsync<QuizSessionAbandonedException>(
+            () => raceService.GetCurrentQuestionAsync(set.Id, source.Id, set.UserId));
+
+        Assert.Equal(replacementId, exception.ActiveSessionId);
+        Assert.Equal(replacementId, await database.Context.StudySessions
+            .Where(row => row.FlashcardSetId == set.Id
+                && row.UserId == set.UserId
+                && row.Mode == StudyMode.Quiz
+                && row.Score == null
+                && row.CompletedAt == null)
+            .Select(row => row.Id)
+            .SingleAsync());
+    }
+
+    [Fact]
+    public async Task CompleteExpired_race_rejects_source_replaced_after_initial_activity_read()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        DateTimeOffset startedAt = new(2026, 7, 19, 8, 0, 0, TimeSpan.Zero);
+        QuizService setupService = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher(),
+            new FixedTimeProvider(startedAt));
+        StudySession source = await setupService.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            1);
+        int replacementId = 0;
+        var replacingClock = new CallbackTimeProvider(
+            startedAt.AddMinutes(2),
+            () => replacementId = ReplaceActiveSession(database.Context, source, startedAt.AddMinutes(2)));
+        QuizService raceService = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher(),
+            replacingClock);
+
+        QuizSessionAbandonedException exception = await Assert.ThrowsAsync<QuizSessionAbandonedException>(
+            () => raceService.CompleteExpiredAsync(set.Id, source.Id, set.UserId));
+
+        Assert.Equal(replacementId, exception.ActiveSessionId);
+        Assert.All(
+            await database.Context.QuizSessionQuestions
+                .AsNoTracking()
+                .Where(row => row.StudySessionId == source.Id)
+                .ToListAsync(),
+            question => Assert.Null(question.IsCorrect));
+    }
+
+    [Fact]
     public async Task Restart_expired_attempt_completes_once_and_does_not_replace_it()
     {
         await using var database = await QuizTestDatabase.CreateAsync();
@@ -1450,6 +1524,35 @@ public class QuizServiceTests
     }
 
     [Fact]
+    public async Task Retry_identity_replaces_same_source_retry_with_mismatched_time_limit()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession source = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            15);
+        await CompleteQuizAsync(database.Context, service, set, source);
+        StudySession mismatchedRetry = await service.RetryAllAsync(set.Id, source.Id, set.UserId);
+        await database.Context.StudySessions
+            .Where(row => row.Id == mismatchedRetry.Id)
+            .ExecuteUpdateAsync(updates => updates
+                .SetProperty(row => row.QuizTimeLimitSeconds, 5 * 60));
+
+        StudySession replacement = await service.RetryAllAsync(set.Id, source.Id, set.UserId);
+
+        Assert.NotEqual(mismatchedRetry.Id, replacement.Id);
+        Assert.Equal(15 * 60, replacement.QuizTimeLimitSeconds);
+        Assert.NotNull(await database.Context.StudySessions
+            .AsNoTracking()
+            .Where(row => row.Id == mismatchedRetry.Id)
+            .Select(row => row.CompletedAt)
+            .SingleAsync());
+    }
+
+    [Fact]
     public async Task RetryAll_concurrent_requests_return_one_active_quiz_session()
     {
         await using var database = await SharedQuizTestDatabase.CreateAsync();
@@ -1819,6 +1922,49 @@ public class QuizServiceTests
         bool? IsCorrect,
         DateTime? AnsweredAt);
 
+    private static int ReplaceActiveSession(
+        AppDbContext context,
+        StudySession source,
+        DateTimeOffset replacedAt)
+    {
+        using DbCommand command = context.Database.GetDbConnection().CreateCommand();
+        command.CommandText =
+            """
+            UPDATE StudySessions
+            SET CompletedAt = $completedAt
+            WHERE Id = $sourceSessionId;
+
+            INSERT INTO StudySessions
+                (UserId, FlashcardSetId, Mode, DictationContentMode, Score, CompletedAt,
+                 QuizStartedAtUtc, QuizTimeLimitSeconds, QuizRetryKind, QuizRetrySourceSessionId)
+            VALUES
+                ($userId, $setId, 1, 0, NULL, NULL, $startedAt, 900, NULL, NULL);
+
+            SELECT last_insert_rowid();
+            """;
+        DbParameter completedAt = command.CreateParameter();
+        completedAt.ParameterName = "$completedAt";
+        completedAt.Value = replacedAt.UtcDateTime;
+        command.Parameters.Add(completedAt);
+        DbParameter sourceSessionId = command.CreateParameter();
+        sourceSessionId.ParameterName = "$sourceSessionId";
+        sourceSessionId.Value = source.Id;
+        command.Parameters.Add(sourceSessionId);
+        DbParameter userId = command.CreateParameter();
+        userId.ParameterName = "$userId";
+        userId.Value = source.UserId;
+        command.Parameters.Add(userId);
+        DbParameter setId = command.CreateParameter();
+        setId.ParameterName = "$setId";
+        setId.Value = source.FlashcardSetId;
+        command.Parameters.Add(setId);
+        DbParameter startedAt = command.CreateParameter();
+        startedAt.ParameterName = "$startedAt";
+        startedAt.Value = replacedAt.UtcDateTime;
+        command.Parameters.Add(startedAt);
+        return Convert.ToInt32(command.ExecuteScalar());
+    }
+
     private sealed class FixedTimeProvider : TimeProvider
     {
         private DateTimeOffset _utcNow;
@@ -1831,6 +1977,24 @@ public class QuizServiceTests
         public override DateTimeOffset GetUtcNow() => _utcNow;
 
         public void Advance(TimeSpan elapsed) => _utcNow += elapsed;
+    }
+
+    private sealed class CallbackTimeProvider : TimeProvider
+    {
+        private readonly DateTimeOffset _utcNow;
+        private Action? _callback;
+
+        public CallbackTimeProvider(DateTimeOffset utcNow, Action callback)
+        {
+            _utcNow = utcNow;
+            _callback = callback;
+        }
+
+        public override DateTimeOffset GetUtcNow()
+        {
+            Interlocked.Exchange(ref _callback, null)?.Invoke();
+            return _utcNow;
+        }
     }
 
     private sealed class SteppingTimeProvider : TimeProvider

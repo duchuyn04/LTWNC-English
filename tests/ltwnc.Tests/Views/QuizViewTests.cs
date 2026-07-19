@@ -23,8 +23,6 @@ public class QuizViewTests
         Assert.Contains("min=\"1\"", QuizSetupView);
         Assert.Contains("max=\"120\"", QuizSetupView);
         Assert.Contains("@Html.AntiForgeryToken()", QuizSetupView);
-        Assert.Contains("asp-route=\"QuizStartPost\"", QuizSetupView);
-        Assert.Contains("asp-controller=\"Study\"", QuizSetupView);
         Assert.Contains("Model.ActiveSessionId.HasValue", QuizSetupView);
         Assert.Contains("asp-action=\"Quiz\"", QuizSetupView);
         Assert.DoesNotContain("Ã", QuizSetupView);

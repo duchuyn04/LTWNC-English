@@ -264,6 +264,23 @@ public class StudyControllerQuizTests
     }
 
     [Fact]
+    public async Task QuizTimeout_abandoned_ajax_returns_replacement_navigation()
+    {
+        _quizService.Setup(service => service.CompleteExpiredAsync(7, 42, "user-1"))
+            .ThrowsAsync(new QuizSessionAbandonedException(84));
+        StudyController controller = CreateController("user-1");
+        controller.Request.Headers["X-Requested-With"] = "XMLHttpRequest";
+
+        IActionResult result = await controller.QuizTimeout(7, 42);
+
+        ObjectResult conflict = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
+        JsonElement json = JsonSerializer.SerializeToElement(conflict.Value);
+        Assert.True(json.GetProperty("stale").GetBoolean());
+        Assert.Equal("/Study/7/Quiz/84", json.GetProperty("nextUrl").GetString());
+    }
+
+    [Fact]
     public async Task QuizAnswer_expired_returns_result_navigation_json()
     {
         _quizService.Setup(service => service.AnswerAsync(7, 42, 501, 2, "user-1"))

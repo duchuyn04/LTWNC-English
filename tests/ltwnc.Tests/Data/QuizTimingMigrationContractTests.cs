@@ -24,6 +24,15 @@ public sealed class QuizTimingMigrationContractTests
             "PARTITION BY [UserId], [FlashcardSetId], [Mode]",
             sql,
             StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(
+            "ORDER BY CASE WHEN [CompletedAt] IS NULL THEN 0 ELSE 1 END, [Id] DESC",
+            sql,
+            StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("SET [Score] = 0", sql, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(
+            "WHERE ranked.[RowNumber] > 1",
+            sql,
+            StringComparison.OrdinalIgnoreCase);
         Assert.Matches(
             new Regex("UPDATE\\s+session[\\s\\S]*FROM\\s+\\[StudySessions\\]", RegexOptions.IgnoreCase),
             sql);

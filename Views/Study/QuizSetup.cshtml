@@ -19,8 +19,7 @@
 
         <section class="quiz-card" aria-labelledby="quiz-setup-title">
             <h2 id="quiz-setup-title">Chọn thời gian làm bài</h2>
-            <form asp-controller="Study"
-                  asp-route="QuizStartPost"
+            <form asp-route="QuizStartPost"
                   asp-route-setId="@Model.SetId"
                   method="post">
                 @Html.AntiForgeryToken()

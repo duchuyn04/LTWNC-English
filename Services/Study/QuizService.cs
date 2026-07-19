@@ -292,6 +292,14 @@ public class QuizService : IQuizService
             .Where(question => question.StudySessionId == sessionId)
             .OrderBy(question => question.OrderIndex)
             .ToListAsync();
+        StudySession authoritativeSession = await _context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(row => row.Id == sessionId);
+        if (IsAbandoned(authoritativeSession))
+        {
+            throw await CreateAbandonedExceptionAsync(authoritativeSession);
+        }
+
         int totalQuestions = questions.Count;
         int answeredCount = questions.Count(question => question.IsCorrect != null);
         int correctCount = questions.Count(question => question.IsCorrect == true);
@@ -323,8 +331,8 @@ public class QuizService : IQuizService
             TotalQuestions = totalQuestions,
             AnsweredCount = answeredCount,
             CorrectCount = correctCount,
-            DeadlineUtc = GetDeadlineUtc(session),
-            RemainingSeconds = GetRemainingSeconds(session, now),
+            DeadlineUtc = GetDeadlineUtc(authoritativeSession),
+            RemainingSeconds = GetRemainingSeconds(authoritativeSession, now),
             Question = currentQuestion,
             IsReviewOnly = isReviewOnly,
             SelectedChoiceIndex = isReviewOnly ? currentQuestion!.SelectedChoiceIndex : null,
@@ -526,12 +534,34 @@ public class QuizService : IQuizService
         }
 
         DateTime now = GetUtcNow();
-        if (!IsExpired(session, now))
+        StudySession authoritativeSession = await _context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(row => row.Id == sessionId);
+        if (IsAbandoned(authoritativeSession))
         {
-            throw new QuizNotExpiredException(GetRemainingSeconds(session, now) ?? 0);
+            throw await CreateAbandonedExceptionAsync(authoritativeSession);
         }
 
-        await CompleteExpiredSessionAsync(session, now);
+        if (!IsExpired(authoritativeSession, now))
+        {
+            throw new QuizNotExpiredException(GetRemainingSeconds(authoritativeSession, now) ?? 0);
+        }
+
+        await CompleteExpiredSessionAsync(authoritativeSession, now);
+
+        StudySession completedSession = await _context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(row => row.Id == sessionId);
+        if (IsAbandoned(completedSession))
+        {
+            throw await CreateAbandonedExceptionAsync(completedSession);
+        }
+
+        if (completedSession.Score == null)
+        {
+            throw new QuizConflictException(
+                "Không thể hoàn thành phiên trắc nghiệm vì trạng thái phiên đã thay đổi.");
+        }
     }
 
     private async Task CompleteExpiredSessionAsync(StudySession session, DateTime now)
