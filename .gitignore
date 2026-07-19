@@ -71,6 +71,7 @@ node_modules/
 .worktrees/
 
 ## Tool artifacts
+.scratch/
 .playwright-mcp/
 .understand-anything/
 .zcode/
