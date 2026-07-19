@@ -318,6 +318,7 @@ public class StudyControllerQuizTests
     public void Quiz_routes_constrain_session_ids_and_post_actions_validate_antiforgery()
     {
         AssertRoute(nameof(StudyController.QuizStart), 1, "/Study/{setId}/Quiz", typeof(HttpGetAttribute));
+        AssertRoute(nameof(StudyController.QuizStart), 2, "/Study/{setId}/Quiz/Start", typeof(HttpPostAttribute));
         AssertRoute(nameof(StudyController.Quiz), 2, "/Study/{setId}/Quiz/{sessionId:int}", typeof(HttpGetAttribute));
         AssertRoute(nameof(StudyController.QuizAnswer), 4, "/Study/{setId}/Quiz/{sessionId:int}/Answer", typeof(HttpPostAttribute));
         AssertRoute(nameof(StudyController.QuizResult), 2, "/Study/{setId}/Quiz/Result/{sessionId:int}", typeof(HttpGetAttribute));
@@ -327,6 +328,10 @@ public class StudyControllerQuizTests
         AssertPostValidatesAntiforgery(nameof(StudyController.QuizAnswer));
         AssertPostValidatesAntiforgery(nameof(StudyController.RetryWrong));
         AssertPostValidatesAntiforgery(nameof(StudyController.RetryAll));
+        MethodInfo quizStartPost = typeof(StudyController).GetMethods()
+            .Single(candidate => candidate.Name == nameof(StudyController.QuizStart)
+                && candidate.GetParameters().Length == 2);
+        Assert.NotNull(quizStartPost.GetCustomAttribute<ValidateAntiForgeryTokenAttribute>());
     }
 
     private StudyController CreateController(string? userId)
