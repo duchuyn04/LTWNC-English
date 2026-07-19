@@ -2,6 +2,9 @@ using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Achievements;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
+using Moq;
 
 namespace ltwnc.Tests.StudyEvents;
 
@@ -148,5 +151,32 @@ public class AchievementUnlockServiceTests : IDisposable
             .ToListAsync();
         Assert.Contains(AchievementCatalog.FirstDictationSession, stored);
         Assert.Contains(AchievementCatalog.DictationPerfectSession, stored);
+    }
+
+    [Fact]
+    public async Task SyncEligibleAsync_DoesNotHideAnUnrelatedDatabaseFailure()
+    {
+        var root = new InMemoryDatabaseRoot();
+        var options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseInMemoryDatabase(Guid.NewGuid().ToString(), root)
+            .AddInterceptors(new FailingSaveInterceptor())
+            .Options;
+        await using var context = new AppDbContext(options);
+        var progress = new Mock<IAchievementProgressService>();
+        progress.Setup(service => service.GetSnapshotAsync("u1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new AchievementProgressSnapshot { CardsMastered = 1 });
+        var service = new AchievementUnlockService(context, progress.Object);
+
+        await Assert.ThrowsAsync<DbUpdateException>(() => service.SyncEligibleAsync("u1"));
+    }
+
+    private sealed class FailingSaveInterceptor : SaveChangesInterceptor
+    {
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+            DbContextEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default) =>
+            ValueTask.FromException<InterceptionResult<int>>(
+                new DbUpdateException("Simulated storage failure."));
     }
 }
