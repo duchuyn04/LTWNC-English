@@ -1,6 +1,7 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.AdminDashboard;
+using ltwnc.Services.Audit;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -113,6 +114,117 @@ public sealed class AdminDashboardKpiServiceTests : IDisposable
 
         Assert.Equal(2, snapshot.CurrentMetrics.StudySessions);
         Assert.Equal(1, snapshot.PreviousMetrics.StudySessions);
+    }
+
+    // Snapshot AJAX gom canh bao van hanh hien tai va khong can du lieu ca nhan.
+    [Fact]
+    public async Task GetLiveSnapshotAsync_ReturnsOperationalStatusAndActionableAlerts()
+    {
+        DateTime now = _clock.GetUtcNow().UtcDateTime;
+        _context.AiProviders.Add(new AiProvider
+        {
+            Name = "Primary Gateway",
+            AdapterType = "OpenAICompatible",
+            BaseUrl = "https://example.test/v1",
+            ModelId = "model-live",
+            IsEnabled = true,
+            IsPrimary = true,
+            LastCheckSucceeded = false,
+            ConsecutiveFailureCount = 3
+        });
+        SeedAiLogs(now.AddMinutes(-2), total: 20, failures: 3);
+        FlashcardSet alertSet = await SeedSetAsync("owner-alert-report");
+        _context.ContentReports.Add(new ContentReport
+        {
+            FlashcardSetId = alertSet.Id,
+            ReporterUserId = "private-user-id",
+            Reason = "spam",
+            Description = "noi dung rieng tu",
+            Status = ContentReportStatus.Pending,
+            CreatedAtUtc = now.AddHours(-25)
+        });
+        _context.AdminAuditLogs.Add(new AdminAuditLog
+        {
+            OccurredAtUtc = now.AddMinutes(-3),
+            ActorUserId = "admin-id",
+            ActorDisplay = "Admin",
+            Action = AdminAuditActions.AchievementsResyncAll,
+            Outcome = AdminAuditOutcome.Failure,
+            TargetType = "AchievementCatalog",
+            TargetId = "system"
+        });
+        await _context.SaveChangesAsync();
+
+        AdminDashboardLiveSnapshot snapshot = await _sut.GetLiveSnapshotAsync(7);
+        string[] alertCodes = snapshot.Alerts.Select(alert => alert.Code).ToArray();
+
+        Assert.Equal(1, snapshot.AiStatus.TotalProviders);
+        Assert.Equal(0, snapshot.AiStatus.ReadyProviders);
+        Assert.Equal(15m, snapshot.AiStatus.ErrorRatePercent);
+        Assert.Equal(1, snapshot.ContentReports.PendingCount);
+        Assert.Equal(1, snapshot.ContentReports.OverdueCount);
+        Assert.Contains("ai-primary-unstable", alertCodes);
+        Assert.Contains("ai-error-rate", alertCodes);
+        Assert.Contains("content-report-overdue", alertCodes);
+        Assert.Contains("achievement-resync-failed", alertCodes);
+    }
+
+    // Canh bao suy ra tu trang thai moi nhat nen tu mat khi nguyen nhan da het.
+    [Fact]
+    public async Task GetLiveSnapshotAsync_RemovesAlertsWhenCurrentStateRecovers()
+    {
+        DateTime now = _clock.GetUtcNow().UtcDateTime;
+        _context.AiProviders.Add(new AiProvider
+        {
+            Name = "Recovered Gateway",
+            AdapterType = "OpenAICompatible",
+            BaseUrl = "https://example.test/v1",
+            ModelId = "model-live",
+            IsEnabled = true,
+            IsPrimary = true,
+            LastCheckSucceeded = true,
+            ConsecutiveFailureCount = 0
+        });
+        SeedAiLogs(now.AddMinutes(-2), total: 20, failures: 1);
+        FlashcardSet recoveredSet = await SeedSetAsync("owner-recovered-report");
+        _context.ContentReports.Add(new ContentReport
+        {
+            FlashcardSetId = recoveredSet.Id,
+            ReporterUserId = "private-user-id",
+            Reason = "spam",
+            Status = ContentReportStatus.Dismissed,
+            CreatedAtUtc = now.AddHours(-25),
+            ResolvedAtUtc = now.AddMinutes(-10)
+        });
+        _context.AdminAuditLogs.AddRange(
+            new AdminAuditLog
+            {
+                OccurredAtUtc = now.AddMinutes(-10),
+                ActorUserId = "admin-id",
+                ActorDisplay = "Admin",
+                Action = AdminAuditActions.AchievementsResyncAll,
+                Outcome = AdminAuditOutcome.Failure,
+                TargetType = "AchievementCatalog",
+                TargetId = "system"
+            },
+            new AdminAuditLog
+            {
+                OccurredAtUtc = now.AddMinutes(-1),
+                ActorUserId = "admin-id",
+                ActorDisplay = "Admin",
+                Action = AdminAuditActions.AchievementsResyncAll,
+                Outcome = AdminAuditOutcome.Success,
+                TargetType = "AchievementCatalog",
+                TargetId = "system"
+            });
+        await _context.SaveChangesAsync();
+
+        AdminDashboardLiveSnapshot snapshot = await _sut.GetLiveSnapshotAsync(7);
+
+        Assert.Empty(snapshot.Alerts);
+        Assert.Equal(5m, snapshot.AiStatus.ErrorRatePercent);
+        Assert.Equal(0, snapshot.ContentReports.PendingCount);
+        Assert.Equal(0, snapshot.ContentReports.OverdueCount);
     }
 
     public void Dispose()

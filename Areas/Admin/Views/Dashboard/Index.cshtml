@@ -2,67 +2,96 @@
 @{
     ViewData["Title"] = "Tổng quan";
     ViewData["Heading"] = "Trung tâm quản trị";
+    string snapshotUrl = $"/Admin/Snapshot?days={Model.Days}";
 }
 
-<section class="admin-dashboard-header" aria-labelledby="admin-dashboard-title">
-    <div>
-        <p class="eyebrow">TRUNG TÂM VẬN HÀNH</p>
-        <h2 id="admin-dashboard-title">Dashboard KPI hệ thống</h2>
-        <p>
-            Dữ liệu từ @Model.PeriodStartVietnam.ToString("dd/MM/yyyy") đến
-            @Model.PeriodEndVietnam.ToString("dd/MM/yyyy"), tính theo múi giờ Việt Nam.
-        </p>
-    </div>
-    <form class="admin-range-filter" method="get" action="/Admin" aria-label="Chọn khoảng thời gian KPI">
-        @foreach (int option in Model.AllowedDays)
-        {
-            bool isSelectedRange = Model.Days == option;
-            string rangeButtonClass = string.Empty;
-            string rangePressedValue = "false";
-            if (isSelectedRange)
+<section class="admin-dashboard"
+         data-dashboard-live
+         data-snapshot-url="@snapshotUrl">
+    <section class="admin-dashboard-header" aria-labelledby="admin-dashboard-title">
+        <div>
+            <p class="eyebrow">TRUNG TÂM VẬN HÀNH</p>
+            <h2 id="admin-dashboard-title">Dashboard KPI hệ thống</h2>
+            <p data-dashboard-period>
+                Dữ liệu từ @Model.PeriodStartVietnam.ToString("dd/MM/yyyy") đến
+                @Model.PeriodEndVietnam.ToString("dd/MM/yyyy"), tính theo múi giờ Việt Nam.
+            </p>
+            <small class="admin-dashboard-live-status" data-dashboard-live-status>
+                Cập nhật lúc @Model.GeneratedAtVietnam.ToString("HH:mm dd/MM/yyyy") giờ Việt Nam.
+            </small>
+        </div>
+        <form class="admin-range-filter" method="get" action="/Admin" aria-label="Chọn khoảng thời gian KPI">
+            @foreach (int option in Model.AllowedDays)
             {
-                rangeButtonClass = "active";
-                rangePressedValue = "true";
+                bool isSelectedRange = Model.Days == option;
+                string rangeButtonClass = string.Empty;
+                string rangePressedValue = "false";
+                if (isSelectedRange)
+                {
+                    rangeButtonClass = "active";
+                    rangePressedValue = "true";
+                }
+
+                <button
+                    type="submit"
+                    name="days"
+                    value="@option"
+                    class="@rangeButtonClass"
+                    aria-pressed="@rangePressedValue">
+                    @option ngày
+                </button>
             }
+        </form>
+    </section>
 
-            <button
-                type="submit"
-                name="days"
-                value="@option"
-                class="@rangeButtonClass"
-                aria-pressed="@rangePressedValue">
-                @option ngày
-            </button>
+    <section class="admin-alert-panel" aria-labelledby="admin-alert-panel-title">
+        <div>
+            <span class="eyebrow">CẢNH BÁO</span>
+            <h2 id="admin-alert-panel-title">Việc cần xử lý</h2>
+        </div>
+        <div class="admin-alert-list" data-dashboard-alerts>
+            <article class="admin-live-alert admin-live-alert--success">
+                <div>
+                    <h3>Không có cảnh báo vận hành</h3>
+                    <p>Dữ liệu hiện tại chưa ghi nhận việc cần xử lý ngay.</p>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="admin-kpi-grid" aria-label="Chỉ số quản trị">
+        @for (int index = 0; index < Model.Kpis.Count; index++)
+        {
+            AdminDashboardKpiCardViewModel kpi = Model.Kpis[index];
+            <article class="admin-kpi-card admin-kpi-card--@kpi.Tone" data-kpi-index="@index">
+                <div class="admin-kpi-icon" aria-hidden="true">
+                    <i class="ph @kpi.Icon" data-kpi-icon></i>
+                </div>
+                <div class="admin-kpi-content">
+                    <h2 data-kpi-label>@kpi.Label</h2>
+                    <strong data-kpi-value>@kpi.Value</strong>
+                    <p data-kpi-detail>@kpi.Detail</p>
+                    <span data-kpi-comparison>@kpi.Comparison</span>
+                </div>
+            </article>
         }
-    </form>
+    </section>
+
+    <section class="admin-kpi-notes" aria-labelledby="admin-kpi-notes-title">
+        <h2 id="admin-kpi-notes-title">Quy tắc tính</h2>
+        <div>
+            <p>
+                Người dùng hoạt động được đếm một lần khi có phiên học hoặc lượt ôn thẻ trong khoảng chọn.
+            </p>
+            <p>
+                Tỷ lệ hoàn thành bỏ qua phiên đang hoạt động dưới 30 phút; tỷ lệ lỗi AI chỉ hiện khi đạt ít nhất 20 yêu cầu.
+            </p>
+        </div>
+        <small data-dashboard-updated>Cập nhật lúc @Model.GeneratedAtVietnam.ToString("HH:mm dd/MM/yyyy") giờ Việt Nam.</small>
+    </section>
 </section>
 
-<section class="admin-kpi-grid" aria-label="Chỉ số quản trị">
-    @foreach (AdminDashboardKpiCardViewModel kpi in Model.Kpis)
-    {
-        <article class="admin-kpi-card admin-kpi-card--@kpi.Tone">
-            <div class="admin-kpi-icon" aria-hidden="true">
-                <i class="ph @kpi.Icon"></i>
-            </div>
-            <div class="admin-kpi-content">
-                <h2>@kpi.Label</h2>
-                <strong>@kpi.Value</strong>
-                <p>@kpi.Detail</p>
-                <span>@kpi.Comparison</span>
-            </div>
-        </article>
-    }
-</section>
-
-<section class="admin-kpi-notes" aria-labelledby="admin-kpi-notes-title">
-    <h2 id="admin-kpi-notes-title">Quy tắc tính</h2>
-    <div>
-        <p>
-            Người dùng hoạt động được đếm một lần khi có phiên học hoặc lượt ôn thẻ trong khoảng chọn.
-        </p>
-        <p>
-            Tỷ lệ hoàn thành bỏ qua phiên đang hoạt động dưới 30 phút; tỷ lệ lỗi AI chỉ hiện khi đạt ít nhất 20 yêu cầu.
-        </p>
-    </div>
-    <small>Cập nhật lúc @Model.GeneratedAtVietnam.ToString("HH:mm dd/MM/yyyy") giờ Việt Nam.</small>
-</section>
+@section Scripts
+{
+    <script src="~/js/admin-dashboard.js" asp-append-version="true"></script>
+}

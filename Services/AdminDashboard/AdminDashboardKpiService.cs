@@ -1,14 +1,19 @@
-using Microsoft.EntityFrameworkCore;
 using ltwnc.Areas.Admin;
 using ltwnc.Areas.Admin.Models;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
+using ltwnc.Services.Audit;
+using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Services.AdminDashboard;
 
 public interface IAdminDashboardKpiService
 {
+    // Lấy snapshot KPI server-side cho trang dashboard ban đầu.
     Task<AdminDashboardSnapshot> GetSnapshotAsync(int? days, CancellationToken cancellationToken = default);
+
+    // Lấy snapshot JSON cho AJAX, gồm KPI và các cảnh báo vận hành an toàn.
+    Task<AdminDashboardLiveSnapshot> GetLiveSnapshotAsync(int? days, CancellationToken cancellationToken = default);
 }
 
 public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
@@ -16,16 +21,28 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
     private static readonly int[] AllowedDays = [7, 30, 90];
     private const int RecentActiveSessionMinutes = 30;
     private const int MinimumAiSampleSize = 20;
+    private const int DefaultAiHealthWindowMinutes = 5;
+    private const decimal DefaultAiErrorRateThresholdPercent = 10m;
+    private const int DefaultAiUnstableFailureThreshold = 3;
+    private const int OverdueContentReportHours = 24;
     private const int EnglishMissionModeValue = 5;
+
     private readonly AppDbContext _context;
     private readonly TimeProvider _timeProvider;
+    private readonly IConfiguration? _configuration;
 
-    public AdminDashboardKpiService(AppDbContext context, TimeProvider timeProvider)
+    // Nhận DbContext, đồng hồ và cấu hình để mọi số liệu dùng cùng một mốc thời gian.
+    public AdminDashboardKpiService(
+        AppDbContext context,
+        TimeProvider timeProvider,
+        IConfiguration? configuration = null)
     {
         _context = context;
         _timeProvider = timeProvider;
+        _configuration = configuration;
     }
 
+    // Tạo snapshot KPI theo khoảng 7/30/90 ngày, mặc định 30 ngày nếu input không hợp lệ.
     public async Task<AdminDashboardSnapshot> GetSnapshotAsync(
         int? days,
         CancellationToken cancellationToken = default)
@@ -57,6 +74,35 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
             AdminTimeZone.ToVietnamTime(_timeProvider.GetUtcNow().UtcDateTime));
     }
 
+    // Tạo snapshot JSON cho AJAX, chỉ gồm dữ liệu tổng hợp an toàn và cảnh báo có thể hành động.
+    public async Task<AdminDashboardLiveSnapshot> GetLiveSnapshotAsync(
+        int? days,
+        CancellationToken cancellationToken = default)
+    {
+        AdminDashboardSnapshot snapshot = await GetSnapshotAsync(days, cancellationToken);
+        AdminDashboardViewModel viewModel = ToViewModel(snapshot);
+        AdminDashboardAiStatus aiStatus = await LoadAiStatusAsync(cancellationToken);
+        AdminDashboardContentReportStatus contentReports =
+            await LoadContentReportStatusAsync(cancellationToken);
+        bool hasAchievementFailure = await HasCurrentAchievementSyncFailureAsync(cancellationToken);
+        IReadOnlyList<AdminDashboardAlert> alerts = BuildAlerts(
+            aiStatus,
+            contentReports,
+            hasAchievementFailure);
+
+        return new AdminDashboardLiveSnapshot(
+            viewModel.Days,
+            new AdminDashboardLivePeriod(
+                viewModel.PeriodStartVietnam,
+                viewModel.PeriodEndVietnam,
+                viewModel.GeneratedAtVietnam),
+            viewModel.Kpis,
+            aiStatus,
+            contentReports,
+            alerts);
+    }
+
+    // Chuyển snapshot nghiệp vụ sang view model server-rendered cho Razor.
     public static AdminDashboardViewModel ToViewModel(AdminDashboardSnapshot snapshot)
     {
         return new AdminDashboardViewModel
@@ -107,6 +153,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
         };
     }
 
+    // Tải các metric KPI chính trong một khoảng thời gian đã đổi sang UTC.
     private async Task<PeriodMetricSet> LoadMetricsAsync(
         AdminDashboardPeriod period,
         CancellationToken cancellationToken)
@@ -121,11 +168,12 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
 
         int studySessions = await sessionsInPeriod.CountAsync(cancellationToken);
         int eligibleSessions = await sessionsInPeriod
-            .CountAsync(session => session.CompletedAt.HasValue || session.StartedAt < activeSessionCutoffUtc, cancellationToken);
+            .CountAsync(session => session.CompletedAt.HasValue
+                || session.StartedAt < activeSessionCutoffUtc, cancellationToken);
         int completedSessions = await sessionsInPeriod
             .CountAsync(session => session.CompletedAt.HasValue, cancellationToken);
 
-        // Đếm distinct trên database để một người học nhiều lần vẫn chỉ là một người dùng hoạt động.
+        // Đếm distinct trên database để một người học nhiều lần vẫn chỉ là một active user.
         IQueryable<string> usersFromSessions = _context.StudySessions
             .AsNoTracking()
             .Where(session => session.StartedAt >= startUtc && session.StartedAt < endUtc)
@@ -188,13 +236,232 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
             ai.TotalRequests);
     }
 
+    // Đọc trạng thái AI từ provider hiện tại và log vận hành trong cửa sổ cấu hình.
+    private async Task<AdminDashboardAiStatus> LoadAiStatusAsync(CancellationToken cancellationToken)
+    {
+        int healthWindowMinutes = ReadAiHealthWindowMinutes();
+        int minimumSampleSize = ReadAiMinimumSampleSize();
+        decimal thresholdPercent = ReadAiErrorRateThresholdPercent();
+        int unstableFailureThreshold = ReadAiUnstableFailureThreshold();
+        DateTime nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+        DateTime windowStartUtc = nowUtc.AddMinutes(-healthWindowMinutes);
+
+        List<AiProvider> providers = await _context.AiProviders
+            .AsNoTracking()
+            .OrderByDescending(provider => provider.IsPrimary)
+            .ThenBy(provider => provider.Priority)
+            .ThenBy(provider => provider.Id)
+            .ToListAsync(cancellationToken);
+        AiProvider? primaryProvider = providers.FirstOrDefault(provider => provider.IsPrimary);
+
+        AiOperationAggregate? aggregate = await _context.AiOperationLogs
+            .AsNoTracking()
+            .Where(log => log.OccurredAtUtc >= windowStartUtc && log.OccurredAtUtc <= nowUtc)
+            .GroupBy(_ => 1)
+            .Select(group => new AiOperationAggregate(
+                group.Count(),
+                group.Count(log => !log.Succeeded)))
+            .FirstOrDefaultAsync(cancellationToken);
+
+        int totalRequests = 0;
+        int failedRequests = 0;
+        if (aggregate != null)
+        {
+            totalRequests = aggregate.TotalRequests;
+            failedRequests = aggregate.FailedRequests;
+        }
+
+        decimal? errorRatePercent = null;
+        bool errorRateExceeded = false;
+        if (totalRequests >= minimumSampleSize)
+        {
+            decimal rawRate = failedRequests * 100m / totalRequests;
+            errorRatePercent = decimal.Round(rawRate, 1);
+            errorRateExceeded = errorRatePercent.Value > thresholdPercent;
+        }
+
+        bool primaryIsUnstable = IsPrimaryProviderUnstable(
+            primaryProvider,
+            unstableFailureThreshold);
+        int readyProviders = providers.Count(provider =>
+            provider.IsEnabled && provider.LastCheckSucceeded == true);
+        int unstableProviders = providers.Count(provider =>
+            provider.ConsecutiveFailureCount >= unstableFailureThreshold);
+        string summary = BuildAiSummary(
+            primaryProvider,
+            primaryIsUnstable,
+            errorRateExceeded,
+            readyProviders,
+            providers.Count);
+
+        return new AdminDashboardAiStatus(
+            summary,
+            providers.Count,
+            readyProviders,
+            unstableProviders,
+            primaryProvider?.Name,
+            primaryIsUnstable,
+            errorRatePercent,
+            totalRequests,
+            minimumSampleSize,
+            thresholdPercent,
+            errorRateExceeded);
+    }
+
+    // Đếm báo cáo đang chờ và báo cáo đã quá hạn 24 giờ để tạo cảnh báo xử lý nội dung.
+    private async Task<AdminDashboardContentReportStatus> LoadContentReportStatusAsync(
+        CancellationToken cancellationToken)
+    {
+        DateTime overdueCutoffUtc = _timeProvider.GetUtcNow().UtcDateTime
+            .AddHours(-OverdueContentReportHours);
+        int pendingCount = await _context.ContentReports
+            .AsNoTracking()
+            .CountAsync(report => report.Status == ContentReportStatus.Pending, cancellationToken);
+        int overdueCount = await _context.ContentReports
+            .AsNoTracking()
+            .CountAsync(report => report.Status == ContentReportStatus.Pending
+                && report.CreatedAtUtc <= overdueCutoffUtc, cancellationToken);
+
+        return new AdminDashboardContentReportStatus(pendingCount, overdueCount);
+    }
+
+    // Chỉ cảnh báo đồng bộ thành tích khi audit mới nhất của resync là Failure.
+    private async Task<bool> HasCurrentAchievementSyncFailureAsync(CancellationToken cancellationToken)
+    {
+        AdminAuditLog? latestAchievementSync = await _context.AdminAuditLogs
+            .AsNoTracking()
+            .Where(log => log.Action == AdminAuditActions.AchievementsResyncUser
+                || log.Action == AdminAuditActions.AchievementsResyncAll)
+            .OrderByDescending(log => log.OccurredAtUtc)
+            .ThenByDescending(log => log.Id)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (latestAchievementSync == null)
+        {
+            return false;
+        }
+
+        return latestAchievementSync.Outcome == AdminAuditOutcome.Failure;
+    }
+
+    // Ghép các tín hiệu vận hành thành danh sách cảnh báo không cần nút đóng thủ công.
+    private static IReadOnlyList<AdminDashboardAlert> BuildAlerts(
+        AdminDashboardAiStatus aiStatus,
+        AdminDashboardContentReportStatus contentReports,
+        bool hasAchievementFailure)
+    {
+        List<AdminDashboardAlert> alerts = new();
+        if (aiStatus.PrimaryProviderUnstable)
+        {
+            alerts.Add(new AdminDashboardAlert(
+                "ai-primary-unstable",
+                "danger",
+                "Nhà cung cấp AI chính không ổn định",
+                "Provider chính chưa sẵn sàng hoặc đã lỗi health check liên tiếp.",
+                "Kiểm tra provider",
+                "/Admin/AiProviders"));
+        }
+
+        if (aiStatus.ErrorRateExceeded)
+        {
+            string detail = $"Tỷ lệ lỗi AI {aiStatus.ErrorRatePercent:0.#}% vượt ngưỡng {aiStatus.ErrorRateThresholdPercent:0.#}% trong cửa sổ gần nhất.";
+            alerts.Add(new AdminDashboardAlert(
+                "ai-error-rate",
+                "danger",
+                "Tỷ lệ lỗi AI vượt ngưỡng",
+                detail,
+                "Mở AI providers",
+                "/Admin/AiProviders"));
+        }
+
+        if (contentReports.OverdueCount > 0)
+        {
+            string detail = $"{contentReports.OverdueCount:N0} báo cáo đang chờ quá 24 giờ.";
+            alerts.Add(new AdminDashboardAlert(
+                "content-report-overdue",
+                "warning",
+                "Báo cáo nội dung quá hạn",
+                detail,
+                "Xem hàng đợi",
+                "/Admin/ContentReports?sort=oldest"));
+        }
+
+        if (hasAchievementFailure)
+        {
+            alerts.Add(new AdminDashboardAlert(
+                "achievement-resync-failed",
+                "warning",
+                "Đồng bộ thành tích thất bại",
+                "Lần đồng bộ thành tích gần nhất thất bại và cần kiểm tra audit.",
+                "Xem thành tích",
+                "/Admin/Achievements"));
+        }
+
+        return alerts;
+    }
+
+    // Xem provider chính là không ổn định nếu thiếu, bị tắt, chưa test thành công hoặc fail liên tiếp.
+    private static bool IsPrimaryProviderUnstable(
+        AiProvider? primaryProvider,
+        int unstableFailureThreshold)
+    {
+        if (primaryProvider == null)
+        {
+            return true;
+        }
+
+        if (!primaryProvider.IsEnabled)
+        {
+            return true;
+        }
+
+        if (primaryProvider.LastCheckSucceeded != true)
+        {
+            return true;
+        }
+
+        return primaryProvider.ConsecutiveFailureCount >= unstableFailureThreshold;
+    }
+
+    // Tóm tắt trạng thái AI bằng tiếng Việt nhưng không đưa lỗi kỹ thuật thô ra dashboard.
+    private static string BuildAiSummary(
+        AiProvider? primaryProvider,
+        bool primaryIsUnstable,
+        bool errorRateExceeded,
+        int readyProviders,
+        int totalProviders)
+    {
+        if (totalProviders == 0)
+        {
+            return "Chưa cấu hình nhà cung cấp AI";
+        }
+
+        if (primaryIsUnstable)
+        {
+            return "Nhà cung cấp AI chính cần kiểm tra";
+        }
+
+        if (errorRateExceeded)
+        {
+            return "Tỷ lệ lỗi AI đang vượt ngưỡng";
+        }
+
+        if (readyProviders == 0)
+        {
+            return "Không có nhà cung cấp AI sẵn sàng";
+        }
+
+        string primaryName = primaryProvider?.Name ?? "provider chính";
+        return $"{primaryName} đang sẵn sàng";
+    }
+
+    // Dựng ranh giới ngày theo múi giờ Việt Nam rồi đổi sang UTC để query dữ liệu lưu trữ.
     private AdminDashboardPeriod BuildPeriod(int days, int offsetDays)
     {
         DateTimeOffset nowVietnam = AdminTimeZone.ToVietnamTime(_timeProvider.GetUtcNow().UtcDateTime);
         DateTime endLocalDate = nowVietnam.Date.AddDays(1 + offsetDays);
         DateTime startLocalDate = endLocalDate.AddDays(-days);
 
-        // Ranh giới ngày được tính theo Việt Nam rồi mới đổi sang UTC để query dữ liệu lưu trữ.
         DateTime startUtc = TimeZoneInfo.ConvertTimeToUtc(
             DateTime.SpecifyKind(startLocalDate, DateTimeKind.Unspecified),
             AdminTimeZone.Vietnam);
@@ -216,6 +483,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
             new DateTimeOffset(endLocalDate, AdminTimeZone.Vietnam.GetUtcOffset(endLocalDate)));
     }
 
+    // Tạo KPI dạng số đếm và so sánh với kỳ trước.
     private static AdminDashboardKpiCardViewModel CountCard(
         string label,
         int current,
@@ -239,6 +507,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
         };
     }
 
+    // Tạo KPI dạng phần trăm, giữ trạng thái chưa có dữ liệu khi mẫu rỗng.
     private static AdminDashboardKpiCardViewModel PercentCard(
         string label,
         decimal? current,
@@ -278,6 +547,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
         };
     }
 
+    // Tạo KPI tỷ lệ lỗi AI với ngưỡng mẫu tối thiểu để tránh hiển thị 0% gây hiểu nhầm.
     private static AdminDashboardKpiCardViewModel AiErrorCard(
         decimal? current,
         decimal? previous,
@@ -321,28 +591,59 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
         };
     }
 
+    // Định dạng so sánh số đếm với kỳ trước bằng tiếng Việt.
     private static string FormatCountComparison(int delta)
     {
-        if (delta == 0) return "Không đổi so với kỳ trước";
-        if (delta > 0) return $"+{delta:N0} so với kỳ trước";
+        if (delta == 0)
+        {
+            return "Không đổi so với kỳ trước";
+        }
+
+        if (delta > 0)
+        {
+            return $"+{delta:N0} so với kỳ trước";
+        }
+
         return $"{delta:N0} so với kỳ trước";
     }
 
+    // Định dạng so sánh phần trăm và giữ trạng thái thiếu mẫu rõ ràng.
     private static string FormatPercentComparison(
         decimal? delta,
         decimal? previous,
         bool previousInsufficient = false)
     {
-        if (previousInsufficient) return "Kỳ trước chưa đủ dữ liệu";
-        if (!delta.HasValue || !previous.HasValue) return "Chưa có kỳ so sánh";
-        if (delta.Value == 0) return "Không đổi so với kỳ trước";
-        if (delta.Value > 0) return $"+{delta:0.#} điểm % so với kỳ trước";
+        if (previousInsufficient)
+        {
+            return "Kỳ trước chưa đủ dữ liệu";
+        }
+
+        if (!delta.HasValue || !previous.HasValue)
+        {
+            return "Chưa có kỳ so sánh";
+        }
+
+        if (delta.Value == 0)
+        {
+            return "Không đổi so với kỳ trước";
+        }
+
+        if (delta.Value > 0)
+        {
+            return $"+{delta:0.#} điểm % so với kỳ trước";
+        }
+
         return $"{delta:0.#} điểm % so với kỳ trước";
     }
 
+    // Quy đổi delta thành tone giao diện; một số chỉ số càng thấp càng tốt.
     private static string DeltaTone(decimal delta, bool lowerIsBetter)
     {
-        if (delta == 0) return "neutral";
+        if (delta == 0)
+        {
+            return "neutral";
+        }
+
         bool isPositiveSignal;
         if (lowerIsBetter)
         {
@@ -353,10 +654,15 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
             isPositiveSignal = delta > 0;
         }
 
-        if (isPositiveSignal) return "positive";
+        if (isPositiveSignal)
+        {
+            return "positive";
+        }
+
         return "negative";
     }
 
+    // Tính chênh lệch phần trăm; thiếu một vế thì không so sánh.
     private static decimal? CalculatePercentDelta(decimal? current, decimal? previous)
     {
         if (!current.HasValue || !previous.HasValue)
@@ -365,6 +671,60 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
         }
 
         return current.Value - previous.Value;
+    }
+
+    // Đọc cửa sổ health AI từ cấu hình; giá trị sai quay về 5 phút.
+    private int ReadAiHealthWindowMinutes()
+    {
+        int value = DefaultAiHealthWindowMinutes;
+        int? configuredValue = _configuration?.GetValue<int?>("AiProviders:Health:WindowMinutes");
+        if (configuredValue.HasValue)
+        {
+            value = configuredValue.Value;
+        }
+
+        return Math.Clamp(value, 1, 60);
+    }
+
+    // Đọc số mẫu tối thiểu từ cấu hình; dùng chung contract dashboard và cảnh báo.
+    private int ReadAiMinimumSampleSize()
+    {
+        int value = MinimumAiSampleSize;
+        int? configuredValue = _configuration?.GetValue<int?>("AiProviders:Health:MinimumSampleSize");
+        if (configuredValue.HasValue)
+        {
+            value = configuredValue.Value;
+        }
+
+        return Math.Clamp(value, 1, 10_000);
+    }
+
+    // Đọc ngưỡng tỷ lệ lỗi AI từ cấu hình hệ thống.
+    private decimal ReadAiErrorRateThresholdPercent()
+    {
+        decimal value = DefaultAiErrorRateThresholdPercent;
+        decimal? configuredValue =
+            _configuration?.GetValue<decimal?>("AiProviders:Health:ErrorRateThresholdPercent");
+        if (configuredValue.HasValue)
+        {
+            value = configuredValue.Value;
+        }
+
+        return Math.Clamp(value, 0m, 100m);
+    }
+
+    // Đọc ngưỡng fail health check liên tiếp để đánh dấu provider không ổn định.
+    private int ReadAiUnstableFailureThreshold()
+    {
+        int value = DefaultAiUnstableFailureThreshold;
+        int? configuredValue =
+            _configuration?.GetValue<int?>("AiProviders:Health:UnstableFailureThreshold");
+        if (configuredValue.HasValue)
+        {
+            value = configuredValue.Value;
+        }
+
+        return Math.Clamp(value, 1, 100);
     }
 }
 
@@ -392,5 +752,43 @@ public sealed record AdminDashboardSnapshot(
     PeriodMetricSet CurrentMetrics,
     PeriodMetricSet PreviousMetrics,
     DateTimeOffset GeneratedAtVietnam);
+
+public sealed record AdminDashboardLiveSnapshot(
+    int Days,
+    AdminDashboardLivePeriod Period,
+    IReadOnlyList<AdminDashboardKpiCardViewModel> Kpis,
+    AdminDashboardAiStatus AiStatus,
+    AdminDashboardContentReportStatus ContentReports,
+    IReadOnlyList<AdminDashboardAlert> Alerts);
+
+public sealed record AdminDashboardLivePeriod(
+    DateTimeOffset StartVietnam,
+    DateTimeOffset EndVietnam,
+    DateTimeOffset GeneratedAtVietnam);
+
+public sealed record AdminDashboardAiStatus(
+    string Summary,
+    int TotalProviders,
+    int ReadyProviders,
+    int UnstableProviders,
+    string? PrimaryProviderName,
+    bool PrimaryProviderUnstable,
+    decimal? ErrorRatePercent,
+    int SampleSize,
+    int MinimumSampleSize,
+    decimal ErrorRateThresholdPercent,
+    bool ErrorRateExceeded);
+
+public sealed record AdminDashboardContentReportStatus(
+    int PendingCount,
+    int OverdueCount);
+
+public sealed record AdminDashboardAlert(
+    string Code,
+    string Tone,
+    string Title,
+    string Detail,
+    string ActionText,
+    string Href);
 
 internal sealed record AiOperationAggregate(int TotalRequests, int FailedRequests);

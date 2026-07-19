@@ -311,6 +311,16 @@
     color: var(--muted);
 }
 
+.admin-dashboard-live-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
+    margin-top: 0.75rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
 .admin-range-filter {
     display: inline-flex;
     flex: 0 0 auto;
@@ -344,6 +354,77 @@
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 1rem;
     margin-top: 1.75rem;
+}
+
+.admin-alert-panel {
+    display: grid;
+    grid-template-columns: minmax(10rem, 0.45fr) minmax(0, 1fr);
+    gap: 1rem;
+    margin-top: 1rem;
+    padding: 1rem 1.25rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+}
+
+.admin-alert-panel h2 {
+    margin: 0.35rem 0 0;
+    font-size: 1.125rem;
+}
+
+.admin-alert-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.admin-live-alert {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    align-items: center;
+    min-height: 5rem;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--sage);
+    border-radius: 8px;
+    background: var(--surface-sunken);
+}
+
+.admin-live-alert h3 {
+    margin: 0;
+    font-size: 0.95rem;
+}
+
+.admin-live-alert p {
+    margin: 0.35rem 0 0;
+    color: var(--muted);
+    font-size: 0.85rem;
+}
+
+.admin-live-alert a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.25rem;
+    padding: 0.35rem 0.7rem;
+    border-radius: 8px;
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 0.78rem;
+    font-weight: 800;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.admin-live-alert--danger {
+    border-left-color: var(--error);
+}
+
+.admin-live-alert--warning {
+    border-left-color: #b7791f;
+}
+
+.admin-live-alert--success {
+    border-left-color: var(--success);
 }
 
 .admin-kpi-card {
@@ -505,6 +586,10 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
+    .admin-alert-panel {
+        grid-template-columns: 1fr;
+    }
+
     .admin-kpi-notes {
         grid-template-columns: 1fr;
     }
@@ -585,6 +670,10 @@
     }
 
     .admin-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-live-alert {
         grid-template-columns: 1fr;
     }
 }
