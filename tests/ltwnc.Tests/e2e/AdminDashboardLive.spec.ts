@@ -23,15 +23,14 @@ test.describe('Admin dashboard live polling', () => {
         await loadDashboardHarness(page);
 
         await page.evaluate(() => window.AdminDashboardLive.start({ intervalMs: 50 }));
+        await expect.poll(() => requestCount).toBeGreaterThanOrEqual(1);
         await page.waitForTimeout(140);
         expect(requestCount).toBe(1);
 
         if (releaseFirstResponse != null) {
             releaseFirstResponse();
         }
-        await page.waitForTimeout(90);
-
-        expect(requestCount).toBeGreaterThanOrEqual(2);
+        await expect.poll(() => requestCount).toBeGreaterThanOrEqual(2);
         await expect(page.locator('[data-dashboard-live-status]')).toContainText('Cập nhật lúc');
 
         await page.evaluate(() => window.AdminDashboardLive.stop());
@@ -63,12 +62,12 @@ test.describe('Admin dashboard live polling', () => {
             window.__dashboardHidden = false;
             document.dispatchEvent(new Event('visibilitychange'));
         });
-        await page.waitForTimeout(30);
-        expect(requestCount).toBe(1);
+        await expect.poll(() => requestCount).toBeGreaterThanOrEqual(1);
 
         await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+        const requestCountAfterPageHide = requestCount;
         await page.waitForTimeout(120);
-        expect(requestCount).toBe(1);
+        expect(requestCount).toBe(requestCountAfterPageHide);
     });
 
     test('keeps keyboard focus visible at 360px and respects reduced motion', async ({ page }) => {

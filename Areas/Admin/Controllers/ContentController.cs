@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using ltwnc.Areas.Admin.Models;
 using ltwnc.Services.ContentModeration;
 using Microsoft.AspNetCore.Mvc;
@@ -112,15 +111,9 @@ public sealed class ContentController : Controller
     // Dựng ngữ cảnh truy cập nội dung riêng tư từ Admin hiện tại.
     private AdminContentSetAccessCommand BuildAccessCommand(string? reason)
     {
-        string actorUserId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
-        string actorDisplay = User.Identity?.Name ?? actorUserId;
-
         return new AdminContentSetAccessCommand(
-            ActorUserId: actorUserId,
-            ActorDisplay: actorDisplay,
-            Reason: reason,
-            CorrelationId: HttpContext.TraceIdentifier);
+            Actor: AdminActorContextFactory.FromHttpContext(HttpContext),
+            Reason: reason);
     }
 
     // Dựng lệnh cách ly trực tiếp từ dữ liệu form.
@@ -128,20 +121,14 @@ public sealed class ContentController : Controller
         int flashcardSetId,
         AdminQuarantineContentInputModel input)
     {
-        string actorUserId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
-        string actorDisplay = User.Identity?.Name ?? actorUserId;
-
         return new QuarantineFlashcardSetCommand(
             FlashcardSetId: flashcardSetId,
             Version: input.Version,
-            ActorUserId: actorUserId,
-            ActorDisplay: actorDisplay,
+            Actor: AdminActorContextFactory.FromHttpContext(HttpContext),
             PublicReason: input.PublicReason,
             InternalNote: input.InternalNote,
             Evidence: input.Evidence,
-            Confirmed: input.Confirmed,
-            CorrelationId: HttpContext.TraceIdentifier);
+            Confirmed: input.Confirmed);
     }
 
     // Dựng lệnh khôi phục từ dữ liệu form.
@@ -149,18 +136,12 @@ public sealed class ContentController : Controller
         int flashcardSetId,
         AdminRestoreContentInputModel input)
     {
-        string actorUserId =
-            User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
-        string actorDisplay = User.Identity?.Name ?? actorUserId;
-
         return new RestoreFlashcardSetCommand(
             FlashcardSetId: flashcardSetId,
             Version: input.Version,
-            ActorUserId: actorUserId,
-            ActorDisplay: actorDisplay,
+            Actor: AdminActorContextFactory.FromHttpContext(HttpContext),
             Reason: input.Reason,
-            Confirmed: input.Confirmed,
-            CorrelationId: HttpContext.TraceIdentifier);
+            Confirmed: input.Confirmed);
     }
 
     // Lưu thông báo qua TempData để hiển thị sau PRG.
@@ -175,4 +156,3 @@ public sealed class ContentController : Controller
         TempData["ContentModerationError"] = result.Message;
     }
 }
-

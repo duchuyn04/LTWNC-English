@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Audit;
@@ -212,12 +213,6 @@ public class AiProviderService : IAiProviderService
             }
         }
 
-        // Với provider mới, cần lưu trước để database cấp Id rồi audit mới ghi đúng TargetId.
-        if (isCreate)
-        {
-            await _context.SaveChangesAsync(cancellationToken);
-        }
-
         // Audit chỉ chứa metadata công khai của provider sau khi áp dụng thay đổi.
         string action;
         if (isCreate)
@@ -229,10 +224,63 @@ public class AiProviderService : IAiProviderService
             action = AdminAuditActions.AiProvidersUpdate;
         }
 
-        _auditService.Enqueue(BuildAuditEntry(actor, action, AdminAuditOutcome.Success, provider, input.Reason));
-        await _context.SaveChangesAsync(cancellationToken);
+        if (isCreate)
+        {
+            await SaveNewProviderWithAuditAsync(
+                actor,
+                action,
+                provider,
+                input.Reason,
+                cancellationToken);
+        }
+        else
+        {
+            AdminAuditEntry auditEntry = BuildAuditEntry(
+                actor,
+                action,
+                AdminAuditOutcome.Success,
+                provider,
+                input.Reason);
+            _auditService.Enqueue(auditEntry);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
 
-        return AiProviderOperationResult.Success($"Đã lưu provider {provider.Name}.");
+        return AiProviderOperationResult.Success($"Đã lưu nhà cung cấp {provider.Name}.");
+    }
+
+    // Lưu provider mới để lấy Id rồi ghi audit trong cùng transaction, tránh cấu hình không có dấu vết.
+    private async Task SaveNewProviderWithAuditAsync(
+        AiProviderActorContext actor,
+        string action,
+        AiProvider provider,
+        string reason,
+        CancellationToken cancellationToken)
+    {
+        // InMemory chỉ dùng trong unit test và không hỗ trợ transaction; database thật luôn đi nhánh relational.
+        if (!_context.Database.IsRelational())
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+            _auditService.Enqueue(BuildAuditEntry(
+                actor,
+                action,
+                AdminAuditOutcome.Success,
+                provider,
+                reason));
+            await _context.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
+        await using IDbContextTransaction transaction =
+            await _context.Database.BeginTransactionAsync(cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+        _auditService.Enqueue(BuildAuditEntry(
+            actor,
+            action,
+            AdminAuditOutcome.Success,
+            provider,
+            reason));
+        await _context.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     // Bật hoặc vô hiệu hóa provider; không bao giờ xóa cứng để giữ lịch sử vận hành.

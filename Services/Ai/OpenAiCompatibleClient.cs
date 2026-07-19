@@ -11,12 +11,14 @@ public sealed class OpenAiCompatibleClient
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly bool _allowPrivateNetworks;
 
+    // Nhận HTTP client factory và đọc chính sách cho phép mạng riêng từ cấu hình ứng dụng.
     public OpenAiCompatibleClient(IHttpClientFactory httpClientFactory, IConfiguration configuration)
     {
         _httpClientFactory = httpClientFactory;
         _allowPrivateNetworks = configuration.GetValue<bool>("AiProviders:AllowPrivateNetworks");
     }
 
+    // Gọi endpoint models và trả danh sách mã mô hình duy nhất theo thứ tự ổn định.
     public async Task<IReadOnlyList<string>> GetModelsAsync(
         AiProvider provider,
         string? apiKey,
@@ -35,15 +37,28 @@ public sealed class OpenAiCompatibleClient
             throw new AiProviderUnavailableException($"{provider.Name} trả danh sách model không hợp lệ.");
         }
 
-        return data.EnumerateArray()
-            .Select(item => item.TryGetProperty("id", out JsonElement id) ? id.GetString() : null)
-            .Where(id => !string.IsNullOrWhiteSpace(id))
-            .Select(id => id!)
+        var modelIds = new List<string>();
+        foreach (JsonElement item in data.EnumerateArray())
+        {
+            if (!item.TryGetProperty("id", out JsonElement id))
+            {
+                continue;
+            }
+
+            string? modelId = id.GetString();
+            if (!string.IsNullOrWhiteSpace(modelId))
+            {
+                modelIds.Add(modelId);
+            }
+        }
+
+        return modelIds
             .Distinct(StringComparer.Ordinal)
             .OrderBy(id => id, StringComparer.Ordinal)
             .ToList();
     }
 
+    // Gửi yêu cầu hội thoại theo contract tương thích OpenAI và lấy nội dung trả lời đầu tiên.
     public async Task<string> CompleteAsync(
         AiProvider provider,
         string? apiKey,
@@ -87,6 +102,7 @@ public sealed class OpenAiCompatibleClient
         return contentElement.GetString()!;
     }
 
+    // Gửi request với timeout riêng của nhà cung cấp và chuyển lỗi mạng sang lỗi miền thống nhất.
     private async Task<HttpResponseMessage> SendAsync(
         AiProvider provider,
         HttpRequestMessage request,
@@ -109,6 +125,7 @@ public sealed class OpenAiCompatibleClient
         }
     }
 
+    // Phân loại phản hồi HTTP lỗi thành lỗi cấu hình hoặc lỗi tạm thời để router xử lý đúng.
     private static async Task EnsureSuccessAsync(
         AiProvider provider,
         HttpResponseMessage response,
@@ -117,7 +134,12 @@ public sealed class OpenAiCompatibleClient
         if (response.IsSuccessStatusCode) return;
 
         string body = await response.Content.ReadAsStringAsync(cancellationToken);
-        string summary = body.Length > 300 ? body[..300] : body;
+        string summary = body;
+        if (body.Length > 300)
+        {
+            summary = body[..300];
+        }
+
         if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden)
         {
             throw new AiProviderConfigurationException(
@@ -128,6 +150,7 @@ public sealed class OpenAiCompatibleClient
             $"{provider.Name} trả HTTP {(int)response.StatusCode}: {summary}");
     }
 
+    // Chuẩn hóa endpoint và chặn HTTP từ xa hoặc địa chỉ mạng riêng khi chính sách không cho phép.
     internal static Uri BuildEndpoint(string baseUrl, string relativePath, bool allowPrivateNetworks = false)
     {
         if (!Uri.TryCreate(baseUrl, UriKind.Absolute, out Uri? uri)
@@ -152,6 +175,7 @@ public sealed class OpenAiCompatibleClient
         return new Uri(new Uri(normalized), relativePath);
     }
 
+    // Kiểm tra toàn bộ địa chỉ DNS đã phân giải để không thể đi vòng qua bộ lọc host bằng DNS rebinding.
     private async Task ValidateResolvedHostAsync(Uri endpoint, CancellationToken cancellationToken)
     {
         if (_allowPrivateNetworks || IPAddress.TryParse(endpoint.Host, out _))
@@ -174,6 +198,7 @@ public sealed class OpenAiCompatibleClient
         }
     }
 
+    // Nhận diện loopback, link-local, multicast và các dải mạng riêng IPv4/IPv6.
     private static bool IsNonPublicAddress(IPAddress address)
     {
         if (IPAddress.IsLoopback(address) || address.Equals(IPAddress.Any) || address.Equals(IPAddress.IPv6Any))
@@ -204,6 +229,7 @@ public sealed class OpenAiCompatibleClient
             || (bytes[0] & 0xFE) == 0xFC;
     }
 
+    // Chỉ thêm Bearer header khi có khóa để nhà cung cấp local không nhận header rỗng.
     private static void AddAuthorization(HttpRequestMessage request, string? apiKey)
     {
         if (!string.IsNullOrWhiteSpace(apiKey))

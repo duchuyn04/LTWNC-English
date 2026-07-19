@@ -38,7 +38,8 @@ public static class AdminAuditMetadata
         "changedCount",
         "failedCount",
         "batchSize",
-        "failureKind"
+        "failureKind",
+        "deniedReason"
     };
 
     // Mật khẩu, khóa bí mật, câu lệnh AI và hội thoại không bao giờ được ghi.

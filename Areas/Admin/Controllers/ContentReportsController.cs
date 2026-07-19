@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using ltwnc.Areas.Admin.Models;
 using ltwnc.Services.ContentModeration;
 using ltwnc.Services.ContentReports;
@@ -97,16 +96,11 @@ public sealed class ContentReportsController : Controller
         long reportId,
         AdminContentReportDismissInputModel input)
     {
-        string actorUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
-        string actorDisplay = User.Identity?.Name ?? actorUserId;
-
         return new DismissContentReportCommand(
             ReportId: reportId,
             Version: input.Version,
-            ActorUserId: actorUserId,
-            ActorDisplay: actorDisplay,
-            Reason: input.Reason,
-            CorrelationId: HttpContext.TraceIdentifier);
+            Actor: AdminActorContextFactory.FromHttpContext(HttpContext),
+            Reason: input.Reason);
     }
 
     // Dựng lệnh cách ly từ báo cáo, gồm cả version report và version bộ để bắt xung đột.
@@ -114,20 +108,15 @@ public sealed class ContentReportsController : Controller
         long reportId,
         AdminContentReportQuarantineInputModel input)
     {
-        string actorUserId = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? string.Empty;
-        string actorDisplay = User.Identity?.Name ?? actorUserId;
-
         return new QuarantineFromReportCommand(
             ReportId: reportId,
             ReportVersion: input.ReportVersion,
             FlashcardSetVersion: input.FlashcardSetVersion,
-            ActorUserId: actorUserId,
-            ActorDisplay: actorDisplay,
+            Actor: AdminActorContextFactory.FromHttpContext(HttpContext),
             PublicReason: input.PublicReason,
             InternalNote: input.InternalNote,
             Evidence: input.Evidence,
-            Confirmed: input.Confirmed,
-            CorrelationId: HttpContext.TraceIdentifier);
+            Confirmed: input.Confirmed);
     }
 
     // Lưu thông báo qua TempData để hiện sau redirect POST-Redirect-GET.

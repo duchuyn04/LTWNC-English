@@ -1,3 +1,4 @@
+using System.Data;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Audit;
@@ -22,6 +23,7 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
     private readonly IAdminAuditService _auditService;
     private readonly IConfiguration _configuration;
     private readonly TimeProvider _timeProvider;
+    private readonly AdminUserLockCoordinator _lockCoordinator;
 
     // Nhận các dependency cần cho Identity, database, audit và thời gian kiểm thử được.
     public AdminUserAccountService(
@@ -29,13 +31,15 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
         UserManager<IdentityUser> userManager,
         IAdminAuditService auditService,
         IConfiguration configuration,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        AdminUserLockCoordinator lockCoordinator)
     {
         _context = context;
         _userManager = userManager;
         _auditService = auditService;
         _configuration = configuration;
         _timeProvider = timeProvider;
+        _lockCoordinator = lockCoordinator;
     }
 
     // Trả về danh sách tài khoản đã lọc, sắp xếp và phân trang phía máy chủ.
@@ -109,6 +113,14 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
             return AdminUserOperationResult.Failure(validationError);
         }
 
+        // Tuần tự hóa toàn bộ quyết định khóa để hai request không cùng thấy một số đếm Admin đã cũ.
+        await using IAsyncDisposable operationLock =
+            await _lockCoordinator.EnterAsync(cancellationToken);
+        await using IDbContextTransaction transaction =
+            await _context.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken);
+
         IdentityUser? user = await _userManager.FindByIdAsync(command.TargetUserId);
         if (user == null)
         {
@@ -121,6 +133,7 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
         {
             // Quyết định bị từ chối vẫn được audit để Admin khác có thể truy vết.
             await RecordAuditAsync(command, AdminAuditActions.UsersLock, AdminAuditOutcome.Denied, user, denialReason, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
             return AdminUserOperationResult.Failure(denialReason);
         }
 
@@ -132,11 +145,9 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
             cancellationToken);
         if (conflict != null)
         {
+            await transaction.CommitAsync(cancellationToken);
             return conflict;
         }
-
-        await using IDbContextTransaction transaction =
-            await _context.Database.BeginTransactionAsync(cancellationToken);
 
         // Khóa tài khoản bằng Identity và đổi security stamp để cookie cũ bị vô hiệu ở request kế tiếp.
         IdentityResult lockoutEnabledResult = await _userManager.SetLockoutEnabledAsync(user, true);

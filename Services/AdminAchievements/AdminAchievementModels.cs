@@ -1,12 +1,12 @@
 namespace ltwnc.Services.AdminAchievements;
 
-// Dieu kien tim kiem trang Admin/Thanh tich.
+// Điều kiện tìm kiếm trang quản trị Thành tích.
 public sealed record AdminAchievementQuery(
     string? Search = null,
     int Page = 1,
     int PageSize = AdminAchievementService.DefaultPageSize);
 
-// Mot dong catalog thanh tich doc tu source code, kem so nguoi da nhan trong database.
+// Một dòng danh mục thành tích đọc từ mã nguồn, kèm số người đã nhận trong database.
 public sealed record AdminAchievementDefinitionSummary(
     string Code,
     string Title,
@@ -15,7 +15,7 @@ public sealed record AdminAchievementDefinitionSummary(
     int Target,
     int RecipientCount);
 
-// Ket qua thanh tich theo mot nguoi dung trong bang Admin.
+// Kết quả thành tích theo một người dùng trong bảng quản trị.
 public sealed record AdminAchievementUserResult(
     string UserId,
     string UserName,
@@ -26,7 +26,7 @@ public sealed record AdminAchievementUserResult(
     DateTime? LastUnlockedAtUtc,
     IReadOnlyList<string> MissingCodes);
 
-// Du lieu tong hop cho man hinh Admin thanh tich.
+// Dữ liệu tổng hợp cho màn hình quản trị Thành tích.
 public sealed record AdminAchievementOverview(
     IReadOnlyList<AdminAchievementDefinitionSummary> Catalog,
     IReadOnlyList<AdminAchievementUserResult> UserResults,
@@ -34,7 +34,7 @@ public sealed record AdminAchievementOverview(
     int Page,
     int PageSize);
 
-// Lenh dong bo lai thanh tich cho mot nguoi dung.
+// Lệnh đồng bộ lại thành tích cho một người dùng.
 public sealed record AdminAchievementSyncCommand(
     string ActorUserId,
     string ActorDisplay,
@@ -43,7 +43,7 @@ public sealed record AdminAchievementSyncCommand(
     bool Confirmed,
     string? CorrelationId = null);
 
-// Lenh dong bo lai thanh tich toan he thong theo lo.
+// Lệnh đồng bộ lại thành tích toàn hệ thống theo lô.
 public sealed record AdminAchievementBatchSyncCommand(
     string ActorUserId,
     string ActorDisplay,
@@ -52,27 +52,27 @@ public sealed record AdminAchievementBatchSyncCommand(
     int BatchSize,
     string? CorrelationId = null);
 
-// Ket qua dong bo cho mot nguoi dung.
+// Kết quả đồng bộ cho một người dùng.
 public sealed record AdminAchievementSyncResult(
     bool Succeeded,
     string Message,
     int ChangedCount,
     int FailedCount)
 {
-    // Tao ket qua thanh cong voi thong bao hien thi tieng Viet.
+    // Tạo kết quả thành công với thông báo tiếng Việt.
     public static AdminAchievementSyncResult Success(string message, int changedCount)
     {
         return new AdminAchievementSyncResult(true, message, changedCount, 0);
     }
 
-    // Tao ket qua that bai voi thong bao hien thi tieng Viet.
+    // Tạo kết quả thất bại với thông báo tiếng Việt.
     public static AdminAchievementSyncResult Failure(string message, int failedCount = 1)
     {
         return new AdminAchievementSyncResult(false, message, 0, failedCount);
     }
 }
 
-// Ket qua dong bo toan he thong, co dem so user da xu ly va so thanh tich moi.
+// Kết quả đồng bộ toàn hệ thống, có số user đã xử lý và số thành tích mới.
 public sealed record AdminAchievementBatchSyncResult(
     bool Succeeded,
     string Message,
@@ -80,7 +80,7 @@ public sealed record AdminAchievementBatchSyncResult(
     int ChangedCount,
     int FailedCount)
 {
-    // Tao ket qua dong bo toan he thong sau khi da xu ly het cac user trong batch.
+    // Tạo kết quả đồng bộ toàn hệ thống sau khi đã xử lý hết user trong batch.
     public static AdminAchievementBatchSyncResult FromCounts(
         int processedUsers,
         int changedCount,
@@ -90,7 +90,7 @@ public sealed record AdminAchievementBatchSyncResult(
         {
             return new AdminAchievementBatchSyncResult(
                 false,
-                $"Da dong bo {processedUsers:N0} nguoi dung, them {changedCount:N0} thanh tich va co {failedCount:N0} loi can kiem tra.",
+                $"Đã đồng bộ {processedUsers:N0} người dùng, thêm {changedCount:N0} thành tích và có {failedCount:N0} lỗi cần kiểm tra.",
                 processedUsers,
                 changedCount,
                 failedCount);
@@ -98,13 +98,13 @@ public sealed record AdminAchievementBatchSyncResult(
 
         return new AdminAchievementBatchSyncResult(
             true,
-            $"Da dong bo {processedUsers:N0} nguoi dung va them {changedCount:N0} thanh tich con thieu.",
+            $"Đã đồng bộ {processedUsers:N0} người dùng và thêm {changedCount:N0} thành tích còn thiếu.",
             processedUsers,
             changedCount,
             0);
     }
 
-    // Tao ket qua that bai truoc khi tien hanh dong bo.
+    // Tạo kết quả thất bại trước khi bắt đầu đồng bộ.
     public static AdminAchievementBatchSyncResult Failure(string message)
     {
         return new AdminAchievementBatchSyncResult(false, message, 0, 0, 1);

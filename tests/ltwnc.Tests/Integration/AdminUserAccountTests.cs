@@ -250,6 +250,53 @@ public sealed class AdminUserAccountTests : IClassFixture<AdminWebApplicationFac
         Assert.False(await factory.IsLockedOutAsync(adminEmail));
     }
 
+    // Hai yêu cầu khóa chéo đồng thời chỉ được khóa một Admin để hệ thống luôn còn người quản trị.
+    [Fact]
+    public async Task Lock_TwoConcurrentAdminRequests_LeavesOneActiveAdmin()
+    {
+        using var factory = new AdminWebApplicationFactory();
+        const string firstAdminEmail = "admin-users-concurrent-one@example.com";
+        const string secondAdminEmail = "admin-users-concurrent-two@example.com";
+        await factory.SeedUserAsync("admin_users_concurrent_one", firstAdminEmail, isAdmin: true);
+        await factory.SeedUserAsync("admin_users_concurrent_two", secondAdminEmail, isAdmin: true);
+        string firstAdminId = await factory.GetUserIdAsync(firstAdminEmail);
+        string secondAdminId = await factory.GetUserIdAsync(secondAdminEmail);
+        string firstStamp = await factory.GetSecurityStampAsync(firstAdminEmail);
+        string secondStamp = await factory.GetSecurityStampAsync(secondAdminEmail);
+        (IServiceScope firstScope, IAdminUserAccountService firstService) =
+            CreateServiceWithBootstrap(factory, null);
+        (IServiceScope secondScope, IAdminUserAccountService secondService) =
+            CreateServiceWithBootstrap(factory, null);
+
+        using (firstScope)
+        using (secondScope)
+        {
+            Task<AdminUserOperationResult> firstRequest = firstService.LockAsync(
+                new AdminUserAccountCommand(
+                    ActorUserId: "external-admin-one",
+                    ActorDisplay: "external-admin-one@example.com",
+                    TargetUserId: firstAdminId,
+                    Reason: "Kiểm tra khóa Admin đồng thời.",
+                    ConcurrencyStamp: firstStamp));
+            Task<AdminUserOperationResult> secondRequest = secondService.LockAsync(
+                new AdminUserAccountCommand(
+                    ActorUserId: "external-admin-two",
+                    ActorDisplay: "external-admin-two@example.com",
+                    TargetUserId: secondAdminId,
+                    Reason: "Kiểm tra khóa Admin đồng thời.",
+                    ConcurrencyStamp: secondStamp));
+
+            AdminUserOperationResult[] results = await Task.WhenAll(firstRequest, secondRequest);
+
+            Assert.Single(results, result => result.Succeeded);
+            Assert.Single(results, result => !result.Succeeded);
+        }
+
+        bool firstIsLocked = await factory.IsLockedOutAsync(firstAdminEmail);
+        bool secondIsLocked = await factory.IsLockedOutAsync(secondAdminEmail);
+        Assert.NotEqual(firstIsLocked, secondIsLocked);
+    }
+
     // Kiểm tra audit từ database để xác nhận thao tác Admin có dấu vết.
     private async Task AssertAuditExistsAsync(string action, string outcome, string targetId)
     {
@@ -274,6 +321,8 @@ public sealed class AdminUserAccountTests : IClassFixture<AdminWebApplicationFac
         IAdminAuditService auditService =
             scope.ServiceProvider.GetRequiredService<IAdminAuditService>();
         TimeProvider timeProvider = scope.ServiceProvider.GetRequiredService<TimeProvider>();
+        AdminUserLockCoordinator lockCoordinator =
+            scope.ServiceProvider.GetRequiredService<AdminUserLockCoordinator>();
         IConfiguration configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
@@ -286,7 +335,8 @@ public sealed class AdminUserAccountTests : IClassFixture<AdminWebApplicationFac
             userManager,
             auditService,
             configuration,
-            timeProvider);
+            timeProvider,
+            lockCoordinator);
         return (scope, service);
     }
 

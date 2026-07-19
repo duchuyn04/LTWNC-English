@@ -131,9 +131,9 @@ public sealed class ContentModerationService : IContentModerationService
             command.PublicReason,
             command.InternalNote,
             command.Evidence,
-            command.ActorUserId,
-            command.ActorDisplay,
-            command.CorrelationId,
+            command.Actor.UserId,
+            command.Actor.Display,
+            command.Actor.CorrelationId,
             AdminAuditActions.ContentSetsQuarantine,
             null,
             cancellationToken);
@@ -177,9 +177,9 @@ public sealed class ContentModerationService : IContentModerationService
             command.PublicReason,
             command.InternalNote,
             command.Evidence,
-            command.ActorUserId,
-            command.ActorDisplay,
-            command.CorrelationId,
+            command.Actor.UserId,
+            command.Actor.Display,
+            command.Actor.CorrelationId,
             AdminAuditActions.ContentReportsQuarantine,
             report.Id,
             cancellationToken);
@@ -225,19 +225,19 @@ public sealed class ContentModerationService : IContentModerationService
         set.ModerationPublicReason = null;
         set.ModerationInternalNote = null;
         set.ModerationEvidence = null;
-        set.ModeratedByUserId = command.ActorUserId.Trim();
+        set.ModeratedByUserId = command.Actor.UserId.Trim();
         set.ModeratedAtUtc = nowUtc;
         set.ModerationVersion++;
         set.UpdatedAt = nowUtc;
 
         _auditService.Enqueue(BuildSetAuditEntry(
-            command.ActorUserId,
-            command.ActorDisplay,
+            command.Actor.UserId,
+            command.Actor.Display,
             AdminAuditActions.ContentSetsRestore,
             AdminAuditOutcome.Success,
             set,
             command.Reason,
-            command.CorrelationId,
+            command.Actor.CorrelationId,
             null));
 
         try
@@ -511,14 +511,14 @@ public sealed class ContentModerationService : IContentModerationService
         };
 
         var entry = new AdminAuditEntry(
-            ActorUserId: access.ActorUserId,
-            ActorDisplay: access.ActorDisplay,
+            ActorUserId: access.Actor.UserId,
+            ActorDisplay: access.Actor.Display,
             Action: AdminAuditActions.ContentSetsViewPrivateDetails,
             Outcome: AdminAuditOutcome.Success,
             TargetType: "FlashcardSet",
             TargetId: set.Id.ToString(),
             Reason: access.Reason!.Trim(),
-            CorrelationId: access.CorrelationId,
+            CorrelationId: access.Actor.CorrelationId,
             Metadata: metadata);
 
         await _auditService.RecordAsync(entry, cancellationToken);
@@ -533,12 +533,12 @@ public sealed class ContentModerationService : IContentModerationService
         CancellationToken cancellationToken)
     {
         await RecordSetDeniedAuditAsync(
-            command.ActorUserId,
-            command.ActorDisplay,
+            command.Actor.UserId,
+            command.Actor.Display,
             action,
             set,
             command.Reason,
-            command.CorrelationId,
+            command.Actor.CorrelationId,
             denialReason,
             cancellationToken);
     }
@@ -552,12 +552,12 @@ public sealed class ContentModerationService : IContentModerationService
         CancellationToken cancellationToken)
     {
         await RecordSetDeniedAuditAsync(
-            command.ActorUserId,
-            command.ActorDisplay,
+            command.Actor.UserId,
+            command.Actor.Display,
             action,
             set,
             command.PublicReason,
-            command.CorrelationId,
+            command.Actor.CorrelationId,
             denialReason,
             cancellationToken);
     }
@@ -571,12 +571,12 @@ public sealed class ContentModerationService : IContentModerationService
         CancellationToken cancellationToken)
     {
         await RecordSetDeniedAuditAsync(
-            command.ActorUserId,
-            command.ActorDisplay,
+            command.Actor.UserId,
+            command.Actor.Display,
             action,
             set,
             command.PublicReason,
-            command.CorrelationId,
+            command.Actor.CorrelationId,
             denialReason,
             cancellationToken);
     }
@@ -620,14 +620,14 @@ public sealed class ContentModerationService : IContentModerationService
         };
 
         var entry = new AdminAuditEntry(
-            ActorUserId: command.ActorUserId,
-            ActorDisplay: command.ActorDisplay,
+            ActorUserId: command.Actor.UserId,
+            ActorDisplay: command.Actor.Display,
             Action: AdminAuditActions.ContentReportsQuarantine,
             Outcome: AdminAuditOutcome.Denied,
             TargetType: "ContentReport",
             TargetId: report.Id.ToString(),
             Reason: command.PublicReason,
-            CorrelationId: command.CorrelationId,
+            CorrelationId: command.Actor.CorrelationId,
             Metadata: metadata);
 
         await _auditService.RecordAsync(entry, cancellationToken);
@@ -658,7 +658,7 @@ public sealed class ContentModerationService : IContentModerationService
 
         if (denialReason != null)
         {
-            metadata["count"] = denialReason;
+            metadata["deniedReason"] = denialReason;
         }
 
         return new AdminAuditEntry(
@@ -677,7 +677,7 @@ public sealed class ContentModerationService : IContentModerationService
     private static string? ValidateQuarantineCommand(QuarantineFlashcardSetCommand command)
     {
         return ValidateQuarantineFields(
-            command.ActorUserId,
+            command.Actor.UserId,
             command.PublicReason,
             command.InternalNote,
             command.Evidence,
@@ -694,7 +694,7 @@ public sealed class ContentModerationService : IContentModerationService
         }
 
         return ValidateQuarantineFields(
-            command.ActorUserId,
+            command.Actor.UserId,
             command.PublicReason,
             command.InternalNote,
             command.Evidence,
@@ -750,7 +750,7 @@ public sealed class ContentModerationService : IContentModerationService
     // Kiểm tra lệnh khôi phục trước khi ghi thay đổi.
     private static string? ValidateRestoreCommand(RestoreFlashcardSetCommand command)
     {
-        if (string.IsNullOrWhiteSpace(command.ActorUserId))
+        if (string.IsNullOrWhiteSpace(command.Actor.UserId))
         {
             return "Không xác định được Quản trị viên đang thao tác.";
         }
@@ -777,7 +777,7 @@ public sealed class ContentModerationService : IContentModerationService
     // Kiểm tra lý do mở nội dung riêng tư.
     private static string? ValidateAccessReason(AdminContentSetAccessCommand access)
     {
-        if (string.IsNullOrWhiteSpace(access.ActorUserId))
+        if (string.IsNullOrWhiteSpace(access.Actor.UserId))
         {
             return "Không xác định được Quản trị viên đang xem.";
         }
@@ -860,4 +860,3 @@ public sealed class ContentModerationService : IContentModerationService
         }
     }
 }
-

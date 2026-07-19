@@ -152,11 +152,16 @@ public sealed class AdminEnglishMissionService : IAdminEnglishMissionService
         int effectiveBatchSize = Math.Clamp(batchSize, 1, DefaultCleanupBatchSize);
         DateTime nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
         DateTime oldestPossibleExpiryUtc = nowUtc - ConversationDetailRetention;
+        DateTime maximumRetentionStartUtc = nowUtc - IncidentHoldLimit;
 
+        // Lọc bản ghi thực sự đến hạn trước khi giới hạn batch để mission đang hold không che dữ liệu phía sau.
         List<MissionEntity> candidates = await _context.EnglishMissions
             .Include(mission => mission.Turns)
             .Where(mission => mission.ConversationContentDeletedAtUtc == null
-                && mission.CreatedAt <= oldestPossibleExpiryUtc)
+                && mission.CreatedAt <= oldestPossibleExpiryUtc
+                && (mission.ConversationRetentionHoldUntilUtc == null
+                    || mission.ConversationRetentionHoldUntilUtc <= nowUtc
+                    || mission.CreatedAt <= maximumRetentionStartUtc))
             .OrderBy(mission => mission.CreatedAt)
             .Take(effectiveBatchSize)
             .ToListAsync(cancellationToken);

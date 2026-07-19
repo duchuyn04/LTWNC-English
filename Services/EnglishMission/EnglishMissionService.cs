@@ -1,6 +1,8 @@
+using System.Data;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Ai;
@@ -29,6 +31,7 @@ public sealed class EnglishMissionService : IEnglishMissionService
     private readonly IStudyEventPublisher _studyEvents;
     private readonly TimeProvider _timeProvider;
 
+    // Nhận các service học tập, AI, sự kiện và thời gian cần cho toàn bộ vòng đời Nhiệm vụ tiếng Anh.
     public EnglishMissionService(
         AppDbContext context,
         IStudyService studyService,
@@ -43,8 +46,13 @@ public sealed class EnglishMissionService : IEnglishMissionService
         _timeProvider = timeProvider;
     }
 
-    public IReadOnlyList<EnglishMissionTopic> GetTopics() => Topics;
+    // Trả danh sách chủ đề cố định để controller không tự tạo nội dung nhiệm vụ.
+    public IReadOnlyList<EnglishMissionTopic> GetTopics()
+    {
+        return Topics;
+    }
 
+    // Kiểm tra quyền trên bộ thẻ, lấy từ mục tiêu và tạo Nhiệm vụ tiếng Anh mới bằng AI.
     public async Task<EnglishMissionStartResult> StartAsync(
         string userId,
         int setId,
@@ -55,8 +63,7 @@ public sealed class EnglishMissionService : IEnglishMissionService
             ?? throw new ArgumentException("Chủ đề không hợp lệ.");
 
         FlashcardSet? set = await _context.FlashcardSets.FindAsync([setId], cancellationToken);
-        if (set == null) throw new KeyNotFoundException("Bộ thẻ không tồn tại.");
-        if (!set.IsPublic && set.UserId != userId) throw new UnauthorizedAccessException("Không có quyền học bộ thẻ này.");
+        EnsureSetAccess(set, userId);
 
         UserStudySettings settings = await _studyService.GetSettingsAsync(userId);
         List<Flashcard> cards = (await _studyService.GetCardsForModeAsync(
@@ -120,10 +127,11 @@ public sealed class EnglishMissionService : IEnglishMissionService
             });
         }
         _context.EnglishMissions.Add(mission);
-        await _context.SaveChangesAsync(cancellationToken);
+        await SaveWithCurrentSetAccessAsync(userId, setId, cancellationToken);
         return ToResult(mission, []);
     }
 
+    // Tải nhiệm vụ thuộc đúng người học cùng toàn bộ từ mục tiêu và lượt hội thoại đã lưu.
     public async Task<EnglishMissionStartResult> GetAsync(
         string userId,
         int setId,
@@ -139,6 +147,7 @@ public sealed class EnglishMissionService : IEnglishMissionService
         };
     }
 
+    // Gửi một lượt hội thoại, lọc dữ liệu AI và lưu kết quả idempotent theo clientTurnId.
     public async Task<EnglishMissionRespondResult> RespondAsync(
         string userId,
         int setId,
@@ -224,7 +233,7 @@ public sealed class EnglishMissionService : IEnglishMissionService
         }
         try
         {
-            await _context.SaveChangesAsync(cancellationToken);
+            await SaveWithCurrentSetAccessAsync(userId, setId, cancellationToken);
         }
         catch (DbUpdateConcurrencyException)
         {
@@ -265,6 +274,7 @@ public sealed class EnglishMissionService : IEnglishMissionService
         return new EnglishMissionRespondResult { Turn = turn, Mission = mission, TargetWords = mission.TargetWords.OrderBy(word => word.Id).ToList() };
     }
 
+    // Kết thúc nhiệm vụ thủ công, cập nhật phiên học và phát sự kiện hoàn thành đúng một lần.
     public async Task CompleteAsync(string userId, int setId, int sessionId, CancellationToken cancellationToken = default)
     {
         MissionEntity mission = await GetMissionAsync(userId, setId, sessionId, cancellationToken);
@@ -275,28 +285,137 @@ public sealed class EnglishMissionService : IEnglishMissionService
         mission.StudySession!.CompletedAt = mission.CompletedAt;
         mission.StudySession.DurationSeconds = (int)Math.Clamp((mission.CompletedAt.Value - mission.StudySession.StartedAt).TotalSeconds, 0, 14400);
         mission.StudySession.Score = mission.Score;
-        await _context.SaveChangesAsync(cancellationToken);
+        await SaveWithCurrentSetAccessAsync(userId, setId, cancellationToken);
         await PublishCompletedAsync(mission, cancellationToken);
     }
 
+    // Tải nhiệm vụ cùng navigation và xác nhận nó thuộc đúng user, bộ thẻ và phiên học yêu cầu.
     private async Task<MissionEntity> GetMissionAsync(string userId, int setId, int sessionId, CancellationToken cancellationToken)
     {
         MissionEntity? mission = await _context.EnglishMissions
             .Include(item => item.TargetWords)
             .Include(item => item.Turns)
             .Include(item => item.StudySession)
+                .ThenInclude(session => session!.FlashcardSet)
             .FirstOrDefaultAsync(item => item.StudySessionId == sessionId, cancellationToken);
         if (mission?.StudySession == null || mission.StudySession.UserId != userId || mission.StudySession.FlashcardSetId != setId)
             throw new UnauthorizedAccessException("Không có quyền truy cập mission này.");
+
+        // Dùng cùng quy tắc với lúc bắt đầu để thay đổi cách ly hoặc quyền riêng tư có hiệu lực ngay.
+        EnsureSetAccess(mission.StudySession.FlashcardSet, userId);
+
         return mission;
     }
 
+    // Kiểm tra lại quyền truy cập trong cùng transaction với lần ghi để không lọt thay đổi kiểm duyệt đồng thời.
+    private async Task SaveWithCurrentSetAccessAsync(
+        string userId,
+        int setId,
+        CancellationToken cancellationToken)
+    {
+        if (!_context.Database.IsRelational())
+        {
+            try
+            {
+                await EnsureCurrentSetAccessAsync(userId, setId, cancellationToken);
+            }
+            catch (UnauthorizedAccessException)
+            {
+                _context.ChangeTracker.Clear();
+                throw;
+            }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
+        await using IDbContextTransaction transaction =
+            await _context.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken);
+        try
+        {
+            await EnsureCurrentSetAccessAsync(userId, setId, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+        }
+        catch (UnauthorizedAccessException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _context.ChangeTracker.Clear();
+            throw;
+        }
+        catch (KeyNotFoundException)
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            _context.ChangeTracker.Clear();
+            throw;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(cancellationToken);
+            throw;
+        }
+    }
+
+    // Đọc lại bộ thẻ không tracking để không dùng trạng thái cũ đã được nạp trước khi gọi AI.
+    private async Task EnsureCurrentSetAccessAsync(
+        string userId,
+        int setId,
+        CancellationToken cancellationToken)
+    {
+        FlashcardSet? currentSet = await _context.FlashcardSets
+            .AsNoTracking()
+            .SingleOrDefaultAsync(item => item.Id == setId, cancellationToken);
+        EnsureSetAccess(currentSet, userId);
+    }
+
+    // Áp dụng một quy tắc chung: tác giả được truy cập, người khác cần bộ công khai và không bị cách ly.
+    private static void EnsureSetAccess(FlashcardSet? set, string userId)
+    {
+        if (set == null)
+        {
+            throw new KeyNotFoundException("Bộ thẻ không tồn tại.");
+        }
+
+        bool isOwner = string.Equals(set.UserId, userId, StringComparison.Ordinal);
+        if (set.ModerationStatus == FlashcardSetModerationStatus.Quarantined && !isOwner)
+        {
+            throw new UnauthorizedAccessException(
+                "Bộ thẻ đang bị cách ly và không thể dùng để học công khai.");
+        }
+
+        if (!set.IsPublic && !isOwner)
+        {
+            throw new UnauthorizedAccessException("Không có quyền học bộ thẻ này.");
+        }
+    }
+
+    // Chuyển entity sang kết quả bắt đầu với thứ tự từ mục tiêu ổn định.
     private static EnglishMissionStartResult ToResult(MissionEntity mission, IReadOnlyList<EnglishMissionTurn> turns) =>
         new() { Mission = mission, TargetWords = mission.TargetWords.OrderBy(word => word.Id).ToList(), Turns = turns };
 
-    private static int CalculateScore(int goalCount, int achievedGoals, int usedWords, int turns) =>
-        Math.Clamp((goalCount == 0 ? 0 : achievedGoals * 40 / goalCount) + Math.Min(30, usedWords * 6) + (achievedGoals > 0 ? 20 : 0) + Math.Max(0, 10 - Math.Max(0, turns - 3)), 0, 100);
+    // Tính điểm từ mục tiêu, từ đã dùng và số lượt rồi giới hạn trong thang 0 đến 100.
+    private static int CalculateScore(int goalCount, int achievedGoals, int usedWords, int turns)
+    {
+        int goalScore = 0;
+        if (goalCount > 0)
+        {
+            goalScore = achievedGoals * 40 / goalCount;
+        }
 
+        int vocabularyScore = Math.Min(30, usedWords * 6);
+        int completionBonus = 0;
+        if (achievedGoals > 0)
+        {
+            completionBonus = 20;
+        }
+
+        int turnScore = Math.Max(0, 10 - Math.Max(0, turns - 3));
+        return Math.Clamp(goalScore + vocabularyScore + completionBonus + turnScore, 0, 100);
+    }
+
+    // Phát sự kiện hoàn thành để các observer cập nhật tiến độ và thành tích từ cùng dữ liệu phiên học.
     private async Task PublishCompletedAsync(MissionEntity mission, CancellationToken cancellationToken)
     {
         await _studyEvents.PublishAsync(new StudySessionCompletedEvent(
@@ -308,6 +427,7 @@ public sealed class EnglishMissionService : IEnglishMissionService
             mission.Score), cancellationToken);
     }
 
+    // Kiểm tra payload khởi tạo có đủ các trường bắt buộc trước khi router chấp nhận phản hồi AI.
     private static bool IsValidStartPayload(string content)
     {
         try
@@ -322,12 +442,14 @@ public sealed class EnglishMissionService : IEnglishMissionService
         catch (AiProviderUnavailableException) { return false; }
     }
 
+    // Kiểm tra payload lượt hội thoại có câu trả lời NPC hợp lệ.
     private static bool IsValidTurnPayload(string content)
     {
         try { return !string.IsNullOrWhiteSpace(Parse<TurnPayload>(content, "invalid").NpcReply); }
         catch (AiProviderUnavailableException) { return false; }
     }
 
+    // Parse JSON đã làm sạch và chuyển lỗi định dạng thành lỗi AI thống nhất cho tầng trên.
     private static T Parse<T>(string content, string error)
     {
         try
@@ -342,6 +464,7 @@ public sealed class EnglishMissionService : IEnglishMissionService
         }
     }
 
+    // Bỏ code fence nếu nhà cung cấp bọc JSON trong Markdown.
     private static string CleanJson(string content)
     {
         string value = content.Trim();
@@ -354,10 +477,32 @@ public sealed class EnglishMissionService : IEnglishMissionService
         return value.Trim();
     }
 
-    private static string Limit(string value, int max) => value.Length <= max ? value : value[..max];
-    private static string? LimitNullable(string? value, int max) => string.IsNullOrWhiteSpace(value) ? null : Limit(value, max);
+    // Cắt chuỗi theo giới hạn cột nhưng giữ nguyên chuỗi ngắn hơn.
+    private static string Limit(string value, int max)
+    {
+        if (value.Length <= max)
+        {
+            return value;
+        }
 
+        return value[..max];
+    }
+
+    // Chuẩn hóa chuỗi tùy chọn trước khi áp dụng giới hạn độ dài.
+    private static string? LimitNullable(string? value, int max)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        return Limit(value, max);
+    }
+
+    // Tạo system prompt cố định cho bước khởi tạo nhiệm vụ.
     private static string BuildStartSystemPrompt() => "Bạn là biên kịch English Mission. Chỉ trả về JSON hợp lệ, không markdown, theo schema: {title:string,situation:string,npcName:string,npcRole:string,openingLine:string,goals:[{id:string,descriptionVi:string}]}. Viết openingLine bằng tiếng Anh, các trường còn lại bằng tiếng Việt trừ title nếu tự nhiên. Không thêm trường khác.";
+
+    // Tạo system prompt cố định cho từng lượt hội thoại.
     private static string BuildTurnSystemPrompt() => "Bạn là gia sư hội thoại tiếng Anh. Chỉ trả JSON hợp lệ theo schema: {npcReply:string,feedbackVi:string,correctionEn:string|null,correctionExplanationVi:string|null,usedTargetWords:string[],achievedGoalIds:string[],missionCompleted:boolean}. npcReply bằng tiếng Anh, phản hồi và giải thích bằng tiếng Việt. Không tự tạo goal hoặc từ không có trong danh sách.";
 
     private sealed class StartPayload

@@ -12,17 +12,20 @@ public sealed class AdminAuditService : IAdminAuditService
     private readonly AppDbContext _context;
     private readonly TimeProvider _timeProvider;
 
+    // Nhận DbContext dùng chung với nghiệp vụ và nguồn thời gian có thể điều khiển trong test.
     public AdminAuditService(AppDbContext context, TimeProvider timeProvider)
     {
         _context = context;
         _timeProvider = timeProvider;
     }
 
+    // Thêm audit vào ChangeTracker để caller lưu cùng transaction với thay đổi nghiệp vụ.
     public void Enqueue(AdminAuditEntry entry)
     {
         _context.AdminAuditLogs.Add(BuildLog(entry));
     }
 
+    // Ghi ngay một audit độc lập cho các nhánh chỉ đọc hoặc bị từ chối không có transaction nghiệp vụ.
     public async Task<AdminAuditLog> RecordAsync(
         AdminAuditEntry entry,
         CancellationToken cancellationToken = default)
@@ -33,6 +36,7 @@ public sealed class AdminAuditService : IAdminAuditService
         return log;
     }
 
+    // Lọc, sắp xếp và phân trang audit phía máy chủ với giới hạn tối đa 100 dòng.
     public async Task<AdminAuditLogPage> SearchAsync(
         AdminAuditQuery query,
         CancellationToken cancellationToken = default)
@@ -75,6 +79,7 @@ public sealed class AdminAuditService : IAdminAuditService
         return new AdminAuditLogPage(items, totalCount, page, pageSize);
     }
 
+    // Chuẩn hóa dữ liệu audit và chỉ serialize metadata đã qua allowlist an toàn.
     private AdminAuditLog BuildLog(AdminAuditEntry entry)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(entry.ActorUserId);
@@ -97,6 +102,7 @@ public sealed class AdminAuditService : IAdminAuditService
         };
     }
 
+    // Chuyển chuỗi trống thành null và bỏ khoảng trắng thừa trước khi lưu.
     private static string? TrimOrNull(string? value) =>
         string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

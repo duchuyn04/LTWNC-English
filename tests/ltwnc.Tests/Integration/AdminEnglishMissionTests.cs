@@ -169,11 +169,41 @@ public sealed class AdminEnglishMissionTests
         EnglishMission mission = await LoadMissionAsync(factory, missionId);
         EnglishMissionTurn turn = mission.Turns.Single();
 
-        Assert.Equal(1, result.ScannedCount);
+        Assert.Equal(0, result.ScannedCount);
         Assert.Equal(0, result.ClearedCount);
         Assert.Null(mission.ConversationContentDeletedAtUtc);
         Assert.Equal("Mission situation details", mission.Situation);
         Assert.Equal("learner private utterance", turn.UserText);
+    }
+
+    // Mission đang hold không được chiếm chỗ của mission đã hết hạn trong cùng một batch nhỏ.
+    [Fact]
+    public async Task CleanupExpiredConversationContent_HeldMissionDoesNotBlockExpiredMission()
+    {
+        using var factory = new AdminWebApplicationFactory();
+        const string learnerEmail = "mission-learner-batch@example.com";
+        await factory.SeedUserAsync("mission_learner_batch", learnerEmail);
+        DateTime nowUtc = factory.Clock.GetUtcNow().UtcDateTime;
+        int heldMissionId = await SeedMissionAsync(
+            factory,
+            learnerEmail,
+            "Held mission before expired mission",
+            nowUtc.AddDays(-120),
+            retentionHoldUntilUtc: nowUtc.AddDays(15));
+        int expiredMissionId = await SeedMissionAsync(
+            factory,
+            learnerEmail,
+            "Expired mission after held mission",
+            nowUtc.AddDays(-91));
+
+        AdminEnglishMissionCleanupResult result = await RunCleanupAsync(factory, batchSize: 1);
+        EnglishMission heldMission = await LoadMissionAsync(factory, heldMissionId);
+        EnglishMission expiredMission = await LoadMissionAsync(factory, expiredMissionId);
+
+        Assert.Equal(1, result.ScannedCount);
+        Assert.Equal(1, result.ClearedCount);
+        Assert.Null(heldMission.ConversationContentDeletedAtUtc);
+        Assert.NotNull(expiredMission.ConversationContentDeletedAtUtc);
     }
 
     // Hold không được vượt quá trần 12 tháng tính từ ngày mission được tạo.

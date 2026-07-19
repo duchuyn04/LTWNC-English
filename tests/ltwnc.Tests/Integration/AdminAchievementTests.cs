@@ -1,12 +1,15 @@
 using System.Net;
+using System.Data.Common;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Achievements;
+using ltwnc.Services.AdminAchievements;
 using ltwnc.Services.Audit;
 using ltwnc.Tests.Infrastructure;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ltwnc.Tests.Integration;
@@ -61,6 +64,34 @@ public sealed class AdminAchievementTests
         Assert.DoesNotContain("/Edit", html);
         Assert.DoesNotContain("Cấp thủ công", html);
         Assert.DoesNotContain("Thu hồi", html);
+    }
+
+    // Overview dùng số truy vấn cố định cho cả trang thay vì tăng thêm theo từng người dùng.
+    [Fact]
+    public async Task GetOverview_WithManyUsers_UsesBoundedRelationalQueries()
+    {
+        var commandCounter = new CountingCommandInterceptor();
+        using var factory = new AdminWebApplicationFactory(commandCounter);
+        for (int index = 0; index < 10; index++)
+        {
+            await factory.SeedUserAsync(
+                $"achievement_query_user_{index}",
+                $"achievement-query-user-{index}@example.com");
+        }
+
+        using IServiceScope scope = factory.Services.CreateScope();
+        IAdminAchievementService service =
+            scope.ServiceProvider.GetRequiredService<IAdminAchievementService>();
+        commandCounter.Reset();
+
+        AdminAchievementOverview overview = await service.GetOverviewAsync(
+            new AdminAchievementQuery(
+                Search: "achievement-query-user-",
+                Page: 1,
+                PageSize: 25));
+
+        Assert.Equal(10, overview.UserResults.Count);
+        Assert.InRange(commandCounter.ReaderCommandCount, 1, 7);
     }
 
     // Đồng bộ một người dùng khôi phục thành tích còn thiếu và chạy lại không tạo trùng.
@@ -271,5 +302,30 @@ public sealed class AdminAchievementTests
         {
             AllowAutoRedirect = false
         });
+    }
+
+    // Đếm lệnh đọc SQL để test phát hiện việc thêm truy vấn theo từng dòng user.
+    private sealed class CountingCommandInterceptor : DbCommandInterceptor
+    {
+        private int _readerCommandCount;
+
+        public int ReaderCommandCount => Volatile.Read(ref _readerCommandCount);
+
+        // Đếm mỗi reader command bất đồng bộ mà EF gửi đến SQLite.
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            Interlocked.Increment(ref _readerCommandCount);
+            return ValueTask.FromResult(result);
+        }
+
+        // Đặt lại bộ đếm sau giai đoạn seed để chỉ đo truy vấn của overview.
+        public void Reset()
+        {
+            Volatile.Write(ref _readerCommandCount, 0);
+        }
     }
 }

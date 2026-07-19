@@ -219,6 +219,16 @@ public sealed class AdminContentModerationTests
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         Assert.Equal(FlashcardSetModerationStatus.Active, set.ModerationStatus);
         Assert.True(await AuditExistsAsync(factory, AdminAuditActions.ContentSetsQuarantine, AdminAuditOutcome.Denied, setId));
+
+        // Metadata phải đặt đúng tên lý do từ chối để người đọc audit không hiểu nhầm đây là số lượng.
+        using IServiceScope scope = factory.Services.CreateScope();
+        AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        AdminAuditLog audit = await context.AdminAuditLogs
+            .SingleAsync(log =>
+                log.Action == AdminAuditActions.ContentSetsQuarantine
+                && log.TargetId == setId.ToString());
+        Assert.Contains("\"deniedReason\"", audit.MetadataJson);
+        Assert.DoesNotContain("\"count\"", audit.MetadataJson);
     }
 
     // Tạo bộ flashcard có một thẻ để các trang detail và study có dữ liệu thực tế.

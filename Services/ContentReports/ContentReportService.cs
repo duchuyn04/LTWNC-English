@@ -219,7 +219,7 @@ public sealed class ContentReportService : IContentReportService
         report.Status = ContentReportStatus.Dismissed;
         report.ResolutionOutcome = ContentReportResolutionOutcome.Dismissed;
         report.ResolutionReason = command.Reason.Trim();
-        report.ResolvedByUserId = command.ActorUserId.Trim();
+        report.ResolvedByUserId = command.Actor.UserId.Trim();
         report.ResolvedAtUtc = _timeProvider.GetUtcNow().UtcDateTime;
         report.Version++;
 
@@ -462,14 +462,14 @@ public sealed class ContentReportService : IContentReportService
         };
 
         return new AdminAuditEntry(
-            ActorUserId: command.ActorUserId,
-            ActorDisplay: command.ActorDisplay,
+            ActorUserId: command.Actor.UserId,
+            ActorDisplay: command.Actor.Display,
             Action: AdminAuditActions.ContentReportsDismiss,
             Outcome: outcome,
             TargetType: "ContentReport",
             TargetId: report.Id.ToString(),
             Reason: command.Reason,
-            CorrelationId: command.CorrelationId,
+            CorrelationId: command.Actor.CorrelationId,
             Metadata: metadata);
     }
 
@@ -499,7 +499,7 @@ public sealed class ContentReportService : IContentReportService
     // Kiểm tra lệnh bác bỏ báo cáo trước khi ghi thay đổi nhạy cảm.
     private static string? ValidateDismissCommand(DismissContentReportCommand command)
     {
-        if (string.IsNullOrWhiteSpace(command.ActorUserId))
+        if (string.IsNullOrWhiteSpace(command.Actor.UserId))
         {
             return "Không xác định được Quản trị viên đang thao tác.";
         }

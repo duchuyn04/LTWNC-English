@@ -1,4 +1,5 @@
 using ltwnc.Models.Entities;
+using ltwnc.Services.Audit;
 
 namespace ltwnc.Services.ContentModeration;
 
@@ -92,42 +93,34 @@ public sealed record AdminContentFlashcardRow(
     int OrderIndex);
 
 public sealed record AdminContentSetAccessCommand(
-    string ActorUserId,
-    string ActorDisplay,
-    string? Reason,
-    string? CorrelationId = null);
+    AdminActorContext Actor,
+    string? Reason);
 
 public sealed record QuarantineFlashcardSetCommand(
     int FlashcardSetId,
     int Version,
-    string ActorUserId,
-    string ActorDisplay,
+    AdminActorContext Actor,
     string PublicReason,
     string? InternalNote,
     string? Evidence,
-    bool Confirmed,
-    string? CorrelationId = null);
+    bool Confirmed);
 
 public sealed record QuarantineFromReportCommand(
     long ReportId,
     int ReportVersion,
     int FlashcardSetVersion,
-    string ActorUserId,
-    string ActorDisplay,
+    AdminActorContext Actor,
     string PublicReason,
     string? InternalNote,
     string? Evidence,
-    bool Confirmed,
-    string? CorrelationId = null);
+    bool Confirmed);
 
 public sealed record RestoreFlashcardSetCommand(
     int FlashcardSetId,
     int Version,
-    string ActorUserId,
-    string ActorDisplay,
+    AdminActorContext Actor,
     string Reason,
-    bool Confirmed,
-    string? CorrelationId = null);
+    bool Confirmed);
 
 public sealed record ContentModerationOperationResult(bool Succeeded, string Message)
 {
@@ -143,4 +136,3 @@ public sealed record ContentModerationOperationResult(bool Succeeded, string Mes
         return new ContentModerationOperationResult(false, message);
     }
 }
-

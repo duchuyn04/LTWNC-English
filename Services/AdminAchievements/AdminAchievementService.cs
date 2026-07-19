@@ -8,7 +8,7 @@ using Microsoft.EntityFrameworkCore.Storage;
 
 namespace ltwnc.Services.AdminAchievements;
 
-// Service Admin cho thanh tich: chi doc du lieu va kich hoat tinh lai bang AchievementUnlockService hien co.
+// Quản trị thành tích ở chế độ chỉ đọc và tính lại bằng AchievementUnlockService hiện có.
 public sealed class AdminAchievementService : IAdminAchievementService
 {
     public const int DefaultPage = 1;
@@ -25,7 +25,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
     private readonly IAdminAuditService _auditService;
     private readonly AdminAchievementSyncCoordinator _syncCoordinator;
 
-    // Nhan cac dependency doc/ghi can thiet; controller khong tu tinh thanh tich truc tiep.
+    // Nhận các dependency đọc/ghi cần thiết để controller không tự tính thành tích.
     public AdminAchievementService(
         AppDbContext context,
         UserManager<IdentityUser> userManager,
@@ -42,7 +42,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
         _syncCoordinator = syncCoordinator;
     }
 
-    // Lay catalog tu source code, dem so nguoi da nhan va tinh ket qua theo user tren trang hien tai.
+    // Lấy danh mục từ mã nguồn, đếm người đã nhận và tính kết quả cho user trên trang hiện tại.
     public async Task<AdminAchievementOverview> GetOverviewAsync(
         AdminAchievementQuery query,
         CancellationToken cancellationToken = default)
@@ -72,7 +72,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
         return new AdminAchievementOverview(catalog, results, totalUsers, page, pageSize);
     }
 
-    // Dong bo mot user voi khoa chong chay trung, transaction va audit trong cung ket qua nghiep vu.
+    // Đồng bộ một user với khóa chống chạy trùng, transaction và audit trong cùng kết quả nghiệp vụ.
     public async Task<AdminAchievementSyncResult> ResyncUserAsync(
         AdminAchievementSyncCommand command,
         CancellationToken cancellationToken = default)
@@ -86,7 +86,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
         IdentityUser? target = await _userManager.FindByIdAsync(command.TargetUserId);
         if (target == null)
         {
-            return AdminAchievementSyncResult.Failure("Khong tim thay nguoi dung can dong bo.");
+            return AdminAchievementSyncResult.Failure("Không tìm thấy người dùng cần đồng bộ.");
         }
 
         using IDisposable? lease = _syncCoordinator.TryStartUser(command.TargetUserId);
@@ -95,9 +95,9 @@ public sealed class AdminAchievementService : IAdminAchievementService
             await RecordDeniedAuditAsync(
                 command,
                 target,
-                "Tac vu dong bo thanh tich cho nguoi dung nay dang chay.",
+                "Tác vụ đồng bộ thành tích cho người dùng này đang chạy.",
                 cancellationToken);
-            return AdminAchievementSyncResult.Failure("Dang co tac vu dong bo thanh tich cho pham vi nay. Vui long thu lai sau.");
+            return AdminAchievementSyncResult.Failure("Đang có tác vụ đồng bộ thành tích cho phạm vi này. Vui lòng thử lại sau.");
         }
 
         return await RunUserSyncAsync(
@@ -107,7 +107,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
             cancellationToken);
     }
 
-    // Dong bo toan he thong theo cac lo nho; moi user co transaction rieng de loi khong de lai nua trang thai.
+    // Đồng bộ toàn hệ thống theo lô nhỏ; mỗi user có transaction riêng để lỗi không để lại nửa trạng thái.
     public async Task<AdminAchievementBatchSyncResult> ResyncAllAsync(
         AdminAchievementBatchSyncCommand command,
         CancellationToken cancellationToken = default)
@@ -129,35 +129,41 @@ public sealed class AdminAchievementService : IAdminAchievementService
                 1,
                 "duplicate",
                 cancellationToken);
-            return AdminAchievementBatchSyncResult.Failure("Dang co tac vu dong bo thanh tich khac dang chay. Vui long thu lai sau.");
+            return AdminAchievementBatchSyncResult.Failure("Đang có tác vụ đồng bộ thành tích khác chạy. Vui lòng thử lại sau.");
         }
-
-        List<string> userIds = await _context.Users
-            .AsNoTracking()
-            .OrderBy(user => user.Email)
-            .Select(user => user.Id)
-            .ToListAsync(cancellationToken);
 
         int processedUsers = 0;
         int changedCount = 0;
         int failedCount = 0;
-        foreach (string[] chunk in userIds.Chunk(NormalizeBatchSize(command.BatchSize)))
+        int batchSize = NormalizeBatchSize(command.BatchSize);
+        string? lastProcessedUserId = null;
+        while (true)
         {
-            // Xu ly theo lo de request lon khong giu qua nhieu entity trong mot DbContext.
-            foreach (string userId in chunk)
+            IQueryable<IdentityUser> userBatchQuery = _context.Users.AsNoTracking();
+            if (lastProcessedUserId != null)
             {
-                IdentityUser? user = await _userManager.FindByIdAsync(userId);
-                if (user == null)
-                {
-                    failedCount++;
-                    continue;
-                }
+                // Keyset theo Id giữ vị trí ổn định khi có tài khoản mới xuất hiện giữa hai batch.
+                userBatchQuery = userBatchQuery.Where(user =>
+                    string.Compare(user.Id, lastProcessedUserId) > 0);
+            }
 
+            // Chỉ đọc một trang user từ database để không giữ toàn bộ mã tài khoản trong bộ nhớ.
+            List<IdentityUser> users = await userBatchQuery
+                .OrderBy(user => user.Id)
+                .Take(batchSize)
+                .ToListAsync(cancellationToken);
+            if (users.Count == 0)
+            {
+                break;
+            }
+
+            foreach (IdentityUser user in users)
+            {
                 AdminAchievementSyncResult result = await RunUserSyncAsync(
                     new AdminAchievementSyncCommand(
                         command.ActorUserId,
                         command.ActorDisplay,
-                        userId,
+                        user.Id,
                         command.Reason,
                         command.Confirmed,
                         command.CorrelationId),
@@ -170,6 +176,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
                 failedCount += result.FailedCount;
             }
 
+            lastProcessedUserId = users[^1].Id;
             _context.ChangeTracker.Clear();
         }
 
@@ -194,7 +201,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
             failedCount);
     }
 
-    // Dem so nguoi da nhan theo ma thanh tich trong database.
+    // Đếm số người đã nhận theo mã thành tích trong database.
     private async Task<Dictionary<string, int>> LoadRecipientCountsAsync(
         CancellationToken cancellationToken)
     {
@@ -205,7 +212,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
             .ToDictionaryAsync(item => item.Code, item => item.Count, cancellationToken);
     }
 
-    // Dung catalog trong source code lam danh muc goc, khong doc dinh nghia co the bi sua tu database.
+    // Dùng danh mục trong mã nguồn làm dữ liệu gốc, không đọc định nghĩa có thể bị sửa từ database.
     private static IReadOnlyList<AdminAchievementDefinitionSummary> BuildCatalogSummaries(
         IReadOnlyDictionary<string, int> recipientCounts)
     {
@@ -230,7 +237,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
         return summaries;
     }
 
-    // Tao ket qua theo user tren trang hien tai, gom so da nhan, du dieu kien va con thieu.
+    // Tạo kết quả theo user trên trang hiện tại, gồm số đã nhận, đủ điều kiện và còn thiếu.
     private async Task<IReadOnlyList<AdminAchievementUserResult>> BuildUserResultsAsync(
         IReadOnlyList<IdentityUser> users,
         CancellationToken cancellationToken)
@@ -248,14 +255,15 @@ public sealed class AdminAchievementService : IAdminAchievementService
         Dictionary<string, List<UserAchievement>> achievementsByUser = achievements
             .GroupBy(achievement => achievement.UserId)
             .ToDictionary(group => group.Key, group => group.ToList(), StringComparer.Ordinal);
+        IReadOnlyDictionary<string, AchievementProgressSnapshot> progressByUser =
+            await _progressService.GetSnapshotsAsync(userIds, cancellationToken);
 
         List<AdminAchievementUserResult> results = new();
         foreach (IdentityUser user in users)
         {
             achievementsByUser.TryGetValue(user.Id, out List<UserAchievement>? userAchievements);
             userAchievements ??= [];
-            AchievementProgressSnapshot snapshot =
-                await _progressService.GetSnapshotAsync(user.Id, cancellationToken);
+            AchievementProgressSnapshot snapshot = progressByUser[user.Id];
             HashSet<string> unlockedCodes = userAchievements
                 .Select(achievement => achievement.Code)
                 .ToHashSet(StringComparer.Ordinal);
@@ -296,7 +304,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
         return results;
     }
 
-    // Loc user theo email, username hoac id; gia tri rong tra ve toan bo.
+    // Lọc user theo email, tên đăng nhập hoặc mã định danh; giá trị rỗng trả về toàn bộ.
     private static IQueryable<IdentityUser> ApplySearch(
         IQueryable<IdentityUser> users,
         string? search)
@@ -313,7 +321,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
             || user.Id.Contains(term));
     }
 
-    // Chay sync cho mot user trong transaction rieng va ghi audit cung transaction khi thanh cong.
+    // Chạy đồng bộ một user trong transaction riêng và ghi audit cùng transaction khi thành công.
     private async Task<AdminAchievementSyncResult> RunUserSyncAsync(
         AdminAchievementSyncCommand command,
         IdentityUser target,
@@ -339,12 +347,12 @@ public sealed class AdminAchievementService : IAdminAchievementService
             await transaction.CommitAsync(cancellationToken);
 
             return AdminAchievementSyncResult.Success(
-                $"Da dong bo thanh tich cho {target.Email ?? target.UserName}. Them {unlocked.Count:N0} thanh tich con thieu.",
+                $"Đã đồng bộ thành tích cho {target.Email ?? target.UserName}. Thêm {unlocked.Count:N0} thành tích còn thiếu.",
                 unlocked.Count);
         }
         catch (Exception exception)
         {
-            // Xoa tracker sau loi de audit that bai khong vo tinh luu lai entity thanh tich dang bi loi.
+            // Xóa tracker sau lỗi để audit thất bại không vô tình lưu entity thành tích đang lỗi.
             _context.ChangeTracker.Clear();
             await RecordFailureAuditAsync(
                 command,
@@ -352,11 +360,11 @@ public sealed class AdminAchievementService : IAdminAchievementService
                 scope,
                 exception.GetType().Name,
                 cancellationToken);
-            return AdminAchievementSyncResult.Failure("Dong bo thanh tich that bai. He thong da ghi audit de dashboard canh bao.");
+            return AdminAchievementSyncResult.Failure("Đồng bộ thành tích thất bại. Hệ thống đã ghi audit để dashboard cảnh báo.");
         }
     }
 
-    // Ghi audit bi tu choi khi chay trung scope.
+    // Ghi audit bị từ chối khi có tác vụ khác đang chạy cùng phạm vi.
     private async Task RecordDeniedAuditAsync(
         AdminAchievementSyncCommand command,
         IdentityUser target,
@@ -374,7 +382,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
         await _auditService.RecordAsync(entry, cancellationToken);
     }
 
-    // Ghi audit that bai ngoai transaction nghiep vu sau khi da rollback user sync.
+    // Ghi audit thất bại ngoài transaction nghiệp vụ sau khi đã rollback đồng bộ user.
     private async Task RecordFailureAuditAsync(
         AdminAchievementSyncCommand command,
         IdentityUser target,
@@ -393,7 +401,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
         await _auditService.RecordAsync(entry, cancellationToken);
     }
 
-    // Ghi audit tong hop cho lenh dong bo toan he thong.
+    // Ghi audit tổng hợp cho lệnh đồng bộ toàn hệ thống.
     private async Task RecordSystemAuditAsync(
         AdminAchievementBatchSyncCommand command,
         string outcome,
@@ -426,7 +434,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
         await _auditService.RecordAsync(entry, cancellationToken);
     }
 
-    // Tao audit user sync chi gom thong tin an toan va cac count can cho dieu tra.
+    // Tạo audit đồng bộ user chỉ gồm thông tin an toàn và các số đếm cần cho điều tra.
     private static AdminAuditEntry BuildUserAuditEntry(
         AdminAchievementSyncCommand command,
         IdentityUser target,
@@ -457,39 +465,39 @@ public sealed class AdminAchievementService : IAdminAchievementService
             Metadata: metadata);
     }
 
-    // Kiem tra form dong bo user truoc khi dung database hoac ghi audit.
+    // Kiểm tra form đồng bộ user trước khi dùng database hoặc ghi audit.
     private static string? ValidateSyncCommand(AdminAchievementSyncCommand command)
     {
         if (string.IsNullOrWhiteSpace(command.ActorUserId))
         {
-            return "Khong xac dinh duoc Quan tri vien dang thao tac.";
+            return "Không xác định được Quản trị viên đang thao tác.";
         }
 
         if (string.IsNullOrWhiteSpace(command.TargetUserId))
         {
-            return "Vui long chon nguoi dung can dong bo.";
+            return "Vui lòng chọn người dùng cần đồng bộ.";
         }
 
         return ValidateReasonAndConfirmation(command.Reason, command.Confirmed);
     }
 
-    // Kiem tra form dong bo toan he thong truoc khi quet danh sach user.
+    // Kiểm tra form đồng bộ toàn hệ thống trước khi quét danh sách user.
     private static string? ValidateBatchCommand(AdminAchievementBatchSyncCommand command)
     {
         if (string.IsNullOrWhiteSpace(command.ActorUserId))
         {
-            return "Khong xac dinh duoc Quan tri vien dang thao tac.";
+            return "Không xác định được Quản trị viên đang thao tác.";
         }
 
         return ValidateReasonAndConfirmation(command.Reason, command.Confirmed);
     }
 
-    // Kiem tra ly do va checkbox xac nhan, ap dung chung cho moi tac vu ghi du lieu.
+    // Kiểm tra lý do và xác nhận, áp dụng chung cho mọi tác vụ ghi dữ liệu.
     private static string? ValidateReasonAndConfirmation(string? reason, bool confirmed)
     {
         if (string.IsNullOrWhiteSpace(reason))
         {
-            return "Vui long nhap ly do truoc khi dong bo thanh tich.";
+            return "Vui lòng nhập lý do trước khi đồng bộ thành tích.";
         }
 
         if (reason.Trim().Length > MaxReasonLength)
@@ -499,13 +507,13 @@ public sealed class AdminAchievementService : IAdminAchievementService
 
         if (!confirmed)
         {
-            return "Vui long xac nhan day la thao tac dong bo lai tu du lieu hoc tap.";
+            return "Vui lòng xác nhận đây là thao tác đồng bộ lại từ dữ liệu học tập.";
         }
 
         return null;
     }
 
-    // Chuan hoa kich thuoc lo de tranh form gui gia tri qua lon.
+    // Chuẩn hóa kích thước lô để tránh form gửi giá trị quá lớn.
     private static int NormalizeBatchSize(int batchSize)
     {
         if (batchSize <= 0)

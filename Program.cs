@@ -136,6 +136,7 @@ builder.Services.AddScoped<IAdminAuditRetentionService, AdminAuditRetentionServi
 builder.Services.AddSingleton<AdminAchievementSyncCoordinator>();
 builder.Services.AddScoped<IAdminAchievementService, AdminAchievementService>();
 builder.Services.AddScoped<IAdminGlobalSearchService, AdminGlobalSearchService>();
+builder.Services.AddSingleton<AdminUserLockCoordinator>();
 builder.Services.AddScoped<IAdminUserAccountService, AdminUserAccountService>();
 builder.Services.AddScoped<ltwnc.Services.AdminStudyRecords.IAdminStudyRecordService,
     ltwnc.Services.AdminStudyRecords.AdminStudyRecordService>();

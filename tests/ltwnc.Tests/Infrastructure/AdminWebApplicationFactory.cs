@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -18,12 +19,20 @@ public sealed class AdminWebApplicationFactory : WebApplicationFactory<Program>
 {
     private const string TestPassword = "Testpass1";
     private readonly SqliteConnection _connection = new("Data Source=:memory:");
+    private IReadOnlyList<IInterceptor> _interceptors = [];
 
     public AdjustableTimeProvider Clock { get; } = new();
 
     public AdminWebApplicationFactory()
     {
         _connection.Open();
+    }
+
+    // Cho phép test chuyên biệt gắn interceptor mà không thay đổi cấu hình của các fixture hiện có.
+    internal AdminWebApplicationFactory(params IInterceptor[] interceptors)
+        : this()
+    {
+        _interceptors = interceptors;
     }
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
@@ -35,7 +44,14 @@ public sealed class AdminWebApplicationFactory : WebApplicationFactory<Program>
             services.RemoveAll<IDbContextOptionsConfiguration<AppDbContext>>();
             services.RemoveAll<AppDbContext>();
             services.RemoveAll<TimeProvider>();
-            services.AddDbContext<AppDbContext>(options => options.UseSqlite(_connection));
+            services.AddDbContext<AppDbContext>(options =>
+            {
+                options.UseSqlite(_connection);
+                if (_interceptors.Count > 0)
+                {
+                    options.AddInterceptors(_interceptors);
+                }
+            });
             services.AddSingleton<TimeProvider>(Clock);
         });
     }

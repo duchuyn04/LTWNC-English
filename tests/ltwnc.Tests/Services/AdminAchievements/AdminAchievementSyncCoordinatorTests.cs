@@ -4,7 +4,7 @@ namespace ltwnc.Tests.Services.AdminAchievements;
 
 public sealed class AdminAchievementSyncCoordinatorTests
 {
-    // Khoa user chan lan chay thu hai tren cung mot user.
+    // Khóa user chặn lần chạy thứ hai trên cùng một người dùng.
     [Fact]
     public void TryStartUser_WhenSameUserAlreadyRunning_ReturnsNull()
     {
@@ -17,7 +17,7 @@ public sealed class AdminAchievementSyncCoordinatorTests
         Assert.Null(second);
     }
 
-    // Khoa toan he thong chan sync user va nguoc lai de tranh ket qua chong cheo.
+    // Khóa toàn hệ thống chặn đồng bộ user và ngược lại để tránh kết quả chồng chéo.
     [Fact]
     public void TryStartSystem_WhenUserAlreadyRunning_ReturnsNull()
     {
@@ -30,7 +30,38 @@ public sealed class AdminAchievementSyncCoordinatorTests
         Assert.Null(systemLease);
     }
 
-    // Dispose giai phong khoa de request sau co the chay tiep.
+    // Hai request bắt đầu cùng lúc không bao giờ được cùng giữ khóa user và khóa toàn hệ thống.
+    [Fact]
+    public async Task TryStartUserAndSystem_WhenStartedConcurrently_NeverBothAcquireLease()
+    {
+        for (int attempt = 0; attempt < 500; attempt++)
+        {
+            var coordinator = new AdminAchievementSyncCoordinator();
+            using var startGate = new Barrier(2);
+            IDisposable? userLease = null;
+            IDisposable? systemLease = null;
+
+            Task userTask = Task.Run(() =>
+            {
+                startGate.SignalAndWait();
+                userLease = coordinator.TryStartUser("user-1");
+            });
+            Task systemTask = Task.Run(() =>
+            {
+                startGate.SignalAndWait();
+                systemLease = coordinator.TryStartSystem();
+            });
+
+            await Task.WhenAll(userTask, systemTask);
+            bool bothAcquiredLease = userLease != null && systemLease != null;
+            userLease?.Dispose();
+            systemLease?.Dispose();
+
+            Assert.False(bothAcquiredLease);
+        }
+    }
+
+    // Dispose giải phóng khóa để request sau có thể chạy tiếp.
     [Fact]
     public void Dispose_ReleasesScope()
     {

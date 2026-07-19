@@ -17,60 +17,102 @@ public class AchievementProgressService : IAchievementProgressService
         _context = context;
     }
 
-    // Đếm một lần toàn bộ metric rồi gói vào snapshot (tránh query lặp theo từng huy hiệu)
+    // Đếm toàn bộ metric cho một user qua batch seam dùng chung.
     public async Task<AchievementProgressSnapshot> GetSnapshotAsync(
         string userId,
         CancellationToken cancellationToken = default)
     {
-        // Thẻ user đã đánh dấu thuộc
-        int cardsMastered = await _context.UserProgresses
-            .CountAsync(
-                progress => progress.UserId == userId && progress.IsLearned,
-                cancellationToken);
+        IReadOnlyDictionary<string, AchievementProgressSnapshot> snapshots =
+            await GetSnapshotsAsync([userId], cancellationToken);
+        return snapshots[userId];
+    }
 
-        // Buổi Flashcard đã hoàn thành
-        int flashcardSessions = await _context.StudySessions
-            .CountAsync(
-                session => session.UserId == userId
-                    && session.Mode == StudyMode.Flashcard
-                    && session.CompletedAt.HasValue,
-                cancellationToken);
+    // Gom metric của nhiều user bằng ba truy vấn tổng hợp, không lặp truy vấn theo từng dòng giao diện.
+    public async Task<IReadOnlyDictionary<string, AchievementProgressSnapshot>> GetSnapshotsAsync(
+        IReadOnlyCollection<string> userIds,
+        CancellationToken cancellationToken = default)
+    {
+        string[] requestedUserIds = userIds
+            .Where(userId => !string.IsNullOrWhiteSpace(userId))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        if (requestedUserIds.Length == 0)
+        {
+            return new Dictionary<string, AchievementProgressSnapshot>(StringComparer.Ordinal);
+        }
 
-        // Buổi Dictation (mọi điểm)
-        int dictationSessions = await _context.StudySessions
-            .CountAsync(
-                session => session.UserId == userId
-                    && session.Mode == StudyMode.Dictation
-                    && session.CompletedAt.HasValue,
-                cancellationToken);
+        List<UserCountAggregate> masteredCardCounts = await _context.UserProgresses
+            .AsNoTracking()
+            .Where(progress => requestedUserIds.Contains(progress.UserId) && progress.IsLearned)
+            .GroupBy(progress => progress.UserId)
+            .Select(group => new UserCountAggregate(group.Key, group.Count()))
+            .ToListAsync(cancellationToken);
+        Dictionary<string, int> masteredCardsByUser = masteredCardCounts
+            .ToDictionary(item => item.UserId, item => item.Count, StringComparer.Ordinal);
 
-        // Buổi Dictation điểm 100
-        int dictationPerfectSessions = await _context.StudySessions
-            .CountAsync(
-                session =>
-                    session.UserId == userId
-                    && session.Mode == StudyMode.Dictation
-                    && session.CompletedAt.HasValue
-                    && session.Score == 100,
-                cancellationToken);
+        List<UserSessionMetricAggregate> sessionMetrics = await _context.StudySessions
+            .AsNoTracking()
+            .Where(session => requestedUserIds.Contains(session.UserId)
+                && session.CompletedAt.HasValue)
+            .GroupBy(session => session.UserId)
+            .Select(group => new UserSessionMetricAggregate(
+                group.Key,
+                group.Count(session => session.Mode == StudyMode.Flashcard),
+                group.Count(session => session.Mode == StudyMode.Dictation),
+                group.Count(session => session.Mode == StudyMode.Dictation && session.Score == 100)))
+            .ToListAsync(cancellationToken);
+        Dictionary<string, UserSessionMetricAggregate> sessionMetricsByUser = sessionMetrics
+            .ToDictionary(metric => metric.UserId, StringComparer.Ordinal);
 
-        // Câu nghe chép đúng: join detail với session để lọc đúng user
-        int dictationCorrectAnswers = await (
-            from detail in _context.DictationSessionDetails
-            join session in _context.StudySessions on detail.StudySessionId equals session.Id
-            where session.UserId == userId
+        Dictionary<string, int> correctAnswersByUser = await (
+            from detail in _context.DictationSessionDetails.AsNoTracking()
+            join session in _context.StudySessions.AsNoTracking()
+                on detail.StudySessionId equals session.Id
+            where requestedUserIds.Contains(session.UserId)
                 && session.CompletedAt.HasValue
                 && detail.IsCorrect
-            select detail
-        ).CountAsync(cancellationToken);
+            group detail by session.UserId into answers
+            select new UserCorrectAnswerAggregate(answers.Key, answers.Count())
+        ).ToDictionaryAsync(item => item.UserId, item => item.Count, cancellationToken);
 
-        return new AchievementProgressSnapshot
+        // Tạo cả snapshot rỗng cho user chưa có hoạt động để caller không phải xử lý trường hợp thiếu khóa.
+        var snapshots = new Dictionary<string, AchievementProgressSnapshot>(StringComparer.Ordinal);
+        foreach (string userId in requestedUserIds)
         {
-            CardsMastered = cardsMastered,
-            FlashcardSessions = flashcardSessions,
-            DictationSessions = dictationSessions,
-            DictationCorrectAnswers = dictationCorrectAnswers,
-            DictationPerfectSessions = dictationPerfectSessions
-        };
+            masteredCardsByUser.TryGetValue(userId, out int cardsMastered);
+            correctAnswersByUser.TryGetValue(userId, out int correctAnswers);
+            sessionMetricsByUser.TryGetValue(userId, out UserSessionMetricAggregate? sessions);
+
+            int flashcardSessions = 0;
+            int dictationSessions = 0;
+            int dictationPerfectSessions = 0;
+            if (sessions != null)
+            {
+                flashcardSessions = sessions.FlashcardSessions;
+                dictationSessions = sessions.DictationSessions;
+                dictationPerfectSessions = sessions.DictationPerfectSessions;
+            }
+
+            snapshots[userId] = new AchievementProgressSnapshot
+            {
+                CardsMastered = cardsMastered,
+                FlashcardSessions = flashcardSessions,
+                DictationSessions = dictationSessions,
+                DictationCorrectAnswers = correctAnswers,
+                DictationPerfectSessions = dictationPerfectSessions
+            };
+        }
+
+        return snapshots;
     }
+
+    private sealed record UserSessionMetricAggregate(
+        string UserId,
+        int FlashcardSessions,
+        int DictationSessions,
+        int DictationPerfectSessions);
+
+    private sealed record UserCorrectAnswerAggregate(string UserId, int Count);
+
+    private sealed record UserCountAggregate(string UserId, int Count);
 }

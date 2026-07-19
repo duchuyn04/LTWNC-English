@@ -5,7 +5,9 @@ using ltwnc.Models.Entities;
 using ltwnc.Services.Ai;
 using ltwnc.Services.Audit;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.Configuration;
 
 namespace ltwnc.Tests.Services.Ai;
@@ -121,6 +123,70 @@ public sealed class AiProviderServiceTests
         Assert.NotEqual("0", audit.TargetId);
         Assert.Equal("Ghi audit khi tạo provider", audit.Reason);
         Assert.DoesNotContain("secret-key", audit.MetadataJson ?? string.Empty);
+    }
+
+    // Lỗi khi ghi audit phải rollback cả provider mới để cấu hình không tồn tại mà thiếu dấu vết.
+    [Fact]
+    public async Task Save_CreateWhenAuditWriteFails_RollsBackProvider()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var interceptor = new FailOnSecondSaveInterceptor();
+        DbContextOptions<AppDbContext> options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(connection)
+            .AddInterceptors(interceptor)
+            .Options;
+        await using var context = new AppDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        var handler = new RecordingHandler("{}");
+        AiProviderService service = CreateService(context, handler, allowPrivateNetworks: true);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.SaveAsync(
+            null,
+            new AiProviderInput
+            {
+                Name = "Atomic provider",
+                BaseUrl = "https://example.test/v1",
+                ModelId = "model-a",
+                Reason = "Kiểm tra rollback khi audit thất bại"
+            },
+            Actor()));
+
+        context.ChangeTracker.Clear();
+        Assert.Empty(await context.AiProviders.ToListAsync());
+        Assert.Empty(await context.AdminAuditLogs.ToListAsync());
+    }
+
+    // Audit tạo mới phải dùng Id do database cấp, không ghi giá trị mặc định trước lần lưu đầu.
+    [Fact]
+    public async Task Save_CreateOnRelationalDatabase_WritesGeneratedProviderIdToAudit()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        DbContextOptions<AppDbContext> options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var context = new AppDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        var handler = new RecordingHandler("{}");
+        AiProviderService service = CreateService(context, handler, allowPrivateNetworks: true);
+
+        AiProviderOperationResult result = await service.SaveAsync(
+            null,
+            new AiProviderInput
+            {
+                Name = "Generated id provider",
+                BaseUrl = "https://example.test/v1",
+                ModelId = "model-a",
+                Reason = "Kiểm tra Id trong audit"
+            },
+            Actor());
+
+        AiProvider provider = await context.AiProviders.SingleAsync();
+        AdminAuditLog audit = await context.AdminAuditLogs.SingleAsync();
+        Assert.True(result.Succeeded);
+        Assert.Equal(provider.Id.ToString(), audit.TargetId);
+        Assert.NotEqual("0", audit.TargetId);
     }
 
     [Fact]
@@ -353,6 +419,27 @@ public sealed class AiProviderServiceTests
 
             // Trả lần lượt từng response để mô phỏng nhiều lần test cùng một provider.
             return Task.FromResult(_responses.Dequeue());
+        }
+    }
+
+    // Ném lỗi ở lần lưu thứ hai để mô phỏng provider đã có Id nhưng audit không ghi được.
+    private sealed class FailOnSecondSaveInterceptor : SaveChangesInterceptor
+    {
+        private int _saveCount;
+
+        // Đếm từng lần lưu bất đồng bộ và dừng đúng lần ghi provider cùng audit.
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+            DbContextEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            _saveCount++;
+            if (_saveCount == 2)
+            {
+                throw new InvalidOperationException("Mô phỏng lỗi ghi audit.");
+            }
+
+            return ValueTask.FromResult(result);
         }
     }
 }

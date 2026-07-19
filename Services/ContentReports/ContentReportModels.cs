@@ -1,3 +1,5 @@
+using ltwnc.Services.Audit;
+
 namespace ltwnc.Services.ContentReports;
 
 public sealed record ContentReportReasonOption(string Value, string Label);
@@ -81,10 +83,8 @@ public sealed record AdminContentReportPage(
 public sealed record DismissContentReportCommand(
     long ReportId,
     int Version,
-    string ActorUserId,
-    string ActorDisplay,
-    string Reason,
-    string? CorrelationId = null);
+    AdminActorContext Actor,
+    string Reason);
 
 public sealed record ContentReportOperationResult(bool Succeeded, string Message)
 {
