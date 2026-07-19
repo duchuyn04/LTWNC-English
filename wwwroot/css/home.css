@@ -1,7 +1,7 @@
 /* ============================================================
    LTWNC English — Homepage (Warm Editorial)
    Scoped under .home-landing. Consumes global tokens from
-   site.css. Keeps the 3D flashcard carousel geometry.
+   site.css.
    ============================================================ */
 
 .home-landing {
@@ -95,6 +95,10 @@
     overflow-wrap: break-word;
 }
 
+.hero-copy {
+    max-width: 56rem;
+}
+
 /* Keep the two hero lines independent so Vietnamese marks never collide. */
 .hero-heading-line {
     display: block;
@@ -129,316 +133,9 @@
     color: var(--brass-deep);
 }
 
-.home-stats {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.9rem;
-}
-
-.home-stats-wrapper {
-    margin-top: 1.5rem;
-}
-
-@media (min-width: 992px) {
-    .home-stats-wrapper {
-        max-width: 50%;
-        padding-left: calc(var(--bs-gutter-x, 3rem) * 0.5);
-    }
-}
-
-.home-stat {
-    border-top: 1px solid var(--line-strong);
-    padding-top: 1rem;
-}
-
-.home-stat strong {
-    display: block;
-    font-size: 1.6rem;
-    font-weight: 800;
-    letter-spacing: -0.02em;
-    color: var(--ink);
-}
-
-.stat-label-long { display: block; color: var(--muted); font-size: 0.875rem; }
-.stat-label-short { display: none; }
-
-/* ==================== 3D FLASHCARD (shared) ==================== */
-
-.flashcard-3d-wrapper {
-    perspective: 1000px;
-    padding: 0;
-    border: none !important;
-    background: transparent !important;
-    box-shadow: none !important;
-}
-
-.flashcard-3d-card {
-    position: relative;
-    width: 100%;
-    height: 100%;
-    transition: transform 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-    transform-style: preserve-3d;
-    cursor: pointer;
-}
-
-.flashcard-3d-card:hover {
-    transform: translateY(-8px) scale(1.02);
-}
-
-.flashcard-3d-card.flipped {
-    transform: rotateY(180deg);
-}
-
-.flashcard-3d-card.flipped:hover {
-    transform: rotateY(180deg) translateY(-8px) scale(1.02);
-}
-
-.flashcard-face {
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    backface-visibility: hidden;
-    border-radius: var(--radius-card);
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    text-align: center;
-    padding: 2rem;
-}
-
-/* Signature dark-ink front */
-.flashcard-front {
-    background: var(--ink);
-    color: var(--paper);
-    border: 1px solid rgba(247, 243, 233, 0.12);
-    box-shadow: 0 24px 70px rgba(41, 50, 38, 0.18);
-}
-
-/* Paper back, like a dictionary card */
-.flashcard-back {
-    background: var(--surface);
-    color: var(--ink);
-    border: 1.5px solid var(--ink);
-    transform: rotateY(180deg);
-    box-shadow: 0 24px 70px rgba(41, 50, 38, 0.14);
-}
-
-/* Card typography */
-.fc-pos {
-    display: inline-block;
-    margin-bottom: 0.5rem;
-    padding: 0.15rem 0.6rem;
-    border-radius: var(--radius-pill);
-    background: rgba(247, 243, 233, 0.14);
-    color: var(--paper);
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-}
-
-.fc-word {
-    margin-bottom: 0.25rem;
-    font-size: 1.2rem;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    color: var(--paper);
-}
-
-.fc-ipa {
-    margin-bottom: 0;
-    font-size: 0.75rem;
-    color: rgba(247, 243, 233, 0.55);
-}
-
-.fc-meaning {
-    margin-bottom: 0.25rem;
-    font-size: 1.1rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: var(--ink);
-}
-
-.fc-desc {
-    margin-bottom: 0;
-    font-size: 0.75rem;
-    line-height: 1.5;
-    color: var(--muted);
-}
-
-/* Paper-front variant (used inside the dark feature block) */
-.flashcard-face--paper {
-    background: var(--surface);
-    color: var(--ink);
-    border: 1.5px solid var(--ink);
-    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.25);
-}
-
-.flashcard-face--paper .fc-pos {
-    background: var(--brass-soft);
-    color: var(--brass-deep);
-}
-
-.flashcard-face--paper .fc-word {
-    color: var(--ink);
-}
-
-.flashcard-face--paper .fc-ipa {
-    color: var(--muted);
-}
-
-.flashcard-face--sage {
-    background: var(--sage);
-    color: var(--ink);
-    border: 1.5px solid var(--ink);
-}
-
-.flashcard-face--sage .fc-desc {
-    color: var(--ink-soft);
-}
-
-/* ==================== HERO CAROUSEL (geometry preserved) ==================== */
-
 .hero-container-wrapper {
     position: relative;
     overflow: hidden;
-}
-
-.hero-carousel-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 100%;
-    margin-top: 1rem;
-    padding: 0 1rem;
-}
-
-.hero-carousel-container {
-    position: relative;
-    width: 100%;
-    height: 240px;
-    perspective: 1200px;
-}
-
-.hero-carousel-item {
-    position: absolute;
-    top: 0;
-    left: 50%;
-    margin-left: -160px;
-    width: 320px;
-    height: 200px;
-    transition: all 0.6s var(--ease-out);
-}
-
-.hero-carousel-item .flashcard-face {
-    padding: 1rem;
-}
-
-.hero-carousel-item.pos-left {
-    transform: translateX(-140px) scale(0.82) rotateY(30deg) rotateZ(-4deg);
-    opacity: 0.45;
-    z-index: 1;
-    pointer-events: auto;
-}
-
-.hero-carousel-item.pos-center {
-    transform: translateX(0) scale(1.0) rotateY(0deg) rotateZ(0deg);
-    opacity: 1;
-    z-index: 3;
-    filter: drop-shadow(0 20px 30px rgba(41, 50, 38, 0.28));
-    pointer-events: auto;
-}
-
-.hero-carousel-item.pos-right {
-    transform: translateX(140px) scale(0.82) rotateY(-30deg) rotateZ(4deg);
-    opacity: 0.45;
-    z-index: 1;
-    pointer-events: auto;
-}
-
-.hero-carousel-item.pos-back {
-    transform: translateY(-15px) scale(0.65);
-    opacity: 0;
-    pointer-events: none;
-    z-index: 0;
-}
-
-/* Carousel Navigation Buttons (light theme) */
-.carousel-nav-btn {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: var(--surface);
-    border: 1px solid var(--line-strong);
-    color: var(--ink);
-    font-size: 1.2rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    transition: all 0.3s var(--ease-out);
-    z-index: 5;
-    flex-shrink: 0;
-}
-
-.carousel-nav-btn:hover {
-    background: var(--ink);
-    border-color: var(--ink);
-    color: var(--paper);
-    transform: scale(1.05);
-}
-
-.nav-btn-left { margin-right: 1rem; }
-.nav-btn-right { margin-left: 1rem; }
-
-/* ==================== BENTO ==================== */
-
-.home-bento-panel {
-    background: var(--sage-soft);
-    border: 1px solid var(--line);
-    border-radius: 24px;
-    padding: 2rem;
-    margin-top: 1.5rem;
-}
-
-
-.home-bento-card {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-card);
-    padding: 1.75rem;
-    box-shadow: var(--shadow-card);
-    transition: transform 0.6s var(--ease-out),
-                box-shadow 0.6s var(--ease-out);
-    height: 100%;
-}
-
-.home-bento-card:hover {
-    transform: translateY(-6px);
-    box-shadow: var(--shadow-lift);
-}
-
-@media (max-width: 640px) {
-    .home-bento-panel {
-        padding: 1.25rem;
-        border-radius: 20px;
-    }
-}
-
-/* ==================== DARK FEATURE BLOCK ==================== */
-
-.home-feature-block {
-    border-radius: var(--radius-card);
-    background: var(--ink);
-    color: var(--paper);
-    padding: clamp(1.5rem, 4vw, 3rem);
-    box-shadow: var(--shadow-lift);
-}
-
-.home-feature-block p {
-    color: rgba(247, 243, 233, 0.72);
 }
 
 
@@ -459,39 +156,6 @@
     color: var(--success);
     font-size: 1.15rem;
     line-height: 1.6;
-}
-
-
-/* ==================== SPACING VARIANTS ==================== */
-
-.home-landing section.home-section-tight {
-    padding: 1.5rem 0 !important;
-}
-
-/* ==================== TESTIMONIALS ==================== */
-
-.testimonial-card {
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    height: 100%;
-}
-
-.testimonial-stars {
-    display: flex;
-    gap: 2px;
-    color: var(--brass);
-    font-size: 0.9rem;
-}
-
-.testimonial-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
-    object-fit: cover;
-    border: 1.5px solid var(--line-strong);
-    background: var(--paper);
-    flex-shrink: 0;
 }
 
 
@@ -624,8 +288,7 @@
     text-transform: uppercase;
 }
 
-.home-capability-lead .home-capability-label,
-.home-feature-block .home-kicker--inverse {
+.home-capability-lead .home-capability-label {
     color: var(--brass);
 }
 
@@ -753,43 +416,6 @@
     color: var(--muted);
     font-size: 0.92rem;
     line-height: 1.65;
-}
-
-.home-feature-block {
-    position: relative;
-}
-
-.home-feature-block .demo-cta {
-    margin-top: 1.35rem;
-    background: var(--brass);
-    color: var(--ink);
-}
-
-.home-feature-block .demo-cta:hover {
-    background: var(--paper);
-    color: var(--ink);
-}
-
-.demo-flashcard {
-    display: block;
-    width: 100%;
-    min-height: 13rem;
-    padding: 0;
-    border: 0;
-    border-radius: var(--radius-card);
-    background: transparent;
-    color: inherit;
-    text-align: center;
-    cursor: pointer;
-}
-
-.demo-flashcard:focus-visible {
-    outline: 3px solid var(--brass);
-    outline-offset: 5px;
-}
-
-.demo-flashcard .flashcard-face {
-    border-radius: var(--radius-card);
 }
 
 .home-proof-band {
@@ -1216,7 +842,6 @@
 
 @media (max-width: 480px) {
     .home-capability-lead,
-    .home-feature-block,
     .home-closing-panel {
         padding: 1.25rem;
     }
@@ -1277,233 +902,6 @@
     }
 }
 
-/* ==========================================================================
-   Responsive 3D Carousel Styling for All Device Classes
-   ========================================================================== */
-
-/* Medium Desktops / Laptops (992px - 1199px) */
-@media (min-width: 992px) and (max-width: 1199px) {
-    .hero-carousel-item {
-        width: 270px;
-        height: 170px;
-        margin-left: -135px;
-    }
-    .hero-carousel-container {
-        height: 210px;
-    }
-    .hero-carousel-item.pos-left {
-        transform: translateX(-110px) scale(0.82) rotateY(30deg) rotateZ(-4deg);
-    }
-    .hero-carousel-item.pos-right {
-        transform: translateX(110px) scale(0.82) rotateY(-30deg) rotateZ(4deg);
-    }
-    .hero-carousel-item.pos-back {
-        transform: translateY(-12px) scale(0.65);
-    }
-}
-
-/* Tablets (768px - 991px) */
-@media (min-width: 768px) and (max-width: 991px) {
-    .home-hero .row {
-        flex-direction: column;
-    }
-    .home-hero .col-lg-6 {
-        width: 100%;
-        max-width: 100%;
-        flex: 0 0 100%;
-    }
-    .home-hero .col-lg-6:last-child {
-        margin-top: 1.5rem;
-    }
-    .home-hero h1 {
-        font-size: clamp(1.9rem, 4.5vw, 2.5rem);
-        max-width: 600px;
-    }
-    .hero-carousel-wrapper {
-        max-width: 480px;
-        margin: 0 auto;
-    }
-    .hero-carousel-item {
-        width: 260px;
-        height: 162px;
-        margin-left: -130px;
-    }
-    .hero-carousel-container {
-        height: 200px;
-    }
-    .hero-carousel-item.pos-left {
-        transform: translateX(-100px) scale(0.8) rotateY(28deg) rotateZ(-3deg);
-        opacity: 0.4;
-    }
-    .hero-carousel-item.pos-right {
-        transform: translateX(100px) scale(0.8) rotateY(-28deg) rotateZ(3deg);
-        opacity: 0.4;
-    }
-    .hero-carousel-item.pos-back {
-        transform: translateY(-12px) scale(0.65);
-    }
-    .home-stats-wrapper {
-        max-width: 100%;
-        padding-left: 0;
-        margin-top: 1.5rem;
-    }
-}
-
-/* Mobile Landscapes / Large Phones (576px - 767px) */
-@media (min-width: 576px) and (max-width: 767px) {
-    .hero-carousel-wrapper {
-        max-width: 360px;
-        margin: 1.5rem auto 0;
-    }
-    .hero-carousel-item.pos-left,
-    .hero-carousel-item.pos-right {
-        display: none;
-    }
-    .hero-carousel-item.pos-center {
-        transform: translateX(0) scale(1) rotateY(0) rotateZ(0);
-        filter: drop-shadow(0 12px 24px rgba(41, 50, 38, 0.22));
-    }
-    .hero-carousel-item {
-        width: 280px;
-        height: 175px;
-        margin-left: -140px;
-    }
-    .hero-carousel-container {
-        height: 185px;
-    }
-    .hero-carousel-item.pos-back {
-        transform: translateY(-10px) scale(0.65);
-    }
-    .carousel-nav-btn {
-        width: 38px;
-        height: 38px;
-        font-size: 1.1rem;
-    }
-}
-
-/* Mobile Portraits (360px - 575px) */
-@media (min-width: 360px) and (max-width: 575px) {
-    .home-hero {
-        padding-top: 1.25rem;
-        padding-bottom: 1.5rem;
-    }
-    .hero-carousel-wrapper {
-        max-width: 300px;
-        margin: 1.25rem auto 0;
-    }
-    .hero-carousel-item.pos-left,
-    .hero-carousel-item.pos-right {
-        display: none;
-    }
-    .hero-carousel-item.pos-center {
-        transform: translateX(0) scale(1) rotateY(0) rotateZ(0);
-        filter: drop-shadow(0 10px 20px rgba(41, 50, 38, 0.2));
-    }
-    .hero-carousel-wrapper .carousel-nav-btn {
-        display: none;
-    }
-    .hero-carousel-item {
-        width: 240px;
-        height: 150px;
-        margin-left: -120px;
-    }
-    .hero-carousel-container {
-        height: 160px;
-    }
-    .hero-carousel-item.pos-back {
-        transform: translateY(-8px) scale(0.62);
-    }
-    .carousel-nav-btn {
-        width: 34px;
-        height: 34px;
-        font-size: 0.95rem;
-    }
-    .hero-carousel-item .flashcard-face {
-        padding: 0.75rem !important;
-    }
-    .hero-carousel-item h4 {
-        font-size: 1.0rem !important;
-    }
-    .hero-carousel-item p {
-        font-size: 0.65rem !important;
-    }
-    .hero-carousel-item h5 {
-        font-size: 0.9rem !important;
-    }
-}
-
-/* Ultra-Small Mobile Phones (< 360px) */
-@media (max-width: 359px) {
-    .hero-carousel-wrapper {
-        max-width: 290px;
-        margin: 1.25rem auto 0;
-    }
-    .hero-carousel-item {
-        width: 170px;
-        height: 106px;
-        margin-left: -85px;
-    }
-    .hero-carousel-container {
-        height: 130px;
-    }
-    .hero-carousel-item.pos-left {
-        transform: translateX(-55px) scale(0.75) rotateY(22deg);
-        opacity: 0.3;
-    }
-    .hero-carousel-item.pos-right {
-        transform: translateX(55px) scale(0.75) rotateY(-22deg);
-        opacity: 0.3;
-    }
-    .hero-carousel-item.pos-back {
-        transform: translateY(-6px) scale(0.6);
-    }
-    .carousel-nav-btn {
-        width: 30px;
-        height: 30px;
-        font-size: 0.85rem;
-    }
-    .hero-carousel-item .flashcard-face {
-        padding: 0.5rem !important;
-    }
-    .hero-carousel-item h4 {
-        font-size: 0.85rem !important;
-    }
-    .hero-carousel-item p {
-        font-size: 0.55rem !important;
-    }
-    .hero-carousel-item h5 {
-        font-size: 0.8rem !important;
-    }
-    .hero-carousel-item .fc-pos {
-        font-size: 0.55rem !important;
-        padding: 2px 4px !important;
-    }
-}
-
-/* Chip stats below desktop */
-@media (max-width: 991px) {
-    .home-stats {
-        gap: 0.65rem;
-    }
-    .home-stat {
-        border-top: none;
-        border: 1px solid var(--line);
-        border-radius: 12px;
-        padding: 0.65rem 0.5rem;
-        text-align: center;
-        background: var(--surface);
-    }
-    .home-stat strong {
-        font-size: 1.05rem;
-    }
-    .home-stat span {
-        font-size: 0.68rem;
-        color: var(--muted);
-    }
-    .stat-label-long { display: none; }
-    .stat-label-short { display: block; }
-}
-
 /* Very small mobile: stack CTA buttons */
 @media (max-width: 420px) {
     .home-btn-row--hero {
@@ -1516,20 +914,20 @@
 }
 
 @media (max-width: 576px) {
+    .home-hero {
+        padding-top: 1.25rem;
+        padding-bottom: 1.5rem;
+    }
+
     .home-hero h1 {
         font-size: clamp(1.65rem, 6.5vw, 2rem);
     }
-    .home-hero .col-lg-6:first-child,
-    .home-hero .col-lg-6:first-child p {
+    .home-hero .hero-copy,
+    .home-hero .hero-copy p {
         text-align: center;
     }
     .home-btn-row {
         justify-content: center;
-    }
-    .home-stats-wrapper {
-        padding-left: 0;
-        max-width: 100%;
-        margin-top: 1rem;
     }
     .home-landing section {
         padding: clamp(1.75rem, 5vw, 3rem) 0;

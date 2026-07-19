@@ -14,8 +14,8 @@
 
     <section class="home-hero hero-container-wrapper">
         <div class="container" style="position: relative; z-index: 2;">
-            <div class="row align-items-center g-5">
-                <div class="col-lg-6 gsap-from-left">
+            <div class="row">
+                <div class="col-lg-8 hero-copy gsap-from-left">
                     <div class="home-kicker">Học qua flashcard</div>
                     <h1>
                         <span class="hero-heading-line">Học từ vựng tiếng Anh</span>
@@ -43,113 +43,6 @@
                         </a>
                     </div>
 
-                </div>
-                <div class="col-lg-6 gsap-from-right">
-                    <div class="hero-carousel-wrapper gsap-scale-in">
-                        <!-- Left Navigation Button -->
-                        <button class="carousel-nav-btn nav-btn-left" onclick="rotateCarousel('left')" aria-label="Thẻ trước">
-                            <i class="ph ph-caret-left"></i>
-                        </button>
-
-                        <div class="hero-carousel-container" id="heroCarousel">
-                            <!-- Card 1: consistency (Center position at index 0) -->
-                            <div class="hero-carousel-item pos-center" data-index="0">
-                                <div class="flashcard-3d-wrapper w-100 h-100">
-                                    <div class="flashcard-3d-card" onclick="handleCardClick(this)">
-                                        <div class="flashcard-face flashcard-front">
-                                            <div>
-                                                <span class="fc-pos">Noun</span>
-                                                <div class="fc-word">consistency</div>
-                                                <p class="fc-ipa">/kənˈsɪstənsi/</p>
-                                            </div>
-                                        </div>
-                                        <div class="flashcard-face flashcard-back">
-                                            <div>
-                                                <div class="fc-meaning">sự nhất quán</div>
-                                                <p class="fc-desc">Sự kiên định, không thay đổi.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Card 2: fluency (Right position at index 1) -->
-                            <div class="hero-carousel-item pos-right" data-index="1">
-                                <div class="flashcard-3d-wrapper w-100 h-100">
-                                    <div class="flashcard-3d-card" onclick="handleCardClick(this)">
-                                        <div class="flashcard-face flashcard-front">
-                                            <div>
-                                                <span class="fc-pos">Noun</span>
-                                                <div class="fc-word">fluency</div>
-                                                <p class="fc-ipa">/ˈfluːənsi/</p>
-                                            </div>
-                                        </div>
-                                        <div class="flashcard-face flashcard-back">
-                                            <div>
-                                                <div class="fc-meaning">sự trôi chảy</div>
-                                                <p class="fc-desc">Nói hoặc viết trơn tru, dễ dàng.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Card 3: vocabulary (Back position at index 2) -->
-                            <div class="hero-carousel-item pos-back" data-index="2">
-                                <div class="flashcard-3d-wrapper w-100 h-100">
-                                    <div class="flashcard-3d-card" onclick="handleCardClick(this)">
-                                        <div class="flashcard-face flashcard-front">
-                                            <div>
-                                                <span class="fc-pos">Noun</span>
-                                                <div class="fc-word">vocabulary</div>
-                                                <p class="fc-ipa">/vəˈkæbjələri/</p>
-                                            </div>
-                                        </div>
-                                        <div class="flashcard-face flashcard-back">
-                                            <div>
-                                                <div class="fc-meaning">vốn từ vựng</div>
-                                                <p class="fc-desc">Tập hợp các từ trong một ngôn ngữ.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <!-- Card 4: persistence (Left position at index 3) -->
-                            <div class="hero-carousel-item pos-left" data-index="3">
-                                <div class="flashcard-3d-wrapper w-100 h-100">
-                                    <div class="flashcard-3d-card" onclick="handleCardClick(this)">
-                                        <div class="flashcard-face flashcard-front">
-                                            <div>
-                                                <span class="fc-pos">Noun</span>
-                                                <div class="fc-word">persistence</div>
-                                                <p class="fc-ipa">/pəˈsɪstəns/</p>
-                                            </div>
-                                        </div>
-                                        <div class="flashcard-face flashcard-back">
-                                            <div>
-                                                <div class="fc-meaning">sự kiên trì</div>
-                                                <p class="fc-desc">Bền bỉ theo đuổi mục tiêu.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Right Navigation Button -->
-                        <button class="carousel-nav-btn nav-btn-right" onclick="rotateCarousel('right')" aria-label="Thẻ tiếp theo">
-                            <i class="ph ph-caret-right"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <!-- Stats wrapper: after carousel on mobile/tablet, left-aligned on desktop -->
-            <div class="home-stats-wrapper gsap-fade-up">
-                <div class="home-stats">
-                    <div class="home-stat"><strong><span class="stat-count" data-target="3">0</span> phút</strong><span class="stat-label-long">Tạo bộ thẻ đầu tiên</span><span class="stat-label-short">Tạo bộ thẻ</span></div>
-                    <div class="home-stat"><strong><span class="stat-count" data-target="5">0</span> chế độ</strong><span class="stat-label-long">Học và ôn tập</span><span class="stat-label-short">Học &amp; ôn tập</span></div>
-                    <div class="home-stat"><strong><span class="stat-count" data-target="100">0</span>%</strong><span class="stat-label-long">Theo dõi tiến độ</span><span class="stat-label-short">Theo dõi</span></div>
                 </div>
             </div>
         </div>
@@ -221,27 +114,6 @@
         </div>
     </section>
 
-    <section class="home-section home-section-demo">
-        <div class="container">
-            <div class="home-feature-block">
-                <div class="row g-4 align-items-center">
-                    <div class="col-lg-6 gsap-from-left">
-                        <span class="home-kicker home-kicker--inverse">Trải nghiệm trực tiếp</span>
-                        <h2 class="home-section-title text-white mist-reveal">Một workspace học từ vựng gọn.</h2>
-                        <p>Từ tạo bộ thẻ đến học flashcard đều nằm trong cùng một luồng.</p>
-                        <a class="btn-primary-custom demo-cta" href="@primaryCta"><i class="ph ph-rocket-launch"></i> Tạo bộ thẻ đầu tiên</a>
-                    </div>
-                    <div class="col-lg-6 gsap-from-right">
-                        <button type="button" class="flashcard-3d-card demo-flashcard" data-demo-card aria-pressed="false" aria-label="Lật thẻ debugging để xem nghĩa">
-                            <span class="flashcard-face flashcard-face--paper"><span><span class="fc-pos">Vocabulary</span><span class="fc-word">debugging</span><span class="fc-ipa">/ˌdiːˈbʌɡɪŋ/<br>Chọn hoặc nhấn Enter để lật thẻ</span></span></span>
-                            <span class="flashcard-face flashcard-back flashcard-face--sage"><span><span class="fc-meaning">gỡ lỗi</span><span class="fc-desc">Debugging helped identify the cause of the system crash.</span></span></span>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
     <section class="home-section home-section-proof">
         <div class="container">
             <div class="home-proof-band gsap-fade-up">
@@ -251,76 +123,6 @@
                     <div class="home-check"><i class="ph ph-check-circle"></i><span>Bộ thẻ và tiến độ được lưu trong tài khoản của bạn.</span></div>
                     <div class="home-check"><i class="ph ph-check-circle"></i><span>Màn hình tập trung vào từng từ vựng.</span></div>
                     <div class="home-check"><i class="ph ph-check-circle"></i><span>Bạn cũng có thể bắt đầu với một bộ thẻ công khai.</span></div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="home-section-tight" id="testimonials">
-        <div class="container">
-            <div class="text-center mb-4">
-                <div class="home-kicker">Cảm nhận học viên</div>
-                <h2 class="home-section-title mist-reveal">Cảm nhận từ học viên.</h2>
-            </div>
-            <div class="home-bento-panel gsap-fade-up">
-                <div class="home-bento-grid-3 gsap-stagger">
-                    <div class="home-bento-card testimonial-card">
-                        <div>
-                            <div class="testimonial-stars mb-3">
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                            </div>
-                            <p class="home-section-copy mb-4" style="font-style: italic;">"Flashcard rõ, dễ ôn lại từ chưa thuộc."</p>
-                        </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <img src="/images/neymar.png" alt="Neymar" class="testimonial-avatar">
-                            <div>
-                                <strong class="d-block">Neymar</strong>
-                                <small class="text-muted">Sinh viên</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="home-bento-card testimonial-card">
-                        <div>
-                            <div class="testimonial-stars mb-3">
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                            </div>
-                            <p class="home-section-copy mb-4" style="font-style: italic;">"Tôi thích phần đánh sao và nghe phát âm."</p>
-                        </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <img src="/images/messi.png" alt="Messi" class="testimonial-avatar">
-                            <div>
-                                <strong class="d-block">Messi</strong>
-                                <small class="text-muted">Người tự học</small>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="home-bento-card testimonial-card">
-                        <div>
-                            <div class="testimonial-stars mb-3">
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                            </div>
-                            <p class="home-section-copy mb-4" style="font-style: italic;">"Tạo bộ thẻ cho lớp rất nhanh."</p>
-                        </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <img src="/images/ronaldo.png" alt="Ronaldo" class="testimonial-avatar">
-                            <div>
-                                <strong class="d-block">Ronaldo</strong>
-                                <small class="text-muted">Gia sư</small>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -472,71 +274,6 @@
         }, 2600);
     })();
 
-    // Carousel State Tracking
-    let currentCenterIndex = 0; // consistency (index 0) starts in the middle
-    const totalItems = 4;
-    const positions = ['pos-center', 'pos-right', 'pos-back', 'pos-left'];
-    let autoplayInterval;
-
-    window.startAutoplay = function() {
-        window.stopAutoplay();
-        autoplayInterval = setInterval(() => {
-            window.rotateCarousel('right');
-        }, 2500);
-    }
-
-    window.stopAutoplay = function() {
-        if (autoplayInterval) {
-            clearInterval(autoplayInterval);
-            autoplayInterval = null;
-        }
-    }
-
-    window.rotateCarousel = function(direction) {
-        const container = document.getElementById('heroCarousel');
-        if (!container) return;
-        const items = container.querySelectorAll('.hero-carousel-item');
-
-        // Clear flipped state from all cards before rotating to maintain front side
-        items.forEach(el => {
-            const card = el.querySelector('.flashcard-3d-card');
-            if (card) card.classList.remove('flipped');
-        });
-
-        if (direction === 'left') {
-            currentCenterIndex = (currentCenterIndex - 1 + totalItems) % totalItems;
-        } else {
-            currentCenterIndex = (currentCenterIndex + 1) % totalItems;
-        }
-
-        items.forEach((item, index) => {
-            item.className = 'hero-carousel-item'; // Reset class list
-
-            // Calculate relative state class index
-            const relativePos = (index - currentCenterIndex + totalItems) % totalItems;
-            item.classList.add(positions[relativePos]);
-        });
-
-        // Reset timer if autoplay is active
-        if (autoplayInterval) {
-            window.startAutoplay();
-        }
-    }
-
-    window.handleCardClick = function(cardElement) {
-        const itemContainer = cardElement.closest('.hero-carousel-item');
-        if (!itemContainer) return;
-
-        if (itemContainer.classList.contains('pos-center')) {
-            // Flip card only when it resides in the center focus position
-            cardElement.classList.toggle('flipped');
-        } else if (itemContainer.classList.contains('pos-left')) {
-            window.rotateCarousel('left');
-        } else if (itemContainer.classList.contains('pos-right')) {
-            window.rotateCarousel('right');
-        }
-    }
-
     document.querySelectorAll('.home-landing a[href^="#"]').forEach(anchor => {
         anchor.addEventListener('click', function(e) {
             const target = document.querySelector(this.getAttribute('href'));
@@ -546,51 +283,9 @@
         });
     });
 
-    // The demo card is a real button, so click, Enter and Space all expose
-    // the same flip state to mouse, keyboard and touch users.
-    const demoCard = document.querySelector('[data-demo-card]');
-    if (demoCard) {
-        demoCard.addEventListener('click', function () {
-            const flipped = demoCard.classList.toggle('flipped');
-            demoCard.setAttribute('aria-pressed', String(flipped));
-        });
-        demoCard.addEventListener('keydown', function (event) {
-            if (event.key === ' ') {
-                event.preventDefault();
-                demoCard.click();
-            }
-        });
-    }
-
-    // Count animation logic
-    function animateCount(element) {
-        const target = parseInt(element.getAttribute('data-target'), 10);
-        const duration = 1500; // 1.5 seconds
-        const startTime = performance.now();
-
-        function update(currentTime) {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-
-            // Easing out quadratic
-            const easeProgress = progress * (2 - progress);
-
-            const currentValue = Math.floor(easeProgress * target);
-            element.textContent = currentValue;
-
-            if (progress < 1) {
-                requestAnimationFrame(update);
-            } else {
-                element.textContent = target;
-            }
-        }
-        requestAnimationFrame(update);
-    }
-
-    // Intersection Observer for Misty de-blur scroll reveal and Stat Counters
+    // Intersection Observer for the section-heading reveal.
     document.addEventListener("DOMContentLoaded", function() {
         const mistElements = document.querySelectorAll('.mist-reveal');
-        const countElements = document.querySelectorAll('.stat-count');
 
         const observer = new IntersectionObserver((entries) => {
             entries.forEach(entry => {
@@ -605,27 +300,6 @@
         });
 
         mistElements.forEach(el => observer.observe(el));
-
-        const countObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    animateCount(entry.target);
-                    countObserver.unobserve(entry.target);
-                }
-            });
-        }, {
-            threshold: 0.5
-        });
-
-        countElements.forEach(el => countObserver.observe(el));
-
-        // Initialize Carousel Autoplay and hover controls
-        const carousel = document.querySelector('.hero-carousel-wrapper');
-        if (carousel) {
-            window.startAutoplay();
-            carousel.addEventListener('mouseenter', window.stopAutoplay);
-            carousel.addEventListener('mouseleave', window.startAutoplay);
-        }
     });
 </script>
 }
