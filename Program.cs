@@ -52,6 +52,7 @@ builder.Services.AddScoped<CsvFlashcardFileParser>();
 builder.Services.AddScoped<XlsxFlashcardFileParser>();
 builder.Services.AddScoped<FlashcardFileParserResolver>();
 builder.Services.AddScoped<IStudyService, StudyService>();
+builder.Services.AddSingleton<TimeProvider>(TimeProvider.System);
 builder.Services.AddScoped<IQuizService, QuizService>();
 // Service xử lý nghe chép chính tả
 builder.Services.AddScoped<IDictationService, DictationService>();

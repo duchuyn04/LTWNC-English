@@ -440,6 +440,8 @@ public class StudyController : Controller
                 CurrentNumber = state.AnsweredCount + 1,
                 TotalQuestions = state.TotalQuestions,
                 CorrectCount = state.CorrectCount,
+                DeadlineUtc = state.DeadlineUtc,
+                RemainingSeconds = state.RemainingSeconds,
                 Direction = question.Direction,
                 PromptText = question.PromptText,
                 Choices = question.Choices.ToList()
@@ -458,6 +460,10 @@ public class StudyController : Controller
         catch (UnauthorizedAccessException)
         {
             return Forbid();
+        }
+        catch (QuizExpiredException)
+        {
+            return RedirectToAction(nameof(QuizResult), new { setId, sessionId });
         }
     }
 
@@ -500,6 +506,56 @@ public class StudyController : Controller
         catch (ArgumentOutOfRangeException)
         {
             return BadRequest();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (QuizExpiredException exception)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new
+            {
+                success = false,
+                expired = true,
+                message = exception.Message,
+                nextUrl = Url.Action(nameof(QuizResult), new { setId, sessionId })
+            });
+        }
+        catch (QuizConflictException exception)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new
+            {
+                success = false,
+                message = exception.Message
+            });
+        }
+    }
+
+    [HttpPost]
+    [Route("/Study/{setId}/Quiz/{sessionId:int}/Timeout")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> QuizTimeout(int setId, int sessionId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            await _quizService.CompleteExpiredAsync(setId, sessionId, userId);
+            string? resultUrl = Url.Action(nameof(QuizResult), new { setId, sessionId });
+            if (IsAjaxRequest())
+            {
+                return Json(new { success = true, nextUrl = resultUrl });
+            }
+
+            return RedirectToAction(nameof(QuizResult), new { setId, sessionId });
         }
         catch (UnauthorizedAccessException)
         {

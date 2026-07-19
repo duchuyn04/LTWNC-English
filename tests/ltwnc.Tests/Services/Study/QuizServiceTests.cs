@@ -185,6 +185,155 @@ public class QuizServiceTests
     }
 
     [Fact]
+    public async Task GetCurrentQuestion_expired_attempt_completes_pending_questions_as_wrong()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        var publisher = new RecordingStudyEventPublisher();
+        var timeProvider = new FixedTimeProvider(new DateTimeOffset(
+            2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        QuizService service = CreateService(database.Context, publisher, timeProvider);
+        StudySession session = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        session.QuizStartedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+        session.QuizTimeLimitSeconds = 60;
+        await database.Context.SaveChangesAsync();
+        database.Context.ChangeTracker.Clear();
+        timeProvider.Advance(TimeSpan.FromSeconds(61));
+
+        await service.CompleteExpiredAsync(
+            set.Id,
+            session.Id,
+            set.UserId);
+        await service.CompleteExpiredAsync(
+            set.Id,
+            session.Id,
+            set.UserId);
+
+        StudySession storedSession = await database.Context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(row => row.Id == session.Id);
+        List<QuizSessionQuestion> questions = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .Where(row => row.StudySessionId == session.Id)
+            .ToListAsync();
+        Assert.Equal(0, storedSession.Score);
+        Assert.Equal(timeProvider.GetUtcNow().UtcDateTime, storedSession.CompletedAt);
+        Assert.All(questions, question =>
+        {
+            Assert.Null(question.SelectedChoiceIndex);
+            Assert.False(question.IsCorrect);
+            Assert.NotNull(question.AnsweredAt);
+        });
+        QuizSessionResult result = await service.GetResultAsync(set.Id, session.Id, set.UserId);
+        Assert.All(result.WrongAnswers, answer =>
+            Assert.Equal("Chưa trả lời", answer.SelectedAnswer));
+        Assert.Single(publisher.Events);
+    }
+
+    [Fact]
+    public async Task GetCurrentQuestion_expired_attempt_completes_and_throws_expired_exception()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        var timeProvider = new FixedTimeProvider(new DateTimeOffset(
+            2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        QuizService service = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher(),
+            timeProvider);
+        StudySession session = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        session.QuizStartedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+        session.QuizTimeLimitSeconds = 60;
+        await database.Context.SaveChangesAsync();
+        database.Context.ChangeTracker.Clear();
+        timeProvider.Advance(TimeSpan.FromSeconds(61));
+
+        await Assert.ThrowsAsync<QuizExpiredException>(() => service.GetCurrentQuestionAsync(
+            set.Id,
+            session.Id,
+            set.UserId));
+
+        Assert.Equal(0, await database.Context.StudySessions
+            .Where(row => row.Id == session.Id)
+            .Select(row => row.Score)
+            .SingleAsync());
+    }
+
+    [Fact]
+    public async Task Answer_expired_attempt_completes_before_accepting_the_answer()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        var timeProvider = new FixedTimeProvider(new DateTimeOffset(
+            2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        QuizService service = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher(),
+            timeProvider);
+        StudySession session = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        QuizSessionQuestion question = await database.Context.QuizSessionQuestions
+            .OrderBy(row => row.OrderIndex)
+            .FirstAsync();
+        session.QuizStartedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+        session.QuizTimeLimitSeconds = 60;
+        await database.Context.SaveChangesAsync();
+        database.Context.ChangeTracker.Clear();
+        timeProvider.Advance(TimeSpan.FromSeconds(61));
+
+        await Assert.ThrowsAsync<QuizExpiredException>(() => service.AnswerAsync(
+            set.Id,
+            session.Id,
+            question.Id,
+            question.CorrectChoiceIndex,
+            set.UserId));
+
+        QuizSessionQuestion storedQuestion = await database.Context.QuizSessionQuestions
+            .AsNoTracking()
+            .SingleAsync(row => row.Id == question.Id);
+        Assert.Null(storedQuestion.SelectedChoiceIndex);
+        Assert.False(storedQuestion.IsCorrect);
+    }
+
+    [Fact]
+    public async Task GetCurrentQuestion_timed_attempt_exposes_server_deadline_and_remaining_seconds()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        var timeProvider = new FixedTimeProvider(new DateTimeOffset(
+            2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+        QuizService service = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher(),
+            timeProvider);
+        StudySession session = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        session.QuizStartedAtUtc = timeProvider.GetUtcNow().UtcDateTime;
+        session.QuizTimeLimitSeconds = 60;
+        await database.Context.SaveChangesAsync();
+        database.Context.ChangeTracker.Clear();
+        timeProvider.Advance(TimeSpan.FromSeconds(17));
+
+        QuizQuestionState state = await service.GetCurrentQuestionAsync(
+            set.Id,
+            session.Id,
+            set.UserId);
+
+        Assert.Equal(new DateTime(2026, 1, 1, 0, 1, 0, DateTimeKind.Utc), state.DeadlineUtc);
+        Assert.Equal(43, state.RemainingSeconds);
+    }
+
+    [Fact]
     public async Task GetCurrentQuestion_recovers_answered_orphan_and_publishes_completion_once()
     {
         await using var database = await QuizTestDatabase.CreateAsync();
@@ -1242,16 +1391,36 @@ public class QuizServiceTests
         bool? IsCorrect,
         DateTime? AnsweredAt);
 
+    private sealed class FixedTimeProvider : TimeProvider
+    {
+        private DateTimeOffset _utcNow;
+
+        public FixedTimeProvider(DateTimeOffset utcNow)
+        {
+            _utcNow = utcNow;
+        }
+
+        public override DateTimeOffset GetUtcNow() => _utcNow;
+
+        public void Advance(TimeSpan elapsed) => _utcNow += elapsed;
+    }
+
     private static QuizService CreateService(
         AppDbContext context,
-        RecordingStudyEventPublisher publisher)
+        RecordingStudyEventPublisher publisher,
+        TimeProvider? timeProvider = null)
     {
         var questionFactory = new QuizQuestionFactory(context);
         var strategy = new QuizModeStrategy(
             new StudyCardQueryService(context),
             questionFactory);
         var resolver = new StudyModeStrategyResolver(new[] { strategy });
-        return new QuizService(context, resolver, questionFactory, publisher);
+        return new QuizService(
+            context,
+            resolver,
+            questionFactory,
+            publisher,
+            timeProvider ?? TimeProvider.System);
     }
 
     private static int DifferentChoice(int correctChoiceIndex) =>

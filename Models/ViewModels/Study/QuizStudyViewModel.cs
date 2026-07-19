@@ -11,6 +11,8 @@ public class QuizStudyViewModel
     public int CurrentNumber { get; set; }
     public int TotalQuestions { get; set; }
     public int CorrectCount { get; set; }
+    public DateTime? DeadlineUtc { get; set; }
+    public int? RemainingSeconds { get; set; }
     public QuizQuestionDirection Direction { get; set; }
     public string PromptText { get; set; } = string.Empty;
     public List<string> Choices { get; set; } = new();

@@ -147,6 +147,21 @@ public class StudyControllerQuizTests
     }
 
     [Fact]
+    public async Task Quiz_expired_redirects_to_result()
+    {
+        _quizService.Setup(service => service.GetCurrentQuestionAsync(7, 42, "user-1"))
+            .ThrowsAsync(new QuizExpiredException());
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.Quiz(7, 42);
+
+        RedirectToActionResult redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(StudyController.QuizResult), redirect.ActionName);
+        Assert.Equal(7, redirect.RouteValues!["setId"]);
+        Assert.Equal(42, redirect.RouteValues["sessionId"]);
+    }
+
+    [Fact]
     public async Task QuizAnswer_maps_success_json()
     {
         _quizService.Setup(service => service.AnswerAsync(7, 42, 501, 2, "user-1"))
@@ -160,6 +175,49 @@ public class StudyControllerQuizTests
         Assert.True(json.GetProperty("isCorrect").GetBoolean());
         Assert.Equal(2, json.GetProperty("correctChoiceIndex").GetInt32());
         Assert.True(json.GetProperty("isLastQuestion").GetBoolean());
+        Assert.Equal("/Study/7/Quiz/Result/42", json.GetProperty("nextUrl").GetString());
+    }
+
+    [Fact]
+    public async Task QuizTimeout_ajax_completes_expired_attempt_and_returns_result_url()
+    {
+        StudyController controller = CreateController("user-1");
+        controller.Request.Headers["X-Requested-With"] = "XMLHttpRequest";
+
+        IActionResult result = await controller.QuizTimeout(7, 42);
+
+        JsonElement json = SerializeJsonResult(result);
+        Assert.True(json.GetProperty("success").GetBoolean());
+        Assert.Equal("/Study/7/Quiz/Result/42", json.GetProperty("nextUrl").GetString());
+        _quizService.Verify(service => service.CompleteExpiredAsync(7, 42, "user-1"), Times.Once);
+    }
+
+    [Fact]
+    public async Task QuizTimeout_browser_post_redirects_to_result()
+    {
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.QuizTimeout(7, 42);
+
+        RedirectToActionResult redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(StudyController.QuizResult), redirect.ActionName);
+        Assert.Equal(7, redirect.RouteValues!["setId"]);
+        Assert.Equal(42, redirect.RouteValues["sessionId"]);
+    }
+
+    [Fact]
+    public async Task QuizAnswer_expired_returns_result_navigation_json()
+    {
+        _quizService.Setup(service => service.AnswerAsync(7, 42, 501, 2, "user-1"))
+            .ThrowsAsync(new QuizExpiredException());
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.QuizAnswer(7, 42, 501, 2);
+
+        ObjectResult conflict = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
+        JsonElement json = JsonSerializer.SerializeToElement(conflict.Value);
+        Assert.True(json.GetProperty("expired").GetBoolean());
         Assert.Equal("/Study/7/Quiz/Result/42", json.GetProperty("nextUrl").GetString());
     }
 
@@ -296,6 +354,7 @@ public class StudyControllerQuizTests
 
     [Theory]
     [InlineData("answer")]
+    [InlineData("timeout")]
     [InlineData("retry-wrong")]
     [InlineData("retry-all")]
     public async Task Quiz_ajax_post_actions_unauthorize_anonymous_users(string action)
@@ -306,6 +365,7 @@ public class StudyControllerQuizTests
         IActionResult result = action switch
         {
             "answer" => await controller.QuizAnswer(7, 42, 501, 2),
+            "timeout" => await controller.QuizTimeout(7, 42),
             "retry-wrong" => await controller.RetryWrong(7, 42),
             "retry-all" => await controller.RetryAll(7, 42),
             _ => throw new ArgumentOutOfRangeException(nameof(action))
@@ -321,11 +381,13 @@ public class StudyControllerQuizTests
         AssertRoute(nameof(StudyController.QuizStart), 2, "/Study/{setId}/Quiz/Start", typeof(HttpPostAttribute));
         AssertRoute(nameof(StudyController.Quiz), 2, "/Study/{setId}/Quiz/{sessionId:int}", typeof(HttpGetAttribute));
         AssertRoute(nameof(StudyController.QuizAnswer), 4, "/Study/{setId}/Quiz/{sessionId:int}/Answer", typeof(HttpPostAttribute));
+        AssertRoute(nameof(StudyController.QuizTimeout), 2, "/Study/{setId}/Quiz/{sessionId:int}/Timeout", typeof(HttpPostAttribute));
         AssertRoute(nameof(StudyController.QuizResult), 2, "/Study/{setId}/Quiz/Result/{sessionId:int}", typeof(HttpGetAttribute));
         AssertRoute(nameof(StudyController.RetryWrong), 2, "/Study/{setId}/Quiz/{sessionId:int}/RetryWrong", typeof(HttpPostAttribute));
         AssertRoute(nameof(StudyController.RetryAll), 2, "/Study/{setId}/Quiz/{sessionId:int}/RetryAll", typeof(HttpPostAttribute));
 
         AssertPostValidatesAntiforgery(nameof(StudyController.QuizAnswer));
+        AssertPostValidatesAntiforgery(nameof(StudyController.QuizTimeout));
         AssertPostValidatesAntiforgery(nameof(StudyController.RetryWrong));
         AssertPostValidatesAntiforgery(nameof(StudyController.RetryAll));
         MethodInfo quizStartPost = typeof(StudyController).GetMethods()

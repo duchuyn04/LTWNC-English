@@ -28,6 +28,8 @@ public sealed class QuizQuestionState
     public int TotalQuestions { get; init; }
     public int AnsweredCount { get; init; }
     public int CorrectCount { get; init; }
+    public DateTime? DeadlineUtc { get; init; }
+    public int? RemainingSeconds { get; init; }
     public QuizSessionQuestion? Question { get; init; }
     public bool IsComplete => Question is null;
 }
@@ -40,6 +42,11 @@ public sealed record QuizAnswerResult(
 public sealed class QuizConflictException : InvalidOperationException
 {
     public QuizConflictException(string message) : base(message) { }
+}
+
+public sealed class QuizExpiredException : InvalidOperationException
+{
+    public QuizExpiredException() : base("Phiên trắc nghiệm đã hết thời gian.") { }
 }
 
 public sealed class QuizSessionResult

@@ -17,17 +17,20 @@ public class QuizService : IQuizService
     private readonly IStudyModeStrategyResolver _strategyResolver;
     private readonly QuizQuestionFactory _questionFactory;
     private readonly IStudyEventPublisher _studyEvents;
+    private readonly TimeProvider _timeProvider;
 
     public QuizService(
         AppDbContext context,
         IStudyModeStrategyResolver strategyResolver,
         QuizQuestionFactory questionFactory,
-        IStudyEventPublisher studyEvents)
+        IStudyEventPublisher studyEvents,
+        TimeProvider? timeProvider = null)
     {
         _context = context;
         _strategyResolver = strategyResolver;
         _questionFactory = questionFactory;
         _studyEvents = studyEvents;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     public async Task<QuizSetupState> GetSetupAsync(int setId, string userId)
@@ -79,7 +82,7 @@ public class QuizService : IQuizService
 
         try
         {
-            DateTime now = DateTime.UtcNow;
+            DateTime now = GetUtcNow();
             await _context.StudySessions
                 .Where(session => session.FlashcardSetId == setId
                     && session.UserId == userId
@@ -166,7 +169,7 @@ public class QuizService : IQuizService
         {
             bool hasUnansweredQuestion = await _context.QuizSessionQuestions.AnyAsync(question =>
                 question.StudySessionId == existingSession.Id
-                && question.SelectedChoiceIndex == null);
+                && question.IsCorrect == null);
             if (!hasUnansweredQuestion)
             {
                 await RecoverCompletedSessionIfNeededAsync(existingSession);
@@ -271,15 +274,22 @@ public class QuizService : IQuizService
             throw new UnauthorizedAccessException("Không có quyền xem phiên trắc nghiệm này.");
         }
 
+        DateTime now = GetUtcNow();
+        if (IsExpired(session, now))
+        {
+            await CompleteExpiredSessionAsync(session, now);
+            throw new QuizExpiredException();
+        }
+
         IQueryable<QuizSessionQuestion> questions = _context.QuizSessionQuestions
             .AsNoTracking()
             .Where(question => question.StudySessionId == sessionId);
         int totalQuestions = await questions.CountAsync();
         int answeredCount = await questions.CountAsync(question =>
-            question.SelectedChoiceIndex != null);
+            question.IsCorrect != null);
         int correctCount = await questions.CountAsync(question => question.IsCorrect == true);
         QuizSessionQuestion? currentQuestion = await questions
-            .Where(question => question.SelectedChoiceIndex == null)
+            .Where(question => question.IsCorrect == null)
             .OrderBy(question => question.OrderIndex)
             .FirstOrDefaultAsync();
         if (currentQuestion == null && session.Score == null)
@@ -295,6 +305,8 @@ public class QuizService : IQuizService
             TotalQuestions = totalQuestions,
             AnsweredCount = answeredCount,
             CorrectCount = correctCount,
+            DeadlineUtc = GetDeadlineUtc(session),
+            RemainingSeconds = GetRemainingSeconds(session, now),
             Question = currentQuestion
         };
     }
@@ -326,6 +338,13 @@ public class QuizService : IQuizService
             throw new UnauthorizedAccessException("Không có quyền trả lời phiên trắc nghiệm này.");
         }
 
+        DateTime now = GetUtcNow();
+        if (IsExpired(session, now))
+        {
+            await CompleteExpiredSessionAsync(session, now);
+            throw new QuizExpiredException();
+        }
+
         QuizSessionQuestion? question = await _context.QuizSessionQuestions
             .AsNoTracking()
             .FirstOrDefaultAsync(row => row.Id == questionId);
@@ -346,11 +365,11 @@ public class QuizService : IQuizService
         {
             bool isCorrect = selectedChoiceIndex == question.CorrectChoiceIndex;
             int affected = await _context.QuizSessionQuestions
-                .Where(row => row.Id == questionId && row.SelectedChoiceIndex == null)
+                .Where(row => row.Id == questionId && row.IsCorrect == null)
                 .ExecuteUpdateAsync(updates => updates
                     .SetProperty(row => row.SelectedChoiceIndex, selectedChoiceIndex)
                     .SetProperty(row => row.IsCorrect, isCorrect)
-                    .SetProperty(row => row.AnsweredAt, DateTime.UtcNow));
+                    .SetProperty(row => row.AnsweredAt, now));
             if (affected == 0)
             {
                 QuizSessionQuestion storedQuestion = await _context.QuizSessionQuestions
@@ -364,7 +383,7 @@ public class QuizService : IQuizService
 
                 bool storedIsLastQuestion = !await _context.QuizSessionQuestions.AnyAsync(row =>
                     row.StudySessionId == sessionId
-                    && row.SelectedChoiceIndex == null);
+                    && row.IsCorrect == null);
                 if (storedIsLastQuestion)
                 {
                     completionEvent = await CompleteSessionIfEligibleAsync(session);
@@ -379,7 +398,7 @@ public class QuizService : IQuizService
             {
                 bool isLastQuestion = !await _context.QuizSessionQuestions.AnyAsync(row =>
                     row.StudySessionId == sessionId
-                    && row.SelectedChoiceIndex == null);
+                    && row.IsCorrect == null);
                 if (isLastQuestion)
                 {
                     completionEvent = await CompleteSessionIfEligibleAsync(session);
@@ -421,12 +440,86 @@ public class QuizService : IQuizService
         return answerResult;
     }
 
+    public async Task CompleteExpiredAsync(int setId, int sessionId, string userId)
+    {
+        StudySession? session = await _context.StudySessions
+            .AsNoTracking()
+            .FirstOrDefaultAsync(row => row.Id == sessionId);
+        if (session == null
+            || session.FlashcardSetId != setId
+            || session.Mode != StudyMode.Quiz)
+        {
+            throw new KeyNotFoundException("Phiên trắc nghiệm không tồn tại.");
+        }
+
+        if (session.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("Không có quyền hoàn thành phiên trắc nghiệm này.");
+        }
+
+        DateTime now = GetUtcNow();
+        if (!IsExpired(session, now))
+        {
+            throw new QuizConflictException("Phiên trắc nghiệm chưa hết thời gian.");
+        }
+
+        await CompleteExpiredSessionAsync(session, now);
+    }
+
+    private async Task CompleteExpiredSessionAsync(StudySession session, DateTime now)
+    {
+        IDbContextTransaction? transaction = null;
+        if (_context.Database.IsRelational())
+        {
+            transaction = await _context.Database.BeginTransactionAsync();
+        }
+
+        StudySessionCompletedEvent? completionEvent;
+        try
+        {
+            await _context.QuizSessionQuestions
+                .Where(question => question.StudySessionId == session.Id
+                    && question.IsCorrect == null)
+                .ExecuteUpdateAsync(updates => updates
+                    .SetProperty(question => question.IsCorrect, false)
+                    .SetProperty(question => question.AnsweredAt, now));
+            completionEvent = await CompleteSessionIfEligibleAsync(session, now);
+
+            if (transaction != null)
+            {
+                await transaction.CommitAsync();
+            }
+        }
+        catch
+        {
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync();
+            }
+
+            throw;
+        }
+        finally
+        {
+            if (transaction != null)
+            {
+                await transaction.DisposeAsync();
+            }
+        }
+
+        if (completionEvent != null)
+        {
+            await _studyEvents.PublishAsync(completionEvent);
+        }
+    }
+
     private async Task<StudySessionCompletedEvent?> CompleteSessionIfEligibleAsync(
-        StudySession session)
+        StudySession session,
+        DateTime? completedAtUtc = null)
     {
         bool hasUnansweredQuestion = await _context.QuizSessionQuestions.AnyAsync(row =>
             row.StudySessionId == session.Id
-            && row.SelectedChoiceIndex == null);
+            && row.IsCorrect == null);
         if (hasUnansweredQuestion)
         {
             return null;
@@ -442,7 +535,7 @@ public class QuizService : IQuizService
             : (int)Math.Round(
                 correctCount * 100.0 / totalCount,
                 MidpointRounding.AwayFromZero);
-        DateTime completedAt = DateTime.UtcNow;
+        DateTime completedAt = completedAtUtc ?? GetUtcNow();
         int affected = await _context.StudySessions
             .Where(row => row.Id == session.Id
                 && row.FlashcardSetId == session.FlashcardSetId
@@ -465,6 +558,37 @@ public class QuizService : IQuizService
         }
 
         return null;
+    }
+
+    private DateTime GetUtcNow() => _timeProvider.GetUtcNow().UtcDateTime;
+
+    private static bool IsExpired(StudySession session, DateTime now)
+    {
+        DateTime? deadline = GetDeadlineUtc(session);
+        return deadline.HasValue && now >= deadline.Value;
+    }
+
+    private static DateTime? GetDeadlineUtc(StudySession session)
+    {
+        if (session.QuizStartedAtUtc is not DateTime startedAtUtc
+            || session.QuizTimeLimitSeconds is not int timeLimitSeconds
+            || timeLimitSeconds <= 0)
+        {
+            return null;
+        }
+
+        return startedAtUtc.AddSeconds(timeLimitSeconds);
+    }
+
+    private static int? GetRemainingSeconds(StudySession session, DateTime now)
+    {
+        DateTime? deadline = GetDeadlineUtc(session);
+        if (!deadline.HasValue)
+        {
+            return null;
+        }
+
+        return Math.Max(0, (int)Math.Ceiling((deadline.Value - now).TotalSeconds));
     }
 
     private async Task RecoverCompletedSessionIfNeededAsync(StudySession session)
@@ -545,7 +669,9 @@ public class QuizService : IQuizService
                 question.FlashcardId,
                 question.Direction,
                 question.PromptText,
-                question.Choices[question.SelectedChoiceIndex!.Value],
+                question.SelectedChoiceIndex is int selectedChoiceIndex
+                    ? question.Choices[selectedChoiceIndex]
+                    : "Chưa trả lời",
                 question.Choices[question.CorrectChoiceIndex]))
             .ToList();
 

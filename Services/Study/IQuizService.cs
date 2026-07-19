@@ -29,6 +29,8 @@ public interface IQuizService
         int selectedChoiceIndex,
         string userId);
 
+    Task CompleteExpiredAsync(int setId, int sessionId, string userId);
+
     Task<QuizSessionResult> GetResultAsync(int setId, int sessionId, string userId);
     Task<StudySession> RetryWrongAsync(int setId, int sessionId, string userId);
     Task<StudySession> RetryAllAsync(int setId, int sessionId, string userId);
