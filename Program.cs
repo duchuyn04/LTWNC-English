@@ -1,7 +1,11 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.AspNetCore.RateLimiting;
+using System.Security.Claims;
+using System.Threading.RateLimiting;
 using ltwnc.Areas.Admin;
 using ltwnc.Data;
 using ltwnc.Services.Achievements;
@@ -33,7 +37,11 @@ builder.Services.AddIdentityCore<IdentityUser>(options =>
         options.Password.RequireNonAlphanumeric = false;
         options.User.RequireUniqueEmail = true;
         options.User.AllowedUserNameCharacters = UsernamePolicy.AllowedIdentityCharacters;
+        options.Lockout.AllowedForNewUsers = true;
+        options.Lockout.MaxFailedAccessAttempts = 5;
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
     })
+    .AddRoles<IdentityRole>()
     .AddEntityFrameworkStores<AppDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();
@@ -42,9 +50,21 @@ builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     .AddIdentityCookies();
 
 builder.Services.AddAuthorization(options =>
-    options.AddPolicy(
-        AdminAreaPolicy.Name,
-        policy => policy.RequireRole(AdminRoleBootstrapper.AdminRole)));
+{
+    options.AddPolicy(AdminAreaPolicy.Name, policy =>
+    {
+        policy.RequireRole(AdminRoleBootstrapper.AdminRole);
+        policy.RequireClaim(AdminAuthenticationSession.VerifiedAtClaim);
+        policy.AddRequirements(new AdminTwoFactorEnabledRequirement());
+    });
+    options.AddPolicy(AdminAreaPolicy.RecentAuthenticationName, policy =>
+    {
+        policy.RequireRole(AdminRoleBootstrapper.AdminRole);
+        policy.AddRequirements(new AdminTwoFactorEnabledRequirement());
+        policy.AddRequirements(new RecentAdminAuthenticationRequirement(
+            AdminAreaPolicy.RecentAuthenticationLifetime));
+    });
+});
 
 builder.Services.Configure<CookieAuthenticationOptions>(
     IdentityConstants.ApplicationScheme,
@@ -57,6 +77,16 @@ builder.Services.Configure<CookieAuthenticationOptions>(
         {
             if (context.Request.Path.StartsWithSegments("/Admin"))
             {
+                if (context.HttpContext.User.IsInRole(AdminRoleBootstrapper.AdminRole))
+                {
+                    string returnUrl = context.Request.PathBase
+                        + context.Request.Path
+                        + context.Request.QueryString;
+                    context.Response.Redirect(
+                        $"/Account/AdminTwoFactor?returnUrl={Uri.EscapeDataString(returnUrl)}");
+                    return Task.CompletedTask;
+                }
+
                 context.Response.StatusCode = StatusCodes.Status403Forbidden;
                 return Task.CompletedTask;
             }
@@ -69,9 +99,19 @@ builder.Services.Configure<CookieAuthenticationOptions>(
     });
 
 builder.Services.Configure<SecurityStampValidatorOptions>(options =>
-    options.ValidationInterval = TimeSpan.Zero);
+{
+    options.ValidationInterval = TimeSpan.Zero;
+    options.OnRefreshingPrincipal =
+        AdminAuthenticationSession.PreserveVerificationClaimsAsync;
+});
 
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
+builder.Services.AddScoped<AdminRoleBootstrapper>();
+builder.Services.AddScoped<AdminAuthenticationSession>();
+builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler,
+    RecentAdminAuthenticationHandler>();
+builder.Services.AddScoped<Microsoft.AspNetCore.Authorization.IAuthorizationHandler,
+    AdminTwoFactorEnabledHandler>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IAvatarService, AvatarService>();
@@ -119,6 +159,17 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddScoped<ltwnc.Controllers.ApiExceptionFilter>();
 
 var app = builder.Build();
+
+string? bootstrapAdminUserId = app.Configuration["AdminBootstrap:UserId"];
+if (!string.IsNullOrWhiteSpace(bootstrapAdminUserId))
+{
+    using IServiceScope scope = app.Services.CreateScope();
+    AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    bool schemaIsCurrent = !(await dbContext.Database.GetPendingMigrationsAsync()).Any();
+    AdminRoleBootstrapper adminBootstrapper =
+        scope.ServiceProvider.GetRequiredService<AdminRoleBootstrapper>();
+    await adminBootstrapper.BootstrapAsync(schemaIsCurrent);
+}
 
 // Cấu hình middleware pipeline
 // Cấu hình pipeline middleware

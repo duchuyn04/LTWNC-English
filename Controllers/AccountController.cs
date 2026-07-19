@@ -1,10 +1,12 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Account;
+using ltwnc.Services.Auth;
 using ltwnc.Services.Profiles;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Controllers;
@@ -33,12 +35,26 @@ public class AccountController : Controller
     }
 
     [HttpGet]
-    public IActionResult Register() => View();
+    public IActionResult Register()
+    {
+        if (User?.Identity?.IsAuthenticated == true)
+        {
+            return Redirect(GetAuthenticatedLandingPath());
+        }
+
+        return View();
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Register(RegisterViewModel model)
     {
+        if (User?.Identity?.IsAuthenticated == true)
+        {
+            return Redirect(GetAuthenticatedLandingPath());
+        }
+
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -108,12 +124,31 @@ public class AccountController : Controller
     }
 
     [HttpGet]
-    public IActionResult Login() => View();
+    public async Task<IActionResult> Login()
+    {
+        if (User?.Identity?.IsAuthenticated == true)
+        {
+            return Redirect(GetAuthenticatedLandingPath());
+        }
+
+        if (await _signInManager.GetTwoFactorAuthenticationUserAsync() != null)
+        {
+            return Redirect("/Account/AdminTwoFactor/Verify");
+        }
+
+        return View();
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("auth")]
     public async Task<IActionResult> Login(LoginViewModel model)
     {
+        if (User?.Identity?.IsAuthenticated == true)
+        {
+            return Redirect(GetAuthenticatedLandingPath());
+        }
+
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -126,10 +161,37 @@ public class AccountController : Controller
             return View(model);
         }
 
+        bool isAdmin = await _userManager.IsInRoleAsync(
+            user,
+            AdminRoleBootstrapper.AdminRole);
+        if (isAdmin && await _userManager.GetTwoFactorEnabledAsync(user))
+        {
+            await _signInManager.ForgetTwoFactorClientAsync();
+            Microsoft.AspNetCore.Identity.SignInResult adminSignInResult =
+                await _signInManager.PasswordSignInAsync(
+                    user,
+                    model.Password,
+                    model.RememberMe,
+                    lockoutOnFailure: true);
+
+            if (adminSignInResult.RequiresTwoFactor)
+            {
+                return Redirect("/Account/AdminTwoFactor/Verify");
+            }
+
+            if (!adminSignInResult.Succeeded)
+            {
+                ModelState.AddModelError(string.Empty, "Email hoặc mật khẩu không đúng.");
+                return View(model);
+            }
+
+            return Redirect("/Account/AdminTwoFactor/Verify");
+        }
+
         Microsoft.AspNetCore.Identity.SignInResult result = await _signInManager.CheckPasswordSignInAsync(
             user,
             model.Password,
-            lockoutOnFailure: false);
+            lockoutOnFailure: true);
 
         if (!result.Succeeded)
         {
@@ -145,6 +207,11 @@ public class AccountController : Controller
                 IsPersistent = true,
                 ExpiresUtc = DateTimeOffset.UtcNow.Add(lifetime)
             });
+
+        if (isAdmin)
+        {
+            return Redirect("/Account/AdminTwoFactor/Setup");
+        }
 
         return Redirect("/Set");
     }
@@ -168,6 +235,9 @@ public class AccountController : Controller
         nameof(IdentityErrorDescriber.PasswordRequiresDigit) or "PasswordRequiresDigit" => "Mật khẩu phải có ít nhất một chữ số.",
         _ => "Đăng ký không thành công. Vui lòng kiểm tra lại thông tin."
     };
+
+    private string GetAuthenticatedLandingPath() =>
+        User.IsInRole(AdminRoleBootstrapper.AdminRole) ? "/Admin" : "/Set";
 
     private static bool IsDuplicateEmailViolation(DbUpdateException exception)
     {

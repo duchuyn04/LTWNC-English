@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using ltwnc.Models;
 using ltwnc.Models.Entities;
 using ltwnc.Services.FlashcardSets;
+using ltwnc.Services.Auth;
 using ltwnc.Models.ViewModels.Home;
 
 namespace ltwnc.Controllers;
@@ -26,7 +27,9 @@ public class HomeController : Controller
     {
         if (User.Identity?.IsAuthenticated == true)
         {
-            return Redirect("/Set");
+            return Redirect(User.IsInRole(AdminRoleBootstrapper.AdminRole)
+                ? "/Admin"
+                : "/Set");
         }
 
         HomeViewModel model = new HomeViewModel();

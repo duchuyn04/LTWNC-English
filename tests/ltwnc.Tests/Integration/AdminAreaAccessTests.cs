@@ -11,6 +11,7 @@ public sealed class AdminAreaAccessTests : IClassFixture<AdminWebApplicationFact
     public AdminAreaAccessTests(AdminWebApplicationFactory factory)
     {
         _factory = factory;
+        _factory.Clock.Reset();
     }
 
     [Fact]
@@ -44,9 +45,13 @@ public sealed class AdminAreaAccessTests : IClassFixture<AdminWebApplicationFact
     public async Task AdminDashboard_AdminReceivesProductionCommandCenter()
     {
         const string email = "admin-area@example.com";
-        await _factory.SeedUserAsync("admin_area", email, isAdmin: true);
+        await _factory.SeedUserAsync(
+            "admin_area",
+            email,
+            isAdmin: true,
+            twoFactorEnabled: true);
         using HttpClient client = CreateClient();
-        await AdminWebApplicationFactory.SignInAsync(client, email);
+        await _factory.SignInVerifiedAdminAsync(client, email);
 
         HttpResponseMessage response = await client.GetAsync("/Admin");
         string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());

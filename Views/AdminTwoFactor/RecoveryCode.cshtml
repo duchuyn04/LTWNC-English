@@ -1,0 +1,30 @@
+@model AdminTwoFactorRecoveryCodeViewModel
+@{
+    ViewData["Title"] = "Dùng mã khôi phục";
+}
+
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-5">
+        <section class="card-custom" aria-labelledby="recovery-code-title">
+            <p class="eyebrow">PHIÊN QUẢN TRỊ ĐẶC QUYỀN</p>
+            <h1 id="recovery-code-title" class="h2">Dùng mã khôi phục</h1>
+            <p class="text-muted-custom">Mỗi mã chỉ sử dụng được một lần.</p>
+
+            <form action="/Account/AdminTwoFactor/RecoveryCode" method="post" class="mt-4">
+                @Html.AntiForgeryToken()
+                <input asp-for="ReturnUrl" type="hidden" />
+                <div asp-validation-summary="ModelOnly" class="mb-3"></div>
+                <label asp-for="RecoveryCode" class="form-label auth-label"></label>
+                <input asp-for="RecoveryCode" class="form-input-custom" autocomplete="one-time-code" autofocus />
+                <span asp-validation-for="RecoveryCode"></span>
+                <button type="submit" class="btn-primary-custom w-100 mt-3">Xác minh</button>
+            </form>
+
+            <p class="auth-alt mt-3">
+                <a asp-controller="AdminTwoFactor"
+                   asp-action="Verify"
+                   asp-route-returnUrl="@Model.ReturnUrl">Quay lại mã từ ứng dụng xác thực</a>
+            </p>
+        </section>
+    </div>
+</div>
