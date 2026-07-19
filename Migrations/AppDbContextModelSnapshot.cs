@@ -890,6 +890,8 @@ namespace ltwnc.Migrations
 
                     b.HasIndex("IsPublic");
 
+                    b.HasIndex("Title");
+
                     b.HasIndex("UserId");
 
                     b.HasIndex("UserId", "SourceSetId")

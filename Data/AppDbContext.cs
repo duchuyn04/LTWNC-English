@@ -65,6 +65,8 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
             entity.HasIndex(e => e.IsPublic);
             // Index ghép cho truy vấn nội dung công khai: public và chưa bị cách ly.
             entity.HasIndex(e => new { e.IsPublic, e.ModerationStatus, e.UpdatedAt });
+            // Index phục vụ tìm kiếm Admin theo prefix tiêu đề mà không đọc nội dung thẻ trong bộ.
+            entity.HasIndex(e => e.Title);
             entity.HasIndex(e => new { e.UserId, e.SourceSetId })
                 .IsUnique()
                 .HasFilter("[SourceSetId] IS NOT NULL");

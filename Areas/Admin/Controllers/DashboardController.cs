@@ -1,5 +1,7 @@
-using Microsoft.AspNetCore.Mvc;
 using ltwnc.Services.AdminDashboard;
+using ltwnc.Services.AdminExports;
+using ltwnc.Services.Auth;
+using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Areas.Admin.Controllers;
 
@@ -7,10 +9,18 @@ namespace ltwnc.Areas.Admin.Controllers;
 public sealed class DashboardController : Controller
 {
     private readonly IAdminDashboardKpiService _kpiService;
+    private readonly IAdminExportService _exportService;
+    private readonly ICurrentUser _currentUser;
 
-    public DashboardController(IAdminDashboardKpiService kpiService)
+    // Nhận service KPI, export và current user để các endpoint dashboard dùng chung actor audit.
+    public DashboardController(
+        IAdminDashboardKpiService kpiService,
+        IAdminExportService exportService,
+        ICurrentUser currentUser)
     {
         _kpiService = kpiService;
+        _exportService = exportService;
+        _currentUser = currentUser;
     }
 
     // Render trang dashboard ban đầu bằng dữ liệu server-side để không phụ thuộc JavaScript.
@@ -33,5 +43,18 @@ public sealed class DashboardController : Controller
         AdminDashboardLiveSnapshot snapshot =
             await _kpiService.GetLiveSnapshotAsync(days, cancellationToken);
         return Json(snapshot);
+    }
+
+    // Xuất CSV KPI theo cùng bộ lọc ngày của dashboard và không trả dữ liệu cá nhân thô.
+    [HttpGet("/Admin/Export/Kpis")]
+    public async Task<IActionResult> ExportKpis(int? days, CancellationToken cancellationToken)
+    {
+        AdminCsvExport export = await _exportService.ExportKpisAsync(
+            days,
+            AdminExportActorFactory.FromCurrentUser(_currentUser),
+            cancellationToken);
+
+        Response.Headers.CacheControl = "no-store, no-cache, max-age=0";
+        return File(export.Content, "text/csv; charset=utf-8", export.FileName);
     }
 }

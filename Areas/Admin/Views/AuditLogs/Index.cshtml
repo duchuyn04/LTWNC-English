@@ -29,6 +29,9 @@
         <button type="submit" class="admin-filter-submit">
             <i class="ph ph-funnel" aria-hidden="true"></i> Lọc
         </button>
+        <a class="admin-filter-submit" href="@ExportUrl()">
+            <i class="ph ph-download-simple" aria-hidden="true"></i> Xuất CSV
+        </a>
     </form>
 </section>
 
@@ -120,5 +123,32 @@
         }
 
         return $"/Admin/AuditLogs?{string.Join("&", query)}";
+    }
+
+    // Dựng URL export theo đúng bộ lọc audit hiện tại và không mang theo phân trang.
+    private string ExportUrl()
+    {
+        var query = new List<string>();
+        if (!string.IsNullOrEmpty(Model.Search))
+        {
+            query.Add($"search={Uri.EscapeDataString(Model.Search)}");
+        }
+
+        if (!string.IsNullOrEmpty(Model.Action))
+        {
+            query.Add($"action={Uri.EscapeDataString(Model.Action)}");
+        }
+
+        if (!string.IsNullOrEmpty(Model.Outcome))
+        {
+            query.Add($"outcome={Uri.EscapeDataString(Model.Outcome)}");
+        }
+
+        if (query.Count == 0)
+        {
+            return "/Admin/AuditLogs/Export";
+        }
+
+        return $"/Admin/AuditLogs/Export?{string.Join("&", query)}";
     }
 }

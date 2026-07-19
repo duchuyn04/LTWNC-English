@@ -20,28 +20,33 @@
                 Cập nhật lúc @Model.GeneratedAtVietnam.ToString("HH:mm dd/MM/yyyy") giờ Việt Nam.
             </small>
         </div>
-        <form class="admin-range-filter" method="get" action="/Admin" aria-label="Chọn khoảng thời gian KPI">
-            @foreach (int option in Model.AllowedDays)
-            {
-                bool isSelectedRange = Model.Days == option;
-                string rangeButtonClass = string.Empty;
-                string rangePressedValue = "false";
-                if (isSelectedRange)
+        <div class="admin-header-actions">
+            <form class="admin-range-filter" method="get" action="/Admin" aria-label="Chọn khoảng thời gian KPI">
+                @foreach (int option in Model.AllowedDays)
                 {
-                    rangeButtonClass = "active";
-                    rangePressedValue = "true";
-                }
+                    bool isSelectedRange = Model.Days == option;
+                    string rangeButtonClass = string.Empty;
+                    string rangePressedValue = "false";
+                    if (isSelectedRange)
+                    {
+                        rangeButtonClass = "active";
+                        rangePressedValue = "true";
+                    }
 
-                <button
-                    type="submit"
-                    name="days"
-                    value="@option"
-                    class="@rangeButtonClass"
-                    aria-pressed="@rangePressedValue">
-                    @option ngày
-                </button>
-            }
-        </form>
+                    <button
+                        type="submit"
+                        name="days"
+                        value="@option"
+                        class="@rangeButtonClass"
+                        aria-pressed="@rangePressedValue">
+                        @option ngày
+                    </button>
+                }
+            </form>
+            <a class="admin-filter-submit" href="/Admin/Export/Kpis?days=@Model.Days">
+                <i class="ph ph-download-simple" aria-hidden="true"></i> Xuất CSV
+            </a>
+        </div>
     </section>
 
     <section class="admin-alert-panel" aria-labelledby="admin-alert-panel-title">

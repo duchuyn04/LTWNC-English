@@ -79,6 +79,16 @@
                     <p>LTWNC / ADMIN</p>
                     <h1>@pageHeading</h1>
                 </div>
+                <form class="admin-global-search" method="get" action="/Admin/Search" role="search">
+                    <label class="visually-hidden" for="admin-global-search-input">Tìm kiếm toàn cục</label>
+                    <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                    <input id="admin-global-search-input" name="q" type="search"
+                           value="@(Context.Request.Path.StartsWithSegments("/Admin/Search") ? Context.Request.Query["q"].ToString() : string.Empty)"
+                           placeholder="Email, mã, SET-12, EM-12" maxlength="100" />
+                    <button type="submit" title="Tìm kiếm" aria-label="Tìm kiếm">
+                        <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                    </button>
+                </form>
                 <span class="admin-role-badge"><i class="ph ph-shield-check" aria-hidden="true"></i> Phiên quản trị đặc quyền</span>
             </header>
             <main id="admin-main" class="admin-main" tabindex="-1">

@@ -267,6 +267,38 @@
     font-size: clamp(1.5rem, 3vw, 2.25rem);
 }
 
+.admin-global-search {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    width: min(28rem, 42vw);
+    min-width: 16rem;
+    padding: 0.35rem 0.45rem 0.35rem 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: #fffaf0;
+}
+
+.admin-global-search input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    outline: 0;
+}
+
+.admin-global-search button {
+    display: inline-grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: var(--ink);
+    color: #fffaf0;
+}
+
 .admin-role-badge,
 .admin-ready-badge {
     display: inline-flex;
@@ -319,6 +351,14 @@
     color: var(--muted);
     font-size: 0.75rem;
     font-weight: 700;
+}
+
+.admin-header-actions {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    justify-content: flex-end;
 }
 
 .admin-range-filter {
@@ -649,7 +689,14 @@
     }
 
     .admin-topbar {
+        flex-wrap: wrap;
+        gap: 1rem;
         min-height: auto;
+    }
+
+    .admin-global-search {
+        width: 100%;
+        min-width: 0;
     }
 
     .admin-role-badge {
@@ -661,6 +708,11 @@
     }
 
     .admin-range-filter {
+        width: 100%;
+    }
+
+    .admin-header-actions {
+        justify-content: stretch;
         width: 100%;
     }
 

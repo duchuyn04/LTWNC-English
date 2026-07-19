@@ -20,6 +20,7 @@ public static class AdminAuditActions
     public const string EnglishMissionsViewConversation = "EnglishMissions.ViewConversation";
     public const string AchievementsResyncUser = "Achievements.ResyncUser";
     public const string AchievementsResyncAll = "Achievements.ResyncAll";
+    public const string AdminExportsCreate = "AdminExports.Create";
 }
 
 public static class AdminAuditOutcome
