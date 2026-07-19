@@ -33,7 +33,7 @@ public sealed class AdminDashboardKpiTests
         string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Dashboard KPI hệ thống", html);
+        Assert.Contains("Chỉ số vận hành hệ thống", html);
         Assert.Contains("aria-pressed=\"true\"", html);
         Assert.Contains("Người dùng hoạt động", html);
         Assert.Contains("Đăng ký mới", html);

@@ -5,6 +5,21 @@
     background: var(--paper);
 }
 
+.admin-body *,
+.admin-body *::before,
+.admin-body *::after {
+    box-sizing: border-box;
+}
+
+.admin-body :focus-visible {
+    outline: 3px solid var(--brass);
+    outline-offset: 3px;
+}
+
+.admin-main:focus-visible {
+    outline-offset: -3px;
+}
+
 .admin-status--warning {
     background: #fef3c7;
     color: #92400e;
@@ -742,6 +757,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .admin-body *,
+    .admin-body *::before,
+    .admin-body *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+
     .admin-navigation a,
     .admin-learner-link {
         transition: none;

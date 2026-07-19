@@ -1,4 +1,5 @@
 import { expect, test } from '@playwright/test';
+import fs from 'fs';
 import path from 'path';
 
 test.describe('Admin dashboard live polling', () => {
@@ -69,6 +70,74 @@ test.describe('Admin dashboard live polling', () => {
         await page.waitForTimeout(120);
         expect(requestCount).toBe(1);
     });
+
+    test('keeps keyboard focus visible at 360px and respects reduced motion', async ({ page }) => {
+        const adminCss = fs.readFileSync(path.resolve('../../wwwroot/css/admin-dashboard.css'), 'utf8');
+        await page.setViewportSize({ width: 360, height: 740 });
+        await page.emulateMedia({ reducedMotion: 'reduce' });
+        await page.setContent(`
+            <style>
+                :root {
+                    --paper: #f7f3e9;
+                    --ink: #293226;
+                    --brass: #c79636;
+                    --surface: #fffdf7;
+                    --line: #ddd6c7;
+                    --radius-control: 8px;
+                    --duration-fast: 120ms;
+                    --ease-out: ease-out;
+                }
+                body {
+                    margin: 0;
+                }
+                ${adminCss}
+            </style>
+            <body class="admin-body">
+                <a class="admin-skip-link" href="#admin-main">Bỏ qua điều hướng</a>
+                <div class="admin-shell">
+                    <aside class="admin-sidebar" aria-label="Điều hướng quản trị">
+                        <nav class="admin-navigation">
+                            <a href="/Admin">Tổng quan</a>
+                            <a href="/Admin/Users">Người dùng</a>
+                        </nav>
+                    </aside>
+                    <div class="admin-workspace">
+                        <header class="admin-topbar">
+                            <form class="admin-global-search" method="get" action="/Admin/Search" role="search">
+                                <label for="admin-global-search-input">Tìm kiếm toàn cục</label>
+                                <input id="admin-global-search-input" name="q" type="search" />
+                                <button type="submit">Tìm</button>
+                            </form>
+                        </header>
+                        <main id="admin-main" class="admin-main" tabindex="-1">
+                            <section data-dashboard-live>
+                                <small data-dashboard-live-status role="status" aria-live="polite">Cập nhật lúc 07:00 19/07/2026 giờ Việt Nam.</small>
+                            </section>
+                        </main>
+                    </div>
+                </div>
+            </body>
+        `);
+
+        await page.locator('#admin-global-search-input').focus();
+        const focusOutline = await page.locator('#admin-global-search-input').evaluate(element => {
+            return window.getComputedStyle(element).outlineStyle;
+        });
+        const transitionDurationSeconds = await page.locator('.admin-navigation a').first().evaluate(element => {
+            const duration = window.getComputedStyle(element).transitionDuration.split(',')[0].trim();
+            if (duration.endsWith('ms')) {
+                return Number.parseFloat(duration) / 1000;
+            }
+
+            return Number.parseFloat(duration);
+        });
+        const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+
+        expect(focusOutline).not.toBe('none');
+        expect(transitionDurationSeconds).toBeLessThanOrEqual(0.001);
+        expect(scrollWidth).toBeLessThanOrEqual(360);
+        await expect(page.locator('[data-dashboard-live-status]')).toHaveAttribute('aria-live', 'polite');
+    });
 });
 
 async function loadDashboardHarness(page) {
@@ -77,8 +146,8 @@ async function loadDashboardHarness(page) {
             contentType: 'text/html',
             body: `
         <section data-dashboard-live data-snapshot-url="/Admin/Snapshot?days=30">
-            <div data-dashboard-live-status></div>
-            <div data-dashboard-alerts></div>
+            <div data-dashboard-live-status role="status" aria-live="polite"></div>
+            <div data-dashboard-alerts role="status" aria-live="polite"></div>
             <article data-kpi-index="0" class="admin-kpi-card admin-kpi-card--neutral">
                 <strong data-kpi-value></strong>
                 <p data-kpi-detail></p>

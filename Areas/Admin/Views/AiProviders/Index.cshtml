@@ -14,10 +14,10 @@
         <div>
             <span class="eyebrow">Quản trị hệ thống</span>
             <h1>Nhà cung cấp AI</h1>
-            <p>Cấu hình endpoint, model, thứ tự fallback và trạng thái sức khỏe vận hành. Khóa bí mật chỉ được nhập mới hoặc thay thế.</p>
+            <p>Cấu hình điểm cuối, mô hình, thứ tự dự phòng và trạng thái sức khỏe vận hành. Khóa bí mật chỉ được nhập mới hoặc thay thế.</p>
         </div>
         <a class="provider-primary" href="/Admin/AiProviders/Create">
-            <i class="ph ph-plus" aria-hidden="true"></i> Thêm provider
+            <i class="ph ph-plus" aria-hidden="true"></i> Thêm nhà cung cấp
         </a>
     </header>
 
@@ -92,7 +92,7 @@
                         <span><i class="ph ph-clock" aria-hidden="true"></i> @provider.TimeoutSeconds giây</span>
                         <span><i class="ph ph-lock-key" aria-hidden="true"></i> Phiên bản @provider.Version</span>
                         <span><i class="ph ph-activity" aria-hidden="true"></i> @errorRateText</span>
-                        <span><i class="ph ph-warning-circle" aria-hidden="true"></i> @provider.ConsecutiveFailureCount lần test lỗi liên tiếp</span>
+                        <span><i class="ph ph-warning-circle" aria-hidden="true"></i> @provider.ConsecutiveFailureCount lần kiểm tra lỗi liên tiếp</span>
                     </div>
                     <small class="provider-check @healthClass">
                         @healthText - @provider.HealthSampleSize yêu cầu trong cửa sổ vận hành
@@ -108,13 +108,13 @@
                         }
 
                         <small class="provider-check @checkClass">
-                            @checkText - @provider.LastCheckedAt.Value.ToLocalTime().ToString("g")
+                            @checkText - @ltwnc.Areas.Admin.AdminTimeZone.ToVietnamTime(provider.LastCheckedAt.Value).ToString("HH:mm dd/MM/yyyy") giờ Việt Nam
                         </small>
                     }
                 </div>
                 <div class="provider-actions">
-                    <button class="provider-test" type="button">Test</button>
-                    <button class="provider-models" type="button">Models</button>
+                    <button class="provider-test" type="button">Kiểm tra</button>
+                    <button class="provider-models" type="button">Mô hình</button>
                     <a href="/Admin/AiProviders/@provider.Id/Edit">Sửa</a>
                 </div>
                 <div class="provider-lifecycle">
@@ -122,7 +122,7 @@
                     {
                         <form method="post"
                               action="/Admin/AiProviders/@provider.Id/Primary"
-                              onsubmit="return confirm('Chọn provider này làm nhà cung cấp chính?');">
+                              onsubmit="return confirm('Chọn nhà cung cấp này làm nhà cung cấp chính?');">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="Version" value="@provider.Version" />
                             <label for="primary-reason-@provider.Id">Lý do đặt chính</label>
@@ -135,7 +135,7 @@
                     {
                         <form method="post"
                               action="/Admin/AiProviders/@provider.Id/Disable"
-                              onsubmit="return confirm('Vô hiệu hóa provider này?');">
+                              onsubmit="return confirm('Vô hiệu hóa nhà cung cấp này?');">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="Version" value="@provider.Version" />
                             <label for="disable-reason-@provider.Id">Lý do vô hiệu hóa</label>
@@ -147,7 +147,7 @@
                     {
                         <form method="post"
                               action="/Admin/AiProviders/@provider.Id/Enable"
-                              onsubmit="return confirm('Bật lại provider này?');">
+                              onsubmit="return confirm('Bật lại nhà cung cấp này?');">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="Version" value="@provider.Version" />
                             <label for="enable-reason-@provider.Id">Lý do bật lại</label>
@@ -163,8 +163,8 @@
         {
             <div class="provider-empty">
                 <i class="ph ph-plugs" aria-hidden="true"></i>
-                <h2>Chưa có provider</h2>
-                <p>Thêm một OpenAI-compatible provider để English Mission hoạt động.</p>
+                <h2>Chưa có nhà cung cấp</h2>
+                <p>Thêm một nhà cung cấp tương thích OpenAI để Nhiệm vụ tiếng Anh hoạt động.</p>
             </div>
         }
     </div>
@@ -174,7 +174,7 @@
             <button type="button" class="provider-dialog-close" aria-label="Đóng">
                 <i class="ph ph-x" aria-hidden="true"></i>
             </button>
-            <h2>Models</h2>
+            <h2>Mô hình</h2>
             <p></p>
             <ul></ul>
         </div>

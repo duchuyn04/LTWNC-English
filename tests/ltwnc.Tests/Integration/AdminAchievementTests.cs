@@ -13,7 +13,7 @@ namespace ltwnc.Tests.Integration;
 
 public sealed class AdminAchievementTests
 {
-    // Trang Admin hien catalog tu source code, so nguoi da nhan va ket qua theo user.
+    // Trang Admin hiển thị danh mục thành tích, số người đã nhận và kết quả theo người dùng.
     [Fact]
     public async Task Index_RendersCatalogRecipientCountsAndUserResults()
     {
@@ -33,14 +33,14 @@ public sealed class AdminAchievementTests
         string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Danh muc thanh tich", html);
+        Assert.Contains("Danh mục thành tích", html);
         Assert.Contains(AchievementCatalog.FirstCardMastered, html);
-        Assert.Contains("1 nguoi dung", html);
+        Assert.Contains("1 người dùng", html);
         Assert.Contains(learnerEmail, html);
-        Assert.Contains("Day du", html);
+        Assert.Contains("Đầy đủ", html);
     }
 
-    // Trang khong de lo form sua dinh nghia, cap thu cong hoac thu hoi thanh tich.
+    // Trang không có form sửa định nghĩa, cấp thủ công hoặc thu hồi thành tích.
     [Fact]
     public async Task Index_DoesNotExposeManualGrantRevokeOrDefinitionEditActions()
     {
@@ -59,11 +59,11 @@ public sealed class AdminAchievementTests
         Assert.DoesNotContain("/Revoke", html);
         Assert.DoesNotContain("/Delete", html);
         Assert.DoesNotContain("/Edit", html);
-        Assert.DoesNotContain("Cap thu cong", html);
-        Assert.DoesNotContain("Thu hoi", html);
+        Assert.DoesNotContain("Cấp thủ công", html);
+        Assert.DoesNotContain("Thu hồi", html);
     }
 
-    // Dong bo user khoi phuc thanh tich thieu tu UserProgress va chay lai khong tao trung.
+    // Đồng bộ một người dùng khôi phục thành tích còn thiếu và chạy lại không tạo trùng.
     [Fact]
     public async Task ResyncUser_RestoresMissingAchievementsAndIsIdempotent()
     {
@@ -100,7 +100,7 @@ public sealed class AdminAchievementTests
         Assert.True(auditExists);
     }
 
-    // Dong bo toan he thong xu ly nhieu user, co ly do/xac nhan/antiforgery va ghi audit tong hop.
+    // Đồng bộ toàn hệ thống xử lý nhiều người dùng theo lô và ghi audit tổng hợp.
     [Fact]
     public async Task ResyncAll_ProcessesUsersInBatchesAndAuditsSummary()
     {
@@ -124,7 +124,7 @@ public sealed class AdminAchievementTests
             "/Admin/Achievements/ResyncAll",
             new Dictionary<string, string>
             {
-                ["Reason"] = "Kiem tra dong bo theo lo.",
+                ["Reason"] = "Kiểm tra đồng bộ theo lô.",
                 ["Confirmed"] = "true",
                 ["BatchSize"] = "1"
             });
@@ -148,7 +148,7 @@ public sealed class AdminAchievementTests
         Assert.True(summaryAuditExists);
     }
 
-    // Thieu xac nhan thi service tu choi va khong ghi thanh tich moi.
+    // Thiếu xác nhận thì service từ chối và không ghi thành tích mới.
     [Fact]
     public async Task ResyncUser_WithoutConfirmation_DoesNotChangeAchievements()
     {
@@ -169,7 +169,7 @@ public sealed class AdminAchievementTests
             new Dictionary<string, string>
             {
                 ["TargetUserId"] = learnerId,
-                ["Reason"] = "Kiem tra thieu xac nhan."
+                ["Reason"] = "Kiểm tra thiếu xác nhận."
             });
 
         using IServiceScope scope = factory.Services.CreateScope();
@@ -181,7 +181,7 @@ public sealed class AdminAchievementTests
         Assert.Equal(0, achievementCount);
     }
 
-    // Tao du lieu mastered card du dieu kien cho cac achievement theo so the da thuoc.
+    // Tạo dữ liệu thẻ đã thuộc để đủ điều kiện mở các thành tích theo số thẻ.
     private static async Task SeedMasteredCardsAsync(
         AdminWebApplicationFactory factory,
         string userId,
@@ -226,7 +226,7 @@ public sealed class AdminAchievementTests
         await context.SaveChangesAsync();
     }
 
-    // Ghi san mot thanh tich de test so nguoi da nhan trong catalog.
+    // Ghi sẵn một thành tích để test số người đã nhận trong danh mục.
     private static async Task SeedAchievementAsync(
         AdminWebApplicationFactory factory,
         string userId,
@@ -235,7 +235,7 @@ public sealed class AdminAchievementTests
         using IServiceScope scope = factory.Services.CreateScope();
         AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         AchievementCatalog.Definition definition = AchievementCatalog.Find(code)
-            ?? throw new InvalidOperationException("Ma thanh tich test khong ton tai.");
+            ?? throw new InvalidOperationException("Mã thành tích test không tồn tại.");
         context.UserAchievements.Add(new UserAchievement
         {
             UserId = userId,
@@ -247,7 +247,7 @@ public sealed class AdminAchievementTests
         await context.SaveChangesAsync();
     }
 
-    // Goi form dong bo user voi day du token, ly do va xac nhan.
+    // Gửi form đồng bộ người dùng với đủ token, lý do và xác nhận.
     private static async Task<HttpResponseMessage> PostUserResyncAsync(
         HttpClient client,
         string learnerId)
@@ -259,7 +259,7 @@ public sealed class AdminAchievementTests
             new Dictionary<string, string>
             {
                 ["TargetUserId"] = learnerId,
-                ["Reason"] = "Kiem tra khoi phuc thanh tich.",
+                ["Reason"] = "Kiểm tra khôi phục thành tích.",
                 ["Confirmed"] = "true"
             });
     }

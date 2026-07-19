@@ -5,20 +5,20 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Areas.Admin.Controllers;
 
-// Man hinh quan tri thanh tich: chi doc catalog/ket qua va cho phep dong bo lai tu du lieu hoc tap.
+// Màn hình quản trị thành tích: chỉ đọc danh mục/kết quả và cho phép đồng bộ lại từ dữ liệu học tập.
 [Area("Admin")]
 [Route("Admin/Achievements")]
 public sealed class AchievementsController : Controller
 {
     private readonly IAdminAchievementService _achievementService;
 
-    // Nhan service nghiep vu de controller chi dieu phoi request/response.
+    // Nhận service nghiệp vụ để controller chỉ điều phối request/response.
     public AchievementsController(IAdminAchievementService achievementService)
     {
         _achievementService = achievementService;
     }
 
-    // Hien thi catalog thanh tich tu source code va ket qua theo nguoi dung.
+    // Hiển thị danh mục thành tích từ source code và kết quả theo người dùng.
     [HttpGet("")]
     public async Task<IActionResult> Index(
         string? search,
@@ -32,7 +32,7 @@ public sealed class AchievementsController : Controller
         return View(AdminAchievementViewModelMapper.ToIndexViewModel(overview, query));
     }
 
-    // Xu ly dong bo lai cho mot nguoi dung; form bat buoc co antiforgery, ly do va checkbox xac nhan.
+    // Xử lý đồng bộ lại cho một người dùng; form bắt buộc có antiforgery, lý do và checkbox xác nhận.
     [HttpPost("ResyncUser")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResyncUser(
@@ -47,7 +47,7 @@ public sealed class AchievementsController : Controller
         return RedirectToAction(nameof(Index), new { search = input.TargetUserId });
     }
 
-    // Xu ly dong bo lai toan he thong theo lo; khong co chuc nang sua/cap/thu hoi thu cong.
+    // Xử lý đồng bộ lại toàn hệ thống theo lô; không có chức năng sửa/cấp/thu hồi thủ công.
     [HttpPost("ResyncAll")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ResyncAll(
@@ -62,7 +62,7 @@ public sealed class AchievementsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // Dung ngu canh Admin hien tai de tao lenh sync mot user.
+    // Dùng ngữ cảnh Admin hiện tại để tạo lệnh đồng bộ cho một người dùng.
     private AdminAchievementSyncCommand BuildUserCommand(
         AdminAchievementResyncUserInputModel input)
     {
@@ -79,7 +79,7 @@ public sealed class AchievementsController : Controller
             CorrelationId: HttpContext.TraceIdentifier);
     }
 
-    // Dung ngu canh Admin hien tai de tao lenh sync toan he thong.
+    // Dùng ngữ cảnh Admin hiện tại để tạo lệnh đồng bộ toàn hệ thống.
     private AdminAchievementBatchSyncCommand BuildBatchCommand(
         AdminAchievementResyncAllInputModel input)
     {
@@ -96,7 +96,7 @@ public sealed class AchievementsController : Controller
             CorrelationId: HttpContext.TraceIdentifier);
     }
 
-    // Luu thong bao qua TempData de hien sau redirect.
+    // Lưu thông báo qua TempData để hiển thị sau redirect.
     private void StoreMessage(bool succeeded, string message)
     {
         if (succeeded)

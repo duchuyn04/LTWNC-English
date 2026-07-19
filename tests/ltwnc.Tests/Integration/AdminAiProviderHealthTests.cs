@@ -9,7 +9,7 @@ namespace ltwnc.Tests.Integration;
 
 public sealed class AdminAiProviderHealthTests
 {
-    // Trang Admin AI Providers hiển thị health từ test failure count và log vận hành an toàn.
+    // Trang Nhà cung cấp AI hiển thị sức khỏe vận hành, thời gian Việt Nam và không lộ dữ liệu nhạy cảm.
     [Fact]
     public async Task Index_RendersProviderHealthSummary()
     {
@@ -30,12 +30,13 @@ public sealed class AdminAiProviderHealthTests
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Không ổn định", html);
         Assert.Contains("15% lỗi / 5 phút", html);
-        Assert.Contains("3 lần test lỗi liên tiếp", html);
+        Assert.Contains("3 lần kiểm tra lỗi liên tiếp", html);
+        Assert.Contains("07:00 19/07/2026 giờ Việt Nam", html);
         Assert.DoesNotContain("system-secret", html);
         Assert.DoesNotContain("user-conversation", html);
     }
 
-    // Tạo provider có 20 log trong cửa sổ 5 phút, 3 lỗi => vượt ngưỡng 10%.
+    // Tạo nhà cung cấp có 20 log trong cửa sổ 5 phút, 3 lỗi nên vượt ngưỡng 10%.
     private static async Task SeedUnstableProviderAsync(AdminWebApplicationFactory factory)
     {
         using IServiceScope scope = factory.Services.CreateScope();

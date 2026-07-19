@@ -81,7 +81,7 @@ public sealed class AiProvidersController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // Bật lại provider đã vô hiệu hóa; yêu cầu lý do và khóa phiên bản để tránh ghi đè thao tác mới hơn.
+    // Bật lại nhà cung cấp đã vô hiệu hóa; yêu cầu lý do và khóa phiên bản để tránh ghi đè thao tác mới hơn.
     [HttpPost("{id:int}/Enable")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Enable(
@@ -180,7 +180,7 @@ public sealed class AiProvidersController : Controller
         }
     }
 
-    // Kiểm tra kết nối provider, không nhận hay trả khóa bí mật qua response.
+    // Kiểm tra kết nối nhà cung cấp, không nhận hay trả khóa bí mật qua response.
     [HttpPost("{id:int}/Test")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Test(

@@ -357,8 +357,8 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
                 "ai-primary-unstable",
                 "danger",
                 "Nhà cung cấp AI chính không ổn định",
-                "Provider chính chưa sẵn sàng hoặc đã lỗi health check liên tiếp.",
-                "Kiểm tra provider",
+                "Nhà cung cấp chính chưa sẵn sàng hoặc đã lỗi kiểm tra trạng thái liên tiếp.",
+                "Kiểm tra nhà cung cấp",
                 "/Admin/AiProviders"));
         }
 
@@ -370,7 +370,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
                 "danger",
                 "Tỷ lệ lỗi AI vượt ngưỡng",
                 detail,
-                "Mở AI providers",
+                "Mở nhà cung cấp AI",
                 "/Admin/AiProviders"));
         }
 
@@ -400,7 +400,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
         return alerts;
     }
 
-    // Xem provider chính là không ổn định nếu thiếu, bị tắt, chưa test thành công hoặc fail liên tiếp.
+    // Xem nhà cung cấp chính là không ổn định nếu bị thiếu, bị tắt hoặc kiểm tra trạng thái thất bại liên tiếp.
     private static bool IsPrimaryProviderUnstable(
         AiProvider? primaryProvider,
         int unstableFailureThreshold)
@@ -451,7 +451,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
             return "Không có nhà cung cấp AI sẵn sàng";
         }
 
-        string primaryName = primaryProvider?.Name ?? "provider chính";
+        string primaryName = primaryProvider?.Name ?? "Nhà cung cấp chính";
         return $"{primaryName} đang sẵn sàng";
     }
 

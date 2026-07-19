@@ -11,12 +11,16 @@
     <section class="admin-dashboard-header" aria-labelledby="admin-dashboard-title">
         <div>
             <p class="eyebrow">TRUNG TÂM VẬN HÀNH</p>
-            <h2 id="admin-dashboard-title">Dashboard KPI hệ thống</h2>
+            <h2 id="admin-dashboard-title">Chỉ số vận hành hệ thống</h2>
             <p data-dashboard-period>
                 Dữ liệu từ @Model.PeriodStartVietnam.ToString("dd/MM/yyyy") đến
                 @Model.PeriodEndVietnam.ToString("dd/MM/yyyy"), tính theo múi giờ Việt Nam.
             </p>
-            <small class="admin-dashboard-live-status" data-dashboard-live-status>
+            <small class="admin-dashboard-live-status"
+                   data-dashboard-live-status
+                   role="status"
+                   aria-live="polite"
+                   aria-atomic="true">
                 Cập nhật lúc @Model.GeneratedAtVietnam.ToString("HH:mm dd/MM/yyyy") giờ Việt Nam.
             </small>
         </div>
@@ -54,7 +58,7 @@
             <span class="eyebrow">CẢNH BÁO</span>
             <h2 id="admin-alert-panel-title">Việc cần xử lý</h2>
         </div>
-        <div class="admin-alert-list" data-dashboard-alerts>
+        <div class="admin-alert-list" data-dashboard-alerts role="status" aria-live="polite" aria-atomic="true">
             <article class="admin-live-alert admin-live-alert--success">
                 <div>
                     <h3>Không có cảnh báo vận hành</h3>

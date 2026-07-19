@@ -3,7 +3,7 @@ using ltwnc.Services.AdminAchievements;
 
 namespace ltwnc.Areas.Admin.Models;
 
-// View model trang Admin thanh tich, gom catalog va ket qua theo nguoi dung.
+// View model trang Admin thành tích, gồm danh mục và kết quả theo người dùng.
 public sealed class AdminAchievementIndexViewModel
 {
     public required IReadOnlyList<AdminAchievementDefinitionViewModel> Catalog { get; init; }
@@ -14,7 +14,7 @@ public sealed class AdminAchievementIndexViewModel
     public int TotalUsers { get; init; }
     public int DefaultBatchSize { get; init; } = AdminAchievementService.DefaultBatchSize;
 
-    // Tong so trang, toi thieu la 1 de UI khong roi vao trang 0.
+    // Tổng số trang, tối thiểu là 1 để UI không rơi vào trang 0.
     public int TotalPages
     {
         get
@@ -28,7 +28,7 @@ public sealed class AdminAchievementIndexViewModel
         }
     }
 
-    // Cho view biet co can hien nut trang truoc khong.
+    // Cho view biết có cần hiện nút trang trước không.
     public bool HasPreviousPage
     {
         get
@@ -37,7 +37,7 @@ public sealed class AdminAchievementIndexViewModel
         }
     }
 
-    // Cho view biet co can hien nut trang sau khong.
+    // Cho view biết có cần hiện nút trang sau không.
     public bool HasNextPage
     {
         get
@@ -47,7 +47,7 @@ public sealed class AdminAchievementIndexViewModel
     }
 }
 
-// Mot dong catalog thanh tich trong bang read-only.
+// Một dòng danh mục thành tích trong bảng chỉ đọc.
 public sealed class AdminAchievementDefinitionViewModel
 {
     public required string Code { get; init; }
@@ -58,7 +58,7 @@ public sealed class AdminAchievementDefinitionViewModel
     public required int RecipientCount { get; init; }
 }
 
-// Mot dong ket qua thanh tich theo nguoi dung.
+// Một dòng kết quả thành tích theo người dùng.
 public sealed class AdminAchievementUserResultViewModel
 {
     public required string UserId { get; init; }
@@ -73,7 +73,7 @@ public sealed class AdminAchievementUserResultViewModel
     public required string StatusTone { get; init; }
 }
 
-// Input form dong bo lai cho mot nguoi dung.
+// Dữ liệu form đồng bộ lại cho một người dùng.
 public sealed class AdminAchievementResyncUserInputModel
 {
     public string TargetUserId { get; set; } = string.Empty;
@@ -81,7 +81,7 @@ public sealed class AdminAchievementResyncUserInputModel
     public bool Confirmed { get; set; }
 }
 
-// Input form dong bo lai toan he thong.
+// Dữ liệu form đồng bộ lại toàn hệ thống.
 public sealed class AdminAchievementResyncAllInputModel
 {
     public string? Reason { get; set; }
@@ -89,10 +89,10 @@ public sealed class AdminAchievementResyncAllInputModel
     public int BatchSize { get; set; } = AdminAchievementService.DefaultBatchSize;
 }
 
-// Chuyen model service sang view model da dinh dang san cho Razor.
+// Chuyển dữ liệu service sang view model đã định dạng sẵn cho Razor.
 public static class AdminAchievementViewModelMapper
 {
-    // Dung overview tu service de tao view model trang danh sach.
+    // Dùng overview từ service để tạo view model trang danh sách.
     public static AdminAchievementIndexViewModel ToIndexViewModel(
         AdminAchievementOverview overview,
         AdminAchievementQuery query)
@@ -108,7 +108,7 @@ public static class AdminAchievementViewModelMapper
         };
     }
 
-    // Dinh dang mot dinh nghia thanh tich tu catalog source code.
+    // Định dạng một định nghĩa thành tích từ danh mục trong mã nguồn.
     private static AdminAchievementDefinitionViewModel ToDefinitionViewModel(
         AdminAchievementDefinitionSummary definition)
     {
@@ -123,15 +123,15 @@ public static class AdminAchievementViewModelMapper
         };
     }
 
-    // Dinh dang ket qua thanh tich theo nguoi dung.
+    // Định dạng kết quả thành tích theo người dùng.
     private static AdminAchievementUserResultViewModel ToUserResultViewModel(
         AdminAchievementUserResult result)
     {
-        string statusLabel = "Day du";
+        string statusLabel = "Đầy đủ";
         string statusTone = "success";
         if (result.MissingCount > 0)
         {
-            statusLabel = "Can dong bo";
+            statusLabel = "Cần đồng bộ";
             statusTone = "warning";
         }
 
@@ -150,49 +150,49 @@ public static class AdminAchievementViewModelMapper
         };
     }
 
-    // Doi ten metric ky thuat sang nhan tieng Viet cho Admin.
+    // Đổi tên metric kỹ thuật sang nhãn tiếng Việt cho Admin.
     private static string BuildMetricLabel(string metric)
     {
         if (metric == "CardsMastered")
         {
-            return "The da thuoc";
+            return "Thẻ đã thuộc";
         }
 
         if (metric == "FlashcardSessions")
         {
-            return "Buoi Flashcard";
+            return "Buổi Flashcard";
         }
 
         if (metric == "DictationSessions")
         {
-            return "Buoi nghe chep";
+            return "Buổi nghe chép";
         }
 
         if (metric == "DictationCorrectAnswers")
         {
-            return "Cau nghe chep dung";
+            return "Câu nghe chép đúng";
         }
 
         if (metric == "DictationPerfectSessions")
         {
-            return "Buoi nghe chep 100 diem";
+            return "Buổi nghe chép 100 điểm";
         }
 
         return metric;
     }
 
-    // Dinh dang danh sach ma con thieu, gioi han de bang khong qua dai.
+    // Định dạng danh sách mã còn thiếu, giới hạn để bảng không quá dài.
     private static string FormatMissingCodes(IReadOnlyList<string> missingCodes)
     {
         if (missingCodes.Count == 0)
         {
-            return "Khong co";
+            return "Không có";
         }
 
         return string.Join(", ", missingCodes.Take(4));
     }
 
-    // Dinh dang thoi gian UTC sang gio Viet Nam, tra dau gach khi chua co thanh tich nao.
+    // Định dạng thời gian UTC sang giờ Việt Nam, trả dấu gạch khi chưa có thành tích nào.
     private static string FormatDateTime(DateTime? valueUtc)
     {
         if (valueUtc == null)

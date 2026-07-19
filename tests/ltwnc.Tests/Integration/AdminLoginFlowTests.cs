@@ -43,6 +43,9 @@ public sealed class AdminLoginFlowTests : IClassFixture<AdminWebApplicationFacto
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("Trung tâm quản trị", html);
+        Assert.Contains("Phiên quản trị", html);
+        Assert.DoesNotContain("Phiên quản trị đặc quyền", html);
+        Assert.DoesNotContain("hai bước", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("AdminTwoFactor", html);
     }
 
