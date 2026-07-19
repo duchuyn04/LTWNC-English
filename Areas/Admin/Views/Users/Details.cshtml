@@ -61,6 +61,13 @@
             <dd>@Model.LockoutEndDisplay</dd>
         </div>
     </dl>
+
+    @* Đi từ hồ sơ tài khoản đến danh sách phiên học của chính ngườ dùng này *@
+    <p>
+        <a class="admin-text-link" href="/Admin/Learning?userId=@Uri.EscapeDataString(Model.Id)">
+            <i class="ph ph-graduation-cap" aria-hidden="true"></i> Xem phiên học của ngườ dùng
+        </a>
+    </p>
 </section>
 
 <section class="admin-panel" aria-labelledby="user-actions-heading">

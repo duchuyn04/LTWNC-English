@@ -1,0 +1,46 @@
+@model AdminLearningReasonGateViewModel
+@{
+    ViewData["Title"] = "Xác nhận lý do xem";
+    ViewData["Heading"] = "Hồ sơ học tập";
+}
+
+@*
+    Cổng lý do: dữ liệu phiên học cấp ngườ học là dữ liệu nhạy cảm.
+    Admin phải nhập lý do hỗ trợ/điều tra; hệ thống ghi Bản ghi kiểm toán
+    truy cập nhạy cảm trước khi trả bất kỳ dữ liệu nào.
+*@
+<section class="admin-panel" aria-labelledby="reason-gate-heading">
+    <div class="admin-panel-header">
+        <h2 id="reason-gate-heading">Xem hồ sơ học tập cấp ngườ học</h2>
+    </div>
+
+    <p>
+        Phiên học <strong>#@Model.SessionId</strong> chứa dữ liệu học tập của một ngườ học cụ thể.
+        Vui lòng nhập lý do hỗ trợ hoặc điều tra. Lần xem này sẽ được ghi vào
+        Bản ghi kiểm toán quản trị cùng lý do bạn cung cấp.
+    </p>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <p class="admin-alert admin-alert--danger" role="alert">@Model.ErrorMessage</p>
+    }
+
+    @* Form GET: lý do đi kèm URL để lần xem có thể tải lại/chia sẻ trong nội bộ quản trị *@
+    <form method="get" action="/Admin/Learning/@Model.SessionId" class="admin-filter-form">
+        <div class="admin-filter-field">
+            <label for="reason">Lý do xem hồ sơ <span aria-hidden="true">*</span></label>
+            <input type="text" id="reason" name="reason" value="@Model.Reason"
+                   required maxlength="500"
+                   placeholder="Ví dụ: Hỗ trợ vụ việc #123 - học viên báo mất điểm" />
+        </div>
+        <button type="submit" class="admin-filter-submit">
+            <i class="ph ph-eye" aria-hidden="true"></i> Xác nhận và xem hồ sơ
+        </button>
+    </form>
+
+    <p>
+        <a class="admin-text-link" href="/Admin/Learning">
+            <i class="ph ph-arrow-left" aria-hidden="true"></i> Quay lại danh sách phiên học
+        </a>
+    </p>
+</section>

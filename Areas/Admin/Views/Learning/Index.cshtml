@@ -1,0 +1,189 @@
+@model AdminLearningIndexViewModel
+@{
+    ViewData["Title"] = "Phiên học";
+    ViewData["Heading"] = "Hồ sơ học tập";
+}
+
+@* Bộ lọc phiên học: mọi lọc/sắp xếp/phân trang đều chạy phía máy chủ. *@
+<section class="admin-panel" aria-labelledby="learning-filter-heading">
+    <h2 id="learning-filter-heading" class="visually-hidden">Bộ lọc phiên học</h2>
+    <form method="get" action="/Admin/Learning" class="admin-filter-form">
+        @* Giữ userId khi Admin đi từ trang chi tiết tài khoản sang *@
+        @if (!string.IsNullOrEmpty(Model.UserId))
+        {
+            <input type="hidden" name="userId" value="@Model.UserId" />
+        }
+        <div class="admin-filter-field">
+            <label for="search">Tìm kiếm</label>
+            <input type="search" id="search" name="search" value="@Model.Search"
+                   placeholder="Email, tên đăng nhập hoặc mã tài khoản" maxlength="200" />
+        </div>
+        <div class="admin-filter-field">
+            <label for="mode">Chế độ học</label>
+            <select id="mode" name="mode">
+                <option value="" selected="@(string.IsNullOrEmpty(Model.Mode))">Tất cả</option>
+                <option value="Flashcard" selected="@(Model.Mode == "Flashcard")">Lật thẻ</option>
+                <option value="Quiz" selected="@(Model.Mode == "Quiz")">Trắc nghiệm</option>
+                <option value="Write" selected="@(Model.Mode == "Write")">Viết chính tả</option>
+                <option value="Match" selected="@(Model.Mode == "Match")">Ghép đôi</option>
+                <option value="Dictation" selected="@(Model.Mode == "Dictation")">Nghe chép chính tả</option>
+                <option value="EnglishMission" selected="@(Model.Mode == "EnglishMission")">Nhiệm vụ tiếng Anh</option>
+            </select>
+        </div>
+        <div class="admin-filter-field">
+            <label for="status">Trạng thái</label>
+            <select id="status" name="status">
+                <option value="" selected="@(string.IsNullOrEmpty(Model.Status))">Tất cả</option>
+                <option value="completed" selected="@(Model.Status == "completed")">Hoàn thành</option>
+                <option value="inprogress" selected="@(Model.Status == "inprogress")">Đang học</option>
+                <option value="abandoned" selected="@(Model.Status == "abandoned")">Bỏ dở</option>
+            </select>
+        </div>
+        <div class="admin-filter-field">
+            <label for="from">Từ ngày</label>
+            <input type="date" id="from" name="from" value="@Model.From" />
+        </div>
+        <div class="admin-filter-field">
+            <label for="to">Đến ngày</label>
+            <input type="date" id="to" name="to" value="@Model.To" />
+        </div>
+        <div class="admin-filter-field">
+            <label for="sort">Sắp xếp</label>
+            <select id="sort" name="sort">
+                <option value="" selected="@(string.IsNullOrEmpty(Model.Sort))">Mới nhất</option>
+                <option value="oldest" selected="@(Model.Sort == "oldest")">Cũ nhất</option>
+                <option value="score" selected="@(Model.Sort == "score")">Điểm cao trước</option>
+                <option value="duration" selected="@(Model.Sort == "duration")">Thờ lượng dài trước</option>
+                <option value="user" selected="@(Model.Sort == "user")">Email ngườ học A-Z</option>
+            </select>
+        </div>
+        <div class="admin-filter-field admin-filter-field--compact">
+            <label for="pageSize">Dòng/trang</label>
+            <input type="number" id="pageSize" name="pageSize" value="@Model.PageSize" min="1" max="100" />
+        </div>
+        <button type="submit" class="admin-filter-submit">
+            <i class="ph ph-funnel" aria-hidden="true"></i> Lọc
+        </button>
+    </form>
+</section>
+
+<section class="admin-panel" aria-labelledby="learning-table-heading">
+    <div class="admin-panel-header">
+        <h2 id="learning-table-heading">Danh sách phiên học</h2>
+        <p>@Model.TotalCount phiên học - trang @Model.Page/@Model.TotalPages</p>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <p class="admin-empty">Không có phiên học nào khớp bộ lọc hiện tại.</p>
+    }
+    else
+    {
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Thờ gian bắt đầu</th>
+                        <th scope="col">Ngườ học</th>
+                        <th scope="col">Chế độ</th>
+                        <th scope="col">Bộ thẻ</th>
+                        <th scope="col">Điểm</th>
+                        <th scope="col">Thờ lượng</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col">Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (AdminLearningRowViewModel session in Model.Items)
+                    {
+                        <tr data-session-row>
+                            <td>
+                                @session.StartedDisplay
+                                <small class="admin-muted-line">@session.StartedRelativeDisplay</small>
+                            </td>
+                            <td>
+                                <strong>@session.UserName</strong>
+                                <small class="admin-muted-line">@session.Email</small>
+                            </td>
+                            <td>@session.ModeLabel</td>
+                            <td>@session.FlashcardSetTitle</td>
+                            <td>@session.ScoreDisplay</td>
+                            <td>@session.DurationDisplay</td>
+                            <td>
+                                <span class="admin-status admin-status--@session.StatusTone">@session.StatusLabel</span>
+                            </td>
+                            <td>
+                                <a class="admin-text-link" href="/Admin/Learning/@session.SessionId">Chi tiết</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <nav class="admin-pagination" aria-label="Phân trang phiên học">
+            @if (Model.HasPreviousPage)
+            {
+                <a href="@PageUrl(Model.Page - 1)">
+                    <i class="ph ph-caret-left" aria-hidden="true"></i> Trang trước
+                </a>
+            }
+            <span aria-current="page">Trang @Model.Page / @Model.TotalPages</span>
+            @if (Model.HasNextPage)
+            {
+                <a href="@PageUrl(Model.Page + 1)">
+                    Trang sau <i class="ph ph-caret-right" aria-hidden="true"></i>
+                </a>
+            }
+        </nav>
+    }
+</section>
+
+@functions {
+    // Tạo URL phân trang và giữ nguyên toàn bộ bộ lọc hiện tại.
+    private string PageUrl(int page)
+    {
+        var query = new List<string>
+        {
+            $"page={page}",
+            $"pageSize={Model.PageSize}"
+        };
+
+        if (!string.IsNullOrEmpty(Model.Search))
+        {
+            query.Add($"search={Uri.EscapeDataString(Model.Search)}");
+        }
+
+        if (!string.IsNullOrEmpty(Model.UserId))
+        {
+            query.Add($"userId={Uri.EscapeDataString(Model.UserId)}");
+        }
+
+        if (!string.IsNullOrEmpty(Model.Mode))
+        {
+            query.Add($"mode={Uri.EscapeDataString(Model.Mode)}");
+        }
+
+        if (!string.IsNullOrEmpty(Model.Status))
+        {
+            query.Add($"status={Uri.EscapeDataString(Model.Status)}");
+        }
+
+        if (!string.IsNullOrEmpty(Model.From))
+        {
+            query.Add($"from={Uri.EscapeDataString(Model.From)}");
+        }
+
+        if (!string.IsNullOrEmpty(Model.To))
+        {
+            query.Add($"to={Uri.EscapeDataString(Model.To)}");
+        }
+
+        if (!string.IsNullOrEmpty(Model.Sort))
+        {
+            query.Add($"sort={Uri.EscapeDataString(Model.Sort)}");
+        }
+
+        return $"/Admin/Learning?{string.Join("&", query)}";
+    }
+}
