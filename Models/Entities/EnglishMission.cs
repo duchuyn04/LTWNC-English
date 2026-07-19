@@ -17,6 +17,21 @@ public class EnglishMission
     [Required, MaxLength(40)] public string Status { get; set; } = "Active";
     public int TurnCount { get; set; }
     public int? Score { get; set; }
+
+    // Thời điểm nội dung hội thoại chi tiết đã bị xóa theo chính sách lưu giữ.
+    public DateTime? ConversationContentDeletedAtUtc { get; set; }
+
+    // Mốc tạm giữ nội dung cho vụ việc đang mở; cleanup vẫn kẹp tối đa 12 tháng từ ngày tạo.
+    public DateTime? ConversationRetentionHoldUntilUtc { get; set; }
+
+    // Loại vụ việc gần nhất khiến Admin được phép tạm giữ/mở hội thoại.
+    [MaxLength(80)]
+    public string? ConversationRetentionCaseType { get; set; }
+
+    // Mã tham chiếu vụ việc nếu có, ví dụ mã báo cáo hoặc mã hỗ trợ.
+    [MaxLength(120)]
+    public string? ConversationRetentionCaseReference { get; set; }
+
     [Timestamp] public byte[] RowVersion { get; set; } = [];
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime? CompletedAt { get; set; }

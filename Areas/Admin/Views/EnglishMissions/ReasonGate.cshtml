@@ -1,0 +1,59 @@
+@model AdminEnglishMissionGateViewModel
+@{
+    ViewData["Title"] = $"Mở hội thoại nhiệm vụ #{Model.MissionId}";
+    ViewData["Heading"] = "Nhiệm vụ tiếng Anh";
+}
+
+<section class="admin-panel" aria-labelledby="mission-gate-heading">
+    <div class="admin-panel-header">
+        <div>
+            <h2 id="mission-gate-heading">Mở hội thoại theo vụ việc</h2>
+            <p>Hội thoại chỉ được hiển thị sau khi loại vụ việc, mã tham chiếu nếu có và lý do được ghi audit.</p>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.ErrorMessage))
+    {
+        <div class="admin-alert admin-alert--warning" role="alert">@Model.ErrorMessage</div>
+    }
+
+    <form method="get" action="/Admin/EnglishMissions/@Model.MissionId" class="admin-filter-form">
+        <div class="admin-filter-field">
+            <label for="incidentType">Loại vụ việc</label>
+            <select id="incidentType" name="incidentType" required>
+                <option value="" selected="@(IsSelected(Model.IncidentType, ""))">Chọn loại vụ việc</option>
+                <option value="support" selected="@(IsSelected(Model.IncidentType, "support"))">Hỗ trợ</option>
+                <option value="report" selected="@(IsSelected(Model.IncidentType, "report"))">Báo cáo</option>
+                <option value="safety" selected="@(IsSelected(Model.IncidentType, "safety"))">An toàn</option>
+                <option value="quality" selected="@(IsSelected(Model.IncidentType, "quality"))">Chất lượng</option>
+            </select>
+        </div>
+        <div class="admin-filter-field">
+            <label for="caseReference">Mã tham chiếu</label>
+            <input id="caseReference" name="caseReference" value="@Model.CaseReference"
+                   maxlength="120" placeholder="Ví dụ: REPORT-123 hoặc SUPPORT-456" />
+        </div>
+        <div class="admin-filter-field admin-filter-field--wide">
+            <label for="reason">Lý do</label>
+            <textarea id="reason" name="reason" maxlength="500" required>@Model.Reason</textarea>
+        </div>
+        <button type="submit" class="admin-filter-submit">
+            <i class="ph ph-lock-open" aria-hidden="true"></i> Ghi audit và mở hội thoại
+        </button>
+    </form>
+</section>
+
+<p>
+    <a class="admin-text-link" href="/Admin/EnglishMissions">
+        <i class="ph ph-arrow-left" aria-hidden="true"></i> Quay lại danh sách nhiệm vụ
+    </a>
+</p>
+
+@functions {
+    private static bool IsSelected(string? currentValue, string optionValue)
+    {
+        string normalizedCurrent = currentValue?.Trim() ?? string.Empty;
+        string normalizedOption = optionValue.Trim();
+        return string.Equals(normalizedCurrent, normalizedOption, StringComparison.OrdinalIgnoreCase);
+    }
+}

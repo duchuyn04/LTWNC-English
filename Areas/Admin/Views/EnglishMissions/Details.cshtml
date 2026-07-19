@@ -1,0 +1,165 @@
+@model AdminEnglishMissionDetailsViewModel
+@{
+    ViewData["Title"] = $"Nhiệm vụ #{Model.MissionId}";
+    ViewData["Heading"] = "Nhiệm vụ tiếng Anh";
+}
+
+<section class="admin-panel" aria-labelledby="mission-details-heading">
+    <div class="admin-panel-header">
+        <div>
+            <h2 id="mission-details-heading">@Model.Title</h2>
+            <p>#@Model.MissionId · Phiên học #@Model.StudySessionId</p>
+        </div>
+        <span class="admin-status admin-status--info">@Model.StatusLabel</span>
+    </div>
+
+    <dl class="admin-detail-grid">
+        <div>
+            <dt>Người học</dt>
+            <dd>@Model.UserName <small class="admin-muted-line">@Model.Email</small></dd>
+        </div>
+        <div>
+            <dt>Bộ thẻ</dt>
+            <dd>@Model.FlashcardSetTitle</dd>
+        </div>
+        <div>
+            <dt>Chủ đề</dt>
+            <dd>@Model.Topic</dd>
+        </div>
+        <div>
+            <dt>Điểm</dt>
+            <dd>@Model.ScoreDisplay</dd>
+        </div>
+        <div>
+            <dt>Tạo lúc</dt>
+            <dd>@Model.CreatedDisplay</dd>
+        </div>
+        <div>
+            <dt>Hoàn thành</dt>
+            <dd>@Model.CompletedDisplay</dd>
+        </div>
+        <div>
+            <dt>Loại vụ việc</dt>
+            <dd>@Model.IncidentTypeLabel</dd>
+        </div>
+        <div>
+            <dt>Mã tham chiếu</dt>
+            <dd>@Model.CaseReferenceDisplay</dd>
+        </div>
+        <div>
+            <dt>Hạn lưu nội dung</dt>
+            <dd>@Model.RetentionDeadlineDisplay</dd>
+        </div>
+    </dl>
+
+    <p class="admin-muted-line">
+        <i class="ph ph-shield-check" aria-hidden="true"></i>
+        Lần mở hội thoại này đã được ghi audit với lý do: @Model.Reason
+    </p>
+</section>
+
+<section class="admin-panel" aria-labelledby="mission-context-heading">
+    <div class="admin-panel-header">
+        <h2 id="mission-context-heading">Bối cảnh hội thoại</h2>
+    </div>
+    <dl class="admin-detail-grid">
+        <div>
+            <dt>Tình huống</dt>
+            <dd>@Model.Situation</dd>
+        </div>
+        <div>
+            <dt>NPC</dt>
+            <dd>@Model.NpcName <small class="admin-muted-line">@Model.NpcRole</small></dd>
+        </div>
+        <div>
+            <dt>Câu mở đầu</dt>
+            <dd>@Model.OpeningLine</dd>
+        </div>
+    </dl>
+</section>
+
+<section class="admin-panel" aria-labelledby="mission-target-heading">
+    <div class="admin-panel-header">
+        <h2 id="mission-target-heading">Từ mục tiêu</h2>
+        <p>@Model.TargetWords.Count từ</p>
+    </div>
+    <div class="admin-table-wrapper">
+        <table class="admin-table">
+            <thead>
+                <tr>
+                    <th scope="col">Từ</th>
+                    <th scope="col">Định nghĩa</th>
+                    <th scope="col">Loại từ</th>
+                    <th scope="col">Trạng thái</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (AdminEnglishMissionTargetWordViewModel word in Model.TargetWords)
+                {
+                    <tr>
+                        <td>@word.Term</td>
+                        <td>@word.Definition</td>
+                        <td>@word.PartOfSpeechDisplay</td>
+                        <td>@word.UsedDisplay</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="admin-panel" aria-labelledby="mission-turns-heading">
+    <div class="admin-panel-header">
+        <h2 id="mission-turns-heading">Hội thoại</h2>
+        <p>@Model.Turns.Count lượt</p>
+    </div>
+
+    @if (Model.Turns.Count == 0)
+    {
+        <p class="admin-empty">Nhiệm vụ chưa có lượt hội thoại nào.</p>
+    }
+    else
+    {
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Lượt</th>
+                        <th scope="col">Người học</th>
+                        <th scope="col">NPC</th>
+                        <th scope="col">Phản hồi</th>
+                        <th scope="col">Aggregate</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (AdminEnglishMissionTurnViewModel turn in Model.Turns)
+                    {
+                        <tr>
+                            <td>
+                                #@turn.TurnNumber
+                                <small class="admin-muted-line">@turn.CreatedDisplay</small>
+                            </td>
+                            <td>@turn.UserText</td>
+                            <td>@turn.NpcText</td>
+                            <td>
+                                @turn.FeedbackDisplay
+                                <small class="admin-muted-line">@turn.CorrectionDisplay</small>
+                                <small class="admin-muted-line">@turn.CorrectionExplanationDisplay</small>
+                            </td>
+                            <td>
+                                Từ: @turn.UsedWordsDisplay
+                                <small class="admin-muted-line">Mục tiêu: @turn.AchievedGoalsDisplay</small>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+<p>
+    <a class="admin-text-link" href="/Admin/EnglishMissions">
+        <i class="ph ph-arrow-left" aria-hidden="true"></i> Quay lại danh sách nhiệm vụ
+    </a>
+</p>
