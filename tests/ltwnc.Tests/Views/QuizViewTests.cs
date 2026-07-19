@@ -52,6 +52,24 @@ public class QuizViewTests
     }
 
     [Fact]
+    public void Quiz_header_groups_restart_with_exit_actions_to_preserve_grid_layout()
+    {
+        string header = RequiredMatch(
+            QuizView,
+            "<header class=\"quiz-header\">[\\s\\S]*?</header>");
+        string actions = RequiredMatch(
+            header,
+            "<div class=\"quiz-header-actions\">[\\s\\S]*?</div>");
+
+        Assert.Contains("class=\"quiz-exit\"", actions);
+        Assert.Contains("asp-action=\"QuizRestart\"", actions);
+        Assert.Contains("@Html.AntiForgeryToken()", actions);
+        Assert.Contains("onsubmit=\"return confirm", actions);
+        Assert.DoesNotContain("<form", Regex.Replace(header, "<div class=\"quiz-header-actions\">[\\s\\S]*?</div>", string.Empty));
+        Assert.Contains(".quiz-header-actions", QuizStyles);
+    }
+
+    [Fact]
     public void Quiz_view_renders_read_only_review_choices_and_question_navigation()
     {
         Assert.Contains("data-quiz-review-only", QuizView);
