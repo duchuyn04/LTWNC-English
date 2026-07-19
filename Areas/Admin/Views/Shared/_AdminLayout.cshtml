@@ -1,0 +1,93 @@
+@{
+    string currentPath = Context.Request.Path.Value ?? "/Admin";
+    string pageHeading = ViewData["Heading"] as string ?? "Quản trị hệ thống";
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex,nofollow" />
+    <title>@ViewData["Title"] - LTWNC Admin</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Newsreader:ital,opsz,wght@0,6..72,500..800;1,6..72,500..800&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://unpkg.com/phosphor-icons@1.4.2/src/css/icons.css" />
+    <link rel="stylesheet" href="/css/site.css" />
+    <link rel="stylesheet" href="/css/admin-dashboard.css" />
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+<body class="admin-body">
+    <a class="admin-skip-link" href="#admin-main">Bỏ qua điều hướng</a>
+    <div class="admin-shell">
+        <aside class="admin-sidebar" aria-label="Điều hướng quản trị">
+            <a class="admin-brand" href="/Admin" aria-label="Trang tổng quan LTWNC Admin">
+                <span aria-hidden="true">LT</span>
+                <strong>LTWNC</strong>
+                <small>ADMIN</small>
+            </a>
+
+            <nav class="admin-navigation">
+                <a class="@(currentPath.Equals("/Admin", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin" aria-current="@(currentPath.Equals("/Admin", StringComparison.OrdinalIgnoreCase) ? "page" : null)">
+                    <i class="ph ph-squares-four" aria-hidden="true"></i><span>Tổng quan</span>
+                </a>
+                <a class="@(currentPath.StartsWith("/Admin/Users", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/Users">
+                    <i class="ph ph-users-three" aria-hidden="true"></i><span>Người dùng</span>
+                </a>
+                <a class="@(currentPath.StartsWith("/Admin/Content", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/Content">
+                    <i class="ph ph-stack" aria-hidden="true"></i><span>Nội dung</span>
+                </a>
+                <a class="@(currentPath.StartsWith("/Admin/Learning", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/Learning">
+                    <i class="ph ph-graduation-cap" aria-hidden="true"></i><span>Phiên học</span>
+                </a>
+                <a class="@(currentPath.StartsWith("/Admin/EnglishMissions", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/EnglishMissions">
+                    <i class="ph ph-chats-circle" aria-hidden="true"></i><span>Nhiệm vụ tiếng Anh</span>
+                </a>
+                <a class="@(currentPath.StartsWith("/Admin/Achievements", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/Achievements">
+                    <i class="ph ph-medal" aria-hidden="true"></i><span>Thành tích</span>
+                </a>
+                <a class="@(currentPath.StartsWith("/Admin/AiProviders", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/AiProviders">
+                    <i class="ph ph-plugs-connected" aria-hidden="true"></i><span>Nhà cung cấp AI</span>
+                </a>
+                <a class="@(currentPath.StartsWith("/Admin/AuditLogs", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/AuditLogs">
+                    <i class="ph ph-scroll" aria-hidden="true"></i><span>Bản ghi kiểm toán quản trị</span>
+                </a>
+            </nav>
+
+            <div class="admin-sidebar-footer">
+                <a class="admin-learner-link" href="/Set" target="_blank" rel="noopener noreferrer">
+                    <i class="ph ph-arrow-square-out" aria-hidden="true"></i>
+                    <span>Mở giao diện người học</span>
+                </a>
+                <div class="admin-account">
+                    <span class="admin-avatar" aria-hidden="true">AD</span>
+                    <p><strong>@User.Identity?.Name</strong><small>Quản trị viên</small></p>
+                    <form action="/Account/Logout" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" title="Đăng xuất" aria-label="Đăng xuất">
+                            <i class="ph ph-sign-out" aria-hidden="true"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </aside>
+
+        <div class="admin-workspace">
+            <header class="admin-topbar">
+                <div>
+                    <p>LTWNC / ADMIN</p>
+                    <h1>@pageHeading</h1>
+                </div>
+                <span class="admin-role-badge"><i class="ph ph-shield-check" aria-hidden="true"></i> Phiên quản trị đặc quyền</span>
+            </header>
+            <main id="admin-main" class="admin-main" tabindex="-1">
+                @RenderBody()
+            </main>
+        </div>
+    </div>
+
+    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

@@ -1,0 +1,392 @@
+/* Admin Area dùng trực tiếp design tokens và component nền từ site.css. */
+
+.admin-body {
+    min-width: 360px;
+    background: var(--paper);
+}
+
+.admin-skip-link {
+    position: fixed;
+    z-index: 1100;
+    top: 0.75rem;
+    left: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius-control);
+    background: var(--ink);
+    color: var(--paper);
+    transform: translateY(-150%);
+}
+
+.admin-skip-link:focus {
+    color: var(--paper);
+    transform: translateY(0);
+}
+
+.admin-shell {
+    display: grid;
+    grid-template-columns: 17rem minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+.admin-sidebar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 1.5rem 1rem;
+    overflow-y: auto;
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.admin-brand {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 0.75rem;
+    align-items: center;
+    margin: 0 0.5rem 1.75rem;
+    color: var(--paper);
+    text-decoration: none;
+}
+
+.admin-brand:hover,
+.admin-brand:focus {
+    color: var(--paper);
+}
+
+.admin-brand > span {
+    grid-row: 1 / 3;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-control);
+    background: var(--brass);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-weight: 800;
+}
+
+.admin-brand strong {
+    align-self: end;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.admin-brand small {
+    align-self: start;
+    margin-top: 0.2rem;
+    color: var(--muted-light);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+}
+
+.admin-navigation {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.admin-navigation a,
+.admin-learner-link {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0.625rem 0.75rem;
+    border-radius: var(--radius-control);
+    color: var(--line-strong);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+}
+
+.admin-navigation a:hover,
+.admin-navigation a:focus,
+.admin-navigation a.active,
+.admin-learner-link:hover,
+.admin-learner-link:focus {
+    background: rgba(255, 253, 247, 0.1);
+    color: var(--surface);
+}
+
+.admin-navigation a.active {
+    box-shadow: inset 3px 0 0 var(--brass);
+}
+
+.admin-navigation i,
+.admin-learner-link i {
+    flex: 0 0 auto;
+    font-size: 1.25rem;
+}
+
+.admin-sidebar-footer {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: auto;
+    padding-top: 1.5rem;
+}
+
+.admin-learner-link {
+    border: 1px solid rgba(255, 253, 247, 0.18);
+}
+
+.admin-account {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+    gap: 0.625rem;
+    align-items: center;
+    padding-top: 0.75rem;
+    border-top: 1px solid rgba(255, 253, 247, 0.14);
+}
+
+.admin-avatar {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius-pill);
+    background: var(--sage);
+    color: var(--ink);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.admin-account p {
+    display: grid;
+    min-width: 0;
+    margin: 0;
+}
+
+.admin-account strong,
+.admin-account small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-account strong {
+    color: var(--surface);
+    font-size: 0.8125rem;
+}
+
+.admin-account small {
+    color: var(--muted-light);
+    font-size: 0.6875rem;
+}
+
+.admin-account button {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--line-strong);
+}
+
+.admin-account button:hover,
+.admin-account button:focus {
+    background: rgba(255, 253, 247, 0.1);
+    color: var(--surface);
+}
+
+.admin-workspace {
+    min-width: 0;
+}
+
+.admin-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    min-height: 6.75rem;
+    padding: 1.25rem clamp(1rem, 4vw, 3rem);
+    border-bottom: 1px solid var(--line);
+    background: rgba(247, 243, 233, 0.94);
+}
+
+.admin-topbar p {
+    margin: 0 0 0.25rem;
+    color: var(--brass-deep);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+}
+
+.admin-topbar h1 {
+    margin: 0;
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+}
+
+.admin-role-badge,
+.admin-ready-badge {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+    padding: 0.4rem 0.75rem;
+    border-radius: var(--radius-pill);
+    background: var(--success-bg);
+    color: var(--success);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.admin-main {
+    width: min(90rem, 100%);
+    margin: 0 auto;
+    padding: clamp(1.25rem, 4vw, 3rem);
+}
+
+.admin-intro {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: flex-start;
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    border: 2px solid var(--ink);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: var(--shadow-offset);
+}
+
+.admin-intro h2 {
+    margin: 0.35rem 0 0.75rem;
+}
+
+.admin-intro p:last-child {
+    max-width: 46rem;
+    margin: 0;
+    color: var(--muted);
+}
+
+.admin-foundation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1.75rem;
+}
+
+.admin-foundation-card {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+}
+
+.admin-foundation-card > i {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radius-control);
+    background: var(--sage-soft);
+    color: var(--ink);
+    font-size: 1.375rem;
+}
+
+.admin-foundation-card h2 {
+    margin: 0 0 0.5rem;
+    font-size: 1rem;
+}
+
+.admin-foundation-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+}
+
+@media (max-width: 62rem) {
+    .admin-shell {
+        grid-template-columns: 13.5rem minmax(0, 1fr);
+    }
+
+    .admin-foundation-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 47.99rem) {
+    .admin-shell {
+        display: block;
+    }
+
+    .admin-sidebar {
+        position: static;
+        height: auto;
+        padding: 1rem;
+        overflow: visible;
+    }
+
+    .admin-brand {
+        margin: 0 0 1rem;
+    }
+
+    .admin-navigation {
+        display: flex;
+        margin: 0 -1rem;
+        padding: 0 1rem 0.5rem;
+        overflow-x: auto;
+        scrollbar-width: thin;
+    }
+
+    .admin-navigation a {
+        flex: 0 0 auto;
+    }
+
+    .admin-navigation a.active {
+        box-shadow: inset 0 -3px 0 var(--brass);
+    }
+
+    .admin-sidebar-footer {
+        grid-template-columns: 1fr auto;
+        align-items: center;
+        margin-top: 0.5rem;
+        padding-top: 0.75rem;
+    }
+
+    .admin-account {
+        grid-template-columns: 2.25rem auto;
+        padding: 0;
+        border: 0;
+    }
+
+    .admin-account p {
+        display: none;
+    }
+
+    .admin-topbar {
+        min-height: auto;
+    }
+
+    .admin-role-badge {
+        display: none;
+    }
+}
+
+@media (max-width: 30rem) {
+    .admin-learner-link span {
+        font-size: 0.75rem;
+    }
+
+    .admin-intro {
+        display: grid;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-navigation a,
+    .admin-learner-link {
+        transition: none;
+    }
+}

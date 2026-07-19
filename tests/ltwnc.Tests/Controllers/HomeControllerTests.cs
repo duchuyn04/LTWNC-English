@@ -9,7 +9,7 @@ namespace ltwnc.Tests.Controllers;
 public class HomeControllerTests
 {
     [Fact]
-    public void NotFoundAction_ReturnsViewWith404Status()
+    public void StatusCodePage_WithoutReExecuteStatusReturnsViewWith404Status()
     {
         var controller = new HomeController(new Mock<IFlashcardSetService>().Object)
         {
@@ -19,7 +19,7 @@ public class HomeControllerTests
             }
         };
 
-        ViewResult result = Assert.IsType<ViewResult>(controller.NotFoundPage());
+        ViewResult result = Assert.IsType<ViewResult>(controller.StatusCodePage());
 
         Assert.Equal(StatusCodes.Status404NotFound, controller.Response.StatusCode);
         Assert.Equal("NotFound", result.ViewName);

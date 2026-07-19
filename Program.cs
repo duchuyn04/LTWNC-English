@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Routing;
+using ltwnc.Areas.Admin;
 using ltwnc.Data;
 using ltwnc.Services.Achievements;
 using ltwnc.Services.Auth;
@@ -40,6 +41,11 @@ builder.Services.AddIdentityCore<IdentityUser>(options =>
 builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
     .AddIdentityCookies();
 
+builder.Services.AddAuthorization(options =>
+    options.AddPolicy(
+        AdminAreaPolicy.Name,
+        policy => policy.RequireRole(AdminRoleBootstrapper.AdminRole)));
+
 builder.Services.Configure<CookieAuthenticationOptions>(
     IdentityConstants.ApplicationScheme,
     options =>
@@ -47,6 +53,17 @@ builder.Services.Configure<CookieAuthenticationOptions>(
         options.LoginPath = "/Account/Login";
         options.LogoutPath = "/Account/Logout";
         options.AccessDeniedPath = "/Account/Login";
+        options.Events.OnRedirectToAccessDenied = context =>
+        {
+            if (context.Request.Path.StartsWithSegments("/Admin"))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return Task.CompletedTask;
+            }
+
+            context.Response.Redirect(context.RedirectUri);
+            return Task.CompletedTask;
+        };
         options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
     });
@@ -97,7 +114,8 @@ builder.Services.AddScoped<IAchievementUnlockService, AchievementUnlockService>(
 
 
 // Add MVC
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews(options =>
+    options.Conventions.Add(new AdminAreaAuthorizationConvention()));
 builder.Services.AddScoped<ltwnc.Controllers.ApiExceptionFilter>();
 
 var app = builder.Build();
@@ -110,7 +128,7 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-app.UseStatusCodePagesWithReExecute("/Home/NotFoundPage");
+app.UseStatusCodePagesWithReExecute("/Home/StatusCodePage");
 app.UseHttpsRedirection();
 app.UseStaticFiles();
 app.UseRouting();
@@ -118,6 +136,17 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapStaticAssets();
+app.MapAreaControllerRoute(
+    name: "admin-root",
+    areaName: "Admin",
+    pattern: "Admin",
+    defaults: new { controller = "Dashboard", action = "Index" })
+    .WithStaticAssets();
+app.MapAreaControllerRoute(
+    name: "admin",
+    areaName: "Admin",
+    pattern: "Admin/{controller=Dashboard}/{action=Index}/{id?}")
+    .WithStaticAssets();
 app.MapControllerRoute(
     name: "default",
     pattern: "{controller=Home}/{action=Index}/{id?}")

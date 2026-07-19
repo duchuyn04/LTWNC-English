@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
 using ltwnc.Models;
@@ -63,8 +64,18 @@ public class HomeController : Controller
 
     [HttpGet]
     [AllowAnonymous]
-    public IActionResult NotFoundPage()
+    public IActionResult StatusCodePage()
     {
+        int originalStatusCode = HttpContext.Features
+            .Get<IStatusCodeReExecuteFeature>()?
+            .OriginalStatusCode ?? StatusCodes.Status404NotFound;
+
+        if (originalStatusCode == StatusCodes.Status403Forbidden)
+        {
+            Response.StatusCode = StatusCodes.Status403Forbidden;
+            return View("Forbidden");
+        }
+
         Response.StatusCode = StatusCodes.Status404NotFound;
         return View("NotFound");
     }
