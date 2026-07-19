@@ -354,7 +354,11 @@ public sealed class ProfileService : IProfileService
         {
             OwnedSetCount = setIds.Count,
             PublicSetCount = await _db.FlashcardSets.CountAsync(
-                set => set.UserId == userId && set.IsPublic, cancellationToken),
+                set =>
+                    set.UserId == userId
+                    && set.IsPublic
+                    && set.ModerationStatus == FlashcardSetModerationStatus.Active,
+                cancellationToken),
             TotalFlashcardCount = await _db.Flashcards.CountAsync(
                 card => setIds.Contains(card.FlashcardSetId), cancellationToken),
             LearnedFlashcardCount = await _db.UserProgresses.CountAsync(
@@ -391,7 +395,10 @@ public sealed class ProfileService : IProfileService
     {
         return await _db.FlashcardSets
             .AsNoTracking()
-            .Where(set => set.UserId == userId && set.IsPublic)
+            .Where(set =>
+                set.UserId == userId
+                && set.IsPublic
+                && set.ModerationStatus == FlashcardSetModerationStatus.Active)
             .OrderByDescending(set => set.CreatedAt)
             .Select(set => new ProfilePublicSetViewModel
             {
@@ -435,7 +442,10 @@ public sealed class ProfileService : IProfileService
             .ToListAsync(cancellationToken));
         items.AddRange(await _db.FlashcardSets
             .AsNoTracking()
-            .Where(set => set.UserId == userId && set.IsPublic)
+            .Where(set =>
+                set.UserId == userId
+                && set.IsPublic
+                && set.ModerationStatus == FlashcardSetModerationStatus.Active)
             .Select(set => new ProfileTimelineItemViewModel
             {
                 Kind = "set",
@@ -464,7 +474,10 @@ public sealed class ProfileService : IProfileService
             .Select(achievement => achievement.UnlockedAt)
             .ToListAsync(cancellationToken));
         dates.AddRange(await _db.FlashcardSets
-            .Where(set => set.UserId == userId && set.IsPublic)
+            .Where(set =>
+                set.UserId == userId
+                && set.IsPublic
+                && set.ModerationStatus == FlashcardSetModerationStatus.Active)
             .Select(set => set.CreatedAt)
             .ToListAsync(cancellationToken));
         return dates.Select(date => date.Date).Distinct().ToList();

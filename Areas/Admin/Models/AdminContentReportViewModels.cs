@@ -60,6 +60,7 @@ public sealed class AdminContentReportRowViewModel
     public required string AgeDisplay { get; init; }
     public string? ResolutionReason { get; init; }
     public int Version { get; init; }
+    public int FlashcardSetVersion { get; init; }
     public bool CanDismiss { get; init; }
 }
 
@@ -67,6 +68,16 @@ public sealed class AdminContentReportDismissInputModel
 {
     public int Version { get; set; }
     public string Reason { get; set; } = string.Empty;
+}
+
+public sealed class AdminContentReportQuarantineInputModel
+{
+    public int ReportVersion { get; set; }
+    public int FlashcardSetVersion { get; set; }
+    public string PublicReason { get; set; } = string.Empty;
+    public string? InternalNote { get; set; }
+    public string? Evidence { get; set; }
+    public bool Confirmed { get; set; }
 }
 
 public static class AdminContentReportViewModelMapper
@@ -117,6 +128,7 @@ public static class AdminContentReportViewModelMapper
             AgeDisplay = BuildAgeDisplay(age),
             ResolutionReason = report.ResolutionReason,
             Version = report.Version,
+            FlashcardSetVersion = report.FlashcardSetVersion,
             CanDismiss = report.Status == ltwnc.Models.Entities.ContentReportStatus.Pending
         };
     }

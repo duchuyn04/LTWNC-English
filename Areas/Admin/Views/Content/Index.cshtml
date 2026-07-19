@@ -1,0 +1,210 @@
+@model AdminContentIndexViewModel
+@{
+    ViewData["Title"] = "Kiểm duyệt nội dung";
+    ViewData["Heading"] = "Kiểm duyệt nội dung";
+}
+
+<section class="admin-panel" aria-labelledby="content-filter-heading">
+    <div class="admin-panel-header">
+        <div>
+            <h2 id="content-filter-heading">Bộ lọc nội dung</h2>
+            <p>@Model.TotalCount bộ flashcard khớp bộ lọc</p>
+        </div>
+        <a class="admin-text-link" href="/Admin/ContentReports">
+            <i class="ph ph-flag" aria-hidden="true"></i> Hàng đợi báo cáo
+        </a>
+    </div>
+
+    @if (TempData["ContentModerationSuccess"] is string successMessage)
+    {
+        <div class="admin-alert admin-alert--success" role="status">@successMessage</div>
+    }
+
+    @if (TempData["ContentModerationError"] is string errorMessage)
+    {
+        <div class="admin-alert admin-alert--danger" role="alert">@errorMessage</div>
+    }
+
+    <form method="get" action="/Admin/Content" class="admin-filter-form">
+        <div class="admin-filter-field">
+            <label for="search">Tìm kiếm</label>
+            <input type="search" id="search" name="search" value="@Model.Search"
+                   placeholder="Mã bộ, tiêu đề hoặc email chủ sở hữu" maxlength="200" />
+        </div>
+        <div class="admin-filter-field">
+            <label for="status">Trạng thái kiểm duyệt</label>
+            <select id="status" name="status">
+                <option value="" selected="@(IsSelected(Model.Status, ""))">Tất cả</option>
+                <option value="active" selected="@(IsSelected(Model.Status, "active"))">Đang hoạt động</option>
+                <option value="quarantined" selected="@(IsSelected(Model.Status, "quarantined"))">Đã cách ly</option>
+            </select>
+        </div>
+        <div class="admin-filter-field">
+            <label for="visibility">Chế độ hiển thị</label>
+            <select id="visibility" name="visibility">
+                <option value="" selected="@(IsSelected(Model.Visibility, ""))">Tất cả</option>
+                <option value="public" selected="@(IsSelected(Model.Visibility, "public"))">Công khai</option>
+                <option value="private" selected="@(IsSelected(Model.Visibility, "private"))">Riêng tư</option>
+            </select>
+        </div>
+        <div class="admin-filter-field admin-filter-field--compact">
+            <label for="pageSize">Dòng/trang</label>
+            <input type="number" id="pageSize" name="pageSize" value="@Model.PageSize" min="1" max="100" />
+        </div>
+        <button type="submit" class="admin-filter-submit">
+            <i class="ph ph-funnel" aria-hidden="true"></i> Lọc
+        </button>
+    </form>
+</section>
+
+<section class="admin-panel" aria-labelledby="content-table-heading">
+    <div class="admin-panel-header">
+        <h2 id="content-table-heading">Danh sách bộ flashcard</h2>
+        <p>Trang @Model.Page/@Model.TotalPages</p>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <p class="admin-empty">Không có bộ flashcard nào khớp bộ lọc hiện tại.</p>
+    }
+    else
+    {
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Bộ flashcard</th>
+                        <th scope="col">Chủ sở hữu</th>
+                        <th scope="col">Hiển thị</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col">Số liệu</th>
+                        <th scope="col">Cập nhật</th>
+                        <th scope="col">Xử lý</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (AdminContentSetRowViewModel item in Model.Items)
+                    {
+                        <tr>
+                            <td>
+                                <a class="admin-text-link" href="/Admin/Content/@item.Id">@item.Title</a>
+                                <small class="admin-muted-line">#@item.Id · Phiên bản @item.ModerationVersion</small>
+                            </td>
+                            <td>@item.OwnerDisplay</td>
+                            <td>@item.VisibilityLabel</td>
+                            <td>
+                                <span class="admin-status admin-status--@item.StatusTone">@item.StatusLabel</span>
+                                @if (!string.IsNullOrWhiteSpace(item.ModerationPublicReason))
+                                {
+                                    <small class="admin-muted-line">@item.ModerationPublicReason</small>
+                                }
+                            </td>
+                            <td>
+                                @item.CardCount thẻ
+                                <small class="admin-muted-line">@item.PendingReportCount báo cáo đang chờ</small>
+                            </td>
+                            <td>
+                                @item.UpdatedDisplay
+                                <small class="admin-muted-line">Kiểm duyệt: @item.ModeratedDisplay</small>
+                            </td>
+                            <td>
+                                @if (item.CanQuarantine)
+                                {
+                                    <form method="post"
+                                          action="/Admin/Content/@item.Id/Quarantine"
+                                          class="admin-inline-action-form"
+                                          onsubmit="return confirm('Cách ly bộ flashcard này?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="Version" value="@item.ModerationVersion" />
+                                        <label for="quarantine-public-reason-@item.Id">Lý do công khai</label>
+                                        <textarea id="quarantine-public-reason-@item.Id" name="PublicReason" maxlength="500" required></textarea>
+                                        <label for="quarantine-note-@item.Id">Ghi chú nội bộ</label>
+                                        <textarea id="quarantine-note-@item.Id" name="InternalNote" maxlength="1000"></textarea>
+                                        <label class="admin-checkbox-line">
+                                            <input type="checkbox" name="Confirmed" value="true" required />
+                                            Xác nhận cách ly
+                                        </label>
+                                        <button type="submit" class="admin-filter-submit admin-button-danger">
+                                            <i class="ph ph-shield-warning" aria-hidden="true"></i> Cách ly
+                                        </button>
+                                    </form>
+                                }
+                                @if (item.CanRestore)
+                                {
+                                    <form method="post"
+                                          action="/Admin/Content/@item.Id/Restore"
+                                          class="admin-inline-action-form"
+                                          onsubmit="return confirm('Khôi phục bộ flashcard này?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="Version" value="@item.ModerationVersion" />
+                                        <label for="restore-reason-@item.Id">Lý do khôi phục</label>
+                                        <textarea id="restore-reason-@item.Id" name="Reason" maxlength="500" required></textarea>
+                                        <label class="admin-checkbox-line">
+                                            <input type="checkbox" name="Confirmed" value="true" required />
+                                            Xác nhận khôi phục
+                                        </label>
+                                        <button type="submit" class="admin-filter-submit">
+                                            <i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i> Khôi phục
+                                        </button>
+                                    </form>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <nav class="admin-pagination" aria-label="Phân trang nội dung">
+            @if (Model.HasPreviousPage)
+            {
+                <a href="@PageUrl(Model.Page - 1)">
+                    <i class="ph ph-caret-left" aria-hidden="true"></i> Trang trước
+                </a>
+            }
+            <span aria-current="page">Trang @Model.Page / @Model.TotalPages</span>
+            @if (Model.HasNextPage)
+            {
+                <a href="@PageUrl(Model.Page + 1)">
+                    Trang sau <i class="ph ph-caret-right" aria-hidden="true"></i>
+                </a>
+            }
+        </nav>
+    }
+</section>
+
+@functions {
+    private static bool IsSelected(string? currentValue, string optionValue)
+    {
+        string normalizedCurrent = currentValue?.Trim().ToLowerInvariant() ?? string.Empty;
+        string normalizedOption = optionValue.Trim().ToLowerInvariant();
+        return normalizedCurrent == normalizedOption;
+    }
+
+    private string PageUrl(int page)
+    {
+        var query = new List<string>
+        {
+            $"page={page}",
+            $"pageSize={Model.PageSize}"
+        };
+
+        if (!string.IsNullOrEmpty(Model.Search))
+        {
+            query.Add($"search={Uri.EscapeDataString(Model.Search)}");
+        }
+
+        if (!string.IsNullOrEmpty(Model.Status))
+        {
+            query.Add($"status={Uri.EscapeDataString(Model.Status)}");
+        }
+
+        if (!string.IsNullOrEmpty(Model.Visibility))
+        {
+            query.Add($"visibility={Uri.EscapeDataString(Model.Visibility)}");
+        }
+
+        return $"/Admin/Content?{string.Join("&", query)}";
+    }
+}
+

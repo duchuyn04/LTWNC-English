@@ -1,4 +1,5 @@
 @model SetDetailViewModel
+@using ltwnc.Areas.Admin
 @{
     ViewData["Title"] = Model.Title;
 }
@@ -31,6 +32,21 @@
                 <div class="set-detail-stat-label">Tổng số</div>
             </div>
         </div>
+
+        @if (Model.IsOwner && Model.IsQuarantined)
+        {
+            <div class="set-report-alert set-report-alert--danger" role="alert">
+                Bộ flashcard này đang bị cách ly khỏi tìm kiếm, chia sẻ, sao chép và học công khai.
+                @if (!string.IsNullOrWhiteSpace(Model.ModerationPublicReason))
+                {
+                    <span>Lý do: @Model.ModerationPublicReason</span>
+                }
+                @if (Model.ModeratedAtUtc.HasValue)
+                {
+                    <span>Thời điểm xử lý: @FormatVietnamTime(Model.ModeratedAtUtc.Value)</span>
+                }
+            </div>
+        }
 
         <div class="d-flex gap-2 justify-content-center flex-wrap">
             @if (Model.IsOwner)
@@ -149,3 +165,10 @@
         </div>
     }
 </div>
+
+@functions {
+    private static string FormatVietnamTime(DateTime valueUtc)
+    {
+        return AdminTimeZone.ToVietnamTime(valueUtc).ToString("HH:mm dd/MM/yyyy");
+    }
+}

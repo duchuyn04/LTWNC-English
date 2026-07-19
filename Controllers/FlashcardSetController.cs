@@ -84,6 +84,9 @@ public class FlashcardSetController : Controller
             model.Title = set.Title;
             model.Description = set.Description;
             model.IsPublic = set.IsPublic;
+            model.IsQuarantined = set.ModerationStatus == FlashcardSetModerationStatus.Quarantined;
+            model.ModerationPublicReason = set.ModerationPublicReason;
+            model.ModeratedAtUtc = set.ModeratedAtUtc;
             model.Cards = set.Flashcards
                 .OrderBy(c => c.OrderIndex)
                 .Select(c => new CardViewModel
@@ -183,11 +186,14 @@ public class FlashcardSetController : Controller
             Title = set.Title,
             Description = set.Description,
             IsPublic = set.IsPublic,
+            IsQuarantined = set.ModerationStatus == FlashcardSetModerationStatus.Quarantined,
+            ModerationPublicReason = set.ModerationPublicReason,
+            ModeratedAtUtc = set.ModeratedAtUtc,
             Flashcards = FlashcardViewModelMapper.FromEntities(set.Flashcards),
             IsOwner = userId == set.UserId,
             ExistingCopyId = existingCopyId,
             ReportReasonOptions = _contentReportService.GetReasonOptions(),
-            CanReport = userId != null && userId != set.UserId && set.IsPublic && !hasOpenReport,
+            CanReport = userId != null && userId != set.UserId && set.IsPublic && !hasOpenReport && set.ModerationStatus == FlashcardSetModerationStatus.Active,
             HasOpenReport = hasOpenReport
         };
 
@@ -231,7 +237,7 @@ public class FlashcardSetController : Controller
 
         if (result.Failure == ContentReportSubmitFailure.NotFoundOrPrivate)
         {
-            return NotFound();
+            return NotFound("Không tìm thấy bộ flashcard công khai có thể báo cáo.");
         }
 
         TempData["ContentReportError"] = result.Message;
@@ -258,7 +264,7 @@ public class FlashcardSetController : Controller
         }
         catch (KeyNotFoundException)
         {
-            return NotFound();
+            return NotFound("Không tìm thấy bộ flashcard công khai có thể sao chép.");
         }
         catch (UnauthorizedAccessException)
         {

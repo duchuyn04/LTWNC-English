@@ -160,7 +160,10 @@ public class StudyService : IStudyService
             throw new KeyNotFoundException("Bộ thẻ không tồn tại.");
         }
 
-        if (!set.IsPublic && set.UserId != userId)
+        bool canStudyAsPublic =
+            set.IsPublic
+            && set.ModerationStatus == FlashcardSetModerationStatus.Active;
+        if (!canStudyAsPublic && set.UserId != userId)
         {
             throw new UnauthorizedAccessException("Không có quyền học bộ thẻ này.");
         }
@@ -221,7 +224,10 @@ public class StudyService : IStudyService
             throw new KeyNotFoundException("Bộ thẻ không tồn tại.");
         }
 
-        if (!set.IsPublic && set.UserId != userId)
+        bool canStudyAsPublic =
+            set.IsPublic
+            && set.ModerationStatus == FlashcardSetModerationStatus.Active;
+        if (!canStudyAsPublic && set.UserId != userId)
         {
             throw new UnauthorizedAccessException("Không có quyền học bộ thẻ này.");
         }

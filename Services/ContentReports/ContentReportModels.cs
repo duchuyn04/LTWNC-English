@@ -55,7 +55,8 @@ public sealed record AdminContentReportRow(
     DateTime CreatedAtUtc,
     DateTime? ResolvedAtUtc,
     string? ResolutionReason,
-    int Version);
+    int Version,
+    int FlashcardSetVersion);
 
 public sealed record AdminContentReportPage(
     IReadOnlyList<AdminContentReportRow> Items,

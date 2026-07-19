@@ -39,7 +39,7 @@ public class StudyController : Controller
 
     // GET Study Hub: chỉ set của owner; query filter ghi settings nếu đã login
     [AllowAnonymous]
-    [Route("/Study/{setId}")]
+    [Route("/Study/{setId:int}")]
     public async Task<IActionResult> Index(
         int setId,
         bool? starredOnly = null,
@@ -65,7 +65,7 @@ public class StudyController : Controller
 
     // GET màn flashcard: gộp filter query + settings; empty -> hub + TempData
     [AllowAnonymous]
-    [Route("/Study/{setId}/Flashcard")]
+    [Route("/Study/{setId:int}/Flashcard")]
     public async Task<IActionResult> Flashcard(
         int setId,
         int index = 0,
@@ -149,7 +149,7 @@ public class StudyController : Controller
 
     // POST đánh dấu đã biết / chưa biết; AJAX -> JSON, form -> redirect Flashcard
     [HttpPost]
-    [Route("/Study/{setId}/Flashcard/Mark")]
+    [Route("/Study/{setId:int}/Flashcard/Mark")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkLearned(int setId, int cardId, bool learned)
     {
@@ -187,7 +187,7 @@ public class StudyController : Controller
 
     // POST hoàn thành buổi Flashcard; AJAX kèm redirectUrl hub
     [HttpPost]
-    [Route("/Study/{setId}/Complete")]
+    [Route("/Study/{setId:int}/Complete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Complete(int setId, int sessionId)
     {
@@ -230,7 +230,7 @@ public class StudyController : Controller
 
     // POST AJAX toggle sao thẻ (owner)
     [HttpPost]
-    [Route("/Study/{setId}/Flashcard/{cardId}/ToggleStar")]
+    [Route("/Study/{setId:int}/Flashcard/{cardId:int}/ToggleStar")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleStar(int setId, int cardId)
     {
@@ -257,6 +257,15 @@ public class StudyController : Controller
         {
             return BadRequest();
         }
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    [Route("/Study/Settings")]
+    public IActionResult Settings()
+    {
+        // GET route này giữ contract routing cũ khi đường dẫn bị gọi nhầm: quay về trang chi tiết set #0.
+        return RedirectToAction("Details", "FlashcardSet", new { id = 0 });
     }
 
     // POST AJAX lưu toàn bộ UserStudySettings
@@ -296,7 +305,7 @@ public class StudyController : Controller
     // GET tắt StarredOnly + UnlearnedOnly rồi về hub (thoát lọc rỗng)
     [Authorize]
     [HttpPost]
-    [Route("/Study/{setId}/ClearFilters")]
+    [Route("/Study/{setId:int}/ClearFilters")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ClearFilters(int setId)
     {
@@ -314,7 +323,7 @@ public class StudyController : Controller
 
     // GET màn Dictation: tạo session, map thẻ -> view model; empty -> hub
     [Authorize]
-    [Route("/Study/{setId}/Dictation")]
+    [Route("/Study/{setId:int}/Dictation")]
     public async Task<IActionResult> Dictation(int setId)
     {
         string? userId = _currentUser.UserId;
@@ -415,7 +424,7 @@ public class StudyController : Controller
 
     // POST AJAX chấm một câu; trả isCorrect, hint, wordComparison...
     [HttpPost]
-    [Route("/Study/{setId}/Dictation/Check")]
+    [Route("/Study/{setId:int}/Dictation/Check")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DictationCheck(
         int setId,
@@ -470,7 +479,7 @@ public class StudyController : Controller
 
     // POST AJAX đóng phiên + điểm; JSON redirectUrl màn result
     [HttpPost]
-    [Route("/Study/{setId}/Dictation/Complete")]
+    [Route("/Study/{setId:int}/Dictation/Complete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DictationComplete(int setId, int sessionId)
     {
@@ -501,7 +510,7 @@ public class StudyController : Controller
 
     // GET tổng kết phiên nghe chép (owner set + owner session)
     [Authorize]
-    [Route("/Study/{setId}/Dictation/Result/{sessionId}")]
+    [Route("/Study/{setId:int}/Dictation/Result/{sessionId:int}")]
     public async Task<IActionResult> DictationResult(int setId, int sessionId)
     {
         string? userId = _currentUser.UserId;

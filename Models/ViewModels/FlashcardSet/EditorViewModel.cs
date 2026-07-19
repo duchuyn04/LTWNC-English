@@ -6,6 +6,9 @@ public class EditorViewModel
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public bool IsPublic { get; set; }
+    public bool IsQuarantined { get; set; }
+    public string? ModerationPublicReason { get; set; }
+    public DateTime? ModeratedAtUtc { get; set; }
     public List<CardViewModel> Cards { get; set; } = new();
 }
 

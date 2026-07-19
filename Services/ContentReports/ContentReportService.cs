@@ -82,7 +82,9 @@ public sealed class ContentReportService : IContentReportService
         FlashcardSet? set = await _context.FlashcardSets
             .AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == command.FlashcardSetId, cancellationToken);
-        if (set == null || !set.IsPublic)
+        if (set == null
+            || !set.IsPublic
+            || set.ModerationStatus != FlashcardSetModerationStatus.Active)
         {
             return ContentReportSubmitResult.Rejected(
                 "Chỉ có thể báo cáo bộ flashcard công khai đang tồn tại.",
@@ -268,7 +270,8 @@ public sealed class ContentReportService : IContentReportService
                    report.CreatedAtUtc,
                    report.ResolvedAtUtc,
                    report.ResolutionReason,
-                   report.Version);
+                   report.Version,
+                   set.ModerationVersion);
     }
 
     // Gắn nhãn lý do sau khi EF đã lấy dữ liệu để tránh dịch method C# vào SQL.
@@ -289,7 +292,8 @@ public sealed class ContentReportService : IContentReportService
             row.CreatedAtUtc,
             row.ResolvedAtUtc,
             row.ResolutionReason,
-            row.Version);
+            row.Version,
+            row.FlashcardSetVersion);
     }
 
     // Lọc trạng thái; mặc định là Pending vì đây là trang hàng đợi xử lý.
@@ -615,5 +619,6 @@ public sealed class ContentReportService : IContentReportService
         DateTime CreatedAtUtc,
         DateTime? ResolvedAtUtc,
         string? ResolutionReason,
-        int Version);
+        int Version,
+        int FlashcardSetVersion);
 }

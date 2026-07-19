@@ -159,6 +159,13 @@ public class FlashcardSetService : IFlashcardSetService
         || format.Name.Equals("PNG", StringComparison.OrdinalIgnoreCase)
         || format.Name.Equals("WEBP", StringComparison.OrdinalIgnoreCase);
 
+    // Bộ chỉ thật sự công khai khi chủ sở hữu bật public và Admin chưa cách ly.
+    private static bool IsPubliclyAvailable(FlashcardSet set)
+    {
+        return set.IsPublic
+            && set.ModerationStatus == FlashcardSetModerationStatus.Active;
+    }
+
     private void DeleteUploadedImage(string? uploadedImagePath)
     {
         if (string.IsNullOrWhiteSpace(uploadedImagePath)
@@ -263,7 +270,9 @@ public class FlashcardSetService : IFlashcardSetService
     public async Task<List<FlashcardSet>> GetPublicSetsAsync()
     {
         List<FlashcardSet> sets = await _context.FlashcardSets
-            .Where(set => set.IsPublic)
+            .Where(set =>
+                set.IsPublic
+                && set.ModerationStatus == FlashcardSetModerationStatus.Active)
             .OrderByDescending(set => set.UpdatedAt)
             .Take(20)
             .ToListAsync();
@@ -275,7 +284,10 @@ public class FlashcardSetService : IFlashcardSetService
     public async Task<List<FlashcardSet>> SearchPublicSetsAsync(string query)
     {
         List<FlashcardSet> sets = await _context.FlashcardSets
-            .Where(set => set.IsPublic && set.Title.Contains(query))
+            .Where(set =>
+                set.IsPublic
+                && set.ModerationStatus == FlashcardSetModerationStatus.Active
+                && set.Title.Contains(query))
             .OrderByDescending(set => set.UpdatedAt)
             .Take(20)
             .ToListAsync();
@@ -300,7 +312,7 @@ public class FlashcardSetService : IFlashcardSetService
             return null;
         }
 
-        bool canAccess = set.IsPublic || set.UserId == userId;
+        bool canAccess = IsPubliclyAvailable(set) || set.UserId == userId;
         if (!canAccess)
         {
             return null;
@@ -335,7 +347,7 @@ public class FlashcardSetService : IFlashcardSetService
             return null;
         }
 
-        bool canAccess = set.IsPublic || set.UserId == userId;
+        bool canAccess = IsPubliclyAvailable(set) || set.UserId == userId;
         if (!canAccess)
         {
             return null;
@@ -398,7 +410,7 @@ public class FlashcardSetService : IFlashcardSetService
             .Include(set => set.Flashcards.OrderBy(flashcard => flashcard.OrderIndex))
             .FirstOrDefaultAsync(set => set.Id == sourceSetId);
 
-        if (source == null || !source.IsPublic)
+        if (source == null || !IsPubliclyAvailable(source))
         {
             throw new KeyNotFoundException("Bộ thẻ nguồn không tồn tại.");
         }

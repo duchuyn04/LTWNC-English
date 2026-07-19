@@ -100,7 +100,7 @@
                                 <small class="admin-muted-line">Phiên bản @report.Version</small>
                             </td>
                             <td>
-                                <a class="admin-text-link" href="/Set/@report.FlashcardSetId" target="_blank" rel="noopener noreferrer">
+                                <a class="admin-text-link" href="/Admin/Content/@report.FlashcardSetId">
                                     @report.FlashcardSetTitle
                                 </a>
                                 <small class="admin-muted-line">Chủ sở hữu: @report.OwnerDisplay</small>
@@ -133,6 +133,25 @@
                                         <textarea id="dismiss-reason-@report.Id" name="Reason" maxlength="500" required></textarea>
                                         <button type="submit" class="admin-filter-submit">
                                             <i class="ph ph-x-circle" aria-hidden="true"></i> Bác bỏ
+                                        </button>
+                                    </form>
+                                    <form method="post"
+                                          action="/Admin/ContentReports/@report.Id/Quarantine"
+                                          class="admin-inline-action-form"
+                                          onsubmit="return confirm('Cách ly bộ flashcard từ báo cáo này?');">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="ReportVersion" value="@report.Version" />
+                                        <input type="hidden" name="FlashcardSetVersion" value="@report.FlashcardSetVersion" />
+                                        <label for="quarantine-public-reason-@report.Id">Lý do công khai</label>
+                                        <textarea id="quarantine-public-reason-@report.Id" name="PublicReason" maxlength="500" required></textarea>
+                                        <label for="quarantine-internal-note-@report.Id">Ghi chú nội bộ</label>
+                                        <textarea id="quarantine-internal-note-@report.Id" name="InternalNote" maxlength="1000"></textarea>
+                                        <label class="admin-checkbox-line">
+                                            <input type="checkbox" name="Confirmed" value="true" required />
+                                            Xác nhận cách ly
+                                        </label>
+                                        <button type="submit" class="admin-filter-submit admin-button-danger">
+                                            <i class="ph ph-shield-warning" aria-hidden="true"></i> Cách ly
                                         </button>
                                     </form>
                                 }

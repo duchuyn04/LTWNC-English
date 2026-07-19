@@ -1,0 +1,161 @@
+@model AdminContentDetailsViewModel
+@{
+    ViewData["Title"] = Model.Title;
+    ViewData["Heading"] = "Kiểm duyệt nội dung";
+}
+
+<section class="admin-panel" aria-labelledby="content-details-heading">
+    <div class="admin-panel-header">
+        <div>
+            <h2 id="content-details-heading">@Model.Title</h2>
+            <p>#@Model.Id · @Model.VisibilityLabel · Phiên bản @Model.ModerationVersion</p>
+        </div>
+        <span class="admin-status admin-status--@Model.StatusTone">@Model.StatusLabel</span>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Description))
+    {
+        <p>@Model.Description</p>
+    }
+
+    <dl class="admin-detail-grid">
+        <div>
+            <dt>Chủ sở hữu</dt>
+            <dd>@Model.OwnerDisplay</dd>
+        </div>
+        <div>
+            <dt>Ngày tạo</dt>
+            <dd>@Model.CreatedDisplay</dd>
+        </div>
+        <div>
+            <dt>Cập nhật</dt>
+            <dd>@Model.UpdatedDisplay</dd>
+        </div>
+        <div>
+            <dt>Kiểm duyệt</dt>
+            <dd>@Model.ModeratedDisplay</dd>
+        </div>
+        <div>
+            <dt>Lý do công khai</dt>
+            <dd>@(Model.ModerationPublicReason ?? "-")</dd>
+        </div>
+        <div>
+            <dt>Số thẻ</dt>
+            <dd>@Model.Cards.Count</dd>
+        </div>
+    </dl>
+</section>
+
+<section class="admin-panel" aria-labelledby="content-actions-heading">
+    <div class="admin-panel-header">
+        <h2 id="content-actions-heading">Thao tác kiểm duyệt</h2>
+    </div>
+
+    <div class="admin-action-grid">
+        @if (Model.CanQuarantine)
+        {
+            <form method="post"
+                  action="/Admin/Content/@Model.Id/Quarantine"
+                  class="admin-action-form"
+                  onsubmit="return confirm('Cách ly bộ flashcard này?');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Version" value="@Model.ModerationVersion" />
+                <label for="details-quarantine-public-reason">Lý do công khai</label>
+                <textarea id="details-quarantine-public-reason" name="PublicReason" maxlength="500" required></textarea>
+                <label for="details-quarantine-note">Ghi chú nội bộ</label>
+                <textarea id="details-quarantine-note" name="InternalNote" maxlength="1000"></textarea>
+                <label for="details-quarantine-evidence">Bằng chứng kiểm duyệt</label>
+                <textarea id="details-quarantine-evidence" name="Evidence" maxlength="1000"></textarea>
+                <label class="admin-checkbox-line">
+                    <input type="checkbox" name="Confirmed" value="true" required />
+                    Xác nhận cách ly
+                </label>
+                <button type="submit" class="admin-filter-submit admin-button-danger">
+                    <i class="ph ph-shield-warning" aria-hidden="true"></i> Cách ly
+                </button>
+            </form>
+        }
+
+        @if (Model.CanRestore)
+        {
+            <form method="post"
+                  action="/Admin/Content/@Model.Id/Restore"
+                  class="admin-action-form"
+                  onsubmit="return confirm('Khôi phục bộ flashcard này?');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Version" value="@Model.ModerationVersion" />
+                <label for="details-restore-reason">Lý do khôi phục</label>
+                <textarea id="details-restore-reason" name="Reason" maxlength="500" required></textarea>
+                <label class="admin-checkbox-line">
+                    <input type="checkbox" name="Confirmed" value="true" required />
+                    Xác nhận khôi phục
+                </label>
+                <button type="submit" class="admin-filter-submit">
+                    <i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i> Khôi phục
+                </button>
+            </form>
+        }
+    </div>
+</section>
+
+@if (!string.IsNullOrWhiteSpace(Model.ModerationInternalNote) || !string.IsNullOrWhiteSpace(Model.ModerationEvidence))
+{
+    <section class="admin-panel" aria-labelledby="internal-moderation-heading">
+        <div class="admin-panel-header">
+            <h2 id="internal-moderation-heading">Ghi chú nội bộ</h2>
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Model.ModerationInternalNote))
+        {
+            <p>@Model.ModerationInternalNote</p>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.ModerationEvidence))
+        {
+            <p><strong>Bằng chứng:</strong> @Model.ModerationEvidence</p>
+        }
+    </section>
+}
+
+<section class="admin-panel" aria-labelledby="content-card-list-heading">
+    <div class="admin-panel-header">
+        <h2 id="content-card-list-heading">Nội dung thẻ</h2>
+        <p>@Model.Cards.Count thẻ</p>
+    </div>
+
+    @if (Model.Cards.Count == 0)
+    {
+        <p class="admin-empty">Bộ flashcard này chưa có thẻ.</p>
+    }
+    else
+    {
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Thuật ngữ</th>
+                        <th scope="col">Định nghĩa</th>
+                        <th scope="col">Loại từ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (AdminContentFlashcardViewModel card in Model.Cards)
+                    {
+                        <tr>
+                            <td>@(card.OrderIndex + 1)</td>
+                            <td>@card.FrontText</td>
+                            <td>@card.BackText</td>
+                            <td>@(card.PartOfSpeech ?? "-")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>
+
+<p>
+    <a class="admin-text-link" href="/Admin/Content">
+        <i class="ph ph-arrow-left" aria-hidden="true"></i> Quay lại danh sách nội dung
+    </a>
+</p>
+

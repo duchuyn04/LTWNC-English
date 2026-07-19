@@ -18,7 +18,11 @@ public class FlashcardSetImportControllerTests
         var currentUser = new Mock<ICurrentUser>();
         currentUser.Setup(x => x.UserId).Returns(userId);
         currentUser.Setup(x => x.IsAuthenticated).Returns(userId is not null);
-        var controller = new FlashcardSetController(setService.Object, currentUser.Object, import.Object)
+        var controller = new FlashcardSetController(
+            setService.Object,
+            currentUser.Object,
+            import.Object,
+            new Mock<ltwnc.Services.ContentReports.IContentReportService>().Object)
         {
             ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
             TempData = new TempDataDictionary(new DefaultHttpContext(), new Mock<ITempDataProvider>().Object)

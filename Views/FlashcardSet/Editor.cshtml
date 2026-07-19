@@ -1,4 +1,5 @@
 @model ltwnc.Models.ViewModels.FlashcardSet.EditorViewModel
+@using ltwnc.Areas.Admin
 @{
     ViewData["Title"] = Model.Id.HasValue ? "Chỉnh sửa bộ thẻ" : "Tạo bộ thẻ";
 }
@@ -7,7 +8,7 @@
     <link rel="stylesheet" href="~/css/unified-editor.css" />
 }
 
-<div class="unified-editor" data-set-id="@Model.Id" data-is-new="@(Model.Id.HasValue ? "false" : "true")" data-description="@(Model.Description ?? "")" data-is-public="@Model.IsPublic.ToString().ToLowerInvariant()">
+<div class="unified-editor" data-set-id="@Model.Id" data-is-new="@(Model.Id.HasValue ? "false" : "true")" data-description="@(Model.Description ?? "")" data-is-public="@Model.IsPublic.ToString().ToLowerInvariant()" data-is-quarantined="@Model.IsQuarantined.ToString().ToLowerInvariant()">
     <div class="editor-header">
         <div>
             <h2>Danh sách từ</h2>
@@ -23,6 +24,21 @@
         </div>
     </div>
 
+    @if (Model.IsQuarantined)
+    {
+        <div class="set-report-alert set-report-alert--danger" role="alert">
+            Bộ flashcard này đang bị cách ly. Bạn vẫn có thể chỉnh sửa nội dung, nhưng chỉ Admin mới có thể khôi phục để xuất hiện công khai.
+            @if (!string.IsNullOrWhiteSpace(Model.ModerationPublicReason))
+            {
+                <span>Lý do: @Model.ModerationPublicReason</span>
+            }
+            @if (Model.ModeratedAtUtc.HasValue)
+            {
+                <span>Thời điểm xử lý: @FormatVietnamTime(Model.ModeratedAtUtc.Value)</span>
+            }
+        </div>
+    }
+
     <div class="editor-meta">
         <label for="set-title">Tên bộ từ <span class="required">*</span></label>
         <input id="set-title" class="form-control" value="@Model.Title" placeholder="Nhập tên bộ thẻ" />
@@ -31,7 +47,7 @@
         <textarea id="set-description" class="form-control" rows="3" placeholder="Mô tả bộ thẻ">@Model.Description</textarea>
 
         <label class="checkbox-label">
-            <input type="checkbox" id="set-is-public" @(Model.IsPublic ? "checked" : "") />
+            <input type="checkbox" id="set-is-public" @(Model.IsPublic ? "checked" : "") @(Model.IsQuarantined ? "disabled" : "") />
             Công khai
         </label>
 
@@ -123,4 +139,11 @@
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js"></script>
     <script src="~/js/unified-editor.js" asp-append-version="true"></script>
+}
+
+@functions {
+    private static string FormatVietnamTime(DateTime valueUtc)
+    {
+        return AdminTimeZone.ToVietnamTime(valueUtc).ToString("HH:mm dd/MM/yyyy");
+    }
 }

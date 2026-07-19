@@ -18,6 +18,15 @@ public class SetDetailViewModel
     // Public hay private
     public bool IsPublic { get; set; }
 
+    // Bộ đang bị Admin cách ly khỏi mọi luồng công khai hay không.
+    public bool IsQuarantined { get; set; }
+
+    // Lý do công khai do Admin nhập, chỉ hiển thị cho tác giả khi bộ bị cách ly.
+    public string? ModerationPublicReason { get; set; }
+
+    // Thời điểm Admin xử lý gần nhất, chỉ dùng để tác giả biết mốc thay đổi.
+    public DateTime? ModeratedAtUtc { get; set; }
+
     // Danh sách thẻ (preview)
     public IReadOnlyList<FlashcardViewModel> Flashcards { get; set; } = Array.Empty<FlashcardViewModel>();
 
