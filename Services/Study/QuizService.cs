@@ -283,7 +283,7 @@ public class QuizService : IQuizService
         DateTime now = GetUtcNow();
         if (IsExpired(session, now))
         {
-            await CompleteExpiredSessionAsync(session, now);
+            await CompleteExpiredAsync(setId, sessionId, userId);
             throw new QuizExpiredException();
         }
 
@@ -384,7 +384,7 @@ public class QuizService : IQuizService
         DateTime now = GetUtcNow();
         if (IsExpired(session, now))
         {
-            await CompleteExpiredSessionAsync(session, now);
+            await CompleteExpiredAsync(setId, sessionId, userId);
             throw new QuizExpiredException();
         }
 
@@ -410,6 +410,18 @@ public class QuizService : IQuizService
                 .AsNoTracking()
                 .SingleAsync(row => row.Id == sessionId);
             DateTime writeNow = GetUtcNow();
+            if (IsAbandoned(persistedSession))
+            {
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync();
+                    await transaction.DisposeAsync();
+                    transaction = null;
+                }
+
+                throw await CreateAbandonedExceptionAsync(persistedSession);
+            }
+
             if (IsExpired(persistedSession, writeNow))
             {
                 if (transaction != null)
@@ -419,7 +431,7 @@ public class QuizService : IQuizService
                     transaction = null;
                 }
 
-                await CompleteExpiredSessionAsync(persistedSession, writeNow);
+                await CompleteExpiredAsync(setId, sessionId, userId);
                 throw new QuizExpiredException();
             }
 

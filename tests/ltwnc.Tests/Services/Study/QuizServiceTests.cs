@@ -270,6 +270,42 @@ public class QuizServiceTests
     }
 
     [Fact]
+    public async Task GetCurrentQuestion_expired_race_navigates_to_replacement_not_abandoned_result()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        DateTimeOffset startedAt = new(2026, 7, 19, 8, 0, 0, TimeSpan.Zero);
+        QuizService setupService = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher(),
+            new FixedTimeProvider(startedAt));
+        StudySession source = await setupService.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            1);
+        int replacementId = 0;
+        var replacingClock = new CallbackTimeProvider(
+            startedAt.AddMinutes(2),
+            () => replacementId = ReplaceActiveSession(database.Context, source, startedAt.AddMinutes(2)));
+        QuizService raceService = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher(),
+            replacingClock);
+
+        QuizSessionAbandonedException exception = await Assert.ThrowsAsync<QuizSessionAbandonedException>(
+            () => raceService.GetCurrentQuestionAsync(set.Id, source.Id, set.UserId));
+
+        Assert.Equal(replacementId, exception.ActiveSessionId);
+        Assert.All(
+            await database.Context.QuizSessionQuestions
+                .AsNoTracking()
+                .Where(row => row.StudySessionId == source.Id)
+                .ToListAsync(),
+            question => Assert.Null(question.IsCorrect));
+    }
+
+    [Fact]
     public async Task CompleteExpired_race_rejects_source_replaced_after_initial_activity_read()
     {
         await using var database = await QuizTestDatabase.CreateAsync();
