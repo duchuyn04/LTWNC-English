@@ -40,6 +40,9 @@ public class StudySession
     // Thời gian hoàn thành phiên học
     public DateTime? CompletedAt { get; set; }
 
+    public DateTime? QuizStartedAtUtc { get; set; }
+    public int? QuizTimeLimitSeconds { get; set; }
+
     // Bộ thẻ của buổi học
     [ForeignKey(nameof(FlashcardSetId))]
     public FlashcardSet? FlashcardSet { get; set; }

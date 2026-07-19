@@ -6,6 +6,7 @@ using ltwnc.Services.StudyEvents;
 using ltwnc.Services.StudyModes;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace ltwnc.Tests.Services;
 
@@ -1011,6 +1012,22 @@ public class QuizServiceTests
             sourceSession.Id,
             "another-user"));
         Assert.Equal(1, await database.Context.StudySessions.CountAsync());
+    }
+
+    [Fact]
+    public async Task Quiz_session_model_persists_timing_and_only_incomplete_rows_are_active()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        IEntityType entity = database.Context.Model.FindEntityType(typeof(StudySession))!;
+
+        Assert.NotNull(entity.FindProperty(nameof(StudySession.QuizStartedAtUtc)));
+        Assert.NotNull(entity.FindProperty(nameof(StudySession.QuizTimeLimitSeconds)));
+        IIndex activeIndex = entity.GetIndexes().Single(index =>
+            index.Properties.Select(property => property.Name)
+                .SequenceEqual(new[] { "UserId", "FlashcardSetId", "Mode" }));
+        Assert.Equal(
+            "[Mode] = 1 AND [Score] IS NULL AND [CompletedAt] IS NULL",
+            activeIndex.GetFilter());
     }
 
     [Fact]
