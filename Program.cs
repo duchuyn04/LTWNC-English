@@ -14,8 +14,10 @@ using ltwnc.Services.Auth;
 using ltwnc.Services.CardActions;
 using ltwnc.Services.FlashcardSets;
 using ltwnc.Services.ContentReports;
+using ltwnc.Services.ContentModeration;
 using ltwnc.Services.AdminDashboard;
 using ltwnc.Services.AdminUsers;
+using ltwnc.Services.AdminEnglishMissions;
 using ltwnc.Services.Study;
 using ltwnc.Services.StudyEvents;
 using ltwnc.Services.StudyModes;
@@ -147,6 +149,14 @@ builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<ltwnc.Services.Audit.IAdminAuditService, ltwnc.Services.Audit.AdminAuditService>();
 builder.Services.AddScoped<IAdminDashboardKpiService, AdminDashboardKpiService>();
 builder.Services.AddScoped<IAdminUserAccountService, AdminUserAccountService>();
+builder.Services.AddScoped<ltwnc.Services.AdminStudyRecords.IAdminStudyRecordService,
+    ltwnc.Services.AdminStudyRecords.AdminStudyRecordService>();
+builder.Services.AddScoped<IAdminEnglishMissionService, AdminEnglishMissionService>();
+if (!builder.Environment.IsEnvironment("Testing"))
+{
+    // Tác vụ nền dọn transcript English Mission theo batch; bỏ qua Testing để test kiểm soát thời gian chủ động.
+    builder.Services.AddHostedService<EnglishMissionConversationCleanupHostedService>();
+}
 builder.Services.AddScoped<AdminRoleBootstrapper>();
 builder.Services.AddScoped<AdminAuthenticationSession>();
 builder.Services.AddSingleton<Microsoft.AspNetCore.Authorization.IAuthorizationHandler,
@@ -163,6 +173,7 @@ builder.Services.Configure<RouteOptions>(options =>
 // Application services — inject qua interface (swap/decorator sau này không sửa controller)
 builder.Services.AddScoped<IFlashcardSetService, FlashcardSetService>();
 builder.Services.AddScoped<IContentReportService, ContentReportService>();
+builder.Services.AddScoped<IContentModerationService, ContentModerationService>();
 builder.Services.AddScoped<IFlashcardImportService, FlashcardImportService>();
 builder.Services.AddScoped<CsvFlashcardFileParser>();
 builder.Services.AddScoped<XlsxFlashcardFileParser>();

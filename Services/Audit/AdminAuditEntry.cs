@@ -8,6 +8,16 @@ public static class AdminAuditActions
     public const string UsersRevokeSessions = "Users.RevokeSessions";
     public const string StudyRecordsViewDetails = "StudyRecords.ViewDetails";
     public const string ContentReportsDismiss = "ContentReports.Dismiss";
+    public const string ContentReportsQuarantine = "ContentReports.Quarantine";
+    public const string ContentSetsQuarantine = "ContentSets.Quarantine";
+    public const string ContentSetsRestore = "ContentSets.Restore";
+    public const string ContentSetsViewPrivateDetails = "ContentSets.ViewPrivateDetails";
+    public const string AiProvidersCreate = "AiProviders.Create";
+    public const string AiProvidersUpdate = "AiProviders.Update";
+    public const string AiProvidersSetPrimary = "AiProviders.SetPrimary";
+    public const string AiProvidersDisable = "AiProviders.Disable";
+    public const string AiProvidersEnable = "AiProviders.Enable";
+    public const string EnglishMissionsViewConversation = "EnglishMissions.ViewConversation";
 }
 
 public static class AdminAuditOutcome

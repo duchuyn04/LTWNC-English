@@ -63,9 +63,17 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
             entity.HasIndex(e => e.UserId);
             // Index cho IsPublic — tăng tốc truy vấn "lấy bộ thẻ public"
             entity.HasIndex(e => e.IsPublic);
+            // Index ghép cho truy vấn nội dung công khai: public và chưa bị cách ly.
+            entity.HasIndex(e => new { e.IsPublic, e.ModerationStatus, e.UpdatedAt });
             entity.HasIndex(e => new { e.UserId, e.SourceSetId })
                 .IsUnique()
                 .HasFilter("[SourceSetId] IS NOT NULL");
+            entity.Property(e => e.ModerationStatus).HasMaxLength(40).IsRequired();
+            entity.Property(e => e.ModerationPublicReason).HasMaxLength(500);
+            entity.Property(e => e.ModerationInternalNote).HasMaxLength(1000);
+            entity.Property(e => e.ModerationEvidence).HasMaxLength(1000);
+            entity.Property(e => e.ModeratedByUserId).HasMaxLength(450);
+            entity.Property(e => e.ModerationVersion).IsConcurrencyToken();
         });
 
         // Cấu hình bảng Flashcards
@@ -152,11 +160,18 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
         builder.Entity<AiProvider>(entity =>
         {
             entity.HasIndex(provider => new { provider.IsEnabled, provider.Priority });
+            // Chỉ cho phép tối đa một provider chính trong database.
+            entity.HasIndex(provider => provider.IsPrimary)
+                .IsUnique()
+                .HasFilter("[IsPrimary] = 1");
             entity.Property(provider => provider.Name).HasMaxLength(120).IsRequired();
             entity.Property(provider => provider.AdapterType).HasMaxLength(80).IsRequired();
             entity.Property(provider => provider.BaseUrl).HasMaxLength(500).IsRequired();
             entity.Property(provider => provider.ModelId).HasMaxLength(200).IsRequired();
             entity.Property(provider => provider.ApiKeyLastFour).HasMaxLength(4);
+            // Khóa phiên bản lạc quan: mọi lệnh UPDATE đều kiểm tra giá trị cũ
+            // để chặn hai quản trị viên ghi đè thay đổi của nhau.
+            entity.Property(provider => provider.Version).IsConcurrencyToken();
         });
 
         builder.Entity<AiOperationLog>(entity =>
@@ -174,6 +189,12 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
         {
             entity.HasIndex(mission => mission.StudySessionId).IsUnique();
             entity.HasIndex(mission => mission.CreatedAt);
+            // Index phục vụ tác vụ dọn nội dung hội thoại đã quá hạn theo lô.
+            entity.HasIndex(mission => new
+            {
+                mission.ConversationContentDeletedAtUtc,
+                mission.CreatedAt
+            });
             entity.HasOne(mission => mission.StudySession)
                 .WithOne()
                 .HasForeignKey<EnglishMission>(mission => mission.StudySessionId)
@@ -181,6 +202,8 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
             entity.Property(mission => mission.Topic).HasMaxLength(80).IsRequired();
             entity.Property(mission => mission.Title).HasMaxLength(200).IsRequired();
             entity.Property(mission => mission.Status).HasMaxLength(40).IsRequired();
+            entity.Property(mission => mission.ConversationRetentionCaseType).HasMaxLength(80);
+            entity.Property(mission => mission.ConversationRetentionCaseReference).HasMaxLength(120);
             entity.Property(mission => mission.GoalsJson).IsRequired();
             entity.Property(mission => mission.RowVersion).IsRowVersion();
         });

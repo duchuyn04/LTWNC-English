@@ -21,7 +21,17 @@ public static class AdminAuditMetadata
         "pageSize",
         "count",
         "status",
-        "scope"
+        "scope",
+        "providerName",
+        "adapterType",
+        "modelId",
+        "isEnabled",
+        "isPrimary",
+        "priority",
+        "incidentType",
+        "caseReference",
+        "topic",
+        "turnCount"
     };
 
     // Mật khẩu, khóa bí mật, câu lệnh AI và hội thoại không bao giờ được ghi.

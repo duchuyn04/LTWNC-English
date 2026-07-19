@@ -286,72 +286,6 @@ namespace ltwnc.Migrations
                     b.ToTable("AdminAuditLogs");
                 });
 
-            modelBuilder.Entity("ltwnc.Models.Entities.AiProvider", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("AdapterType")
-                        .IsRequired()
-                        .HasMaxLength(80)
-                        .HasColumnType("nvarchar(80)");
-
-                    b.Property<string>("ApiKeyLastFour")
-                        .HasMaxLength(4)
-                        .HasColumnType("nvarchar(4)");
-
-                    b.Property<string>("BaseUrl")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("EncryptedApiKey")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("IsEnabled")
-                        .HasColumnType("bit");
-
-                    b.Property<bool?>("LastCheckSucceeded")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("LastCheckedAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("LastError")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("ModelId")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(120)
-                        .HasColumnType("nvarchar(120)");
-
-                    b.Property<int>("Priority")
-                        .HasColumnType("int");
-
-                    b.Property<int>("TimeoutSeconds")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IsEnabled", "Priority");
-
-                    b.ToTable("AiProviders");
-                });
-
             modelBuilder.Entity("ltwnc.Models.Entities.AiOperationLog", b =>
                 {
                     b.Property<long>("Id")
@@ -398,6 +332,83 @@ namespace ltwnc.Migrations
                     b.HasIndex("ProviderId", "OccurredAtUtc");
 
                     b.ToTable("AiOperationLogs");
+                });
+
+            modelBuilder.Entity("ltwnc.Models.Entities.AiProvider", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("AdapterType")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<string>("ApiKeyLastFour")
+                        .HasMaxLength(4)
+                        .HasColumnType("nvarchar(4)");
+
+                    b.Property<string>("BaseUrl")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EncryptedApiKey")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsPrimary")
+                        .HasColumnType("bit");
+
+                    b.Property<bool?>("LastCheckSucceeded")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime?>("LastCheckedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("ModelId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<int>("Priority")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TimeoutSeconds")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Version")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("IsEnabled", "Priority");
+
+                    b.HasIndex("IsPrimary")
+                        .IsUnique()
+                        .HasFilter("[IsPrimary] = 1");
+
+                    b.ToTable("AiProviders");
                 });
 
             modelBuilder.Entity("ltwnc.Models.Entities.CardActionLog", b =>
@@ -463,10 +474,8 @@ namespace ltwnc.Migrations
                         .HasMaxLength(80)
                         .HasColumnType("nvarchar(80)");
 
-                    b.Property<DateTime?>("ResolvedAtUtc")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("ResolvedByUserId")
+                    b.Property<string>("ReporterUserId")
+                        .IsRequired()
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
@@ -478,8 +487,10 @@ namespace ltwnc.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("ReporterUserId")
-                        .IsRequired()
+                    b.Property<DateTime?>("ResolvedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ResolvedByUserId")
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
@@ -498,11 +509,11 @@ namespace ltwnc.Migrations
 
                     b.HasIndex("FlashcardSetId", "Status");
 
+                    b.HasIndex("Status", "CreatedAtUtc");
+
                     b.HasIndex("ReporterUserId", "FlashcardSetId", "Status")
                         .IsUnique()
                         .HasFilter("[Status] = 'Pending'");
-
-                    b.HasIndex("Status", "CreatedAtUtc");
 
                     b.ToTable("ContentReports");
                 });
@@ -552,6 +563,20 @@ namespace ltwnc.Migrations
                         .HasColumnType("datetime2");
 
                     b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("ConversationContentDeletedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ConversationRetentionCaseReference")
+                        .HasMaxLength(120)
+                        .HasColumnType("nvarchar(120)");
+
+                    b.Property<string>("ConversationRetentionCaseType")
+                        .HasMaxLength(80)
+                        .HasColumnType("nvarchar(80)");
+
+                    b.Property<DateTime?>("ConversationRetentionHoldUntilUtc")
                         .HasColumnType("datetime2");
 
                     b.Property<string>("GoalsJson")
@@ -608,10 +633,12 @@ namespace ltwnc.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreatedAt");
+
+                    b.HasIndex("ConversationContentDeletedAtUtc", "CreatedAt");
+
                     b.HasIndex("StudySessionId")
                         .IsUnique();
-
-                    b.HasIndex("CreatedAt");
 
                     b.ToTable("EnglishMissions");
                 });
@@ -810,6 +837,34 @@ namespace ltwnc.Migrations
                     b.Property<bool>("IsPublic")
                         .HasColumnType("bit");
 
+                    b.Property<DateTime?>("ModeratedAtUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ModeratedByUserId")
+                        .HasMaxLength(450)
+                        .HasColumnType("nvarchar(450)");
+
+                    b.Property<string>("ModerationEvidence")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ModerationInternalNote")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<string>("ModerationPublicReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("ModerationStatus")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<int>("ModerationVersion")
+                        .IsConcurrencyToken()
+                        .HasColumnType("int");
+
                     b.Property<int?>("SourceSetId")
                         .HasColumnType("int");
 
@@ -834,6 +889,8 @@ namespace ltwnc.Migrations
                     b.HasIndex("UserId", "SourceSetId")
                         .IsUnique()
                         .HasFilter("[SourceSetId] IS NOT NULL");
+
+                    b.HasIndex("IsPublic", "ModerationStatus", "UpdatedAt");
 
                     b.ToTable("FlashcardSets");
                 });
@@ -878,9 +935,9 @@ namespace ltwnc.Migrations
 
                     b.HasIndex("FlashcardSetId");
 
-                    b.HasIndex("CompletedAt", "UserId");
-
                     b.HasIndex("StartedAt");
+
+                    b.HasIndex("CompletedAt", "UserId");
 
                     b.HasIndex("UserId", "FlashcardSetId");
 
@@ -967,9 +1024,9 @@ namespace ltwnc.Migrations
 
                     b.HasKey("UserId");
 
-                    b.HasIndex("IsPublic", "ShowStats");
-
                     b.HasIndex("CreatedAt");
+
+                    b.HasIndex("IsPublic", "ShowStats");
 
                     b.ToTable("UserProfiles");
                 });
@@ -1159,6 +1216,17 @@ namespace ltwnc.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("ltwnc.Models.Entities.ContentReport", b =>
+                {
+                    b.HasOne("ltwnc.Models.Entities.FlashcardSet", "FlashcardSet")
+                        .WithMany()
+                        .HasForeignKey("FlashcardSetId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("FlashcardSet");
+                });
+
             modelBuilder.Entity("ltwnc.Models.Entities.DictationSessionDetail", b =>
                 {
                     b.HasOne("ltwnc.Models.Entities.Flashcard", "Flashcard")
@@ -1176,17 +1244,6 @@ namespace ltwnc.Migrations
                     b.Navigation("Flashcard");
 
                     b.Navigation("StudySession");
-                });
-
-            modelBuilder.Entity("ltwnc.Models.Entities.ContentReport", b =>
-                {
-                    b.HasOne("ltwnc.Models.Entities.FlashcardSet", "FlashcardSet")
-                        .WithMany()
-                        .HasForeignKey("FlashcardSetId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("FlashcardSet");
                 });
 
             modelBuilder.Entity("ltwnc.Models.Entities.EnglishMission", b =>

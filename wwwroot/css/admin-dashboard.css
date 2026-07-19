@@ -35,6 +35,15 @@
     resize: vertical;
 }
 
+.admin-checkbox-line {
+    display: inline-flex;
+    gap: 0.45rem;
+    align-items: center;
+    color: #475569;
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
 .admin-content-report-table td {
     vertical-align: top;
 }
