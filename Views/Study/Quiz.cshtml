@@ -1,5 +1,7 @@
 @model QuizStudyViewModel
 @{
+    string? deadlineUtc = Model.DeadlineUtc?.ToUniversalTime().ToString("O");
+    string? timeoutUrl = Url.Action("QuizTimeout", "Study", new { setId = Model.SetId, sessionId = Model.SessionId });
     ViewData["Title"] = "Trắc nghiệm";
     string directionLabel = Model.Direction == QuizQuestionDirection.TermToDefinition
         ? "Chọn nghĩa đúng"
@@ -15,7 +17,9 @@
           data-quiz-root
           data-question-id="@Model.QuestionId"
           data-quiz-review-only="@Model.IsReviewOnly.ToString().ToLowerInvariant()"
-          data-answer-url="@Url.Action("QuizAnswer", "Study", new { setId = Model.SetId, sessionId = Model.SessionId })">
+          data-answer-url="@Url.Action("QuizAnswer", "Study", new { setId = Model.SetId, sessionId = Model.SessionId })"
+          data-quiz-deadline-utc="@deadlineUtc"
+          data-quiz-timeout-url="@timeoutUrl">
         @Html.AntiForgeryToken()
 
         <header class="quiz-header">
@@ -41,6 +45,7 @@
                 <strong>@Model.CorrectCount</strong>
                 <span>đúng</span>
             </div>
+            <div class="quiz-timer" data-quiz-timer role="timer" aria-live="polite" aria-label="Th&#7901;i gian c&#242;n l&#7841;i">--:--</div>
         </header>
 
         <div class="quiz-progress" aria-label="Tiến độ bài trắc nghiệm">

@@ -52,6 +52,17 @@ public class QuizViewTests
     }
 
     [Fact]
+    public void Quiz_view_exposes_deadline_timeout_and_timer_contracts()
+    {
+        Assert.Contains("data-quiz-deadline-utc", QuizView);
+        Assert.Contains("data-quiz-timeout-url", QuizView);
+        Assert.Contains("Model.DeadlineUtc", QuizView);
+        Assert.Contains("QuizTimeout", QuizView);
+        Assert.Contains("data-quiz-timer", QuizView);
+        Assert.Contains("@Html.AntiForgeryToken()", QuizView);
+    }
+
+    [Fact]
     public void Quiz_header_groups_restart_with_exit_actions_to_preserve_grid_layout()
     {
         string header = RequiredMatch(
@@ -138,6 +149,32 @@ public class QuizViewTests
     }
 
     [Fact]
+    public void Quiz_script_tracks_the_server_deadline_and_completes_timeout_once()
+    {
+        Assert.Contains("Date.parse(root.dataset.quizDeadlineUtc)", QuizScript);
+        Assert.Contains("deadlineUtc - Date.now()", QuizScript);
+        Assert.Contains("window.setInterval(updateTimer", QuizScript);
+        Assert.Contains("timer.classList.toggle('is-warning'", QuizScript);
+        Assert.Contains("let timeoutRequested = false", QuizScript);
+        Assert.Contains("if (timeoutRequested) return;", QuizScript);
+        Assert.Contains("root.dataset.quizTimeoutUrl", QuizScript);
+        Assert.Contains("'RequestVerificationToken': token", QuizScript);
+        Assert.Contains("window.location.assign(result.nextUrl)", QuizScript);
+    }
+
+    [Fact]
+    public void Quiz_script_redirects_expired_answer_responses_to_the_result()
+    {
+        string conflictBranch = RequiredMatch(
+            QuizScript,
+            "if \\(response\\.status === 409\\) \\{[\\s\\S]*?return;[\\s\\S]*?\\n                \\}");
+
+        Assert.Contains("const result = await response.json()", conflictBranch);
+        Assert.Contains("result.expired && result.nextUrl", conflictBranch);
+        Assert.Contains("window.location.assign(result.nextUrl)", conflictBranch);
+    }
+
+    [Fact]
     public void Quiz_script_announces_and_labels_the_server_selected_correct_choice()
     {
         string serverGrade = RequiredMatch(
@@ -195,6 +232,23 @@ public class QuizViewTests
         Assert.DoesNotContain("outline: 3px solid rgba(", QuizStyles);
         Assert.Contains("@media (max-width:", QuizStyles);
         Assert.Contains("prefers-reduced-motion: reduce", QuizStyles);
+    }
+
+    [Fact]
+    public void Quiz_styles_cover_timer_and_attempt_controls_responsively()
+    {
+        string header = RequiredMatch(QuizStyles, "\\.quiz-header \\{[\\s\\S]*?\\}");
+
+        Assert.Contains("grid-template-columns: auto minmax(0, 1fr) auto auto;", header);
+        Assert.Contains(".quiz-timer", QuizStyles);
+        Assert.Contains(".quiz-timer.is-warning", QuizStyles);
+        Assert.Contains(".quiz-restart", QuizStyles);
+        Assert.Contains(".quiz-previous", QuizStyles);
+        Assert.Contains(".quiz-next-question", QuizStyles);
+        Assert.Contains(".quiz-return-current", QuizStyles);
+        Assert.Contains(".quiz-previous:focus-visible", QuizStyles);
+        Assert.Contains("grid-column: 1 / -1;", QuizStyles);
+        Assert.Contains(".quiz-timer", RequiredMatch(QuizStyles, "@media \\(prefers-reduced-motion: reduce\\) \\{[\\s\\S]*?\\n\\}"));
     }
 
     private static string RequiredMatch(string source, string pattern)
