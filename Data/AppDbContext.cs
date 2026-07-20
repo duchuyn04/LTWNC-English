@@ -97,7 +97,14 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
         builder.Entity<StudySession>(entity =>
         {
             entity.Property(e => e.PlannedItemCount).HasDefaultValue(0);
-            entity.Property(e => e.StartedAt).HasDefaultValue(DateTime.UtcNow);
+            if (Database.IsSqlServer())
+            {
+                entity.Property(e => e.StartedAt).HasDefaultValueSql("GETUTCDATE()");
+            }
+            else
+            {
+                entity.Property(e => e.StartedAt).HasDefaultValueSql("CURRENT_TIMESTAMP");
+            }
             // Index composite (UserId + FlashcardSetId) — tăng tốc truy vấn theo người dùng và bộ thẻ
             entity.HasIndex(e => new { e.UserId, e.FlashcardSetId });
             entity.HasIndex(e => new { e.CompletedAt, e.UserId });

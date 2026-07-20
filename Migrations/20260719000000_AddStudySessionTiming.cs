@@ -26,7 +26,7 @@ public partial class AddStudySessionTiming : Migration
             nullable: true);
 
         migrationBuilder.Sql(
-            "UPDATE [StudySessions] SET [StartedAt] = [CompletedAt] WHERE [StartedAt] IS NULL;");
+            "UPDATE [StudySessions] SET [StartedAt] = COALESCE([CompletedAt], GETUTCDATE()) WHERE [StartedAt] IS NULL;");
 
         migrationBuilder.AlterColumn<DateTime>(
             name: "StartedAt",
@@ -36,6 +36,10 @@ public partial class AddStudySessionTiming : Migration
             oldClrType: typeof(DateTime),
             oldType: "datetime2",
             oldNullable: true);
+
+        migrationBuilder.DropIndex(
+            name: "IX_StudySessions_UserId_FlashcardSetId_Mode",
+            table: "StudySessions");
 
         migrationBuilder.AlterColumn<DateTime>(
             name: "CompletedAt",
@@ -49,6 +53,13 @@ public partial class AddStudySessionTiming : Migration
             name: "IX_StudySessions_CompletedAt_UserId",
             table: "StudySessions",
             columns: new[] { "CompletedAt", "UserId" });
+
+        migrationBuilder.CreateIndex(
+            name: "IX_StudySessions_UserId_FlashcardSetId_Mode",
+            table: "StudySessions",
+            columns: new[] { "UserId", "FlashcardSetId", "Mode" },
+            unique: true,
+            filter: "[Mode] = 1 AND [Score] IS NULL AND [CompletedAt] IS NULL");
 
         migrationBuilder.CreateIndex(
             name: "IX_UserProfiles_IsPublic_ShowStats",
