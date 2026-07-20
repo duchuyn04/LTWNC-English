@@ -19,7 +19,6 @@ public class ProfileMarkupTests
     {
         string view = File.ReadAllText(Path.Combine(Root, "Views", "Profile", "Edit.cshtml"));
 
-        Assert.Contains("ChangeEmail", view);
         Assert.Contains("ChangePassword", view);
         Assert.Contains("AntiForgeryToken", view);
         Assert.Contains("multipart/form-data", view);

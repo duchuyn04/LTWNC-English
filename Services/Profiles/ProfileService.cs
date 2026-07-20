@@ -224,40 +224,6 @@ public sealed class ProfileService : IProfileService
         return ProfileOperationResult.Success();
     }
 
-    public async Task<ProfileOperationResult> ChangeEmailAsync(
-        string userId,
-        ChangeEmailViewModel model,
-        CancellationToken cancellationToken = default)
-    {
-        IdentityUser user = await FindUserAsync(userId);
-        string email = model.NewEmail.Trim();
-        if (!await _userManager.CheckPasswordAsync(user, model.CurrentPassword))
-        {
-            return ProfileOperationResult.Failure(new ProfileFieldError(
-                nameof(ChangeEmailViewModel.CurrentPassword),
-                "Mật khẩu hiện tại không đúng."));
-        }
-
-        if (string.Equals(user.Email, email, StringComparison.OrdinalIgnoreCase))
-        {
-            return ProfileOperationResult.Success();
-        }
-
-        IdentityUser? existing = await _userManager.FindByEmailAsync(email);
-        if (existing != null && !string.Equals(existing.Id, userId, StringComparison.Ordinal))
-        {
-            return ProfileOperationResult.Failure(new ProfileFieldError(
-                nameof(ChangeEmailViewModel.NewEmail),
-                "Email đã được sử dụng."));
-        }
-
-        string token = await _userManager.GenerateChangeEmailTokenAsync(user, email);
-        IdentityResult result = await _userManager.ChangeEmailAsync(user, email, token);
-        return result.Succeeded
-            ? ProfileOperationResult.Success()
-            : Failure(nameof(ChangeEmailViewModel.NewEmail), result);
-    }
-
     public async Task<ProfileOperationResult> ChangePasswordAsync(
         string userId,
         ChangePasswordViewModel model,

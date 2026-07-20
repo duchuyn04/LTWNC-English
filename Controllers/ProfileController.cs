@@ -122,45 +122,6 @@ public class ProfileController : Controller
     }
 
     [Authorize]
-    [HttpPost("/Account/Profile/ChangeEmail")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> ChangeEmail(
-        ChangeEmailViewModel model,
-        CancellationToken cancellationToken)
-    {
-        if (_currentUser.UserId == null)
-        {
-            return Challenge();
-        }
-
-        if (!ModelState.IsValid)
-        {
-            ProfileEditViewModel editModel = await _profileService.GetEditModelAsync(
-                _currentUser.UserId,
-                cancellationToken);
-            editModel.Email = model.NewEmail;
-            return View("Edit", editModel);
-        }
-
-        ProfileOperationResult result = await _profileService.ChangeEmailAsync(
-            _currentUser.UserId,
-            model,
-            cancellationToken);
-        if (!result.Succeeded)
-        {
-            AddErrors(result);
-            ProfileEditViewModel editModel = await _profileService.GetEditModelAsync(
-                _currentUser.UserId,
-                cancellationToken);
-            editModel.Email = model.NewEmail;
-            return View("Edit", editModel);
-        }
-
-        TempData["Success"] = "Đã cập nhật email.";
-        return RedirectToAction(nameof(Edit));
-    }
-
-    [Authorize]
     [HttpPost("/Account/Profile/ChangePassword")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ChangePassword(
