@@ -58,9 +58,10 @@ public class QuizService : IQuizService
         int setId,
         string userId,
         UserStudySettings settings,
-        int timeLimitMinutes)
+        int? timeLimitMinutes)
     {
-        if (timeLimitMinutes is < MinimumQuizMinutes or > MaximumQuizMinutes)
+        if (timeLimitMinutes.HasValue
+            && timeLimitMinutes is < MinimumQuizMinutes or > MaximumQuizMinutes)
         {
             throw new ArgumentOutOfRangeException(nameof(timeLimitMinutes));
         }
@@ -98,8 +99,10 @@ public class QuizService : IQuizService
                 UserId = userId,
                 Mode = StudyMode.Quiz,
                 CompletedAt = null,
-                QuizStartedAtUtc = now,
-                QuizTimeLimitSeconds = timeLimitMinutes * 60
+                QuizStartedAtUtc = timeLimitMinutes.HasValue ? now : null,
+                QuizTimeLimitSeconds = timeLimitMinutes.HasValue
+                    ? timeLimitMinutes.Value * 60
+                    : null
             };
             List<QuizSessionQuestion> questions = await _questionFactory.BuildQuestionsAsync(
                 setId,
@@ -1013,9 +1016,8 @@ public class QuizService : IQuizService
                 UserId = sourceSession.UserId,
                 Mode = StudyMode.Quiz,
                 CompletedAt = null,
-                QuizStartedAtUtc = now,
-                QuizTimeLimitSeconds = sourceSession.QuizTimeLimitSeconds
-                    ?? DefaultQuizMinutes * 60,
+                QuizStartedAtUtc = sourceSession.QuizTimeLimitSeconds.HasValue ? now : null,
+                QuizTimeLimitSeconds = sourceSession.QuizTimeLimitSeconds,
                 QuizRetrySourceSessionId = retryKind.HasValue ? sourceSession.Id : null,
                 QuizRetryKind = retryKind
             };
@@ -1112,8 +1114,7 @@ public class QuizService : IQuizService
         if (retryKind is null
             || activeSession.QuizRetrySourceSessionId != sourceSession.Id
             || activeSession.QuizRetryKind != retryKind
-            || activeSession.QuizTimeLimitSeconds
-                != (sourceSession.QuizTimeLimitSeconds ?? DefaultQuizMinutes * 60))
+            || activeSession.QuizTimeLimitSeconds != sourceSession.QuizTimeLimitSeconds)
         {
             return false;
         }

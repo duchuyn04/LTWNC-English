@@ -58,6 +58,56 @@ public class QuizServiceTests
     }
 
     [Fact]
+    public async Task StartNew_with_null_duration_creates_untimed_session()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher());
+
+        StudySession session = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            null);
+
+        Assert.Null(session.QuizStartedAtUtc);
+        Assert.Null(session.QuizTimeLimitSeconds);
+
+        QuizQuestionState state = await service.GetCurrentQuestionAsync(
+            set.Id,
+            session.Id,
+            set.UserId);
+        Assert.Null(state.DeadlineUtc);
+        Assert.Null(state.RemainingSeconds);
+    }
+
+    [Fact]
+    public async Task RetryAll_from_untimed_source_creates_untimed_session()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher());
+        StudySession source = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            null);
+        await CompleteQuizAsync(database.Context, service, set, source);
+
+        StudySession retry = await service.RetryAllAsync(
+            set.Id,
+            source.Id,
+            set.UserId);
+
+        Assert.Null(retry.QuizStartedAtUtc);
+        Assert.Null(retry.QuizTimeLimitSeconds);
+    }
+
+    [Fact]
     public async Task StartOrResume_creates_session_and_persisted_questions()
     {
         await using var database = await QuizTestDatabase.CreateAsync();
@@ -1282,6 +1332,8 @@ public class QuizServiceTests
             .ToListAsync();
         Assert.NotEqual(sourceSession.Id, retrySession.Id);
         Assert.Null(retrySession.Score);
+        Assert.Null(retrySession.QuizStartedAtUtc);
+        Assert.Null(retrySession.QuizTimeLimitSeconds);
         Assert.Equal(wrongCardIds.Order(), retryQuestions.Select(question => question.FlashcardId).Order());
         Assert.All(retryQuestions, question =>
             Assert.Equal(expectedDirections[question.FlashcardId], question.Direction));
@@ -1355,6 +1407,8 @@ public class QuizServiceTests
         Assert.Equal(
             questionsBefore.Select(question => question.FlashcardId).Order(),
             retryQuestions.Select(question => question.FlashcardId).Order());
+        Assert.Null(retrySession.QuizStartedAtUtc);
+        Assert.Null(retrySession.QuizTimeLimitSeconds);
         Assert.Equal(2, retryQuestions.Count(question =>
             question.Direction == QuizQuestionDirection.TermToDefinition));
         Assert.Equal(2, retryQuestions.Count(question =>
@@ -1367,10 +1421,10 @@ public class QuizServiceTests
 
     [Theory]
     [InlineData(true, 15 * 60)]
-    [InlineData(false, QuizService.DefaultQuizMinutes * 60)]
+    [InlineData(false, null)]
     public async Task Restart_abandons_active_attempt_reuses_scope_and_starts_fresh_timer(
         bool sourceIsTimed,
-        int expectedTimeLimitSeconds)
+        int? expectedTimeLimitSeconds)
     {
         await using var database = await QuizTestDatabase.CreateAsync();
         FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
@@ -1414,7 +1468,14 @@ public class QuizServiceTests
         Assert.NotNull(storedSource.CompletedAt);
         Assert.Null(storedSource.Score);
         Assert.Equal(expectedTimeLimitSeconds, restarted.QuizTimeLimitSeconds);
-        Assert.Equal(timeProvider.GetUtcNow().UtcDateTime, restarted.QuizStartedAtUtc);
+        if (expectedTimeLimitSeconds.HasValue)
+        {
+            Assert.Equal(timeProvider.GetUtcNow().UtcDateTime, restarted.QuizStartedAtUtc);
+        }
+        else
+        {
+            Assert.Null(restarted.QuizStartedAtUtc);
+        }
         Assert.Equal(
             questions.Select(question => question.FlashcardId).Order(),
             restartedQuestions.Select(question => question.FlashcardId).Order());

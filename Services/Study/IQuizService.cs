@@ -10,7 +10,7 @@ public interface IQuizService
         int setId,
         string userId,
         UserStudySettings settings,
-        int timeLimitMinutes);
+        int? timeLimitMinutes);
 
     Task<StudySession> StartOrResumeAsync(
         int setId,
