@@ -651,8 +651,11 @@
 
 @media (max-width: 640px) {
     .quiz-header { grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 0.5rem; }
+    .quiz-header-setup { grid-template-columns: auto minmax(0, 1fr); }
+    .quiz-header-setup .quiz-exit { grid-column: 1; grid-row: 1; }
+    .quiz-header-setup .quiz-heading { grid-column: 2; grid-row: 1; text-align: right; }
     .quiz-header-actions { grid-column: 1 / -1; grid-row: 2; gap: 0.35rem; }
-    .quiz-heading { grid-column: 1; grid-row: 1; text-align: left; }
+    .quiz-header:not(.quiz-header-setup) .quiz-heading { grid-column: 1; grid-row: 1; text-align: left; }
     .quiz-heading h1 { font-size: 1.15rem; }
     .quiz-exit span { display: none; }
     .quiz-restart { padding: 0 0.55rem; font-size: 0.78rem; white-space: nowrap; }

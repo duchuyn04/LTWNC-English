@@ -22,6 +22,7 @@ public class QuizViewTests
         Assert.Contains("max=\"120\"", QuizSetupView);
         Assert.Contains("@Html.AntiForgeryToken()", QuizSetupView);
         Assert.Contains("quiz-setup-layout", QuizSetupView);
+        Assert.Contains("quiz-header quiz-header-setup", QuizSetupView);
         Assert.Contains("quiz-active-session", QuizSetupView);
         Assert.Contains("Không giới hạn thời gian", QuizSetupView);
         Assert.Contains("asp-for=\"TimingMode\"", QuizSetupView);
@@ -52,6 +53,7 @@ public class QuizViewTests
         Assert.Contains("quiz-setup-layout", QuizStyles);
         Assert.Contains("quiz-timing-card.is-selected", QuizStyles);
         Assert.Contains("@media (max-width: 760px)", QuizStyles);
+        Assert.Contains(".quiz-header-setup", QuizStyles);
     }
 
     [Fact]
