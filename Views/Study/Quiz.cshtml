@@ -87,6 +87,14 @@
                             disabled="@Model.IsReviewOnly">
                         <span class="quiz-choice-key" aria-hidden="true">@(index + 1)</span>
                         <span>@Model.Choices[index]</span>
+                        @if (Model.IsReviewOnly && index == Model.CorrectChoiceIndex)
+                        {
+                            <span class="visually-hidden">Đáp án đúng</span>
+                        }
+                        else if (Model.IsReviewOnly && index == Model.SelectedChoiceIndex)
+                        {
+                            <span class="visually-hidden">Đáp án bạn đã chọn</span>
+                        }
                     </button>
                 }
             </div>

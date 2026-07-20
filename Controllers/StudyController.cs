@@ -359,12 +359,12 @@ public class StudyController : Controller
         };
         if (!hasValidTimingSelection)
         {
-            string validationKey = input.TimingMode is QuizTimingMode.Preset or QuizTimingMode.Custom
+            string validationKey = input.TimingMode == QuizTimingMode.Custom
                 ? nameof(QuizSetupViewModel.CustomMinutes)
                 : nameof(QuizSetupViewModel.TimingMode);
             ModelState.AddModelError(
                 validationKey,
-                input.TimingMode is QuizTimingMode.Preset or QuizTimingMode.Custom
+                input.TimingMode == QuizTimingMode.Custom
                     ? $"Thời lượng phải từ 1 đến {QuizService.MaximumQuizMinutes} phút."
                     : "Lựa chọn thời gian không hợp lệ.");
         }
@@ -505,9 +505,14 @@ public class StudyController : Controller
     public async Task<IActionResult> QuizAnswer(
         int setId,
         int sessionId,
-        int questionId,
-        int selectedChoiceIndex)
+        int? questionId,
+        int? selectedChoiceIndex)
     {
+        if (!ModelState.IsValid || questionId is null || selectedChoiceIndex is null)
+        {
+            return BadRequest();
+        }
+
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -519,8 +524,8 @@ public class StudyController : Controller
             QuizAnswerResult result = await _quizService.AnswerAsync(
                 setId,
                 sessionId,
-                questionId,
-                selectedChoiceIndex,
+                questionId.Value,
+                selectedChoiceIndex.Value,
                 userId);
             string? nextUrl = result.IsLastQuestion
                 ? Url.Action(nameof(QuizResult), new { setId, sessionId })

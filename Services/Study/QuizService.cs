@@ -1,3 +1,4 @@
+using System.Data;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.StudyEvents;
@@ -122,6 +123,30 @@ public class QuizService : IQuizService
             }
 
             return session;
+        }
+        catch (DbUpdateException exception) when (IsActiveQuizUniqueConflict(exception))
+        {
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync();
+            }
+
+            _context.ChangeTracker.Clear();
+            StudySession? winningSession = await _context.StudySessions
+                .AsNoTracking()
+                .Where(session => session.FlashcardSetId == setId
+                    && session.UserId == userId
+                    && session.Mode == StudyMode.Quiz
+                    && session.Score == null
+                    && session.CompletedAt == null)
+                .OrderByDescending(session => session.Id)
+                .FirstOrDefaultAsync();
+            if (winningSession != null)
+            {
+                return winningSession;
+            }
+
+            throw;
         }
         catch
         {
@@ -937,7 +962,8 @@ public class QuizService : IQuizService
         IDbContextTransaction? transaction = null;
         if (_context.Database.IsRelational())
         {
-            transaction = await _context.Database.BeginTransactionAsync();
+            transaction = await _context.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable);
         }
 
         try

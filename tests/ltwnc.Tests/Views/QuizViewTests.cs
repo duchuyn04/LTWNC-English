@@ -119,6 +119,9 @@ public class QuizViewTests
         Assert.Contains("Model.CorrectChoiceIndex", QuizView);
         Assert.Contains("is-correct", QuizView);
         Assert.Contains("is-wrong", QuizView);
+        Assert.Contains("Đáp án đúng", QuizView);
+        Assert.Contains("Đáp án bạn đã chọn", QuizView);
+        Assert.Contains("visually-hidden", QuizView);
         Assert.Contains("disabled", QuizView);
         Assert.Contains("Model.PreviousQuestionId", QuizView);
         Assert.Contains("Model.NextQuestionId", QuizView);

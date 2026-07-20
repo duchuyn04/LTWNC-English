@@ -58,16 +58,14 @@ public class StudyControllerQuizTests
 
         IActionResult result = await controller.QuizStart(7, new QuizSetupViewModel
         {
+            TimingMode = QuizTimingMode.Preset,
             SelectedPresetMinutes = 121
         });
 
         ViewResult view = Assert.IsType<ViewResult>(result);
         Assert.Equal("QuizSetup", view.ViewName);
         Assert.False(controller.ModelState.IsValid);
-        Assert.Contains(
-            $"Thời lượng phải từ 1 đến {QuizService.MaximumQuizMinutes} phút.",
-            controller.ModelState[nameof(QuizSetupViewModel.CustomMinutes)]!.Errors
-                .Select(error => error.ErrorMessage));
+        Assert.Single(controller.ModelState[nameof(QuizSetupViewModel.TimingMode)]!.Errors);
         _quizService.Verify(
             service => service.StartNewAsync(
                 It.IsAny<int>(),
@@ -89,6 +87,7 @@ public class StudyControllerQuizTests
 
         IActionResult result = await controller.QuizStart(7, new QuizSetupViewModel
         {
+            TimingMode = QuizTimingMode.Preset,
             SelectedPresetMinutes = 15
         });
 
@@ -115,6 +114,27 @@ public class StudyControllerQuizTests
         });
 
         AssertQuizSessionRedirect(result, setId: 7, sessionId: 42);
+    }
+
+    [Fact]
+    public async Task QuizStart_post_rejects_omitted_timing_mode()
+    {
+        _quizService.Setup(service => service.GetSetupAsync(7, "user-1"))
+            .ReturnsAsync(new QuizSetupState { SetId = 7, SetTitle = "Core English" });
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.QuizStart(7, new QuizSetupViewModel
+        {
+            SelectedPresetMinutes = 10
+        });
+
+        Assert.IsType<ViewResult>(result);
+        Assert.False(controller.ModelState.IsValid);
+        _quizService.Verify(service => service.StartNewAsync(
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<UserStudySettings>(),
+            It.IsAny<int?>()), Times.Never);
     }
 
     [Fact]
@@ -315,6 +335,30 @@ public class StudyControllerQuizTests
         Assert.Equal(2, json.GetProperty("correctChoiceIndex").GetInt32());
         Assert.True(json.GetProperty("isLastQuestion").GetBoolean());
         Assert.Equal("/Study/7/Quiz/Result/42", json.GetProperty("nextUrl").GetString());
+    }
+
+    [Theory]
+    [InlineData(null, 2)]
+    [InlineData(501, null)]
+    public async Task QuizAnswer_rejects_missing_answer_fields(
+        int? questionId,
+        int? selectedChoiceIndex)
+    {
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.QuizAnswer(
+            7,
+            42,
+            questionId,
+            selectedChoiceIndex);
+
+        Assert.IsType<BadRequestResult>(result);
+        _quizService.Verify(service => service.AnswerAsync(
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<int>(),
+            It.IsAny<string>()), Times.Never);
     }
 
     [Fact]

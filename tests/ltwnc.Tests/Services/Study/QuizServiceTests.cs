@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Data;
 using System.Data.Common;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
@@ -200,6 +201,46 @@ public class QuizServiceTests
             && row.Mode == StudyMode.Quiz
             && row.Score == null));
         Assert.Equal(4, await verificationContext.QuizSessionQuestions.CountAsync());
+    }
+
+    [Fact]
+    public async Task StartNew_concurrent_requests_leave_one_active_quiz_session()
+    {
+        await using var database = await SharedQuizTestDatabase.CreateAsync();
+        int setId;
+        string userId;
+        await using (AppDbContext setupContext = await database.CreateContextAsync())
+        {
+            FlashcardSet set = await SeedQuestionPoolAsync(setupContext);
+            setId = set.Id;
+            userId = set.UserId;
+        }
+
+        await using AppDbContext firstContext = await database.CreateContextAsync();
+        await using AppDbContext secondContext = await database.CreateContextAsync();
+        QuizService firstService = CreateService(firstContext, new RecordingStudyEventPublisher());
+        QuizService secondService = CreateService(secondContext, new RecordingStudyEventPublisher());
+        var startGate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        async Task<StudySession> StartAsync(QuizService service)
+        {
+            await startGate.Task;
+            return await service.StartNewAsync(setId, userId, new UserStudySettings(), 10);
+        }
+
+        Task<StudySession> firstRequest = StartAsync(firstService);
+        Task<StudySession> secondRequest = StartAsync(secondService);
+        startGate.SetResult();
+        StudySession[] sessions = await Task.WhenAll(firstRequest, secondRequest);
+
+        Assert.All(sessions, session => Assert.True(session.Id > 0));
+        await using AppDbContext verificationContext = await database.CreateContextAsync();
+        Assert.Equal(1, await verificationContext.StudySessions.CountAsync(row =>
+            row.FlashcardSetId == setId
+            && row.UserId == userId
+            && row.Mode == StudyMode.Quiz
+            && row.Score == null
+            && row.CompletedAt == null));
     }
 
     [Fact]
@@ -1773,6 +1814,25 @@ public class QuizServiceTests
     }
 
     [Fact]
+    public async Task Retry_holds_source_cards_in_a_serializable_transaction()
+    {
+        var interceptor = new RecordingTransactionInterceptor();
+        await using var database = await QuizTestDatabase.CreateAsync(interceptor);
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession source = await service.StartOrResumeAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings());
+        await CompleteQuizAsync(database.Context, service, set, source);
+        interceptor.Armed = true;
+
+        await service.RetryAllAsync(set.Id, source.Id, set.UserId);
+
+        Assert.Equal(IsolationLevel.Serializable, interceptor.IsolationLevel);
+    }
+
+    [Fact]
     public async Task Retry_rolls_back_when_answer_pool_is_unavailable()
     {
         await using var database = await QuizTestDatabase.CreateAsync();
@@ -2168,6 +2228,26 @@ public class QuizServiceTests
         }
     }
 
+    private sealed class RecordingTransactionInterceptor : DbTransactionInterceptor
+    {
+        public bool Armed { get; set; }
+        public IsolationLevel? IsolationLevel { get; private set; }
+
+        public override ValueTask<DbTransaction> TransactionStartedAsync(
+            DbConnection connection,
+            TransactionEndEventData eventData,
+            DbTransaction result,
+            CancellationToken cancellationToken = default)
+        {
+            if (Armed)
+            {
+                IsolationLevel = result.IsolationLevel;
+            }
+
+            return ValueTask.FromResult(result);
+        }
+    }
+
     private sealed class ReplaceSessionBeforeAnswerInterceptor : DbCommandInterceptor
     {
         public int SourceSessionId { get; set; }
@@ -2283,7 +2363,7 @@ public class QuizServiceTests
         public AppDbContext Context { get; }
 
         public static async Task<QuizTestDatabase> CreateAsync(
-            params DbCommandInterceptor[] interceptors)
+            params IInterceptor[] interceptors)
         {
             var connection = new SqliteConnection("DataSource=:memory:");
             await connection.OpenAsync();

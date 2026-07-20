@@ -1,7 +1,7 @@
 # Thiết kế giao diện thiết lập trắc nghiệm hiện đại và chế độ không giới hạn thời gian
 
-**Ngày:** 2026-07-20  
-**Nhánh:** `feature/quiz-study-mode`  
+**Ngày:** 2026-07-20
+**Nhánh:** `feature/quiz-study-mode`
 **Phạm vi:** Màn hình thiết lập trước khi bắt đầu bài trắc nghiệm và cách hệ thống biểu diễn bài làm không giới hạn thời gian.
 
 ## 1. Mục tiêu
