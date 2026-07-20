@@ -41,6 +41,7 @@ public class StudyControllerQuizTests
         QuizSetupViewModel model = Assert.IsType<QuizSetupViewModel>(view.Model);
         Assert.Equal(7, model.SetId);
         Assert.Equal("Core English", model.SetTitle);
+        Assert.Equal(QuizTimingMode.Preset, model.TimingMode);
         Assert.Equal(QuizService.DefaultQuizMinutes, model.SelectedPresetMinutes);
         Assert.Equal(42, model.ActiveSessionId);
         _quizService.Verify(
@@ -92,6 +93,86 @@ public class StudyControllerQuizTests
         });
 
         AssertQuizSessionRedirect(result, setId: 7, sessionId: 42);
+    }
+
+    [Fact]
+    public async Task QuizStart_post_untimed_starts_session_without_duration()
+    {
+        UserStudySettings settings = new();
+        _quizService.Setup(service => service.GetSetupAsync(7, "user-1"))
+            .ReturnsAsync(new QuizSetupState { SetId = 7, SetTitle = "Core English" });
+        _studyService.Setup(service => service.GetSettingsAsync("user-1"))
+            .ReturnsAsync(settings);
+        _quizService.Setup(service => service.StartNewAsync(7, "user-1", settings, null))
+            .ReturnsAsync(new StudySession { Id = 42 });
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.QuizStart(7, new QuizSetupViewModel
+        {
+            TimingMode = QuizTimingMode.Untimed,
+            SelectedPresetMinutes = null,
+            CustomMinutes = null
+        });
+
+        AssertQuizSessionRedirect(result, setId: 7, sessionId: 42);
+    }
+
+    [Fact]
+    public async Task QuizStart_post_custom_uses_custom_duration()
+    {
+        UserStudySettings settings = new();
+        _studyService.Setup(service => service.GetSettingsAsync("user-1"))
+            .ReturnsAsync(settings);
+        _quizService.Setup(service => service.StartNewAsync(7, "user-1", settings, 37))
+            .ReturnsAsync(new StudySession { Id = 42 });
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.QuizStart(7, new QuizSetupViewModel
+        {
+            TimingMode = QuizTimingMode.Custom,
+            CustomMinutes = 37
+        });
+
+        AssertQuizSessionRedirect(result, setId: 7, sessionId: 42);
+    }
+
+    [Theory]
+    [InlineData((int)QuizTimingMode.Preset, 121, null)]
+    [InlineData((int)QuizTimingMode.Custom, null, 0)]
+    [InlineData((int)QuizTimingMode.Custom, 10, 37)]
+    [InlineData((int)QuizTimingMode.Untimed, 10, null)]
+    [InlineData(99, null, null)]
+    public async Task QuizStart_post_rejects_invalid_or_conflicting_timing_payload(
+        int rawMode,
+        int? presetMinutes,
+        int? customMinutes)
+    {
+        _quizService.Setup(service => service.GetSetupAsync(7, "user-1"))
+            .ReturnsAsync(new QuizSetupState { SetId = 7, SetTitle = "Core English" });
+        _studyService.Setup(service => service.GetSettingsAsync("user-1"))
+            .ReturnsAsync(new UserStudySettings());
+        _quizService.Setup(service => service.StartNewAsync(
+                7,
+                "user-1",
+                It.IsAny<UserStudySettings>(),
+                It.IsAny<int?>()))
+            .ReturnsAsync(new StudySession { Id = 42 });
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.QuizStart(7, new QuizSetupViewModel
+        {
+            TimingMode = (QuizTimingMode)rawMode,
+            SelectedPresetMinutes = presetMinutes,
+            CustomMinutes = customMinutes
+        });
+
+        Assert.IsType<ViewResult>(result);
+        Assert.False(controller.ModelState.IsValid);
+        _quizService.Verify(service => service.StartNewAsync(
+            It.IsAny<int>(),
+            It.IsAny<string>(),
+            It.IsAny<UserStudySettings>(),
+            It.IsAny<int?>()), Times.Never);
     }
 
     [Fact]

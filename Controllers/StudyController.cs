@@ -313,6 +313,7 @@ public class StudyController : Controller
             {
                 SetId = state.SetId,
                 SetTitle = state.SetTitle,
+                TimingMode = QuizTimingMode.Preset,
                 SelectedPresetMinutes = QuizService.DefaultQuizMinutes,
                 ActiveSessionId = state.ActiveSession?.Id
             });
@@ -338,15 +339,34 @@ public class StudyController : Controller
             return Challenge();
         }
 
-        int? timeLimitMinutes = input.CustomMinutes ?? input.SelectedPresetMinutes;
-        bool isPreset = input.SelectedPresetMinutes is 5 or 10 or 15 or 20;
-        bool isCustom = input.CustomMinutes is >= QuizService.MinimumQuizMinutes
-            and <= QuizService.MaximumQuizMinutes;
-        if (timeLimitMinutes == null || (input.CustomMinutes.HasValue ? !isCustom : !isPreset))
+        bool hasValidTimingSelection = input.TimingMode switch
         {
+            QuizTimingMode.Preset => input.SelectedPresetMinutes is 5 or 10 or 15 or 20
+                && input.CustomMinutes is null,
+            QuizTimingMode.Custom => input.CustomMinutes is >= QuizService.MinimumQuizMinutes
+                and <= QuizService.MaximumQuizMinutes
+                && input.SelectedPresetMinutes is null,
+            QuizTimingMode.Untimed => input.SelectedPresetMinutes is null
+                && input.CustomMinutes is null,
+            _ => false
+        };
+        int? timeLimitMinutes = input.TimingMode switch
+        {
+            QuizTimingMode.Preset => input.SelectedPresetMinutes,
+            QuizTimingMode.Custom => input.CustomMinutes,
+            QuizTimingMode.Untimed => null,
+            _ => null
+        };
+        if (!hasValidTimingSelection)
+        {
+            string validationKey = input.TimingMode is QuizTimingMode.Preset or QuizTimingMode.Custom
+                ? nameof(QuizSetupViewModel.CustomMinutes)
+                : nameof(QuizSetupViewModel.TimingMode);
             ModelState.AddModelError(
-                nameof(QuizSetupViewModel.CustomMinutes),
-                $"Thời lượng phải từ 1 đến {QuizService.MaximumQuizMinutes} phút.");
+                validationKey,
+                input.TimingMode is QuizTimingMode.Preset or QuizTimingMode.Custom
+                    ? $"Thời lượng phải từ 1 đến {QuizService.MaximumQuizMinutes} phút."
+                    : "Lựa chọn thời gian không hợp lệ.");
         }
 
         if (!ModelState.IsValid)
@@ -361,7 +381,7 @@ public class StudyController : Controller
                 setId,
                 userId,
                 settings,
-                timeLimitMinutes!.Value);
+                timeLimitMinutes);
             return RedirectToAction(nameof(Quiz), new { setId, sessionId = session.Id });
         }
         catch (QuizUnavailableException exception)
