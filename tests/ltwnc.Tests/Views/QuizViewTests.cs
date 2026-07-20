@@ -15,16 +15,25 @@ public class QuizViewTests
     public void Quiz_setup_view_offers_presets_custom_duration_and_active_continuation()
     {
         Assert.Contains("~/css/quiz.css", QuizSetupView);
-        Assert.Contains("value=\"5\"", QuizSetupView);
-        Assert.Contains("value=\"10\"", QuizSetupView);
-        Assert.Contains("value=\"15\"", QuizSetupView);
-        Assert.Contains("value=\"20\"", QuizSetupView);
+        Assert.Contains("new[] { 5, 10, 15, 20 }", QuizSetupView);
         Assert.Contains("type=\"number\"", QuizSetupView);
         Assert.Contains("min=\"1\"", QuizSetupView);
         Assert.Contains("max=\"120\"", QuizSetupView);
         Assert.Contains("@Html.AntiForgeryToken()", QuizSetupView);
+        Assert.Contains("quiz-setup-layout", QuizSetupView);
+        Assert.Contains("quiz-active-session", QuizSetupView);
+        Assert.Contains("Không giới hạn thời gian", QuizSetupView);
+        Assert.Contains("asp-for=\"TimingMode\"", QuizSetupView);
+        Assert.Contains("data-quiz-timing=\"untimed\"", QuizSetupView);
+        Assert.Contains("asp-validation-summary=\"All\"", QuizSetupView);
+        Assert.Contains("asp-validation-for=\"TimingMode\"", QuizSetupView);
+        Assert.Contains("data-quiz-preset", QuizSetupView);
+        Assert.Contains("data-quiz-custom", QuizSetupView);
+        Assert.Contains("data-quiz-submit-label", QuizSetupView);
+        Assert.Contains("~/js/quiz-setup.js", QuizSetupView);
         Assert.Contains("Model.ActiveSessionId.HasValue", QuizSetupView);
         Assert.Contains("asp-action=\"Quiz\"", QuizSetupView);
+        Assert.Contains("if (Model.DeadlineUtc.HasValue)", QuizView);
         Assert.DoesNotContain("Ã", QuizSetupView);
     }
 

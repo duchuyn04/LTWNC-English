@@ -65,6 +65,15 @@ public sealed class QuizSetupRenderingTests : IClassFixture<WebApplicationFactor
             RegexOptions.IgnoreCase);
         Assert.True(form.Success, html);
         Assert.Contains("name=\"__RequestVerificationToken\"", form.Value);
+        Assert.Contains("quiz-setup-layout", html);
+        Assert.Contains("data-quiz-timing=\"untimed\"", html);
+        Assert.Contains("data-quiz-preset=\"5\"", html);
+        Assert.Contains("data-quiz-preset=\"10\"", html);
+        Assert.Contains("data-quiz-preset=\"15\"", html);
+        Assert.Contains("data-quiz-preset=\"20\"", html);
+        Assert.Contains("name=\"TimingChoice\"", html);
+        Assert.Contains("name=\"TimingMode\"", form.Value);
+        Assert.DoesNotContain("quiz-active-session", html);
     }
 
     private sealed class TestAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>

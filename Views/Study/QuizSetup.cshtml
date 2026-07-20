@@ -8,7 +8,7 @@
 }
 
 <div class="quiz-shell">
-    <main class="quiz-stage">
+    <main class="quiz-stage quiz-stage-setup">
         <header class="quiz-header">
             <a class="quiz-exit" asp-action="Index" asp-route-setId="@Model.SetId">Thoát</a>
             <div class="quiz-heading">
@@ -17,37 +17,102 @@
             </div>
         </header>
 
-        <section class="quiz-card" aria-labelledby="quiz-setup-title">
-            <h2 id="quiz-setup-title">Chọn thời gian làm bài</h2>
-            <form asp-route="QuizStartPost"
-                  asp-route-setId="@Model.SetId"
-                  method="post">
-                @Html.AntiForgeryToken()
-                <div asp-validation-summary="ModelOnly" role="alert"></div>
-                <fieldset>
-                    <legend>Thời lượng</legend>
-                    <label><input asp-for="SelectedPresetMinutes" type="radio" value="5" /> 5 phút</label>
-                    <label><input asp-for="SelectedPresetMinutes" type="radio" value="10" /> 10 phút</label>
-                    <label><input asp-for="SelectedPresetMinutes" type="radio" value="15" /> 15 phút</label>
-                    <label><input asp-for="SelectedPresetMinutes" type="radio" value="20" /> 20 phút</label>
-                </fieldset>
+        <div class="quiz-setup-layout" data-quiz-setup>
+            <section class="quiz-setup-main" aria-labelledby="quiz-setup-title">
+                <span class="quiz-eyebrow">Trắc nghiệm</span>
+                <h2 id="quiz-setup-title">Thiết lập bài trắc nghiệm</h2>
+                <p class="quiz-setup-intro">Chọn nhịp độ phù hợp trước khi bắt đầu.</p>
 
-                <label asp-for="CustomMinutes">Hoặc nhập số phút khác</label>
-                <input asp-for="CustomMinutes" type="number" min="1" max="120" step="1" />
-                <span asp-validation-for="CustomMinutes"></span>
+                <form asp-route="QuizStartPost"
+                      asp-route-setId="@Model.SetId"
+                      method="post">
+                    @Html.AntiForgeryToken()
+                    <input asp-for="TimingMode" type="hidden" data-quiz-mode-input />
+                    <input asp-for="SelectedPresetMinutes" type="hidden" data-quiz-preset-input />
+                    <div asp-validation-summary="All" role="alert"></div>
+                    <span asp-validation-for="TimingMode" class="quiz-validation-message"></span>
 
-                <button type="submit" class="quiz-action quiz-action-primary">Bắt đầu bài kiểm tra</button>
-            </form>
+                    <fieldset class="quiz-timing-fieldset">
+                        <legend>Thời lượng</legend>
+                        <div class="quiz-timing-grid">
+                            @foreach (int minutes in new[] { 5, 10, 15, 20 })
+                            {
+                                <label class="quiz-timing-card" data-quiz-preset="@minutes">
+                                    <input type="radio"
+                                           name="TimingChoice"
+                                           value="preset-@minutes"
+                                           data-quiz-option
+                                           data-quiz-mode="Preset"
+                                           data-quiz-minutes="@minutes" />
+                                    <span>
+                                        <strong>@minutes phút</strong>
+                                        <small>Nhịp độ gợi ý</small>
+                                    </span>
+                                </label>
+                            }
+                        </div>
+
+                        <label class="quiz-timing-card quiz-timing-card-untimed"
+                               data-quiz-timing="untimed">
+                            <input type="radio"
+                                   name="TimingChoice"
+                                   value="untimed"
+                                   data-quiz-option
+                                   data-quiz-mode="Untimed" />
+                            <span class="quiz-timing-icon" aria-hidden="true">∞</span>
+                            <span>
+                                <strong>Không giới hạn thời gian</strong>
+                                <small>Làm bài theo tốc độ của bạn</small>
+                            </span>
+                        </label>
+
+                        <div class="quiz-timing-card quiz-timing-card-custom" data-quiz-custom>
+                            <input type="radio"
+                                   id="quiz-timing-custom"
+                                   name="TimingChoice"
+                                   value="custom"
+                                   data-quiz-option
+                                   data-quiz-mode="Custom" />
+                            <label for="quiz-timing-custom">
+                                <strong>Thời lượng tùy chỉnh</strong>
+                                <small>Chọn từ 1 đến 120 phút</small>
+                            </label>
+                            <span class="quiz-custom-input">
+                                <label asp-for="CustomMinutes" class="visually-hidden">Số phút tùy chỉnh</label>
+                                <input asp-for="CustomMinutes"
+                                       type="number"
+                                       min="1"
+                                       max="120"
+                                       step="1"
+                                       data-quiz-custom-input />
+                                <span>phút</span>
+                            </span>
+                        </div>
+                        <span asp-validation-for="CustomMinutes"></span>
+                    </fieldset>
+
+                    <button type="submit"
+                            class="quiz-action quiz-action-primary quiz-setup-submit"
+                            data-quiz-submit-label>Bắt đầu bài kiểm tra</button>
+                </form>
+            </section>
 
             @if (Model.ActiveSessionId.HasValue)
             {
-                <p>
-                    Bạn còn một bài đang dở dang.
-                    <a asp-action="Quiz"
+                <aside class="quiz-active-session" aria-labelledby="quiz-active-title">
+                    <span class="quiz-eyebrow">Đang dở</span>
+                    <h2 id="quiz-active-title">Bạn còn một bài chưa hoàn thành</h2>
+                    <p>Tiến độ hiện tại đã được lưu lại.</p>
+                    <a class="quiz-action quiz-action-light"
+                       asp-action="Quiz"
                        asp-route-setId="@Model.SetId"
                        asp-route-sessionId="@Model.ActiveSessionId">Tiếp tục làm bài</a>
-                </p>
+                </aside>
             }
-        </section>
+        </div>
     </main>
 </div>
+
+@section Scripts {
+    <script src="~/js/quiz-setup.js" asp-append-version="true"></script>
+}

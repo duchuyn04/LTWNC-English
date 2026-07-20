@@ -46,7 +46,14 @@
                 <strong>@Model.CorrectCount</strong>
                 <span>đúng</span>
             </div>
-            <div class="quiz-timer" data-quiz-timer role="timer" aria-live="polite" aria-label="Th&#7901;i gian c&#242;n l&#7841;i">--:--</div>
+            @if (Model.DeadlineUtc.HasValue)
+            {
+                <div class="quiz-timer"
+                     data-quiz-timer
+                     role="timer"
+                     aria-live="polite"
+                     aria-label="Thời gian còn lại">--:--</div>
+            }
         </header>
 
         <div class="quiz-progress" aria-label="Tiến độ bài trắc nghiệm">
