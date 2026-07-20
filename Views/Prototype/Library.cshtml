@@ -1,0 +1,148 @@
+@{
+    ViewData["Title"] = "Prototype · Thư viện bộ thẻ";
+    string variant = Context.Request.Query["variant"].ToString().ToUpperInvariant();
+    if (variant is not ("A" or "B" or "C")) variant = "A";
+
+    var sets = new[]
+    {
+        new { Title = "IELTS Academic 7.0+", Topic = "IELTS", Description = "Từ vựng học thuật theo chủ đề, có ví dụ và cụm từ thường gặp trong Writing.", Author = "Minh Anh", Initials = "MA", Cards = 120, Downloads = "1.248", Favorites = 326, Accent = "sage" },
+        new { Title = "Giao tiếp công sở", Topic = "Công việc", Description = "Mẫu câu và từ vựng dùng trong họp, email và trao đổi hằng ngày.", Author = "Quang Hải", Initials = "QH", Cards = 84, Downloads = "986", Favorites = 214, Accent = "brass" },
+        new { Title = "TOEIC 600+", Topic = "TOEIC", Description = "Nhóm từ xuất hiện nhiều trong Part 5–7, kèm nghĩa và câu ví dụ ngắn.", Author = "Lan An", Initials = "LA", Cards = 96, Downloads = "742", Favorites = 198, Accent = "clay" },
+        new { Title = "Travel English", Topic = "Giao tiếp", Description = "Từ và mẫu câu cần thiết khi đi sân bay, khách sạn và nhà hàng.", Author = "Hoàng Nam", Initials = "HN", Cards = 52, Downloads = "535", Favorites = 121, Accent = "sky" },
+        new { Title = "English for Developers", Topic = "Công việc", Description = "Thuật ngữ để đọc tài liệu, review code và trao đổi trong nhóm kỹ thuật.", Author = "Anh Khoa", Initials = "AK", Cards = 68, Downloads = "481", Favorites = 146, Accent = "plum" },
+        new { Title = "Collocations nền tảng", Topic = "Học thuật", Description = "Các cụm động từ và tính từ thông dụng, chia theo tình huống dễ ôn.", Author = "Thu Hà", Initials = "TH", Cards = 110, Downloads = "439", Favorites = 173, Accent = "moss" }
+    };
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/library-prototype.css" asp-append-version="true" />
+}
+
+@section FullWidth {
+<div class="container py-5 library-prototype" data-library-prototype data-variant="@variant">
+    <div class="prototype-notice" role="note">
+        <span>PROTOTYPE</span>
+        <p>Dữ liệu minh hoạ · dùng thanh bên dưới hoặc phím ← → để đổi mẫu.</p>
+    </div>
+
+    @if (variant == "A")
+    {
+        <main class="library-a" aria-labelledby="library-a-title">
+            <section class="library-a-hero">
+                <div class="library-a-intro">
+                    <span class="library-eyebrow">Thư viện cộng đồng</span>
+                    <h1 id="library-a-title">Tìm đúng bộ từ.<br /><em>Học ngay.</em></h1>
+                    <p>Tìm bộ thẻ theo mục tiêu, xem mức độ phổ biến rồi sao chép vào thư viện của bạn.</p>
+                </div>
+                <div class="library-search-panel">
+                    <label for="search-a">Bạn muốn học gì?</label>
+                    <div class="library-search-control">
+                        <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                        <input id="search-a" type="search" placeholder="IELTS, giao tiếp, công việc..." />
+                        <button type="button">Tìm bộ thẻ</button>
+                    </div>
+                    <div class="library-a-proof" aria-label="Thống kê thư viện">
+                        <span><strong>12.480</strong>Bộ thẻ</span>
+                        <span><strong>38.2K</strong>Lượt sao chép</span>
+                        <span><strong>9.6K</strong>Lượt yêu thích</span>
+                    </div>
+                </div>
+            </section>
+
+            <nav class="library-topic-strip" aria-label="Chủ đề">
+                <button class="is-active" type="button">Tất cả</button><button type="button">Giao tiếp</button><button type="button">IELTS</button><button type="button">TOEIC</button><button type="button">Công việc</button><button type="button">Học thuật</button>
+            </nav>
+
+            <section aria-labelledby="library-a-results">
+                <header class="library-section-heading">
+                    <div><span class="library-eyebrow">Được học nhiều</span><h2 id="library-a-results">Bộ thẻ nổi bật</h2><p>Chọn một bộ để xem trước nội dung.</p></div>
+                    <nav class="library-sort-tabs" aria-label="Sắp xếp"><a class="is-active" href="#">Phổ biến</a><a href="#">Xu hướng 30 ngày</a><a href="#">Được yêu thích</a></nav>
+                </header>
+                <div class="library-card-grid">
+                    @for (var i = 0; i < sets.Length; i++)
+                    {
+                        var item = sets[i];
+                        <article class="library-set-card library-accent-@item.Accent">
+                            <header><span class="library-topic">@item.Topic</span><button class="library-favorite" type="button" data-favorite aria-label="Yêu thích @item.Title" aria-pressed="false"><i class="ph ph-heart" aria-hidden="true"></i></button></header>
+                            <div class="library-set-card-body"><span class="library-card-number">@((i + 1).ToString("00"))</span><h3>@item.Title</h3><p>@item.Description</p></div>
+                            <div class="library-author-row"><span class="library-avatar">@item.Initials</span><span><small>Chia sẻ bởi</small><strong>@item.Author</strong></span></div>
+                            <footer><div class="library-card-metrics"><span><i class="ph ph-cards" aria-hidden="true"></i>@item.Cards thẻ</span><span><i class="ph ph-download-simple" aria-hidden="true"></i>@item.Downloads</span><span data-favorite-count><i class="ph ph-heart" aria-hidden="true"></i>@item.Favorites</span></div><a href="#">Xem bộ <i class="ph ph-arrow-up-right" aria-hidden="true"></i></a></footer>
+                        </article>
+                    }
+                </div>
+            </section>
+        </main>
+    }
+    else if (variant == "B")
+    {
+        <main class="library-b" aria-labelledby="library-b-title">
+            <header class="library-b-masthead">
+                <div><span class="library-eyebrow">Tuyển chọn mỗi tuần</span><h1 id="library-b-title">Bộ thẻ<br />đáng học.</h1></div>
+                <div class="library-b-search"><label for="search-b">Tìm trong thư viện</label><div><input id="search-b" type="search" placeholder="Tên bộ thẻ hoặc tác giả" /><button type="button" aria-label="Tìm"><i class="ph ph-arrow-right" aria-hidden="true"></i></button></div></div>
+            </header>
+
+            <section class="library-b-lead" aria-labelledby="featured-set-title">
+                <div class="library-b-cover">
+                    <span class="library-b-rank">BỘ THẺ TUẦN NÀY · 01</span><span class="library-topic">IELTS</span><h2 id="featured-set-title">IELTS<br />Academic.</h2>
+                    <p>120 thẻ được biên soạn theo chủ đề, tập trung vào từ dùng được trong Writing và Speaking.</p>
+                    <div class="library-b-cover-actions"><a href="#"><i class="ph ph-copy" aria-hidden="true"></i>Sao chép để học</a><button type="button" data-favorite aria-pressed="false"><i class="ph ph-heart" aria-hidden="true"></i>Yêu thích</button></div>
+                </div>
+                <aside class="library-b-story">
+                    <span class="library-eyebrow">Ghi chú từ tác giả</span><blockquote>“Mình gom những từ đã thực sự dùng trong bài viết, không phải một danh sách để học thuộc.”</blockquote>
+                    <p class="library-b-story-copy">Mỗi thẻ có nghĩa ngắn, cụm từ đi kèm và ví dụ. Người học có thể sao chép rồi chỉnh sửa theo cách của mình.</p>
+                    <div class="library-author-row"><span class="library-avatar">MA</span><span><small>Tác giả</small><strong>Minh Anh</strong></span></div>
+                    <dl class="library-b-stats"><div><dt>Số thẻ</dt><dd>120</dd></div><div><dt>Đã sao chép</dt><dd>1.248</dd></div><div><dt>Yêu thích</dt><dd>326</dd></div></dl>
+                </aside>
+            </section>
+
+            <section class="library-b-ranking" aria-labelledby="rising-title">
+                <header><div><span class="library-eyebrow">30 ngày gần đây</span><h2 id="rising-title">Đang lên hạng</h2></div><a href="#">Xem tất cả</a></header>
+                <div class="library-b-list">
+                    @for (var i = 1; i < sets.Length; i++)
+                    {
+                        var item = sets[i];
+                        <a class="library-b-list-row" href="#"><span class="library-b-list-rank">@((i + 1).ToString("00"))</span><span class="library-b-list-title"><strong>@item.Title</strong><small>@item.Topic · @item.Cards thẻ</small></span><span class="library-b-list-author">@item.Author</span><span class="library-b-list-trend">↑ @(42 - i * 4)%</span><i class="ph ph-arrow-up-right" aria-hidden="true"></i></a>
+                    }
+                </div>
+            </section>
+        </main>
+    }
+    else
+    {
+        <main class="library-c" aria-labelledby="library-c-title">
+            <header class="library-c-header">
+                <div><span class="library-eyebrow">Khám phá có bộ lọc</span><h1 id="library-c-title">Thư viện<br />bộ thẻ.</h1></div>
+                <label class="library-c-search" for="search-c"><i class="ph ph-magnifying-glass" aria-hidden="true"></i><input id="search-c" type="search" placeholder="Tìm tên bộ thẻ, chủ đề hoặc tác giả" /><kbd>/</kbd></label>
+            </header>
+            <div class="library-c-layout">
+                <aside class="library-filter-panel" aria-label="Bộ lọc">
+                    <div class="library-filter-title"><strong>Bộ lọc</strong><button type="button">Đặt lại</button></div>
+                    <fieldset><legend>Chủ đề</legend><label><input type="checkbox" checked />IELTS <span>2.160</span></label><label><input type="checkbox" />Giao tiếp <span>3.420</span></label><label><input type="checkbox" />TOEIC <span>1.780</span></label><label><input type="checkbox" />Công việc <span>1.245</span></label><label><input type="checkbox" />Học thuật <span>938</span></label></fieldset>
+                    <fieldset><legend>Số lượng thẻ</legend><label><input type="radio" name="size" checked />Tất cả</label><label><input type="radio" name="size" />Dưới 50 thẻ</label><label><input type="radio" name="size" />50–100 thẻ</label><label><input type="radio" name="size" />Trên 100 thẻ</label></fieldset>
+                    <a class="library-saved-link" href="#"><i class="ph ph-heart" aria-hidden="true"></i><span>Bộ đã lưu</span><b>12</b></a>
+                </aside>
+                <section class="library-c-results" aria-labelledby="library-c-results">
+                    <header class="library-c-toolbar"><div><strong id="library-c-results">2.160 bộ thẻ</strong><span>Đang lọc theo IELTS</span></div><select aria-label="Sắp xếp"><option>Phổ biến nhất</option><option>Xu hướng 30 ngày</option><option>Được yêu thích</option><option>Mới chia sẻ</option></select></header>
+                    <div class="library-c-table">
+                        @for (var i = 0; i < sets.Length; i++)
+                        {
+                            var item = sets[i];
+                            <article class="library-c-row"><span class="library-c-rank">@((i + 1).ToString("00"))</span><div class="library-c-main"><span class="library-topic">@item.Topic</span><h2>@item.Title</h2><p>@item.Description</p><span class="library-c-author"><b>@item.Initials</b>@item.Author</span></div><dl class="library-c-metrics"><div><dt>Thẻ</dt><dd>@item.Cards</dd></div><div><dt>Sao chép</dt><dd>@item.Downloads</dd></div><div><dt>Yêu thích</dt><dd data-favorite-count>@item.Favorites</dd></div></dl><div class="library-c-actions"><button type="button" data-favorite aria-label="Yêu thích @item.Title" aria-pressed="false"><i class="ph ph-heart" aria-hidden="true"></i></button><a href="#">Xem bộ</a></div></article>
+                        }
+                    </div>
+                </section>
+            </div>
+        </main>
+    }
+
+    <nav class="prototype-switcher" aria-label="Chọn phương án prototype">
+        <button type="button" data-variant-previous aria-label="Phương án trước"><i class="ph ph-arrow-left" aria-hidden="true"></i></button>
+        <div><small>PHƯƠNG ÁN @variant / 3</small><strong data-variant-label></strong></div>
+        <button type="button" data-variant-next aria-label="Phương án tiếp theo"><i class="ph ph-arrow-right" aria-hidden="true"></i></button>
+    </nav>
+</div>
+}
+
+@section Scripts {
+    <script src="~/js/library-prototype.js" asp-append-version="true"></script>
+}
