@@ -1,0 +1,171 @@
+@model AdminEnglishMissionIndexViewModel
+@{
+    ViewData["Title"] = "Nhiệm vụ tiếng Anh";
+    ViewData["Heading"] = "Nhiệm vụ tiếng Anh";
+}
+
+<section class="admin-panel" aria-labelledby="mission-filter-heading">
+    <div class="admin-panel-header">
+        <div>
+            <h2 id="mission-filter-heading">Bộ lọc nhiệm vụ</h2>
+            <p>@Model.TotalCount nhiệm vụ khớp bộ lọc</p>
+        </div>
+    </div>
+
+    <form method="get" action="/Admin/EnglishMissions" class="admin-filter-form">
+        <div class="admin-filter-field">
+            <label for="search">Tìm kiếm summary</label>
+            <input type="search" id="search" name="search" value="@Model.Search"
+                   placeholder="Tiêu đề, chủ đề hoặc bộ thẻ" maxlength="200" />
+        </div>
+        <div class="admin-filter-field">
+            <label for="topic">Chủ đề</label>
+            <input type="text" id="topic" name="topic" value="@Model.Topic" maxlength="80" />
+        </div>
+        <div class="admin-filter-field">
+            <label for="status">Trạng thái</label>
+            <select id="status" name="status">
+                <option value="" selected="@(IsSelected(Model.Status, ""))">Tất cả</option>
+                <option value="Active" selected="@(IsSelected(Model.Status, "Active"))">Đang hoạt động</option>
+                <option value="Completed" selected="@(IsSelected(Model.Status, "Completed"))">Hoàn thành</option>
+            </select>
+        </div>
+        <div class="admin-filter-field">
+            <label for="retention">Lưu giữ nội dung</label>
+            <select id="retention" name="retention">
+                <option value="" selected="@(IsSelected(Model.Retention, ""))">Tất cả</option>
+                <option value="available" selected="@(IsSelected(Model.Retention, "available"))">Còn nội dung</option>
+                <option value="held" selected="@(IsSelected(Model.Retention, "held"))">Đang tạm giữ</option>
+                <option value="expired" selected="@(IsSelected(Model.Retention, "expired"))">Hết hạn</option>
+            </select>
+        </div>
+        <div class="admin-filter-field">
+            <label for="sort">Sắp xếp</label>
+            <select id="sort" name="sort">
+                <option value="" selected="@(IsSelected(Model.Sort, ""))">Mới nhất</option>
+                <option value="oldest" selected="@(IsSelected(Model.Sort, "oldest"))">Cũ nhất</option>
+                <option value="turns" selected="@(IsSelected(Model.Sort, "turns"))">Nhiều lượt nhất</option>
+                <option value="score" selected="@(IsSelected(Model.Sort, "score"))">Điểm cao nhất</option>
+            </select>
+        </div>
+        <div class="admin-filter-field admin-filter-field--compact">
+            <label for="pageSize">Dòng/trang</label>
+            <input type="number" id="pageSize" name="pageSize" value="@Model.PageSize" min="1" max="100" />
+        </div>
+        <button type="submit" class="admin-filter-submit">
+            <i class="ph ph-funnel" aria-hidden="true"></i> Lọc
+        </button>
+    </form>
+</section>
+
+<section class="admin-panel" aria-labelledby="mission-table-heading">
+    <div class="admin-panel-header">
+        <h2 id="mission-table-heading">Danh sách nhiệm vụ</h2>
+        <p>Trang @Model.Page/@Model.TotalPages</p>
+    </div>
+
+    @if (Model.Items.Count == 0)
+    {
+        <p class="admin-empty">Không có Nhiệm vụ tiếng Anh nào khớp bộ lọc hiện tại.</p>
+    }
+    else
+    {
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Nhiệm vụ</th>
+                        <th scope="col">Người học</th>
+                        <th scope="col">Bộ thẻ</th>
+                        <th scope="col">Trạng thái</th>
+                        <th scope="col">Số liệu</th>
+                        <th scope="col">Lưu giữ</th>
+                        <th scope="col">Xử lý</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (AdminEnglishMissionRowViewModel item in Model.Items)
+                    {
+                        <tr data-mission-row>
+                            <td>
+                                <strong>@item.Title</strong>
+                                <small class="admin-muted-line">#@item.MissionId · @item.Topic · tạo @item.CreatedDisplay</small>
+                            </td>
+                            <td>
+                                @item.UserName
+                                <small class="admin-muted-line">@item.Email</small>
+                            </td>
+                            <td>@item.FlashcardSetTitle</td>
+                            <td>
+                                <span class="admin-status admin-status--@item.StatusTone">@item.StatusLabel</span>
+                                <small class="admin-muted-line">Hoàn thành: @item.CompletedDisplay</small>
+                            </td>
+                            <td>
+                                @item.TurnCountDisplay lượt
+                                <small class="admin-muted-line">Điểm: @item.ScoreDisplay</small>
+                            </td>
+                            <td>
+                                <span class="admin-status admin-status--@item.RetentionTone">@item.RetentionDisplay</span>
+                            </td>
+                            <td>
+                                <a class="admin-text-link" href="/Admin/EnglishMissions/@item.MissionId">
+                                    <i class="ph ph-lock-key" aria-hidden="true"></i> Mở theo vụ việc
+                                </a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <nav class="admin-pagination" aria-label="Phân trang Nhiệm vụ tiếng Anh">
+            @if (Model.HasPreviousPage)
+            {
+                <a href="@PageUrl(Model.Page - 1)">
+                    <i class="ph ph-caret-left" aria-hidden="true"></i> Trang trước
+                </a>
+            }
+            <span aria-current="page">Trang @Model.Page / @Model.TotalPages</span>
+            @if (Model.HasNextPage)
+            {
+                <a href="@PageUrl(Model.Page + 1)">
+                    Trang sau <i class="ph ph-caret-right" aria-hidden="true"></i>
+                </a>
+            }
+        </nav>
+    }
+</section>
+
+@functions {
+    private static bool IsSelected(string? currentValue, string optionValue)
+    {
+        string normalizedCurrent = currentValue?.Trim() ?? string.Empty;
+        string normalizedOption = optionValue.Trim();
+        return string.Equals(normalizedCurrent, normalizedOption, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private string PageUrl(int page)
+    {
+        var query = new List<string>
+        {
+            $"page={page}",
+            $"pageSize={Model.PageSize}"
+        };
+
+        AddQuery(query, "search", Model.Search);
+        AddQuery(query, "topic", Model.Topic);
+        AddQuery(query, "status", Model.Status);
+        AddQuery(query, "retention", Model.Retention);
+        AddQuery(query, "sort", Model.Sort);
+
+        return $"/Admin/EnglishMissions?{string.Join("&", query)}";
+    }
+
+    private static void AddQuery(List<string> query, string key, string? value)
+    {
+        if (!string.IsNullOrWhiteSpace(value))
+        {
+            query.Add($"{key}={Uri.EscapeDataString(value)}");
+        }
+    }
+}

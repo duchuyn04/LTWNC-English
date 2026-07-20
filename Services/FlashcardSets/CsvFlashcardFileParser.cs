@@ -36,6 +36,11 @@ public sealed class CsvFlashcardFileParser : IFlashcardFileParser
 
         while (await csv.ReadAsync().WaitAsync(cancellationToken))
         {
+            if (rows.Count >= FlashcardImportValidation.MaxRows)
+            {
+                throw new FlashcardImportException(
+                    $"Tệp nhập không được vượt quá {FlashcardImportValidation.MaxRows} dòng dữ liệu.");
+            }
             rows.Add((nextRecordStartRow, csv.Parser.Record ?? []));
             nextRecordStartRow = csv.Parser.RawRow + 1;
         }

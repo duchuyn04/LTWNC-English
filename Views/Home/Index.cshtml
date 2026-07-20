@@ -1,733 +1,365 @@
 @model HomeViewModel
 @{
     ViewData["Title"] = "Trang chủ";
-    ViewData["HideLayoutChrome"] = true;
     var primaryCta = User.Identity?.IsAuthenticated == true ? "/Set/Create" : "/Account/Register";
-    var secondaryCta = User.Identity?.IsAuthenticated == true ? "/Set" : "#featured-sets";
-    var startCta = User.Identity?.IsAuthenticated == true ? "/Set" : "/Account/Login";
+}
+
+@section Styles {
+<link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
 }
 
 @section FullWidth {
-<link rel="stylesheet" href="~/css/home.css" asp-append-version="true" />
-
 <div class="home-landing">
-
-    <nav class="home-nav">
-        <div class="container home-nav-inner">
-            <a class="navbar-brand fw-bold" href="/">
-                <i class="ph ph-book-open"></i> LTWNC English
-            </a>
-            <button class="home-nav-toggle" aria-label="Toggle menu" onclick="toggleMobileMenu()">
-                <i class="ph ph-list"></i>
-            </button>
-            <div class="home-nav-menu" id="homeNavMenu">
-                <div class="home-nav-links">
-                    <a href="#benefits" onclick="closeMobileMenu()">Lợi ích</a>
-                    <a href="#services" onclick="closeMobileMenu()">Tính năng</a>
-                    <a href="#onboarding" onclick="closeMobileMenu()">Cách bắt đầu</a>
-                    <a href="#quote" onclick="closeMobileMenu()">Tư vấn học</a>
-                </div>
-                <a class="btn-primary-custom" href="@startCta">
-                    <i class="ph ph-arrow-right"></i> Bắt đầu
-                </a>
-            </div>
-        </div>
-    </nav>
-
-    <div class="container">
-        <div class="home-quote-strip d-flex align-items-center justify-content-between gap-3 flex-wrap gsap-fade-up">
-            <div>
-                <strong>Muốn có lộ trình học từ vựng rõ ràng?</strong>
-                <span class="ms-2 text-muted">Chọn mục tiêu, tạo bộ thẻ, bắt đầu ôn ngay.</span>
-            </div>
-            <a class="btn-secondary-custom" href="@primaryCta">Bắt đầu lộ trình</a>
-        </div>
-    </div>
-
-    <section class="home-hero hero-container-wrapper">
-        <div class="fog-container">
-            <div class="fog-orb orb-1"></div>
-            <div class="fog-orb orb-2"></div>
-            <div class="fog-orb orb-3"></div>
-        </div>
-        <div class="container" style="position: relative; z-index: 2;">
-            <div class="row align-items-center g-5">
-                <div class="col-lg-6 gsap-from-left">
-                    <div class="home-kicker">Flashcard learning service</div>
-                    <h1>Học từ vựng tiếng Anh <span id="typewriter-text" class="typewriter-text"></span><span class="typewriter-cursor">|</span></h1>
-                    <p class="home-section-copy mt-3">
-                        LTWNC English giúp bạn tạo bộ thẻ, luyện phát âm, đánh dấu từ quan trọng
-                        và theo dõi tiến độ học trong một giao diện gọn.
+    <section class="home-hero" aria-labelledby="home-hero-title">
+        <div class="container">
+            <div class="home-hero-grid">
+                <div class="home-hero-copy">
+                    <span class="home-eyebrow">Flashcard · Nghe chép · Hội thoại AI</span>
+                    <h1 id="home-hero-title">
+                        Học từ mới.
+                        <span>Dùng được thật.</span>
+                    </h1>
+                    <p class="home-hero-summary">
+                        Tạo bộ từ, luyện theo nhiều chế độ và theo dõi tiến độ sau từng buổi học.
                     </p>
-                    <div class="home-btn-row home-btn-row--hero mt-4">
-                        <a class="btn-primary-custom btn-lg" href="@primaryCta">
-                            <i class="ph ph-rocket-launch"></i> Tạo bộ thẻ
+                    <div class="home-actions home-hero-actions">
+                        <a class="btn-primary-custom" href="@primaryCta">
+                            <i class="ph ph-plus-circle" aria-hidden="true"></i>
+                            Bắt đầu học
                         </a>
-                        <a class="btn-secondary-custom btn-lg" href="@secondaryCta">
-                            <i class="ph ph-compass"></i> Khám phá
+                        <a class="btn-secondary-custom" href="#featured-sets">
+                            Khám phá bộ từ
+                            <i class="ph ph-arrow-down" aria-hidden="true"></i>
                         </a>
                     </div>
-
+                    <ul class="home-hero-facts" aria-label="Chế độ học chính">
+                        <li><i class="ph ph-cards" aria-hidden="true"></i> Flashcard</li>
+                        <li><i class="ph ph-headphones" aria-hidden="true"></i> Nghe chép</li>
+                        <li><i class="ph ph-chats-circle" aria-hidden="true"></i> English Mission</li>
+                    </ul>
                 </div>
-                <div class="col-lg-6 gsap-from-right">
-                    <div class="hero-carousel-wrapper gsap-scale-in">
-                        <!-- Left Navigation Button -->
-                        <button class="carousel-nav-btn nav-btn-left" onclick="rotateCarousel('left')" aria-label="Previous card">
-                            <i class="ph ph-caret-left"></i>
-                        </button>
 
-                        <div class="hero-carousel-container" id="heroCarousel">
-                            <!-- Card 1: consistency (Center position at index 0) -->
-                            <div class="hero-carousel-item pos-center" data-index="0">
-                                <div class="flashcard-3d-wrapper w-100 h-100">
-                                    <div class="flashcard-3d-card" onclick="handleCardClick(this)">
-                                        <div class="flashcard-face flashcard-front" style="border-radius: 16px; background: #111827; border: 1px solid rgba(255,255,255,0.1); padding: 1rem;">
-                                            <div>
-                                                <span class="badge bg-secondary text-white mb-2" style="font-size: 0.65rem; background: rgba(255,255,255,0.1) !important;">NOUN</span>
-                                                <h4 class="fw-bold mb-1" style="font-size: 1.2rem; color: #ffffff !important; letter-spacing: -0.02em;">consistency</h4>
-                                                <p class="mb-0" style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.45) !important;">/kənˈsɪstənsi/</p>
-                                            </div>
-                                        </div>
-                                        <div class="flashcard-face flashcard-back text-white" style="border-radius: 16px; background: #1f6c9f; border-color: rgba(255, 255, 255, 0.2); padding: 1rem;">
-                                            <div>
-                                                <h5 class="fw-bold mb-1" style="font-size: 1.1rem;">sự nhất quán</h5>
-                                                <p class="mb-0" style="font-size: 0.7rem; color: rgba(255,255,255,0.85);">Sự kiên định, không thay đổi.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                <div class="home-carousel-column">
+                    <div class="home-carousel" data-home-carousel data-autoplay-ms="4500" aria-label="Flashcard mẫu">
+                        <div class="home-carousel-stage" id="heroCarousel">
+                            <article class="home-carousel-item pos-center" data-carousel-item data-index="0" aria-hidden="false">
+                                <button class="flashcard-3d-card" type="button" data-carousel-card aria-label="Lật thẻ consistency" aria-pressed="false" tabindex="0">
+                                    <span class="flashcard-face flashcard-front">
+                                        <span class="flashcard-copy">
+                                            <span class="fc-pos">Noun</span>
+                                            <span class="fc-word">consistency</span>
+                                            <span class="fc-ipa">/kənˈsɪstənsi/</span>
+                                            <span class="fc-action"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i> Lật thẻ</span>
+                                        </span>
+                                    </span>
+                                    <span class="flashcard-face flashcard-back">
+                                        <span class="flashcard-copy">
+                                            <span class="fc-meaning">sự nhất quán</span>
+                                            <span class="fc-desc">Sự kiên định, không thay đổi.</span>
+                                            <span class="fc-action"><i class="ph ph-arrow-bend-up-left" aria-hidden="true"></i> Xem mặt trước</span>
+                                        </span>
+                                    </span>
+                                </button>
+                            </article>
 
-                            <!-- Card 2: fluency (Right position at index 1) -->
-                            <div class="hero-carousel-item pos-right" data-index="1">
-                                <div class="flashcard-3d-wrapper w-100 h-100">
-                                    <div class="flashcard-3d-card" onclick="handleCardClick(this)">
-                                        <div class="flashcard-face flashcard-front" style="border-radius: 16px; background: #111827; border: 1px solid rgba(255,255,255,0.1); padding: 1rem;">
-                                            <div>
-                                                <span class="badge bg-secondary text-white mb-2" style="font-size: 0.65rem; background: rgba(255,255,255,0.1) !important;">NOUN</span>
-                                                <h4 class="fw-bold mb-1" style="font-size: 1.2rem; color: #ffffff !important; letter-spacing: -0.02em;">fluency</h4>
-                                                <p class="mb-0" style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.45) !important;">/ˈfluːənsi/</p>
-                                            </div>
-                                        </div>
-                                        <div class="flashcard-face flashcard-back text-white" style="border-radius: 16px; background: #2f6a37; border-color: rgba(255, 255, 255, 0.2); padding: 1rem;">
-                                            <div>
-                                                <h5 class="fw-bold mb-1" style="font-size: 1.1rem;">sự trôi chảy</h5>
-                                                <p class="mb-0" style="font-size: 0.7rem; color: rgba(255,255,255,0.85);">Nói hoặc viết trơn tru, dễ dàng.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <article class="home-carousel-item pos-right" data-carousel-item data-index="1" aria-hidden="true">
+                                <button class="flashcard-3d-card" type="button" data-carousel-card aria-label="Lật thẻ fluency" aria-pressed="false" tabindex="-1">
+                                    <span class="flashcard-face flashcard-front">
+                                        <span class="flashcard-copy">
+                                            <span class="fc-pos">Noun</span>
+                                            <span class="fc-word">fluency</span>
+                                            <span class="fc-ipa">/ˈfluːənsi/</span>
+                                            <span class="fc-action"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i> Lật thẻ</span>
+                                        </span>
+                                    </span>
+                                    <span class="flashcard-face flashcard-back">
+                                        <span class="flashcard-copy">
+                                            <span class="fc-meaning">sự trôi chảy</span>
+                                            <span class="fc-desc">Nói hoặc viết trơn tru, dễ dàng.</span>
+                                            <span class="fc-action"><i class="ph ph-arrow-bend-up-left" aria-hidden="true"></i> Xem mặt trước</span>
+                                        </span>
+                                    </span>
+                                </button>
+                            </article>
 
-                            <!-- Card 3: vocabulary (Back position at index 2) -->
-                            <div class="hero-carousel-item pos-back" data-index="2">
-                                <div class="flashcard-3d-wrapper w-100 h-100">
-                                    <div class="flashcard-3d-card" onclick="handleCardClick(this)">
-                                        <div class="flashcard-face flashcard-front" style="border-radius: 16px; background: #111827; border: 1px solid rgba(255,255,255,0.1); padding: 1rem;">
-                                            <div>
-                                                <span class="badge bg-secondary text-white mb-2" style="font-size: 0.65rem; background: rgba(255,255,255,0.1) !important;">NOUN</span>
-                                                <h4 class="fw-bold mb-1" style="font-size: 1.2rem; color: #ffffff !important; letter-spacing: -0.02em;">vocabulary</h4>
-                                                <p class="mb-0" style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.45) !important;">/vəˈkæbjələri/</p>
-                                            </div>
-                                        </div>
-                                        <div class="flashcard-face flashcard-back text-white" style="border-radius: 16px; background: #b7791f; border-color: rgba(255, 255, 255, 0.2); padding: 1rem;">
-                                            <div>
-                                                <h5 class="fw-bold mb-1" style="font-size: 1.1rem;">vốn từ vựng</h5>
-                                                <p class="mb-0" style="font-size: 0.7rem; color: rgba(255,255,255,0.85);">Tập hợp các từ trong một ngôn ngữ.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <article class="home-carousel-item pos-back" data-carousel-item data-index="2" aria-hidden="true">
+                                <button class="flashcard-3d-card" type="button" data-carousel-card aria-label="Lật thẻ vocabulary" aria-pressed="false" tabindex="-1">
+                                    <span class="flashcard-face flashcard-front">
+                                        <span class="flashcard-copy">
+                                            <span class="fc-pos">Noun</span>
+                                            <span class="fc-word">vocabulary</span>
+                                            <span class="fc-ipa">/vəˈkæbjələri/</span>
+                                            <span class="fc-action"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i> Lật thẻ</span>
+                                        </span>
+                                    </span>
+                                    <span class="flashcard-face flashcard-back">
+                                        <span class="flashcard-copy">
+                                            <span class="fc-meaning">vốn từ vựng</span>
+                                            <span class="fc-desc">Tập hợp các từ trong một ngôn ngữ.</span>
+                                            <span class="fc-action"><i class="ph ph-arrow-bend-up-left" aria-hidden="true"></i> Xem mặt trước</span>
+                                        </span>
+                                    </span>
+                                </button>
+                            </article>
 
-                            <!-- Card 4: persistence (Left position at index 3) -->
-                            <div class="hero-carousel-item pos-left" data-index="3">
-                                <div class="flashcard-3d-wrapper w-100 h-100">
-                                    <div class="flashcard-3d-card" onclick="handleCardClick(this)">
-                                        <div class="flashcard-face flashcard-front" style="border-radius: 16px; background: #111827; border: 1px solid rgba(255,255,255,0.1); padding: 1rem;">
-                                            <div>
-                                                <span class="badge bg-secondary text-white mb-2" style="font-size: 0.65rem; background: rgba(255,255,255,0.1) !important;">NOUN</span>
-                                                <h4 class="fw-bold mb-1" style="font-size: 1.2rem; color: #ffffff !important; letter-spacing: -0.02em;">persistence</h4>
-                                                <p class="mb-0" style="font-size: 0.75rem; color: rgba(255, 255, 255, 0.45) !important;">/pəˈsɪstəns/</p>
-                                            </div>
-                                        </div>
-                                        <div class="flashcard-face flashcard-back text-white" style="border-radius: 16px; background: #6b21a8; border-color: rgba(255, 255, 255, 0.2); padding: 1rem;">
-                                            <div>
-                                                <h5 class="fw-bold mb-1" style="font-size: 1.1rem;">sự kiên trì</h5>
-                                                <p class="mb-0" style="font-size: 0.7rem; color: rgba(255,255,255,0.85);">Bền bỉ theo đuổi mục tiêu.</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                            <article class="home-carousel-item pos-left" data-carousel-item data-index="3" aria-hidden="true">
+                                <button class="flashcard-3d-card" type="button" data-carousel-card aria-label="Lật thẻ persistence" aria-pressed="false" tabindex="-1">
+                                    <span class="flashcard-face flashcard-front">
+                                        <span class="flashcard-copy">
+                                            <span class="fc-pos">Noun</span>
+                                            <span class="fc-word">persistence</span>
+                                            <span class="fc-ipa">/pəˈsɪstəns/</span>
+                                            <span class="fc-action"><i class="ph ph-arrows-clockwise" aria-hidden="true"></i> Lật thẻ</span>
+                                        </span>
+                                    </span>
+                                    <span class="flashcard-face flashcard-back">
+                                        <span class="flashcard-copy">
+                                            <span class="fc-meaning">sự kiên trì</span>
+                                            <span class="fc-desc">Bền bỉ theo đuổi mục tiêu.</span>
+                                            <span class="fc-action"><i class="ph ph-arrow-bend-up-left" aria-hidden="true"></i> Xem mặt trước</span>
+                                        </span>
+                                    </span>
+                                </button>
+                            </article>
                         </div>
 
-                        <!-- Right Navigation Button -->
-                        <button class="carousel-nav-btn nav-btn-right" onclick="rotateCarousel('right')" aria-label="Next card">
-                            <i class="ph ph-caret-right"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-            <!-- Stats wrapper: after carousel on mobile/tablet, left-aligned on desktop -->
-            <div class="home-stats-wrapper gsap-fade-up">
-                <div class="home-stats">
-                    <div class="home-stat"><strong><span class="stat-count" data-target="3">0</span> phút</strong><span class="stat-label-long">Tạo bộ thẻ đầu tiên</span><span class="stat-label-short">Tạo bộ thẻ</span></div>
-                    <div class="home-stat"><strong><span class="stat-count" data-target="5">0</span> chế độ</strong><span class="stat-label-long">Học và ôn tập</span><span class="stat-label-short">Học &amp; ôn tập</span></div>
-                    <div class="home-stat"><strong><span class="stat-count" data-target="100">0</span>%</strong><span class="stat-label-long">Theo dõi tiến độ</span><span class="stat-label-short">Theo dõi</span></div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="benefits">
-        <div class="container">
-            <div class="text-center mb-4">
-                <div class="home-kicker">Benefits</div>
-                <h2 class="home-section-title mist-reveal">Tập trung vào cách bạn ghi nhớ.</h2>
-            </div>
-            <div class="home-bento-panel gsap-fade-up">
-                <div class="home-bento-grid-4 gsap-stagger">
-                    <div class="home-bento-card bento-span-2"><span class="home-icon"><i class="ph ph-cards"></i></span><h3 class="h5 mt-3">Flashcard rõ ràng</h3><p class="home-section-copy">Mỗi từ có nghĩa, IPA, ví dụ và trạng thái học.</p></div>
-                    <div class="home-bento-card"><span class="home-icon"><i class="ph ph-speaker-high"></i></span><h3 class="h5 mt-3">Giọng đọc</h3><p class="home-section-copy">Nghe phát âm tiếng Anh ngay khi học thẻ.</p></div>
-                    <div class="home-bento-card"><span class="home-icon"><i class="ph ph-star"></i></span><h3 class="h5 mt-3">Đánh dấu sao</h3><p class="home-section-copy">Tách nhóm từ quan trọng để ôn nhanh.</p></div>
-                    <div class="home-bento-card bento-span-2"><span class="home-icon"><i class="ph ph-chart-line-up"></i></span><h3 class="h5 mt-3">Tiến độ học</h3><p class="home-section-copy">Biết từ nào chưa học, đang học, đã thành thạo.</p></div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="services">
-        <div class="container">
-            <div class="row g-4 align-items-end mb-4">
-                <div class="col-lg-7">
-                    <div class="home-kicker">Services</div>
-                    <h2 class="home-section-title mist-reveal">Dịch vụ học nằm ngay trong app.</h2>
-                </div>
-                <div class="col-lg-5"><p class="home-section-copy">Không thêm quy trình phức tạp: tạo bộ thẻ, học, xem tiến độ.</p></div>
-            </div>
-            <div class="home-bento-panel gsap-fade-up">
-                <div class="home-bento-grid-3 gsap-stagger">
-                    <div class="home-bento-card"><span class="home-icon"><i class="ph ph-plus-circle"></i></span><h3 class="h5 mt-3">Tạo bộ thẻ</h3><p class="home-section-copy">Nhập thuật ngữ, định nghĩa, IPA, ví dụ và ảnh minh họa.</p></div>
-                    <div class="home-bento-card bento-span-2"><span class="home-icon"><i class="ph ph-brain"></i></span><h3 class="h5 mt-3">Học flashcard</h3><p class="home-section-copy">Lật thẻ, nghe voice, trộn thẻ, đánh dấu đã biết/chưa biết.</p></div>
-                    <div class="home-bento-card bento-span-3"><span class="home-icon"><i class="ph ph-stack"></i></span><h3 class="h5 mt-3">Theo dõi tiến độ</h3><p class="home-section-copy">Sắp xếp theo trạng thái học để biết nên ôn gì trước.</p></div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section>
-        <div class="container">
-            <div class="home-feature-block">
-                <div class="row g-4 align-items-center">
-                    <div class="col-lg-6 gsap-from-left">
-                        <div class="home-kicker">Product</div>
-                        <h2 class="home-section-title text-white mist-reveal">Một workspace học từ vựng gọn.</h2>
-                        <p class="text-white-50">Từ tạo bộ thẻ đến học flashcard đều nằm trong cùng một luồng.</p>
-                    </div>
-                    <div class="col-lg-6 gsap-from-right">
-                        <div class="flashcard-3d-wrapper gsap-scale-in" style="min-height: 200px;">
-                            <div class="flashcard-3d-card" onclick="this.classList.toggle('flipped')" style="min-height: 200px;">
-                                <div class="flashcard-face flashcard-front" style="border-radius: 16px;">
-                                    <div>
-                                        <span class="badge bg-secondary text-white mb-2">VOCABULARY</span>
-                                        <h4 class="fw-bold mb-1" style="color: #ffffff !important;">debugging</h4>
-                                        <p class="mb-0" style="color: rgba(255, 255, 255, 0.45) !important;">/ˌdiːˈbʌɡɪŋ/ · Click to flip</p>
-                                    </div>
-                                </div>
-                                <div class="flashcard-face flashcard-back text-white" style="border-radius: 16px; background: #2f6a37; border-color: rgba(255, 255, 255, 0.2); padding: 1.5rem;">
-                                    <div>
-                                        <h4 class="fw-bold mb-1 text-white">gỡ lỗi</h4>
-                                        <p class="mb-0 text-white-50" style="font-size: 0.85rem;">Debugging helped identify the cause of the system crash.</p>
-                                    </div>
-                                </div>
-                            </div>
+                        <div class="home-carousel-controls" aria-label="Điều khiển flashcard mẫu">
+                            <button type="button" class="home-carousel-control" data-carousel-previous aria-controls="heroCarousel" aria-label="Thẻ trước">
+                                <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                            </button>
+                            <span class="home-carousel-status" data-carousel-status aria-live="off">1 / 4</span>
+                            <button type="button" class="home-carousel-toggle" data-carousel-toggle aria-controls="heroCarousel" aria-label="Tạm dừng chuyển thẻ" aria-pressed="false">
+                                <i class="ph ph-pause" data-carousel-toggle-icon aria-hidden="true"></i>
+                                <span data-carousel-toggle-label>Tạm dừng</span>
+                            </button>
+                            <button type="button" class="home-carousel-control" data-carousel-next aria-controls="heroCarousel" aria-label="Thẻ tiếp theo">
+                                <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                            </button>
                         </div>
+                        <span class="visually-hidden" data-carousel-announcement aria-live="polite"></span>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <section>
+    <section class="home-section home-feature" id="benefits" aria-labelledby="home-feature-title">
         <div class="container">
-            <div class="home-logo-row justify-content-center gsap-fade-up">
-                <span class="home-logo-pill">Flashcards</span>
-                <span class="home-logo-pill">Voice</span>
-                <span class="home-logo-pill">Progress</span>
-                <span class="home-logo-pill">Images</span>
-                <span class="home-logo-pill">Public sets</span>
-            </div>
-        </div>
-    </section>
+            <header class="home-editorial-header" data-home-reveal>
+                <span class="home-section-number" aria-hidden="true">01</span>
+                <h2 id="home-feature-title">Một thẻ, đủ để hiểu từ.</h2>
+                <p>Nghĩa, cách đọc và trạng thái học nằm cùng một chỗ.</p>
+            </header>
 
-    <section>
-        <div class="container">
-            <div class="row g-5 align-items-center">
-                <div class="col-lg-6 gsap-from-left">
-                    <div class="home-kicker">Why choose us</div>
-                    <h2 class="home-section-title mist-reveal">Ít thao tác, nhiều thời gian học hơn.</h2>
-                </div>
-                <div class="col-lg-6 home-checklist gsap-stagger">
-                    <div class="home-check"><i class="ph ph-check-circle"></i><span>Không cần cài thêm công cụ học rời rạc.</span></div>
-                    <div class="home-check"><i class="ph ph-check-circle"></i><span>Dữ liệu bộ thẻ nằm trong tài khoản của bạn.</span></div>
-                    <div class="home-check"><i class="ph ph-check-circle"></i><span>Giao diện học tối giản, tập trung vào từ vựng.</span></div>
-                    <div class="home-check"><i class="ph ph-check-circle"></i><span>Có thể học từ bộ thẻ cộng đồng.</span></div>
-                </div>
-            </div>
-        </div>
-    </section>
+            <div class="home-feature-grid" data-home-reveal>
+                <article class="home-word-specimen" aria-label="Ví dụ nội dung một flashcard">
+                    <span class="home-specimen-label">Trong một thẻ</span>
+                    <div class="home-specimen-word">context</div>
+                    <div class="home-specimen-ipa">/ˈkɒntekst/</div>
+                    <p class="home-specimen-meaning">ngữ cảnh</p>
+                    <p class="home-specimen-example">“Học một từ trong câu giúp bạn nhớ cách dùng của nó.”</p>
+                    <div class="home-specimen-meta">
+                        <span><i class="ph ph-speaker-high" aria-hidden="true"></i> Nghe từ</span>
+                        <span><i class="ph ph-star" aria-hidden="true"></i> Đánh dấu</span>
+                    </div>
+                </article>
 
-    <section id="onboarding">
-        <div class="container">
-            <div class="text-center mb-4">
-                <div class="home-kicker">Onboarding</div>
-                <h2 class="home-section-title mist-reveal">Bắt đầu trong 3 bước.</h2>
-            </div>
-            <div class="home-bento-panel gsap-fade-up">
-                <div class="home-bento-grid-3 gsap-stagger">
-                    <div class="home-bento-card onboarding-card">
-                        <div class="onboarding-number">01</div>
-                        <h3 class="h5">Đăng ký</h3>
-                        <p class="home-section-copy mb-0">Tạo tài khoản để lưu bộ thẻ và tiến độ.</p>
-                    </div>
-                    <div class="home-bento-card onboarding-card">
-                        <div class="onboarding-number">02</div>
-                        <h3 class="h5">Tạo hoặc chọn bộ thẻ</h3>
-                        <p class="home-section-copy mb-0">Tự nhập từ hoặc học từ bộ thẻ công khai.</p>
-                    </div>
-                    <div class="home-bento-card onboarding-card">
-                        <div class="onboarding-number">03</div>
-                        <h3 class="h5">Ôn mỗi ngày</h3>
-                        <p class="home-section-copy mb-0">Dùng flashcard, voice và trạng thái học để ôn đúng trọng tâm.</p>
-                    </div>
+                <div class="home-feature-list">
+                    <article class="home-feature-row">
+                        <span class="home-feature-index">01</span>
+                        <i class="ph ph-text-aa" aria-hidden="true"></i>
+                        <div><h3>Nghĩa và IPA</h3><p>Nhìn cách đọc và nghĩa ở cùng một chỗ.</p></div>
+                    </article>
+                    <article class="home-feature-row">
+                        <span class="home-feature-index">02</span>
+                        <i class="ph ph-speaker-high" aria-hidden="true"></i>
+                        <div><h3>Nghe và đánh dấu</h3><p>Nghe phát âm, giữ lại từ cần ôn.</p></div>
+                    </article>
+                    <article class="home-feature-row">
+                        <span class="home-feature-index">03</span>
+                        <i class="ph ph-chart-line-up" aria-hidden="true"></i>
+                        <div><h3>Biết mình đã thuộc</h3><p>Trạng thái học cho biết từ nào cần quay lại.</p></div>
+                    </article>
                 </div>
             </div>
         </div>
     </section>
 
-    <section class="home-section-tight" id="testimonials">
+    <section class="home-section home-modes" id="services" aria-labelledby="home-modes-title">
         <div class="container">
-            <div class="text-center mb-4">
-                <div class="home-kicker">Testimonials</div>
-                <h2 class="home-section-title mist-reveal">Cảm nhận từ học viên.</h2>
-            </div>
-            <div class="home-bento-panel gsap-fade-up">
-                <div class="home-bento-grid-3 gsap-stagger">
-                    <div class="home-bento-card testimonial-card">
-                        <div>
-                            <div class="testimonial-stars mb-3">
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                            </div>
-                            <p class="home-section-copy mb-4" style="font-style: italic;">"Flashcard rõ, dễ ôn lại từ chưa thuộc."</p>
-                        </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <img src="/images/neymar.png" alt="Neymar" class="testimonial-avatar">
-                            <div>
-                                <strong class="d-block" style="color: var(--home-ink);">Neymar</strong>
-                                <small class="text-muted">Sinh viên</small>
-                            </div>
-                        </div>
+            <header class="home-editorial-header" data-home-reveal>
+                <span class="home-section-number" aria-hidden="true">02</span>
+                <h2 id="home-modes-title">Không chỉ có flashcard.</h2>
+                <p>Chọn cách luyện phù hợp với mục tiêu của từng buổi học.</p>
+            </header>
+
+            <div class="home-mode-grid">
+                <article class="home-mode-card home-mode-card--primary" data-home-reveal>
+                    <span class="home-mode-index">01</span>
+                    <i class="ph ph-cards" aria-hidden="true"></i>
+                    <div>
+                        <h3>Flashcard</h3>
+                        <p>Lật thẻ, nghe phát âm và đánh dấu những từ cần ôn lại.</p>
                     </div>
-                    <div class="home-bento-card testimonial-card">
-                        <div>
-                            <div class="testimonial-stars mb-3">
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                            </div>
-                            <p class="home-section-copy mb-4" style="font-style: italic;">"Tôi thích phần đánh sao và nghe phát âm."</p>
-                        </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <img src="/images/messi.png" alt="Messi" class="testimonial-avatar">
-                            <div>
-                                <strong class="d-block" style="color: var(--home-ink);">Messi</strong>
-                                <small class="text-muted">Người tự học</small>
-                            </div>
-                        </div>
+                </article>
+                <article class="home-mode-card" data-home-reveal>
+                    <span class="home-mode-index">02</span>
+                    <i class="ph ph-headphones" aria-hidden="true"></i>
+                    <div>
+                        <h3>Nghe chép</h3>
+                        <p>Nghe từ hoặc câu ví dụ, gõ lại và xem lỗi ngay sau mỗi lượt.</p>
                     </div>
-                    <div class="home-bento-card testimonial-card">
-                        <div>
-                            <div class="testimonial-stars mb-3">
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                                <i class="ph ph-star-fill"></i>
-                            </div>
-                            <p class="home-section-copy mb-4" style="font-style: italic;">"Tạo bộ thẻ cho lớp rất nhanh."</p>
-                        </div>
-                        <div class="d-flex align-items-center gap-3">
-                            <img src="/images/ronaldo.png" alt="Ronaldo" class="testimonial-avatar">
-                            <div>
-                                <strong class="d-block" style="color: var(--home-ink);">Ronaldo</strong>
-                                <small class="text-muted">Gia sư</small>
-                            </div>
-                        </div>
+                </article>
+                <article class="home-mode-card" data-home-reveal>
+                    <span class="home-mode-index">03</span>
+                    <i class="ph ph-chats-circle" aria-hidden="true"></i>
+                    <div>
+                        <h3>English Mission</h3>
+                        <p>Dùng từ vừa học trong hội thoại tình huống với gia sư AI.</p>
                     </div>
-                </div>
+                </article>
+                <article class="home-mode-card home-mode-card--progress" data-home-reveal>
+                    <span class="home-mode-index">04</span>
+                    <i class="ph ph-trophy" aria-hidden="true"></i>
+                    <div>
+                        <h3>Tiến độ và thành tích</h3>
+                        <p>Xem mức độ ghi nhớ, huy hiệu và bảng xếp hạng sau các buổi học.</p>
+                    </div>
+                    <a href="/Leaderboard">Xem bảng xếp hạng <i class="ph ph-arrow-up-right" aria-hidden="true"></i></a>
+                </article>
             </div>
         </div>
     </section>
 
-    <section class="home-section-tight" id="resources">
+    <section class="home-section home-sets" id="featured-sets" aria-labelledby="home-sets-title">
         <div class="container">
-            <div class="text-center mb-4">
-                <div class="home-kicker">Resources</div>
-                <h2 class="home-section-title mist-reveal">Cẩm nang & Kinh nghiệm học.</h2>
-            </div>
-            <div class="home-bento-panel gsap-fade-up">
-                <div class="home-bento-grid-3 gsap-stagger">
-                    <div class="home-bento-card">
-                        <div class="home-kicker mb-2">Blog</div>
-                        <h3 class="h5" style="font-weight: 700; color: var(--home-ink);">Cách nhớ từ theo ngữ cảnh</h3>
-                        <p class="home-section-copy mb-0 mt-2">Viết ví dụ riêng cho mỗi từ để nhớ lâu hơn.</p>
-                    </div>
-                    <div class="home-bento-card">
-                        <div class="home-kicker mb-2">Guide</div>
-                        <h3 class="h5" style="font-weight: 700; color: var(--home-ink);">Khi nào nên đánh dấu sao?</h3>
-                        <p class="home-section-copy mb-0 mt-2">Dùng sao cho từ khó, từ hay sai và từ cần ôn trước kỳ kiểm tra.</p>
-                    </div>
-                    <div class="home-bento-card">
-                        <div class="home-kicker mb-2">Tips</div>
-                        <h3 class="h5" style="font-weight: 700; color: var(--home-ink);">Nghe phát âm khi lật thẻ</h3>
-                        <p class="home-section-copy mb-0 mt-2">Kết hợp nhìn, nghe và ví dụ để học sâu hơn.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section class="home-section-tight" id="philosophy">
-        <div class="container">
-            <div class="text-center mb-4">
-                <div class="home-kicker">Philosophy</div>
-                <h2 class="home-section-title mist-reveal">Triết lý xây dựng sản phẩm.</h2>
-            </div>
-            <div class="home-bento-panel gsap-fade-up">
-                <div class="home-bento-grid-3 gsap-stagger">
-                    <div class="home-bento-card">
-                        <span class="home-icon"><i class="ph ph-user-focus"></i></span>
-                        <h3 class="h5 mt-3" style="font-weight: 700; color: var(--home-ink);">Learning design</h3>
-                        <p class="home-section-copy mb-0 mt-2">Luồng học ngắn, dễ lặp lại.</p>
-                    </div>
-                    <div class="home-bento-card">
-                        <span class="home-icon"><i class="ph ph-code"></i></span>
-                        <h3 class="h5 mt-3" style="font-weight: 700; color: var(--home-ink);">Product build</h3>
-                        <p class="home-section-copy mb-0 mt-2">Tính năng tập trung vào flashcard thật.</p>
-                    </div>
-                    <div class="home-bento-card">
-                        <span class="home-icon"><i class="ph ph-shield-check"></i></span>
-                        <h3 class="h5 mt-3" style="font-weight: 700; color: var(--home-ink);">Quality</h3>
-                        <p class="home-section-copy mb-0 mt-2">Không claim chứng nhận giả, chỉ cam kết rõ ràng.</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <section id="featured-sets">
-        <div class="container">
-            <div class="d-flex justify-content-between align-items-end gap-3 flex-wrap mb-4">
+            <header class="home-editorial-header home-sets-header" data-home-reveal>
+                <span class="home-section-number" aria-hidden="true">03</span>
                 <div>
-                    <div class="home-kicker">Public sets</div>
-                    <h2 class="home-section-title mist-reveal">Bộ thẻ công khai</h2>
+                    <span class="home-eyebrow">Bộ thẻ cộng đồng</span>
+                    <h2 id="home-sets-title">Chọn một bộ thẻ và học ngay.</h2>
                 </div>
-                @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
-                {
-                    <span class="text-muted">Kết quả cho "@Model.SearchQuery"</span>
-                }
-            </div>
+                <form class="home-set-search" method="get" action="/">
+                    <label for="public-set-search">Tìm bộ thẻ</label>
+                    <div class="home-set-search-controls">
+                        <input id="public-set-search" name="q" value="@Model.SearchQuery" class="form-input-custom" type="search" placeholder="Tên bộ thẻ" />
+                        <button class="btn-secondary-custom" type="submit">
+                            <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                            <span>Tìm</span>
+                        </button>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(Model.SearchQuery))
+                    {
+                        <a class="home-set-search-clear" href="/">Xóa bộ lọc</a>
+                    }
+                </form>
+            </header>
 
             @if (!Model.PublicSets.Any())
             {
-                <div class="home-bento-panel text-center gsap-fade-up">
-                    <i class="ph ph-book-open" style="font-size: 2rem;"></i>
-                    <p class="mb-0 mt-2">Chưa có bộ thẻ công khai phù hợp.</p>
+                <div class="home-set-empty">
+                    <i class="ph ph-books" aria-hidden="true"></i>
+                    <div>
+                        <h3>Chưa tìm thấy bộ thẻ.</h3>
+                        <p>Thử tên khác hoặc tạo bộ thẻ riêng.</p>
+                    </div>
+                    <a class="btn-primary-custom" href="@primaryCta">Tạo bộ thẻ</a>
                 </div>
             }
             else
             {
-                <div class="home-bento-panel gsap-fade-up">
-                    <div class="home-bento-grid-3 gsap-stagger">
-                        @{ var setIndex = 0; }
-                        @foreach (var set in Model.PublicSets.Take(6))
-                        {
-                            <div class="home-bento-card">
-                                <div class="d-flex justify-content-between gap-3">
-                                    <h3 class="h5">@set.Title</h3>
-                                    <span class="tag tag-new">Công khai</span>
-                                </div>
-                                @if (!string.IsNullOrWhiteSpace(set.Description))
-                                {
-                                    <p class="home-section-copy">@set.Description</p>
-                                }
-                                <a href="/Study/@set.Id" class="btn-primary-custom">
-                                    <i class="ph ph-play-circle"></i> Học ngay
-                                </a>
-                            </div>
-                            setIndex++;
-                        }
-                    </div>
+                var featuredSet = Model.PublicSets.First();
+                <div class="home-set-discovery @(Model.PublicSets.Count > 1 ? "" : "home-set-discovery--single")" data-home-reveal>
+                    <article class="home-set-featured">
+                        <span class="home-set-featured-label">Bộ thẻ nổi bật</span>
+                        <div class="home-set-featured-copy">
+                            <i class="ph ph-books" aria-hidden="true"></i>
+                            <h3>@featuredSet.Title</h3>
+                            @if (!string.IsNullOrWhiteSpace(featuredSet.Description))
+                            {
+                                <p>@featuredSet.Description</p>
+                            }
+                        </div>
+                        <a class="home-set-featured-action" href="/Set/@featuredSet.Id">
+                            Mở bộ thẻ
+                            <i class="ph ph-arrow-up-right" aria-hidden="true"></i>
+                        </a>
+                    </article>
+
+                    @if (Model.PublicSets.Count > 1)
+                    {
+                        <div class="home-set-list" aria-label="Các bộ thẻ khác">
+                            @foreach (var set in Model.PublicSets.Skip(1).Take(5))
+                            {
+                                <article class="home-set-row">
+                                    <div>
+                                        <h3>@set.Title</h3>
+                                        @if (!string.IsNullOrWhiteSpace(set.Description))
+                                        {
+                                            <p>@set.Description</p>
+                                        }
+                                    </div>
+                                    <a class="home-set-open" href="/Set/@set.Id" aria-label="Mở bộ thẻ @set.Title">
+                                        Mở
+                                        <i class="ph ph-arrow-up-right" aria-hidden="true"></i>
+                                    </a>
+                                </article>
+                            }
+                        </div>
+                    }
                 </div>
             }
         </div>
     </section>
 
-    <section id="quote">
+    <section class="home-section home-testimonials" id="testimonials" aria-labelledby="home-testimonials-title">
         <div class="container">
-            <div class="home-quote-form">
-                    <div class="row g-4 align-items-end">
-                        <div class="col-lg-5 gsap-from-left">
-                            <div class="home-kicker">Quote</div>
-                            <h2 class="home-section-title mist-reveal">Bắt đầu lộ trình học.</h2>
-                        </div>
-                        <div class="col-lg-7 gsap-scale-in">
-                        <form id="home-quote-form" class="row g-3">
-                            <div class="col-md-6"><input type="text" placeholder="Tên của bạn" aria-label="Tên của bạn"></div>
-                            <div class="col-md-6"><select aria-label="Mục tiêu học"><option>Giao tiếp</option><option>Thi cử</option><option>Công việc</option></select></div>
-                            <div class="col-12"><button type="submit" class="btn-primary-custom btn-lg">Tiếp tục</button></div>
-                        </form>
-                    </div>
-                </div>
+            <header class="home-editorial-header" data-home-reveal>
+                <span class="home-section-number" aria-hidden="true">04</span>
+                <h2 id="home-testimonials-title">Người học nói gì.</h2>
+                <p>Những điều họ thấy hữu ích khi học theo nhiều chế độ.</p>
+            </header>
+
+            <div class="home-testimonial-grid">
+                <figure class="home-testimonial" data-home-reveal>
+                    <blockquote>“Chế độ nghe chép giúp mình nhận ra ngay những từ nghe quen nhưng vẫn viết sai.”</blockquote>
+                    <figcaption><span>MA</span><div><strong>Minh Anh</strong><small>Sinh viên</small></div></figcaption>
+                </figure>
+                <figure class="home-testimonial" data-home-reveal>
+                    <blockquote>“English Mission buộc mình dùng từ trong câu, thay vì chỉ nhớ nghĩa trên thẻ.”</blockquote>
+                    <figcaption><span>HN</span><div><strong>Hoàng Nam</strong><small>Người học giao tiếp</small></div></figcaption>
+                </figure>
+                <figure class="home-testimonial" data-home-reveal>
+                    <blockquote>“Mình nhìn được tiến độ của từng buổi và biết chính xác nhóm từ nào cần học lại.”</blockquote>
+                    <figcaption><span>TH</span><div><strong>Thu Hà</strong><small>Người tự học</small></div></figcaption>
+                </figure>
             </div>
         </div>
     </section>
 
-    <footer class="home-footer">
+    <section class="home-closing" aria-labelledby="home-closing-title">
         <div class="container">
-            <div class="row g-4">
-                <div class="col-lg-4"><strong>LTWNC English</strong><p class="home-section-copy mt-2">Học tiếng Anh cùng flashcard.</p></div>
-                <div class="col-6 col-lg-2"><strong>Sản phẩm</strong><a class="d-block mt-2" href="#services">Tính năng</a><a class="d-block mt-2" href="#featured-sets">Bộ thẻ</a></div>
-                <div class="col-6 col-lg-2"><strong>Học tập</strong><a class="d-block mt-2" href="#benefits">Lợi ích</a><a class="d-block mt-2" href="#onboarding">Bắt đầu</a></div>
-                <div class="col-6 col-lg-2"><strong>Tài khoản</strong><a class="d-block mt-2" href="/Account/Login">Đăng nhập</a><a class="d-block mt-2" href="/Account/Register">Đăng ký</a></div>
-                <div class="col-6 col-lg-2"><strong>CTA</strong><a class="d-block mt-2" href="@primaryCta">Tạo bộ thẻ</a></div>
+            <div class="home-closing-grid" data-home-reveal>
+                <div>
+                    <span class="home-eyebrow">Bắt đầu hôm nay</span>
+                    <h2 id="home-closing-title">Bắt đầu buổi học đầu tiên.</h2>
+                    <p>Tạo bộ từ rồi chọn flashcard, nghe chép hoặc hội thoại tình huống.</p>
+                    <div class="home-actions home-closing-actions">
+                        <a class="home-closing-primary" href="/Account/Register">Đăng ký</a>
+                        <a class="home-closing-secondary" href="/Account/Login">Đăng nhập</a>
+                    </div>
+                </div>
+                <div class="home-closing-mark" aria-hidden="true">
+                    <span>A</span>
+                    <i class="ph ph-arrow-right"></i>
+                    <span>Z</span>
+                </div>
             </div>
         </div>
-    </footer>
+    </section>
 </div>
 }
 
 @section Scripts {
-<script>
-    // Mobile menu toggle logic
-    window.toggleMobileMenu = function() {
-        const menu = document.getElementById("homeNavMenu");
-        const toggleIcon = document.querySelector(".home-nav-toggle i");
-        if (menu) {
-            menu.classList.toggle("is-active");
-            if (menu.classList.contains("is-active")) {
-                toggleIcon.className = "ph ph-x";
-            } else {
-                toggleIcon.className = "ph ph-list";
-            }
-        }
-    };
-    window.closeMobileMenu = function() {
-        const menu = document.getElementById("homeNavMenu");
-        const toggleIcon = document.querySelector(".home-nav-toggle i");
-        if (menu && menu.classList.contains("is-active")) {
-            menu.classList.remove("is-active");
-            toggleIcon.className = "ph ph-list";
-        }
-    };
-
-    // Typewriter effect logic
-    const typewriterWords = [
-        "có hệ thống hơn.",
-        "mỗi ngày.",
-        "chủ động hơn.",
-        "mọi lúc mọi nơi.",
-        "qua hình ảnh.",
-        "hiệu quả hơn."
-    ];
-    let typewriterWordIndex = 0;
-    let typewriterCharIndex = 0;
-    let typewriterIsDeleting = false;
-    
-    function typeEffect() {
-        const typewriterEl = document.getElementById("typewriter-text");
-        if (!typewriterEl) return;
-        
-        const currentWord = typewriterWords[typewriterWordIndex];
-        if (typewriterIsDeleting) {
-            typewriterEl.textContent = currentWord.substring(0, typewriterCharIndex - 1);
-            typewriterCharIndex--;
-        } else {
-            typewriterEl.textContent = currentWord.substring(0, typewriterCharIndex + 1);
-            typewriterCharIndex++;
-        }
-
-        let typeSpeed = 100;
-
-        if (typewriterIsDeleting) {
-            typeSpeed /= 2;
-        }
-
-        if (!typewriterIsDeleting && typewriterCharIndex === currentWord.length) {
-            typeSpeed = 1800; // Pause at the end of the word
-            typewriterIsDeleting = true;
-        } else if (typewriterIsDeleting && typewriterCharIndex === 0) {
-            typewriterIsDeleting = false;
-            typewriterWordIndex = (typewriterWordIndex + 1) % typewriterWords.length;
-            typeSpeed = 400; // Pause before typing the next word
-        }
-
-        setTimeout(typeEffect, typeSpeed);
-    }
-
-    // Carousel State Tracking
-    let currentCenterIndex = 0; // consistency (index 0) starts in the middle
-    const totalItems = 4;
-    const positions = ['pos-center', 'pos-right', 'pos-back', 'pos-left'];
-    let autoplayInterval;
-
-    window.startAutoplay = function() {
-        window.stopAutoplay();
-        autoplayInterval = setInterval(() => {
-            window.rotateCarousel('right');
-        }, 2500);
-    }
-
-    window.stopAutoplay = function() {
-        if (autoplayInterval) {
-            clearInterval(autoplayInterval);
-            autoplayInterval = null;
-        }
-    }
-
-    window.rotateCarousel = function(direction) {
-        const container = document.getElementById('heroCarousel');
-        if (!container) return;
-        const items = container.querySelectorAll('.hero-carousel-item');
-        
-        // Clear flipped state from all cards before rotating to maintain front side
-        items.forEach(el => {
-            const card = el.querySelector('.flashcard-3d-card');
-            if (card) card.classList.remove('flipped');
-        });
-
-        if (direction === 'left') {
-            currentCenterIndex = (currentCenterIndex - 1 + totalItems) % totalItems;
-        } else {
-            currentCenterIndex = (currentCenterIndex + 1) % totalItems;
-        }
-
-        items.forEach((item, index) => {
-            item.className = 'hero-carousel-item'; // Reset class list
-            
-            // Calculate relative state class index
-            const relativePos = (index - currentCenterIndex + totalItems) % totalItems;
-            item.classList.add(positions[relativePos]);
-        });
-
-        // Reset timer if autoplay is active
-        if (autoplayInterval) {
-            window.startAutoplay();
-        }
-    }
-
-    window.handleCardClick = function(cardElement) {
-        const itemContainer = cardElement.closest('.hero-carousel-item');
-        if (!itemContainer) return;
-        
-        if (itemContainer.classList.contains('pos-center')) {
-            // Flip card only when it resides in the center focus position
-            cardElement.classList.toggle('flipped');
-        } else if (itemContainer.classList.contains('pos-left')) {
-            window.rotateCarousel('left');
-        } else if (itemContainer.classList.contains('pos-right')) {
-            window.rotateCarousel('right');
-        }
-    }
-
-    document.querySelectorAll('.home-landing a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function(e) {
-            const target = document.querySelector(this.getAttribute('href'));
-            if (!target) return;
-            e.preventDefault();
-            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-    });
-
-    document.getElementById('home-quote-form')?.addEventListener('submit', function(e) {
-        e.preventDefault();
-        window.location.href = '@primaryCta';
-    });
-
-    // Count animation logic
-    function animateCount(element) {
-        const target = parseInt(element.getAttribute('data-target'), 10);
-        const duration = 1500; // 1.5 seconds
-        const startTime = performance.now();
-        
-        function update(currentTime) {
-            const elapsed = currentTime - startTime;
-            const progress = Math.min(elapsed / duration, 1);
-            
-            // Easing out quadratic
-            const easeProgress = progress * (2 - progress);
-            
-            const currentValue = Math.floor(easeProgress * target);
-            element.textContent = currentValue;
-            
-            if (progress < 1) {
-                requestAnimationFrame(update);
-            } else {
-                element.textContent = target;
-            }
-        }
-        requestAnimationFrame(update);
-    }
-
-    // Intersection Observer for Misty de-blur scroll reveal and Stat Counters
-    document.addEventListener("DOMContentLoaded", function() {
-        const mistElements = document.querySelectorAll('.mist-reveal');
-        const countElements = document.querySelectorAll('.stat-count');
-        
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('mist-visible');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, {
-            threshold: 0.15,
-            rootMargin: "0px 0px -50px 0px"
-        });
-
-        mistElements.forEach(el => observer.observe(el));
-
-        const countObserver = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    animateCount(entry.target);
-                    countObserver.unobserve(entry.target);
-                }
-            });
-        }, {
-            threshold: 0.5
-        });
-
-        countElements.forEach(el => countObserver.observe(el));
-
-        // Start typewriter
-        setTimeout(typeEffect, 1000);
-
-        // Initialize Carousel Autoplay and hover controls
-        const carousel = document.querySelector('.hero-carousel-wrapper');
-        if (carousel) {
-            window.startAutoplay();
-            carousel.addEventListener('mouseenter', window.stopAutoplay);
-            carousel.addEventListener('mouseleave', window.startAutoplay);
-        }
-    });
-</script>
+<script src="~/js/home.js" asp-append-version="true"></script>
 }

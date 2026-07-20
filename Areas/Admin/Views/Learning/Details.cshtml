@@ -1,0 +1,159 @@
+@model AdminLearningDetailsViewModel
+@{
+    ViewData["Title"] = $"Phiên học #{Model.SessionId}";
+    ViewData["Heading"] = "Hồ sơ học tập";
+}
+
+@* Toàn bộ trang chỉ đọc: không có form sửa điểm, sửa tiến độ hay xóa phiên học. *@
+
+<section class="admin-panel" aria-labelledby="session-info-heading">
+    <div class="admin-panel-header">
+        <h2 id="session-info-heading">Phiên học #@Model.SessionId</h2>
+        <span class="admin-status admin-status--@Model.StatusTone">@Model.StatusLabel</span>
+    </div>
+
+    <dl class="admin-detail-grid">
+        <div>
+            <dt>Ngườ học</dt>
+            <dd>
+                <strong>@Model.UserName</strong>
+                <small class="admin-muted-line">@Model.Email</small>
+            </dd>
+        </div>
+        <div>
+            <dt>Chế độ học</dt>
+            <dd>@Model.ModeLabel</dd>
+        </div>
+        <div>
+            <dt>Bộ thẻ</dt>
+            <dd>@Model.FlashcardSetTitle</dd>
+        </div>
+        <div>
+            <dt>Điểm</dt>
+            <dd>@Model.ScoreDisplay</dd>
+        </div>
+        <div>
+            <dt>Số câu dự kiến</dt>
+            <dd>@Model.PlannedItemCount</dd>
+        </div>
+        <div>
+            <dt>Bắt đầu</dt>
+            <dd>
+                @Model.StartedDisplay
+                <small class="admin-muted-line">@Model.StartedRelativeDisplay</small>
+            </dd>
+        </div>
+        <div>
+            <dt>Hoàn thành</dt>
+            <dd>@Model.CompletedDisplay</dd>
+        </div>
+        <div>
+            <dt>Thờ lượng</dt>
+            <dd>@Model.DurationDisplay</dd>
+        </div>
+    </dl>
+
+    <p class="admin-muted-line">
+        <i class="ph ph-shield-check" aria-hidden="true"></i>
+        Lần xem này đã được ghi vào Bản ghi kiểm toán quản trị với lý do: @Model.Reason
+    </p>
+</section>
+
+@* Phần dữ liệu riêng theo chế độ học *@
+
+@if (Model.DictationAnswers.Count > 0)
+{
+    <section class="admin-panel" aria-labelledby="dictation-answers-heading">
+        <div class="admin-panel-header">
+            <h2 id="dictation-answers-heading">Câu trả lờ nghe chép chính tả</h2>
+            <p>@Model.DictationAnswers.Count câu</p>
+        </div>
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th scope="col">Từ vựng</th>
+                        <th scope="col">Ngườ học nhập</th>
+                        <th scope="col">Kết quả</th>
+                        <th scope="col">Thờ điểm trả lờ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (AdminDictationAnswerViewModel answer in Model.DictationAnswers)
+                    {
+                        <tr>
+                            <td>@answer.CardFrontText</td>
+                            <td>@answer.AnsweredText</td>
+                            <td>
+                                <span class="admin-status admin-status--@answer.ResultTone">@answer.ResultLabel</span>
+                            </td>
+                            <td>@answer.AnsweredAtDisplay</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+
+@if (Model.Mission != null)
+{
+    <section class="admin-panel" aria-labelledby="mission-summary-heading">
+        <div class="admin-panel-header">
+            <h2 id="mission-summary-heading">Tóm tắt Nhiệm vụ tiếng Anh</h2>
+            <span class="admin-status admin-status--info">@Model.Mission.Status</span>
+        </div>
+        <dl class="admin-detail-grid">
+            <div>
+                <dt>Chủ đề</dt>
+                <dd>@Model.Mission.Topic</dd>
+            </div>
+            <div>
+                <dt>Tiêu đề</dt>
+                <dd>@Model.Mission.Title</dd>
+            </div>
+            <div>
+                <dt>Điểm</dt>
+                <dd>@Model.Mission.ScoreDisplay</dd>
+            </div>
+            <div>
+                <dt>Số lượt hội thoại</dt>
+                <dd>@Model.Mission.TurnCount</dd>
+            </div>
+            <div>
+                <dt>Từ mục tiêu đã dùng</dt>
+                <dd>@Model.Mission.TargetWordUsed / @Model.Mission.TargetWordTotal</dd>
+            </div>
+        </dl>
+        <p class="admin-muted-line">
+            Nội dung hội thoại chi tiết thuộc khu vực Nhiệm vụ tiếng Anh và yêu cầu vụ việc riêng.
+        </p>
+    </section>
+}
+
+<section class="admin-panel" aria-labelledby="set-progress-heading">
+    <div class="admin-panel-header">
+        <h2 id="set-progress-heading">Tiến độ hiện tại trên bộ thẻ</h2>
+        <p>@Model.SetProgress.TotalCards thẻ</p>
+    </div>
+    <dl class="admin-detail-grid">
+        <div>
+            <dt>Đã thuộc</dt>
+            <dd>@Model.SetProgress.MasteredCount</dd>
+        </div>
+        <div>
+            <dt>Đang học</dt>
+            <dd>@Model.SetProgress.LearningCount</dd>
+        </div>
+        <div>
+            <dt>Chưa học</dt>
+            <dd>@Model.SetProgress.UnlearnedCount</dd>
+        </div>
+    </dl>
+</section>
+
+<p>
+    <a class="admin-text-link" href="/Admin/Learning">
+        <i class="ph ph-arrow-left" aria-hidden="true"></i> Quay lại danh sách phiên học
+    </a>
+</p>

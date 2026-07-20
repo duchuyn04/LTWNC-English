@@ -1,0 +1,46 @@
+@model ltwnc.Models.ViewModels.EnglishMission.EnglishMissionChatViewModel
+@{
+    ViewData["Title"] = Model.Mission.Title;
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/english-mission.css" asp-append-version="true" />
+}
+
+<div class="mission-chat-page" data-set-id="@Model.SetId" data-session-id="@Model.Mission.StudySessionId" data-npc-name="@Model.Mission.NpcName">
+    @Html.AntiForgeryToken()
+    <aside class="mission-rail">
+        <a class="mission-rail-brand" href="/Study/@Model.SetId"><i class="ph ph-compass"></i><span>ENGLISH<br>MISSION</span></a>
+        <div class="mission-rail-progress"><span class="mission-label">Tiến độ</span><strong><span id="mission-turn-count">@Model.Mission.TurnCount</span> <small>/ 8 lượt</small></strong><div class="mission-progress"><span style="width:@(Model.Mission.TurnCount * 100 / 8)%"></span></div></div>
+        <div class="mission-rail-words"><span class="mission-label">Từ mục tiêu</span>
+            @foreach (var word in Model.TargetWords)
+            {
+                <span class="mission-word-chip @(word.IsUsed ? "is-used" : "")" data-word="@word.Term"><span>@word.Term</span>@if(word.IsUsed){<i class="ph ph-check"></i>}</span>
+            }
+        </div>
+        <div class="mission-situation"><span class="mission-label">Tình huống</span><p>@Model.Mission.Situation</p></div>
+        <a class="mission-exit" href="/Study/@Model.SetId"><i class="ph ph-sign-out"></i> Rời mission</a>
+    </aside>
+
+    <section class="mission-chat-main">
+        <header class="mission-chat-header"><div><span class="mission-eyebrow">English Mission / @Model.SetTitle</span><h1>@Model.Mission.Title</h1></div><span class="mission-live"><i></i> Đang diễn ra</span></header>
+        <div id="mission-transcript" class="mission-chat-stage" aria-live="polite">
+            <div class="mission-context"><span class="mission-context-icon"><i class="ph ph-chats-circle"></i></span><span><strong>@Model.Mission.NpcName</strong><small>@Model.Mission.NpcRole</small></span></div>
+            <div class="mission-message mission-message-npc"><span class="mission-avatar">AI</span><div><small>@Model.Mission.NpcName</small><p lang="en">@Model.Mission.OpeningLine</p><button class="mission-play" type="button"><i class="ph ph-speaker-high"></i> Nghe lại</button></div></div>
+            @foreach (var turn in Model.Turns)
+            {
+                <div class="mission-message mission-message-user"><div><small>Bạn</small><p lang="en">@turn.UserText</p></div><span class="mission-avatar mission-avatar-user">YOU</span></div>
+                <div class="mission-message mission-message-npc"><span class="mission-avatar">AI</span><div><small>@Model.Mission.NpcName</small><p lang="en">@turn.NpcText</p>@if(!string.IsNullOrWhiteSpace(turn.FeedbackVi)){<span class="mission-message-note"><i class="ph ph-check-circle"></i> @turn.FeedbackVi</span>}@if(!string.IsNullOrWhiteSpace(turn.CorrectionEn)){<div class="mission-correction"><strong>Tự nhiên hơn</strong><span lang="en">@turn.CorrectionEn</span><small>@turn.CorrectionExplanationVi</small></div>}</div></div>
+            }
+        </div>
+        <div id="mission-error" class="mission-request-error" hidden><i class="ph ph-warning-circle"></i><div><strong>Không thể kết nối gia sư AI</strong><p></p></div><button type="button" id="mission-retry">Thử lại</button></div>
+        <form id="mission-composer" class="mission-composer" onsubmit="return false">
+            <textarea id="mission-answer" rows="2" maxlength="1000" placeholder="Viết câu trả lời bằng tiếng Anh..." aria-label="Câu trả lời" lang="en"></textarea>
+            <div class="mission-composer-actions"><span>Nhấn <kbd>Enter</kbd> để gửi</span><button id="mission-send" class="mission-send" type="button" aria-label="Gửi câu trả lời"><i class="ph ph-arrow-up"></i></button></div>
+        </form>
+    </section>
+</div>
+
+@section Scripts {
+    <script src="~/js/english-mission.js" asp-append-version="true"></script>
+}

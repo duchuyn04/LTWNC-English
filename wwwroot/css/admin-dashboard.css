@@ -1,0 +1,1691 @@
+/* ============================================================
+   LTWNC Admin — Warm Editorial (tinh chỉnh)
+   Một hệ thiết kế duy nhất: mọi màu/radius/motion map về
+   design tokens của site.css. Không dùng hex rỗng, không pill
+   tràn lan, không uppercase lạm dụng.
+   ============================================================ */
+
+/* ---------- Admin tokens (bổ trợ site.css, scope riêng admin) ---------- */
+
+.admin-body {
+    /* Radius: card 16 / control 10 / inner 8 — khóa hình dạng */
+    --admin-radius-inner: 8px;
+    /* Bề mặt hover trên sidebar tối */
+    --admin-sidebar-hover: rgba(255, 253, 247, 0.08);
+    --admin-sidebar-active: rgba(255, 253, 247, 0.13);
+    --admin-sidebar-line: rgba(255, 253, 247, 0.14);
+    /* Nút primary hover/active */
+    --admin-ink-hover: color-mix(in srgb, var(--ink) 86%, var(--paper));
+    --admin-error-hover: color-mix(in srgb, var(--error) 86%, var(--paper));
+    /* Badge warning dùng tông đồng thay vàng chóe */
+    --admin-warning-bg: var(--brass-soft);
+    --admin-warning-text: var(--brass-deep);
+    /* Z-index scale */
+    --admin-z-skip: 1100;
+
+    min-width: 360px;
+    max-width: 100%;
+    overflow-x: clip;
+    background: var(--paper);
+    scroll-behavior: smooth;
+}
+
+.admin-body *,
+.admin-body *::before,
+.admin-body *::after {
+    box-sizing: border-box;
+}
+
+/* Thay thế visually-hidden của Bootstrap (admin không load Bootstrap) */
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+.admin-body :focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.admin-main:focus-visible {
+    outline-offset: -2px;
+}
+
+.admin-skip-link {
+    position: fixed;
+    z-index: var(--admin-z-skip);
+    top: 0.75rem;
+    left: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius-control);
+    background: var(--ink);
+    color: var(--paper);
+    transform: translateY(-150%);
+    transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-skip-link:focus {
+    color: var(--paper);
+    transform: translateY(0);
+}
+
+/* ==================== SHELL ==================== */
+
+.admin-shell {
+    display: grid;
+    grid-template-columns: 16.5rem minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+.admin-mobile-bar,
+.admin-sidebar-backdrop {
+    display: none;
+}
+
+/* ---------- Sidebar ---------- */
+
+.admin-sidebar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 1.5rem 0.875rem;
+    overflow-y: auto;
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.admin-brand {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 0.75rem;
+    align-items: center;
+    margin: 0 0.5rem 1.75rem;
+    color: var(--paper);
+    text-decoration: none;
+}
+
+.admin-brand:hover,
+.admin-brand:focus {
+    color: var(--paper);
+}
+
+.admin-brand > span {
+    grid-row: 1 / 3;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-control);
+    background: var(--brass);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-weight: 800;
+}
+
+.admin-brand strong {
+    align-self: end;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    line-height: 1;
+    letter-spacing: 0.01em;
+}
+
+.admin-brand small {
+    align-self: start;
+    margin-top: 0.2rem;
+    color: var(--muted-light);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+}
+
+.admin-navigation {
+    display: grid;
+    gap: 0.125rem;
+}
+
+.admin-navigation a,
+.admin-learner-link {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    min-height: 2.625rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: var(--radius-control);
+    color: var(--line-strong);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+}
+
+.admin-navigation a span,
+.admin-learner-link span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-navigation a:hover,
+.admin-navigation a:focus,
+.admin-learner-link:hover,
+.admin-learner-link:focus {
+    background: var(--admin-sidebar-hover);
+    color: var(--surface);
+}
+
+/* Active: nền sáng nhẹ + vạch đồng trái — một tín hiệu, rõ ràng */
+.admin-navigation a.active {
+    background: var(--admin-sidebar-active);
+    box-shadow: inset 3px 0 0 var(--brass);
+    color: var(--surface);
+    font-weight: 600;
+}
+
+.admin-navigation i,
+.admin-learner-link i {
+    flex: 0 0 auto;
+    font-size: 1.2rem;
+}
+
+.admin-sidebar-footer {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: auto;
+    padding-top: 1.5rem;
+}
+
+.admin-learner-link {
+    border: 1px solid var(--admin-sidebar-line);
+}
+
+.admin-account {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+    gap: 0.625rem;
+    align-items: center;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--admin-sidebar-line);
+}
+
+.admin-avatar {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius-control);
+    background: var(--sage);
+    color: var(--ink);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.admin-account p {
+    display: grid;
+    min-width: 0;
+    margin: 0;
+}
+
+.admin-account strong,
+.admin-account small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-account strong {
+    color: var(--surface);
+    font-size: 0.8125rem;
+}
+
+.admin-account small {
+    color: var(--muted-light);
+    font-size: 0.6875rem;
+}
+
+.admin-account button {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--line-strong);
+    cursor: pointer;
+    transition: color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+}
+
+.admin-account button:hover,
+.admin-account button:focus {
+    background: var(--admin-sidebar-hover);
+    color: var(--surface);
+}
+
+/* ---------- Workspace & topbar ---------- */
+
+.admin-workspace {
+    min-width: 0;
+}
+
+.admin-page-title {
+    min-width: 0;
+}
+
+.admin-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    min-height: 5.25rem;
+    padding: 1rem clamp(1rem, 4vw, 3rem);
+    border-bottom: 1px solid var(--line);
+    background: rgba(247, 243, 233, 0.88);
+    backdrop-filter: blur(12px) saturate(1.05);
+    -webkit-backdrop-filter: blur(12px) saturate(1.05);
+}
+
+.admin-topbar p {
+    margin: 0 0 0.2rem;
+    color: var(--brass-deep);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+}
+
+.admin-topbar h1 {
+    margin: 0;
+    font-size: clamp(1.375rem, 2.4vw, 1.875rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+
+.admin-global-search {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    width: min(26rem, 40vw);
+    min-width: 15rem;
+    min-height: 2.5rem;
+    padding: 0.3rem 0.4rem 0.3rem 0.75rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--muted);
+    transition: border-color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.admin-global-search:focus-within {
+    border-color: var(--brass);
+    box-shadow: 0 0 0 3px var(--brass-soft);
+}
+
+.admin-global-search input {
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    outline: 0;
+    font: inherit;
+    font-size: 0.875rem;
+    line-height: 1.25;
+    text-overflow: clip;
+    white-space: nowrap;
+}
+
+.admin-global-search input::placeholder {
+    color: var(--muted-light);
+}
+
+.admin-global-search button {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: var(--admin-radius-inner);
+    background: var(--ink);
+    color: var(--paper);
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-global-search button:hover {
+    background: var(--admin-ink-hover);
+}
+
+.admin-global-search button:active {
+    transform: translateY(1px);
+}
+
+/* Badge phiên: trung tính, không pill xanh lá */
+.admin-role-badge,
+.admin-ready-badge {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--ink-soft);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.admin-main {
+    width: min(88rem, 100%);
+    margin: 0 auto;
+    padding: clamp(1.25rem, 4vw, 2.75rem);
+}
+
+/* ==================== PANEL NỀN CHUNG ==================== */
+
+.admin-panel {
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+}
+
+.admin-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 1.125rem;
+}
+
+.admin-panel-header h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+}
+
+.admin-panel-header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+}
+
+/* ==================== DASHBOARD ==================== */
+
+.admin-dashboard > * + * {
+    margin-top: 1.5rem;
+}
+
+/* Thanh ngữ cảnh: thời gian, bộ lọc và xuất dữ liệu trong một hàng gọn. */
+.admin-dashboard-context {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+}
+
+.admin-dashboard-period {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-width: 0;
+    color: var(--ink-soft);
+}
+
+.admin-dashboard-period > i {
+    flex: 0 0 auto;
+    color: var(--brass-deep);
+    font-size: 1.125rem;
+}
+
+.admin-dashboard-period p {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+}
+
+.admin-dashboard-period strong {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.admin-intro {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: flex-end;
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+}
+
+.admin-intro .eyebrow,
+.admin-alert-panel .eyebrow {
+    display: inline-block;
+    margin: 0;
+}
+
+.admin-intro h2 {
+    margin: 0.4rem 0 0.75rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 3vw, 2.375rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.12;
+    text-wrap: balance;
+}
+
+.admin-intro p:last-child {
+    max-width: 44rem;
+    margin: 0;
+    color: var(--muted);
+}
+
+.admin-dashboard-live-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
+    margin: 0;
+    color: var(--muted-light);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.admin-header-actions {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    justify-content: flex-end;
+}
+
+/* Segmented control chọn khoảng ngày */
+.admin-range-filter {
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    background: var(--surface-sunken);
+}
+
+.admin-range-filter button {
+    min-width: 4.5rem;
+    min-height: 2.25rem;
+    border: 0;
+    border-radius: var(--admin-radius-inner);
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+}
+
+.admin-range-filter button:hover,
+.admin-range-filter button:focus {
+    background: rgba(41, 50, 38, 0.06);
+    color: var(--ink);
+}
+
+.admin-range-filter button.active {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+/* ---------- KPI cards ---------- */
+
+.admin-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.admin-kpi-card {
+    display: grid;
+    grid-template-columns: 2.75rem minmax(0, 1fr);
+    gap: 1rem;
+    align-content: start;
+    padding: 1.25rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    min-width: 0;
+    transition: border-color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.admin-kpi-card:hover {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-card);
+}
+
+.admin-kpi-icon {
+    display: grid;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radius-control);
+    background: var(--sage-soft);
+    color: var(--ink);
+    font-size: 1.375rem;
+}
+
+.admin-kpi-content {
+    min-width: 0;
+}
+
+/* Label: sentence-case, không uppercase */
+.admin-kpi-content h2 {
+    margin: 0 0 0.375rem;
+    color: var(--muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-kpi-content strong {
+    display: block;
+    overflow-wrap: anywhere;
+    color: var(--ink);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.02em;
+    font-variant-numeric: tabular-nums;
+}
+
+/* Giá trị rỗng ("Chưa có dữ liệu") không được render như headline */
+.admin-kpi-content strong.admin-kpi-value--empty {
+    color: var(--muted-light);
+    font-size: 1.0625rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1.5;
+}
+
+.admin-kpi-content p {
+    margin: 0.5rem 0 0;
+    color: var(--muted);
+    font-size: 0.8125rem;
+}
+
+.admin-kpi-content p:empty,
+.admin-kpi-content span:empty {
+    display: none;
+}
+
+/* So sánh kỳ trước: text màu semantic, không nền pill */
+.admin-kpi-content span {
+    display: inline-block;
+    margin-top: 0.625rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.admin-kpi-card--positive .admin-kpi-content span {
+    color: var(--success);
+}
+
+.admin-kpi-card--negative .admin-kpi-content span {
+    color: var(--error);
+}
+
+.admin-kpi-action {
+    grid-column: 2;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-width: 0;
+    min-height: 2.5rem;
+    margin-top: 0.125rem;
+    padding-top: 0.625rem;
+    border-top: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 0.8125rem;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.admin-kpi-action span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-kpi-action i {
+    flex: 0 0 auto;
+    transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-kpi-action:hover,
+.admin-kpi-action:focus {
+    color: var(--brass-deep);
+}
+
+.admin-kpi-action:hover i {
+    transform: translateX(2px);
+}
+
+/* ---------- Alert panel ---------- */
+
+.admin-alert-panel {
+    display: grid;
+    grid-template-columns: minmax(10rem, 0.35fr) minmax(0, 1fr);
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+}
+
+.admin-alert-heading {
+    display: flex;
+    gap: 0.625rem;
+    align-items: center;
+    min-width: 0;
+}
+
+.admin-alert-heading > i {
+    color: var(--brass-deep);
+    font-size: 1.125rem;
+}
+
+.admin-alert-panel h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+
+.admin-alert-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.admin-live-alert {
+    display: grid;
+    grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface-sunken);
+}
+
+.admin-live-alert > i {
+    color: var(--muted);
+    font-size: 1.125rem;
+}
+
+.admin-live-alert > div {
+    min-width: 0;
+}
+
+.admin-live-alert h3 {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.admin-live-alert p {
+    margin: 0.3rem 0 0;
+    color: var(--muted);
+    font-size: 0.8125rem;
+    display: -webkit-box;
+    overflow: hidden;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.admin-live-alert a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.25rem;
+    padding: 0.35rem 0.75rem;
+    border-radius: var(--admin-radius-inner);
+    background: var(--ink);
+    color: var(--paper);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-live-alert a:hover {
+    background: var(--admin-ink-hover);
+}
+
+.admin-live-alert a:active {
+    transform: translateY(1px);
+}
+
+.admin-live-alert--danger {
+    border-left-color: var(--error);
+}
+
+.admin-live-alert--warning {
+    border-left-color: var(--brass);
+}
+
+.admin-live-alert--success {
+    border-left-color: var(--success);
+}
+
+.admin-live-alert--success > i {
+    color: var(--success);
+}
+
+/* ---------- KPI methodology & foundation ---------- */
+
+.admin-kpi-methodology {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    background: var(--surface-sunken);
+}
+
+.admin-kpi-methodology summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 2.75rem;
+    padding: 0.625rem 0.875rem;
+    color: var(--ink-soft);
+    font-size: 0.8125rem;
+    font-weight: 650;
+    cursor: pointer;
+    list-style: none;
+}
+
+.admin-kpi-methodology summary::-webkit-details-marker {
+    display: none;
+}
+
+.admin-kpi-methodology summary span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-kpi-methodology summary > i {
+    transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-kpi-methodology[open] summary > i {
+    transform: rotate(180deg);
+}
+
+.admin-kpi-methodology > div {
+    padding: 0 0.875rem 0.875rem;
+}
+
+.admin-kpi-methodology p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.8125rem;
+}
+
+.admin-kpi-methodology p + p {
+    margin-top: 0.35rem;
+}
+
+.admin-kpi-notes {
+    display: grid;
+    grid-template-columns: minmax(10rem, 0.7fr) minmax(0, 2fr) auto;
+    gap: 1rem;
+    align-items: start;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-card);
+    background: var(--surface-sunken);
+}
+
+.admin-kpi-notes h2 {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 700;
+}
+
+.admin-kpi-notes p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.8125rem;
+}
+
+.admin-kpi-notes p + p {
+    margin-top: 0.35rem;
+}
+
+.admin-kpi-notes small {
+    color: var(--muted-light);
+    font-size: 0.75rem;
+    text-align: right;
+}
+
+.admin-foundation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.admin-foundation-card {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1.375rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    transition: border-color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.admin-foundation-card:hover {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-card);
+}
+
+.admin-foundation-card > i {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radius-control);
+    background: var(--sage-soft);
+    color: var(--ink);
+    font-size: 1.375rem;
+}
+
+.admin-foundation-card h2 {
+    margin: 0 0 0.375rem;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.admin-foundation-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.8125rem;
+}
+
+/* ==================== FORM & NÚT ==================== */
+
+.admin-filter-form {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.875rem;
+    align-items: flex-end;
+}
+
+.admin-filter-field {
+    display: grid;
+    gap: 0.375rem;
+    min-width: 12rem;
+}
+
+.admin-filter-field > * {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.admin-filter-field--compact {
+    min-width: 7rem;
+}
+
+.admin-filter-field--wide {
+    flex: 1 1 20rem;
+}
+
+.admin-filter-field label {
+    color: var(--ink-soft);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.admin-filter-field input,
+.admin-filter-field select,
+.admin-filter-field textarea {
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 2.5rem;
+    padding: 0.5rem 0.7rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.875rem;
+    line-height: 1.25;
+    transition: border-color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.admin-filter-field input {
+    overflow-x: auto;
+    text-overflow: clip;
+    white-space: nowrap;
+}
+
+.admin-filter-field input::placeholder,
+.admin-global-search input::placeholder {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-filter-field select {
+    appearance: none;
+    overflow: hidden;
+    padding-right: 2.5rem;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16'%3E%3Cpath d='m4 6 4 4 4-4' fill='none' stroke='%236d756c' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.75rem center;
+    background-size: 1rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-filter-field input:hover,
+.admin-filter-field select:hover,
+.admin-filter-field textarea:hover {
+    border-color: var(--muted-light);
+}
+
+.admin-filter-field input:focus,
+.admin-filter-field select:focus,
+.admin-filter-field textarea:focus {
+    border-color: var(--brass);
+    box-shadow: 0 0 0 3px var(--brass-soft);
+    outline: 0;
+}
+
+/* Nút primary của admin: mực xanh, không xanh lá */
+.admin-filter-submit {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    min-height: 2.5rem;
+    padding: 0.5rem 1rem;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: var(--ink);
+    color: var(--paper);
+    font: inherit;
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-filter-submit:hover,
+.admin-filter-submit:focus {
+    background: var(--admin-ink-hover);
+    color: var(--paper);
+}
+
+.admin-filter-submit:active {
+    transform: translateY(1px);
+}
+
+.admin-button-danger {
+    background: var(--error);
+}
+
+.admin-button-danger:hover,
+.admin-button-danger:focus {
+    background: var(--admin-error-hover);
+}
+
+.admin-text-link {
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: underline;
+    text-decoration-color: rgba(41, 50, 38, 0.3);
+    text-underline-offset: 0.2rem;
+    transition: color var(--duration-fast) var(--ease-out),
+                text-decoration-color var(--duration-fast) var(--ease-out);
+}
+
+.admin-text-link:hover {
+    color: var(--brass-deep);
+    text-decoration-color: var(--brass-deep);
+}
+
+.admin-text-link i {
+    font-size: 0.9em;
+}
+
+/* Form hành động inline trong bảng (duyệt báo cáo...) */
+.admin-inline-action-form {
+    display: grid;
+    gap: 0.5rem;
+    min-width: 220px;
+}
+
+.admin-inline-action-form label {
+    color: var(--ink-soft);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.admin-inline-action-form textarea,
+.admin-action-form textarea {
+    min-height: 5rem;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 0.875rem;
+    resize: vertical;
+    transition: border-color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.admin-inline-action-form textarea:hover,
+.admin-action-form textarea:hover {
+    border-color: var(--muted-light);
+}
+
+.admin-inline-action-form textarea:focus,
+.admin-action-form textarea:focus {
+    border-color: var(--brass);
+    box-shadow: 0 0 0 3px var(--brass-soft);
+    outline: 0;
+}
+
+.admin-checkbox-line {
+    display: inline-flex;
+    gap: 0.45rem;
+    align-items: center;
+    color: var(--ink-soft);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.admin-checkbox-line input {
+    accent-color: var(--ink);
+}
+
+/* ==================== BẢNG ==================== */
+
+.admin-table-wrapper {
+    overflow-x: auto;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+}
+
+.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.875rem;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 0.7rem 0.875rem;
+    border-bottom: 1px solid var(--line);
+    text-align: left;
+    vertical-align: middle;
+}
+
+.admin-table thead th {
+    background: var(--surface-sunken);
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+}
+
+.admin-table tbody tr {
+    transition: background-color var(--duration-fast) var(--ease-out);
+}
+
+.admin-table tbody tr:hover {
+    background: var(--sage-soft);
+}
+
+.admin-table tbody tr:last-child td {
+    border-bottom: 0;
+}
+
+.admin-table strong {
+    font-weight: 600;
+}
+
+/* Bảng có form inline (báo cáo nội dung) cần canh trên */
+.admin-content-report-table td {
+    vertical-align: top;
+}
+
+.admin-muted-line {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--muted-light);
+    font-size: 0.75rem;
+    word-break: break-all;
+}
+
+/* ==================== BADGE & STATUS ==================== */
+/* Vuông mềm (--admin-radius-inner), nền tint semantic, weight 600.
+   Không pill 999px, không xanh dương lạc tông. */
+
+.admin-status,
+.admin-role-pill,
+.admin-outcome {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.625rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--admin-radius-inner);
+    background: var(--surface-sunken);
+    color: var(--ink-soft);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.admin-status--success,
+.admin-outcome-success {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+.admin-status--danger,
+.admin-outcome-failure,
+.admin-outcome-denied {
+    background: var(--error-bg);
+    color: var(--error);
+}
+
+.admin-status--warning {
+    background: var(--admin-warning-bg);
+    color: var(--admin-warning-text);
+}
+
+.admin-status--neutral,
+.admin-status--info {
+    background: var(--sage-soft);
+    color: var(--ink-soft);
+}
+
+.admin-role-pill {
+    background: var(--brass-soft);
+    color: var(--brass-deep);
+}
+
+/* ==================== ALERT ==================== */
+
+.admin-alert {
+    margin: 1rem 0;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--line);
+    border-left: 3px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.admin-alert--success {
+    border-left-color: var(--success);
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+.admin-alert--danger {
+    border-left-color: var(--error);
+    background: var(--error-bg);
+    color: var(--error);
+}
+
+.admin-alert--warning {
+    border-left-color: var(--brass);
+    background: var(--admin-warning-bg);
+    color: var(--admin-warning-text);
+}
+
+/* ==================== DETAIL & ACTION ==================== */
+
+.admin-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin: 1rem 0 0;
+}
+
+.admin-detail-grid div {
+    display: grid;
+    gap: 0.25rem;
+    align-content: start;
+    padding: 0.875rem 1rem;
+    border-radius: var(--radius-control);
+    background: var(--surface-sunken);
+}
+
+.admin-detail-grid dt {
+    color: var(--muted);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.admin-detail-grid dd {
+    margin: 0;
+    color: var(--ink);
+    font-size: 0.875rem;
+    font-weight: 600;
+    word-break: break-word;
+}
+
+.admin-action-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+.admin-action-form {
+    display: grid;
+    gap: 0.625rem;
+    align-content: start;
+    padding: 1.125rem;
+    border-radius: var(--radius-control);
+    background: var(--surface-sunken);
+}
+
+.admin-action-form label {
+    color: var(--ink-soft);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.admin-action-form .admin-filter-submit {
+    justify-self: start;
+}
+
+/* ==================== EMPTY & PAGINATION ==================== */
+
+/* Empty state có chủ đích: khung dashed, căn giữa */
+.admin-empty {
+    margin: 0;
+    padding: 2rem 1.5rem;
+    border: 1px dashed var(--line-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface-sunken);
+    color: var(--muted);
+    font-size: 0.875rem;
+    text-align: center;
+}
+
+.admin-panel-header + .admin-empty {
+    margin-top: 0.25rem;
+}
+
+.admin-pagination {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 1.125rem;
+}
+
+.admin-pagination a {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    min-height: 2.375rem;
+    padding: 0.4rem 0.85rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: border-color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-pagination a:hover,
+.admin-pagination a:focus {
+    border-color: var(--ink);
+    background: var(--surface-sunken);
+}
+
+.admin-pagination a:active {
+    transform: translateY(1px);
+}
+
+.admin-pagination span[aria-current="page"] {
+    color: var(--muted);
+    font-size: 0.8125rem;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 62rem) {
+    .admin-shell {
+        grid-template-columns: 13.5rem minmax(0, 1fr);
+    }
+
+    .admin-foundation-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-alert-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-kpi-notes {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-kpi-notes small {
+        text-align: left;
+    }
+}
+
+@media (max-width: 47.99rem) {
+    .admin-shell {
+        display: block;
+    }
+
+    .admin-mobile-bar {
+        position: sticky;
+        top: 0;
+        z-index: 220;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        min-height: 3.5rem;
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid var(--line);
+        background: rgba(247, 243, 233, 0.96);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    .admin-mobile-brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.625rem;
+        min-width: 0;
+        color: var(--ink);
+        font-size: 0.875rem;
+        text-decoration: none;
+    }
+
+    .admin-mobile-brand > span {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 2rem;
+        height: 2rem;
+        border-radius: var(--admin-radius-inner);
+        background: var(--brass);
+        font-family: var(--font-display);
+        font-weight: 800;
+    }
+
+    .admin-mobile-brand strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .admin-menu-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        min-width: 4.75rem;
+        min-height: 2.75rem;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius-control);
+        background: var(--surface);
+        color: var(--ink);
+        font: inherit;
+        font-size: 0.8125rem;
+        font-weight: 650;
+        cursor: pointer;
+    }
+
+    .admin-sidebar {
+        position: fixed;
+        z-index: 240;
+        inset: 0 auto 0 0;
+        width: min(19rem, calc(100vw - 3rem));
+        max-width: 100%;
+        height: 100dvh;
+        padding: 1rem;
+        overflow-y: auto;
+        visibility: hidden;
+        pointer-events: none;
+        transform: translateX(-105%);
+        transition: transform var(--duration-fast) var(--ease-out),
+                    visibility 0s linear var(--duration-fast);
+    }
+
+    .admin-sidebar.is-open {
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateX(0);
+        transition-delay: 0s;
+    }
+
+    .admin-sidebar-backdrop {
+        position: fixed;
+        z-index: 230;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: 0;
+        background: rgba(24, 31, 24, 0.48);
+        cursor: pointer;
+    }
+
+    .admin-sidebar-backdrop[hidden] {
+        display: none;
+    }
+
+    .admin-menu-open {
+        overflow: hidden;
+    }
+
+    .admin-brand {
+        margin: 0 0 1rem;
+    }
+
+    .admin-navigation {
+        display: grid;
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+    }
+
+    .admin-navigation a {
+        min-height: 2.75rem;
+    }
+
+    .admin-navigation a.active {
+        box-shadow: inset 3px 0 0 var(--brass);
+    }
+
+    .admin-sidebar-footer {
+        margin-top: auto;
+        padding-top: 1rem;
+    }
+
+    .admin-account {
+        grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+    }
+
+    .admin-account p {
+        display: grid;
+    }
+
+    .admin-topbar {
+        position: static;
+        flex-wrap: wrap;
+        gap: 0.875rem;
+        min-height: auto;
+    }
+
+    .admin-global-search {
+        width: 100%;
+        min-width: 0;
+        order: 3;
+    }
+
+    .admin-role-badge {
+        display: none;
+    }
+
+    .admin-dashboard-context,
+    .admin-intro {
+        display: grid;
+        align-items: start;
+    }
+
+    .admin-range-filter {
+        width: 100%;
+    }
+
+    .admin-header-actions {
+        justify-content: stretch;
+        width: 100%;
+    }
+
+    .admin-range-filter button {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .admin-live-alert {
+        grid-template-columns: 1.5rem minmax(0, 1fr);
+    }
+
+    .admin-live-alert a {
+        grid-column: 2;
+        justify-self: start;
+        min-height: 2.75rem;
+    }
+
+    .admin-filter-field input,
+    .admin-filter-field select,
+    .admin-filter-submit,
+    .admin-range-filter button,
+    .admin-global-search {
+        min-height: 2.75rem;
+    }
+}
+
+@media (max-width: 40rem) {
+    .admin-filter-form {
+        display: grid;
+    }
+
+    .admin-filter-field,
+    .admin-filter-field--compact {
+        min-width: 0;
+    }
+
+    .admin-detail-grid,
+    .admin-action-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 30rem) {
+    .admin-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-learner-link span {
+        font-size: 0.75rem;
+    }
+
+    .admin-pagination {
+        flex-wrap: wrap;
+    }
+}
+
+/* ==================== REDUCED MOTION ==================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-body *,
+    .admin-body *::before,
+    .admin-body *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+
+    .admin-navigation a,
+    .admin-learner-link {
+        transition: none;
+    }
+}

@@ -4,10 +4,10 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - LTWNC English</title>
-    <script type="importmap"></script>
+    <meta name="description" content="LTWNC English giúp bạn học từ vựng bằng flashcard, nghe chép, hội thoại tình huống và theo dõi tiến độ." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Newsreader:ital,opsz,wght@0,6..72,500..800;1,6..72,500..800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://unpkg.com/phosphor-icons@1.4.2/src/css/icons.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -28,40 +28,61 @@
     @if (!hideLayoutChrome)
     {
     <header>
-        <nav class="navbar navbar-expand-lg" style="background: #FFFFFF; border-bottom: 1px solid #EAEAEA;">
+        <nav class="navbar navbar-expand-lg app-nav">
             <div class="container">
-                <a class="navbar-brand fw-bold" href="/" style="color: #111111; letter-spacing: -0.02em;">
+                <a class="navbar-brand app-nav-brand" href="/">
                     <i class="ph ph-book-open"></i> LTWNC
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Mở menu điều hướng">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarNav">
                     <ul class="navbar-nav me-auto">
                         <li class="nav-item">
-                            <a class="nav-link" href="/" style="color: #787774;">Trang chủ</a>
+                            <a class="nav-link" href="/">Trang chủ</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/Leaderboard">Bảng xếp hạng</a>
                         </li>
                         @if (signedIn)
                         {
                             <li class="nav-item">
-                                <a class="nav-link" href="/Set" style="color: #787774;">Bộ thẻ của tôi</a>
+                                <a class="nav-link" href="/Set">Bộ thẻ của tôi</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link" href="/Achievements" style="color: #787774;">Thành tích</a>
+                                <a class="nav-link" href="/Achievements">Thành tích</a>
                             </li>
+                            @if (User.IsInRole(ltwnc.Services.Auth.AdminRoleBootstrapper.AdminRole))
+                            {
+                                <li class="nav-item">
+                                    <a class="nav-link" href="/Admin">Quản trị</a>
+                                </li>
+                            }
                         }
                     </ul>
-                    <ul class="navbar-nav">
+                    <ul class="navbar-nav align-items-lg-center">
                         @if (signedIn)
                         {
                             <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown" style="color: #111111;">
+                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
                                     <i class="ph ph-user-circle"></i> @User.Identity?.Name
                                 </a>
-                                <ul class="dropdown-menu dropdown-menu-end" style="border: 1px solid #EAEAEA; border-radius: 8px;">
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li>
+                                        <a class="dropdown-item"
+                                           asp-route="PublicProfile"
+                                           asp-route-username="@User.Identity?.Name">
+                                            <i class="ph ph-user"></i> Profile
+                                        </a>
+                                    </li>
+                                    <li>
+                                        <a class="dropdown-item" href="/Account/Profile/Edit">
+                                            <i class="ph ph-pencil-simple"></i> Chỉnh sửa profile
+                                        </a>
+                                    </li>
                                     <li>
                                         <form asp-controller="Account" asp-action="Logout" method="post" class="dropdown-item p-0">
-                                            <button type="submit" class="dropdown-item" style="color: #787774;">
+                                            <button type="submit" class="dropdown-item">
                                                 <i class="ph ph-sign-out"></i> Đăng xuất
                                             </button>
                                         </form>
@@ -72,12 +93,10 @@
                         else
                         {
                             <li class="nav-item">
-                                <a class="nav-link" href="/Account/Login" style="color: #787774;">Đăng nhập</a>
+                                <a class="nav-link" href="/Account/Login">Đăng nhập</a>
                             </li>
-                            <li class="nav-item ms-2">
-                                <a class="btn" href="/Account/Register" style="background: #111111; color: #FFFFFF; border-radius: 6px;">
-                                    Đăng ký
-                                </a>
+                            <li class="nav-item ms-lg-2">
+                                <a class="btn-primary-custom app-nav-cta" href="/Account/Register">Đăng ký</a>
                             </li>
                         }
                     </ul>
@@ -87,7 +106,7 @@
     </header>
     }
 
-    <main style="background: #F7F6F3; min-height: calc(100vh - 120px);">
+    <main class="app-main">
         @if (IsSectionDefined("FullWidth"))
         {
             @RenderSection("FullWidth", required: false)
@@ -102,9 +121,38 @@
 
     @if (!hideLayoutChrome)
     {
-    <footer style="background: #FFFFFF; border-top: 1px solid #EAEAEA; color: #787774; font-size: 0.875rem;">
-        <div class="container py-4 text-center">
-            &copy; @DateTime.Now.Year LTWNC English. Học tiếng Anh cùng flashcard.
+    <footer class="app-footer">
+        <div class="container py-5">
+            <div class="row g-4">
+                <div class="col-lg-5">
+                    <div class="app-footer-brand"><i class="ph ph-book-open"></i> LTWNC</div>
+                    <p class="app-footer-tagline">Học từ vựng bằng flashcard, nghe chép và hội thoại tình huống.</p>
+                </div>
+                <div class="col-lg-3 col-6">
+                    <div class="app-footer-heading">Điều hướng</div>
+                    <ul class="app-footer-links">
+                        <li><a href="/">Trang chủ</a></li>
+                        <li><a href="/Leaderboard">Bảng xếp hạng</a></li>
+                        @if (signedIn)
+                        {
+                            <li><a href="/Set">Bộ thẻ của tôi</a></li>
+                            <li><a href="/Achievements">Thành tích</a></li>
+                        }
+                        else
+                        {
+                            <li><a href="/Account/Login">Đăng nhập</a></li>
+                            <li><a href="/Account/Register">Đăng ký</a></li>
+                        }
+                    </ul>
+                </div>
+                <div class="col-lg-4 col-6">
+                    <div class="app-footer-heading">LTWNC English</div>
+                    <p class="app-footer-quote">Flashcard · Nghe chép · English Mission</p>
+                </div>
+            </div>
+            <div class="app-footer-bottom">
+                &copy; @DateTime.Now.Year LTWNC English. Học tiếng Anh theo nhiều cách.
+            </div>
         </div>
     </footer>
     }

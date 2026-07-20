@@ -1,12 +1,15 @@
 using System.Diagnostics;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 using ltwnc.Models;
+using ltwnc.Models.Entities;
 using ltwnc.Services.FlashcardSets;
 using ltwnc.Models.ViewModels.Home;
 
 namespace ltwnc.Controllers;
 
-// Trang chủ (khách) và trang lỗi. User đã login vào /Set luôn.
+// Trang chủ công khai và trang lỗi.
 public class HomeController : Controller
 {
     // Lấy / tìm bộ thẻ public
@@ -18,27 +21,32 @@ public class HomeController : Controller
         _setService = setService;
     }
 
-    // GET / : nếu đã login redirect /Set; không thì list public hoặc search theo q
+    // GET /: hiển thị trang chủ cho cả khách và user đã đăng nhập.
     public async Task<IActionResult> Index(string? q)
     {
-        if (User.Identity?.IsAuthenticated == true)
-        {
-            return Redirect("/Set");
-        }
-
         HomeViewModel model = new HomeViewModel();
+        List<FlashcardSet> publicSets;
 
         if (!string.IsNullOrEmpty(q))
         {
             // Có từ khóa: tìm theo tiêu đề
             model.SearchQuery = q;
-            model.PublicSets = await _setService.SearchPublicSetsAsync(q);
+            publicSets = await _setService.SearchPublicSetsAsync(q);
         }
         else
         {
             // Không có q: vài bộ public mới nhất
-            model.PublicSets = await _setService.GetPublicSetsAsync();
+            publicSets = await _setService.GetPublicSetsAsync();
         }
+
+        model.PublicSets = publicSets
+            .Select(set => new PublicSetViewModel
+            {
+                Id = set.Id,
+                Title = set.Title,
+                Description = set.Description
+            })
+            .ToList();
 
         return View(model);
     }
@@ -47,6 +55,24 @@ public class HomeController : Controller
     public IActionResult Privacy()
     {
         return View();
+    }
+
+    [HttpGet]
+    [AllowAnonymous]
+    public IActionResult StatusCodePage()
+    {
+        int originalStatusCode = HttpContext.Features
+            .Get<IStatusCodeReExecuteFeature>()?
+            .OriginalStatusCode ?? StatusCodes.Status404NotFound;
+
+        if (originalStatusCode == StatusCodes.Status403Forbidden)
+        {
+            Response.StatusCode = StatusCodes.Status403Forbidden;
+            return View("Forbidden");
+        }
+
+        Response.StatusCode = StatusCodes.Status404NotFound;
+        return View("NotFound");
     }
 
     // GET Error: không cache, gắn RequestId để debug

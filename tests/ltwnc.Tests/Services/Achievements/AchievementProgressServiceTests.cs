@@ -235,4 +235,58 @@ public class AchievementProgressServiceTests : IDisposable
         Assert.Equal(4, snapshot.DictationCorrectAnswers);
         Assert.Equal(1, snapshot.DictationPerfectSessions);
     }
+
+    // Batch snapshot trả đúng metric cho từng user yêu cầu mà không lẫn dữ liệu giữa các tài khoản.
+    [Fact]
+    public async Task GetSnapshotsAsync_ReturnsMetricsForAllRequestedUsers()
+    {
+        await SeedU1MetricsAsync();
+        await SeedU2NoiseAsync();
+
+        IReadOnlyDictionary<string, AchievementProgressSnapshot> snapshots =
+            await _sut.GetSnapshotsAsync(["u1", "u2", "missing-user"]);
+
+        Assert.Equal(3, snapshots.Count);
+        Assert.Equal(3, snapshots["u1"].CardsMastered);
+        Assert.Equal(4, snapshots["u1"].DictationCorrectAnswers);
+        Assert.Equal(10, snapshots["u2"].CardsMastered);
+        Assert.Equal(8, snapshots["u2"].DictationCorrectAnswers);
+        Assert.Equal(0, snapshots["missing-user"].CardsMastered);
+    }
+
+    [Fact]
+    public async Task GetSnapshotAsync_ignoresUncompletedStudySessions()
+    {
+        var set = await SeedSetAsync("u1", "Incomplete sessions");
+        _context.StudySessions.AddRange(
+            new StudySession
+            {
+                UserId = "u1",
+                FlashcardSetId = set.Id,
+                Mode = StudyMode.Flashcard,
+                CompletedAt = null
+            },
+            new StudySession
+            {
+                UserId = "u1",
+                FlashcardSetId = set.Id,
+                Mode = StudyMode.Dictation,
+                Score = 100,
+                CompletedAt = null
+            },
+            new StudySession
+            {
+                UserId = "u1",
+                FlashcardSetId = set.Id,
+                Mode = StudyMode.Flashcard,
+                CompletedAt = DateTime.UtcNow
+            });
+        await _context.SaveChangesAsync();
+
+        var snapshot = await _sut.GetSnapshotAsync("u1");
+
+        Assert.Equal(1, snapshot.FlashcardSessions);
+        Assert.Equal(0, snapshot.DictationSessions);
+        Assert.Equal(0, snapshot.DictationPerfectSessions);
+    }
 }

@@ -71,6 +71,8 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => new { e.UserId, e.FlashcardSetId, e.Mode })
                 .IsUnique()
                 .HasFilter("[Mode] = 1 AND [Score] IS NULL AND [CompletedAt] IS NULL");
+            entity.HasIndex(e => new { e.CompletedAt, e.UserId });
+            entity.HasIndex(e => e.StartedAt);
             // Quan hệ: nhiều StudySession thuộc về 1 FlashcardSet
             // Restrict = không cho xóa bộ thẻ nếu còn phiên học (tránh mất dữ liệu)
             entity.HasOne(e => e.FlashcardSet)

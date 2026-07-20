@@ -2,7 +2,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace ltwnc.Models.ViewModels.FlashcardSet;
 
-// Form meta bộ thẻ khi Edit (thẻ nằm ViewBag.Cards, không trong VM này)
+// Form metadata bộ thẻ khi Edit; EditSetPageViewModel chứa form này cùng danh sách thẻ.
 public class EditSetViewModel
 {
     // Id set đang sửa

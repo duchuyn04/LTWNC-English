@@ -1,4 +1,5 @@
 @model SetDetailViewModel
+@using ltwnc.Areas.Admin
 @{
     ViewData["Title"] = Model.Title;
 }
@@ -31,6 +32,21 @@
                 <div class="set-detail-stat-label">Tổng số</div>
             </div>
         </div>
+
+        @if (Model.IsOwner && Model.IsQuarantined)
+        {
+            <div class="set-report-alert set-report-alert--danger" role="alert">
+                Bộ flashcard này đang bị cách ly khỏi tìm kiếm, chia sẻ, sao chép và học công khai.
+                @if (!string.IsNullOrWhiteSpace(Model.ModerationPublicReason))
+                {
+                    <span>Lý do: @Model.ModerationPublicReason</span>
+                }
+                @if (Model.ModeratedAtUtc.HasValue)
+                {
+                    <span>Thời điểm xử lý: @FormatVietnamTime(Model.ModeratedAtUtc.Value)</span>
+                }
+            </div>
+        }
 
         <div class="d-flex gap-2 justify-content-center flex-wrap">
             @if (Model.IsOwner)
@@ -69,6 +85,52 @@
         </div>
     </div>
 
+    @if (TempData["ContentReportSuccess"] is string reportSuccess)
+    {
+        <div class="set-report-alert set-report-alert--success" role="status">@reportSuccess</div>
+    }
+
+    @if (TempData["ContentReportError"] is string reportError)
+    {
+        <div class="set-report-alert set-report-alert--danger" role="alert">@reportError</div>
+    }
+
+    @if (Model.CanReport)
+    {
+        <section class="set-report-panel gsap-fade-up" aria-labelledby="report-content-heading">
+            <div>
+                <h3 id="report-content-heading">Báo cáo bộ flashcard</h3>
+                <p>Chọn lý do cố định và thêm mô tả nếu cần.</p>
+            </div>
+            <form asp-action="Report" asp-route-id="@Model.Id" method="post" class="set-report-form">
+                @Html.AntiForgeryToken()
+                <div>
+                    <label for="report-reason">Lý do</label>
+                    <select id="report-reason" name="Reason" required>
+                        <option value="">Chọn lý do</option>
+                        @foreach (var option in Model.ReportReasonOptions)
+                        {
+                            <option value="@option.Value">@option.Label</option>
+                        }
+                    </select>
+                </div>
+                <div>
+                    <label for="report-description">Mô tả thêm</label>
+                    <textarea id="report-description" name="Description" maxlength="1000" rows="4"></textarea>
+                </div>
+                <button type="submit" class="btn-secondary-custom">
+                    <i class="ph ph-flag" aria-hidden="true"></i> Gửi báo cáo
+                </button>
+            </form>
+        </section>
+    }
+    else if (Model.HasOpenReport)
+    {
+        <div class="set-report-alert" role="status">
+            Bạn đã có một báo cáo đang chờ xử lý cho bộ flashcard này.
+        </div>
+    }
+
     @if (Model.Flashcards.Any())
     {
         <div class="set-detail-list gsap-stagger">
@@ -76,7 +138,7 @@
                 <h3>Danh sách từ</h3>
                 @if (Model.IsOwner)
                 {
-                    <a href="/Set/@Model.Id/Edit" class="btn-secondary-custom" style="padding: 0.4rem 0.8rem; font-size: 0.8125rem;">Quản lý</a>
+                    <a href="/Set/@Model.Id/Edit" class="btn-secondary-custom set-detail-list-action">Quản lý</a>
                 }
             </div>
             @foreach (var card in Model.Flashcards.OrderBy(c => c.OrderIndex))
@@ -84,7 +146,7 @@
                 <div class="set-detail-row">
                     <div>
                         <div class="set-detail-term">@card.FrontText</div>
-                        <small style="color: #78716c;">@card.PartOfSpeech · @card.Pronunciation</small>
+                        <small class="set-detail-meta">@card.PartOfSpeech · @card.Pronunciation</small>
                     </div>
                     <div class="set-detail-definition">@card.BackText</div>
                 </div>
@@ -94,8 +156,8 @@
     else
     {
         <div class="set-empty-state gsap-fade-up">
-            <div class="set-empty-state-icon">📝</div>
-            <p style="font-size: 1.1rem; font-weight: 600; color: var(--sm-ink);">Bộ thẻ này chưa có từ nào.</p>
+            <div class="set-empty-state-icon"><i class="ph ph-note-pencil" aria-hidden="true"></i></div>
+            <p class="set-empty-state-title">Bộ thẻ này chưa có từ nào.</p>
             @if (Model.IsOwner)
             {
                 <a href="/Set/@Model.Id/Edit" class="btn-primary-custom gsap-scale-in">Thêm từ đầu tiên</a>
@@ -103,3 +165,10 @@
         </div>
     }
 </div>
+
+@functions {
+    private static string FormatVietnamTime(DateTime valueUtc)
+    {
+        return AdminTimeZone.ToVietnamTime(valueUtc).ToString("HH:mm dd/MM/yyyy");
+    }
+}

@@ -1,7 +1,11 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.FlashcardSets;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Moq;
+using System.Text;
 using Xunit;
 
 namespace ltwnc.Tests.Services;
@@ -75,5 +79,36 @@ public class FlashcardSetServiceAddCardTests : IDisposable
         var second = await _service.AddCardAsync(set.Id, "b", "b", "/b/", "noun", "B", "B", null, null, null, false, "user");
 
         Assert.Equal(1, second.OrderIndex);
+    }
+
+    [Fact]
+    public async Task AddCardAsync_rejects_non_image_content_disguised_as_png()
+    {
+        string uploadRoot = Path.Combine(Path.GetTempPath(), "ltwnc-upload-tests", Guid.NewGuid().ToString());
+        Directory.CreateDirectory(uploadRoot);
+        try
+        {
+            var environment = new Mock<IWebHostEnvironment>();
+            environment.Setup(item => item.WebRootPath).Returns(uploadRoot);
+            var service = new FlashcardSetService(_context, environment.Object);
+            var set = new FlashcardSet { Title = "Set", UserId = "user" };
+            _context.FlashcardSets.Add(set);
+            await _context.SaveChangesAsync();
+            byte[] bytes = Encoding.UTF8.GetBytes("<script>alert('not an image')</script>");
+            var file = new FormFile(new MemoryStream(bytes), 0, bytes.Length, "imageFile", "photo.png")
+            {
+                Headers = new HeaderDictionary(),
+                ContentType = "image/png"
+            };
+
+            await Assert.ThrowsAsync<ArgumentException>(() => service.AddCardAsync(
+                set.Id, "front", "back", null, null, null, null, null, null, file, false, "user"));
+
+            Assert.False(Directory.Exists(Path.Combine(uploadRoot, "uploads", "flashcards")));
+        }
+        finally
+        {
+            Directory.Delete(uploadRoot, recursive: true);
+        }
     }
 }

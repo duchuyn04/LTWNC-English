@@ -22,18 +22,21 @@ public class StudyService : IStudyService
 
     // Subject Observer: publish sau khi Save progress / session
     private readonly IStudyEventPublisher _studyEvents;
+    private readonly TimeProvider _timeProvider;
 
     // Inject DbContext, strategy, resolver, publisher
     public StudyService(
         AppDbContext context,
         IEnumerable<IStudyModeStrategy> strategies,
         IStudyModeStrategyResolver strategyResolver,
-        IStudyEventPublisher studyEvents)
+        IStudyEventPublisher studyEvents,
+        TimeProvider? timeProvider = null)
     {
         _context = context;
         _strategies = strategies;
         _strategyResolver = strategyResolver;
         _studyEvents = studyEvents;
+        _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
     // Lấy danh sách thẻ cho một chế độ học cụ thể.
@@ -157,7 +160,10 @@ public class StudyService : IStudyService
             throw new KeyNotFoundException("Bộ thẻ không tồn tại.");
         }
 
-        if (!set.IsPublic && set.UserId != userId)
+        bool canStudyAsPublic =
+            set.IsPublic
+            && set.ModerationStatus == FlashcardSetModerationStatus.Active;
+        if (!canStudyAsPublic && set.UserId != userId)
         {
             throw new UnauthorizedAccessException("Không có quyền học bộ thẻ này.");
         }
@@ -210,8 +216,7 @@ public class StudyService : IStudyService
             Status: progress.Status));
     }
 
-    // Ghi nhận hoàn thành một phiên học
-    public async Task CompleteSessionAsync(string userId, int setId, StudyMode mode)
+    public async Task<StudySession> StartSessionAsync(string userId, int setId, StudyMode mode)
     {
         FlashcardSet? set = await _context.FlashcardSets.FindAsync(setId);
         if (set == null)
@@ -219,7 +224,10 @@ public class StudyService : IStudyService
             throw new KeyNotFoundException("Bộ thẻ không tồn tại.");
         }
 
-        if (!set.IsPublic && set.UserId != userId)
+        bool canStudyAsPublic =
+            set.IsPublic
+            && set.ModerationStatus == FlashcardSetModerationStatus.Active;
+        if (!canStudyAsPublic && set.UserId != userId)
         {
             throw new UnauthorizedAccessException("Không có quyền học bộ thẻ này.");
         }
@@ -229,19 +237,50 @@ public class StudyService : IStudyService
             UserId = userId,
             FlashcardSetId = setId,
             Mode = mode,
-            CompletedAt = DateTime.UtcNow
+            StartedAt = _timeProvider.GetUtcNow().UtcDateTime
         };
 
         await _context.StudySessions.AddAsync(session);
         await _context.SaveChangesAsync();
 
+        return session;
+    }
+
+    // Ghi nhận hoàn thành một phiên học; thao tác lặp lại không publish/cộng thêm.
+    public async Task CompleteSessionAsync(string userId, int setId, int sessionId)
+    {
+        StudySession? session = await _context.StudySessions.FindAsync(sessionId);
+        if (session == null)
+        {
+            throw new KeyNotFoundException("Phiên học không tồn tại.");
+        }
+
+        if (session.UserId != userId
+            || session.FlashcardSetId != setId
+            || session.Mode != StudyMode.Flashcard)
+        {
+            throw new UnauthorizedAccessException("Không có quyền hoàn tất phiên học này.");
+        }
+
+        if (session.CompletedAt.HasValue)
+        {
+            return;
+        }
+
+        DateTime completedAt = _timeProvider.GetUtcNow().UtcDateTime;
+        session.DurationSeconds = StudySessionTiming.CalculateDurationSeconds(
+            session.StartedAt,
+            completedAt);
+        session.CompletedAt = completedAt;
+        await _context.SaveChangesAsync();
+
         // Báo buổi học đã xong; observer có thể mở huy hiệu "buổi Flashcard đầu tiên"...
         await _studyEvents.PublishAsync(new StudySessionCompletedEvent(
-            UserId: userId,
-            OccurredAtUtc: DateTime.UtcNow,
-            SetId: setId,
+            UserId: session.UserId,
+            OccurredAtUtc: completedAt,
+            SetId: session.FlashcardSetId,
             SessionId: session.Id,
-            Mode: mode,
+            Mode: session.Mode,
             Score: session.Score));
     }
 

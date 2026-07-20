@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using ltwnc.Services.Auth;
 using ltwnc.Services.FlashcardSets;
 using ltwnc.Services.Study;
+using ltwnc.Models.ViewModels.Flashcards;
 using ltwnc.Models.ViewModels.Study;
 using ltwnc.Models.Entities;
 
@@ -41,9 +42,9 @@ public class StudyController : Controller
         _currentUser = currentUser;
     }
 
-    // GET Study Hub: chỉ set của owner; query filter ghi settings nếu đã login
+    // Entry route: lưu bộ lọc nếu có rồi mở thẳng Flashcard.
     [AllowAnonymous]
-    [Route("/Study/{setId}")]
+    [Route("/Study/{setId:int}")]
     public async Task<IActionResult> Index(
         int setId,
         bool? starredOnly = null,
@@ -62,14 +63,17 @@ public class StudyController : Controller
             await _studyService.SaveFilterSettingsAsync(userId, starredOnly, unlearnedOnly);
         }
 
-        StudyModeSelectorViewModel model =
-            await _studyService.GetStudyModeSelectorDataAsync(setId, userId);
-        return View(model);
+        return RedirectToAction(nameof(Flashcard), new
+        {
+            setId,
+            starredOnly,
+            unlearnedOnly
+        });
     }
 
-    // GET màn flashcard: gộp filter query + settings; empty -> hub + TempData
+    // GET màn flashcard: gộp filter query + settings; bộ lọc rỗng được tự bỏ.
     [AllowAnonymous]
-    [Route("/Study/{setId}/Flashcard")]
+    [Route("/Study/{setId:int}/Flashcard")]
     public async Task<IActionResult> Flashcard(
         int setId,
         int index = 0,
@@ -115,30 +119,50 @@ public class StudyController : Controller
 
         if (!cards.Any())
         {
-            if (effectiveStarredOnly || effectiveUnlearnedOnly)
+            if (vocabularyCards.Any() && (effectiveStarredOnly || effectiveUnlearnedOnly))
             {
-                TempData["Message"] = "Không có thẻ phù hợp với bộ lọc hiện tại.";
-            }
-            else
-            {
-                TempData["Message"] = "Bộ thẻ này chưa có thẻ nào.";
+                TempData["Message"] = "Không có thẻ phù hợp. Bộ lọc đã được bỏ để bạn tiếp tục học.";
+
+                if (userId != null)
+                {
+                    await _studyService.SaveFilterSettingsAsync(userId, false, false);
+                }
+
+                return RedirectToAction(nameof(Flashcard), new
+                {
+                    setId,
+                    starredOnly = false,
+                    unlearnedOnly = false
+                });
             }
 
-            return RedirectToAction("Index", new { setId });
+            TempData["Message"] = "Thêm ít nhất một thẻ để bắt đầu học.";
+            return RedirectToAction("Edit", "FlashcardSet", new { id = setId });
         }
+
+        StudyModeSelectorViewModel modeSelector =
+            await _studyService.GetStudyModeSelectorDataAsync(setId, userId);
+
+        StudySession? session = userId == null
+            ? null
+            : await _studyService.StartSessionAsync(userId, setId, StudyMode.Flashcard);
 
         FlashcardStudyViewModel model = new FlashcardStudyViewModel
         {
             SetId = setId,
+            SessionId = session?.Id ?? 0,
             SetTitle = set.Title,
-            Flashcards = cards,
-            VocabularyCards = vocabularyCards,
-            ProgressByCardId = progressByCardId,
+            Flashcards = FlashcardViewModelMapper.FromEntities(cards),
+            VocabularyCards = FlashcardViewModelMapper.FromEntities(vocabularyCards),
+            ProgressByCardId = progressByCardId.ToDictionary(
+                entry => entry.Key,
+                entry => FlashcardProgressViewModel.FromEntity(entry.Value)),
             CurrentIndex = Math.Clamp(index, 0, cards.Count - 1),
             StarredOnly = effectiveStarredOnly,
-            Settings = settings,
+            Settings = StudySettingsMapper.ToViewModel(settings),
             IsAuthenticated = userId != null,
-            UnlearnedOnly = effectiveUnlearnedOnly
+            UnlearnedOnly = effectiveUnlearnedOnly,
+            Modes = modeSelector.Modes
         };
 
         return View(model);
@@ -146,7 +170,7 @@ public class StudyController : Controller
 
     // POST đánh dấu đã biết / chưa biết; AJAX -> JSON, form -> redirect Flashcard
     [HttpPost]
-    [Route("/Study/{setId}/Flashcard/Mark")]
+    [Route("/Study/{setId:int}/Flashcard/Mark")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkLearned(int setId, int cardId, bool learned)
     {
@@ -184,9 +208,9 @@ public class StudyController : Controller
 
     // POST hoàn thành buổi Flashcard; AJAX kèm redirectUrl hub
     [HttpPost]
-    [Route("/Study/{setId}/Complete")]
+    [Route("/Study/{setId:int}/Complete")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Complete(int setId)
+    public async Task<IActionResult> Complete(int setId, int sessionId)
     {
         string? userId = _currentUser.UserId;
         if (userId == null)
@@ -201,7 +225,7 @@ public class StudyController : Controller
 
         try
         {
-            await _studyService.CompleteSessionAsync(userId, setId, StudyMode.Flashcard);
+            await _studyService.CompleteSessionAsync(userId, setId, sessionId);
         }
         catch (KeyNotFoundException)
         {
@@ -227,7 +251,7 @@ public class StudyController : Controller
 
     // POST AJAX toggle sao thẻ (owner)
     [HttpPost]
-    [Route("/Study/{setId}/Flashcard/{cardId}/ToggleStar")]
+    [Route("/Study/{setId:int}/Flashcard/{cardId:int}/ToggleStar")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleStar(int setId, int cardId)
     {
@@ -256,11 +280,20 @@ public class StudyController : Controller
         }
     }
 
+    [HttpGet]
+    [AllowAnonymous]
+    [Route("/Study/Settings")]
+    public IActionResult Settings()
+    {
+        // GET route này giữ contract routing cũ khi đường dẫn bị gọi nhầm: quay về trang chi tiết set #0.
+        return RedirectToAction("Details", "FlashcardSet", new { id = 0 });
+    }
+
     // POST AJAX lưu toàn bộ UserStudySettings
     [HttpPost]
     [Route("/Study/Settings")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> SaveSettings([FromForm] UserStudySettings settings)
+    public async Task<IActionResult> SaveSettings([FromForm] StudySettingsViewModel settings)
     {
         string? userId = _currentUser.UserId;
         if (userId == null)
@@ -268,10 +301,21 @@ public class StudyController : Controller
             return Unauthorized();
         }
 
+        if (!ModelState.IsValid)
+        {
+            return ValidationProblem(ModelState);
+        }
+
         try
         {
-            UserStudySettings saved = await _studyService.SaveSettingsAsync(userId, settings);
-            return Json(new { success = true, settings = saved });
+            UserStudySettings saved = await _studyService.SaveSettingsAsync(
+                userId,
+                StudySettingsMapper.ToEntity(settings));
+            return Json(new
+            {
+                success = true,
+                settings = StudySettingsMapper.ToViewModel(saved)
+            });
         }
         catch (Exception)
         {
@@ -281,7 +325,9 @@ public class StudyController : Controller
 
     // GET tắt StarredOnly + UnlearnedOnly rồi về hub (thoát lọc rỗng)
     [Authorize]
-    [Route("/Study/{setId}/ClearFilters")]
+    [HttpPost]
+    [Route("/Study/{setId:int}/ClearFilters")]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> ClearFilters(int setId)
     {
         string? userId = _currentUser.UserId;
@@ -844,7 +890,7 @@ public class StudyController : Controller
 
     // GET màn Dictation: tạo session, map thẻ -> view model; empty -> hub
     [Authorize]
-    [Route("/Study/{setId}/Dictation")]
+    [Route("/Study/{setId:int}/Dictation")]
     public async Task<IActionResult> Dictation(int setId)
     {
         string? userId = _currentUser.UserId;
@@ -893,7 +939,8 @@ public class StudyController : Controller
         StudySession session = await _dictationService.CreateSessionAsync(
             userId,
             setId,
-            settings.DictationContentMode);
+            settings.DictationContentMode,
+            cards.Count);
 
         List<DictationCardViewModel> cardViewModels = new List<DictationCardViewModel>();
         foreach (Flashcard card in cards)
@@ -934,7 +981,7 @@ public class StudyController : Controller
             SetId = setId,
             SetTitle = set.Title,
             SessionId = session.Id,
-            Settings = settings,
+            Settings = StudySettingsMapper.ToViewModel(settings),
             ContentMode = session.DictationContentMode,
             Cards = cardViewModels
         };
@@ -944,7 +991,7 @@ public class StudyController : Controller
 
     // POST AJAX chấm một câu; trả isCorrect, hint, wordComparison...
     [HttpPost]
-    [Route("/Study/{setId}/Dictation/Check")]
+    [Route("/Study/{setId:int}/Dictation/Check")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DictationCheck(
         int setId,
@@ -963,6 +1010,7 @@ public class StudyController : Controller
             UserStudySettings settings = await _studyService.GetSettingsAsync(userId);
             DictationCheckResult result = await _dictationService.CheckAnswerAsync(
                 sessionId,
+                setId,
                 cardId,
                 answeredText,
                 userId,
@@ -998,9 +1046,9 @@ public class StudyController : Controller
 
     // POST AJAX đóng phiên + điểm; JSON redirectUrl màn result
     [HttpPost]
-    [Route("/Study/{setId}/Dictation/Complete")]
+    [Route("/Study/{setId:int}/Dictation/Complete")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> DictationComplete(int setId, int sessionId, int score)
+    public async Task<IActionResult> DictationComplete(int setId, int sessionId)
     {
         string? userId = _currentUser.UserId;
         if (userId == null)
@@ -1010,7 +1058,7 @@ public class StudyController : Controller
 
         try
         {
-            await _dictationService.CompleteSessionAsync(sessionId, score);
+            await _dictationService.CompleteSessionAsync(sessionId, setId, userId);
             return Json(new
             {
                 success = true,
@@ -1021,11 +1069,15 @@ public class StudyController : Controller
         {
             return NotFound();
         }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
     }
 
     // GET tổng kết phiên nghe chép (owner set + owner session)
     [Authorize]
-    [Route("/Study/{setId}/Dictation/Result/{sessionId}")]
+    [Route("/Study/{setId:int}/Dictation/Result/{sessionId:int}")]
     public async Task<IActionResult> DictationResult(int setId, int sessionId)
     {
         string? userId = _currentUser.UserId;

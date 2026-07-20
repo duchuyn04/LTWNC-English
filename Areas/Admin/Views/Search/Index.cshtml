@@ -1,0 +1,98 @@
+@model ltwnc.Services.AdminSearch.AdminGlobalSearchResult
+@{
+    ViewData["Title"] = "Tìm kiếm toàn cục";
+    ViewData["Heading"] = "Tìm kiếm toàn cục";
+}
+
+<section class="admin-panel" aria-labelledby="global-search-heading">
+    <div class="admin-panel-header">
+        <div>
+            <h2 id="global-search-heading">Tìm nhanh trong Admin</h2>
+            <p>Kết quả chỉ gồm metadata nhận diện an toàn và liên kết quản trị.</p>
+        </div>
+    </div>
+
+    <form method="get" action="/Admin/Search" class="admin-filter-form">
+        <div class="admin-filter-field">
+            <label for="q">Từ khóa</label>
+            <input type="search" id="q" name="q" value="@Model.NormalizedQuery"
+                   placeholder="Email, mã người dùng, SET-12 hoặc EM-12" maxlength="100" />
+        </div>
+        <button type="submit" class="admin-filter-submit">
+            <i class="ph ph-magnifying-glass" aria-hidden="true"></i> Tìm
+        </button>
+    </form>
+
+    @if (Model.WasTruncated)
+    {
+        <p class="admin-empty">Từ khóa đã được rút gọn còn 100 ký tự trước khi tìm.</p>
+    }
+</section>
+
+@if (!Model.HasQuery)
+{
+    <section class="admin-panel">
+        <p class="admin-empty">Nhập email, mã định danh, tiêu đề bộ flashcard hoặc mã nhiệm vụ để bắt đầu.</p>
+    </section>
+}
+else if (!Model.HasAnyResult)
+{
+    <section class="admin-panel">
+        <p class="admin-empty">Không có kết quả an toàn nào khớp từ khóa hiện tại.</p>
+    </section>
+}
+else
+{
+    @foreach (ltwnc.Services.AdminSearch.AdminGlobalSearchGroup group in Model.Groups)
+    {
+        <section class="admin-panel" aria-labelledby="search-group-@group.Type">
+            <div class="admin-panel-header">
+                <h2 id="search-group-@group.Type">@group.Label</h2>
+                @if (group.HasMore)
+                {
+                    <a class="admin-text-link" href="@group.SeeMoreUrl">
+                        Xem thêm <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                    </a>
+                }
+            </div>
+
+            @if (group.Items.Count == 0)
+            {
+                <p class="admin-empty">Không có kết quả trong nhóm này.</p>
+            }
+            else
+            {
+                <div class="admin-table-wrapper">
+                    <table class="admin-table">
+                        <thead>
+                            <tr>
+                                <th scope="col">Đối tượng</th>
+                                <th scope="col">Nhận diện</th>
+                                <th scope="col">Trạng thái</th>
+                                <th scope="col">Liên kết</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (ltwnc.Services.AdminSearch.AdminGlobalSearchItem item in group.Items)
+                            {
+                                <tr data-search-result-type="@item.Type">
+                                    <td>@group.Label</td>
+                                    <td>
+                                        <strong>@item.PrimaryText</strong>
+                                        <small class="admin-muted-line">@item.SecondaryText</small>
+                                    </td>
+                                    <td><span class="admin-status">@item.Status</span></td>
+                                    <td>
+                                        <a class="admin-text-link" href="@item.AdminUrl">
+                                            Mở trong Admin
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    }
+}

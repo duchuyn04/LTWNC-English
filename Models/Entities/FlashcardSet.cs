@@ -25,6 +25,33 @@ public class FlashcardSet : IPrototype<FlashcardSet>
     // true = mọi người xem được, false = chỉ chủ sở hữu xem
     public bool IsPublic { get; set; } = true;
 
+    // Trạng thái kiểm duyệt: Active là bình thường, Quarantined là đang bị cách ly.
+    [Required]
+    [MaxLength(40)]
+    public string ModerationStatus { get; set; } = FlashcardSetModerationStatus.Active;
+
+    // Lý do công khai cho tác giả biết vì sao bộ bị cách ly.
+    [MaxLength(500)]
+    public string? ModerationPublicReason { get; set; }
+
+    // Ghi chú nội bộ chỉ dành cho Admin, không được đưa ra giao diện tác giả.
+    [MaxLength(1000)]
+    public string? ModerationInternalNote { get; set; }
+
+    // Bằng chứng kiểm duyệt chỉ lưu cho Admin, không hiển thị cho tác giả.
+    [MaxLength(1000)]
+    public string? ModerationEvidence { get; set; }
+
+    // Admin thực hiện thay đổi kiểm duyệt gần nhất.
+    [MaxLength(450)]
+    public string? ModeratedByUserId { get; set; }
+
+    // Thời điểm thay đổi kiểm duyệt gần nhất theo UTC.
+    public DateTime? ModeratedAtUtc { get; set; }
+
+    // Khóa phiên bản dùng để phát hiện hai Admin thao tác cùng lúc.
+    public int ModerationVersion { get; set; } = 1;
+
     // ID của bộ thẻ nguồn khi bộ này được sao chép.
     // Không cấu hình foreign key để bản sao vẫn tồn tại nếu bộ nguồn bị xóa.
     public int? SourceSetId { get; set; }
@@ -61,4 +88,10 @@ public class FlashcardSet : IPrototype<FlashcardSet>
                 .ToList()
         };
     }
+}
+
+public static class FlashcardSetModerationStatus
+{
+    public const string Active = "Active";
+    public const string Quarantined = "Quarantined";
 }

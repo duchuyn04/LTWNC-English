@@ -1,0 +1,141 @@
+@model AdminUserDetailsViewModel
+@{
+    ViewData["Title"] = "Chi tiết người dùng";
+    ViewData["Heading"] = "Chi tiết tài khoản";
+}
+
+<section class="admin-panel" aria-labelledby="user-detail-heading">
+    <div class="admin-panel-header">
+        <div>
+            <h2 id="user-detail-heading">@Model.UserName</h2>
+            <p>@Model.Email</p>
+        </div>
+        <span class="admin-status admin-status--@Model.StatusTone">@Model.StatusLabel</span>
+    </div>
+
+    @if (TempData["AdminUsersSuccess"] is string successMessage)
+    {
+        <div class="admin-alert admin-alert--success" role="status">@successMessage</div>
+    }
+
+    @if (TempData["AdminUsersError"] is string errorMessage)
+    {
+        <div class="admin-alert admin-alert--danger" role="alert">@errorMessage</div>
+    }
+
+    <dl class="admin-detail-grid">
+        <div>
+            <dt>Mã tài khoản</dt>
+            <dd><code>@Model.Id</code></dd>
+        </div>
+        <div>
+            <dt>Vai trò</dt>
+            <dd>@RoleLabel()</dd>
+        </div>
+        <div>
+            <dt>Email đã xác minh</dt>
+            <dd>@BooleanLabel(Model.EmailConfirmed)</dd>
+        </div>
+        <div>
+            <dt>Cho phép khóa</dt>
+            <dd>@BooleanLabel(Model.LockoutEnabled)</dd>
+        </div>
+        <div>
+            <dt>Số lần đăng nhập lỗi</dt>
+            <dd>@Model.AccessFailedCount</dd>
+        </div>
+        <div>
+            <dt>Ngày tạo hồ sơ</dt>
+            <dd>@Model.CreatedAtDisplay</dd>
+        </div>
+        <div>
+            <dt>Cập nhật hồ sơ</dt>
+            <dd>@Model.UpdatedAtDisplay</dd>
+        </div>
+        <div>
+            <dt>Khóa đến</dt>
+            <dd>@Model.LockoutEndDisplay</dd>
+        </div>
+    </dl>
+
+    @* Đi từ hồ sơ tài khoản đến danh sách phiên học của chính ngườ dùng này *@
+    <p>
+        <a class="admin-text-link" href="/Admin/Learning?userId=@Uri.EscapeDataString(Model.Id)">
+            <i class="ph ph-graduation-cap" aria-hidden="true"></i> Xem phiên học của ngườ dùng
+        </a>
+    </p>
+</section>
+
+<section class="admin-panel" aria-labelledby="user-actions-heading">
+    <div class="admin-panel-header">
+        <h2 id="user-actions-heading">Thao tác bảo vệ tài khoản</h2>
+        <p>Mọi thao tác cần lý do và tạo bản ghi kiểm toán quản trị.</p>
+    </div>
+
+    <div class="admin-action-grid">
+        @if (Model.IsLocked)
+        {
+            <form asp-action="Unlock" asp-route-id="@Model.Id" method="post"
+                  class="admin-action-form"
+                  onsubmit="return confirm('Mở khóa tài khoản này?');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ConcurrencyStamp" value="@Model.ConcurrencyStamp" />
+                <label for="unlock-reason">Lý do mở khóa</label>
+                <textarea id="unlock-reason" name="Reason" maxlength="500" required></textarea>
+                <button type="submit" class="admin-filter-submit">
+                    <i class="ph ph-lock-open" aria-hidden="true"></i> Mở khóa
+                </button>
+            </form>
+        }
+        else
+        {
+            <form asp-action="Lock" asp-route-id="@Model.Id" method="post"
+                  class="admin-action-form"
+                  onsubmit="return confirm('Khóa tài khoản này và thu hồi mọi phiên hiện có?');">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="ConcurrencyStamp" value="@Model.ConcurrencyStamp" />
+                <label for="lock-reason">Lý do khóa</label>
+                <textarea id="lock-reason" name="Reason" maxlength="500" required></textarea>
+                <button type="submit" class="admin-filter-submit admin-button-danger">
+                    <i class="ph ph-lock" aria-hidden="true"></i> Khóa tài khoản
+                </button>
+            </form>
+        }
+
+        <form asp-action="RevokeSessions" asp-route-id="@Model.Id" method="post"
+              class="admin-action-form"
+              onsubmit="return confirm('Thu hồi toàn bộ phiên đăng nhập của tài khoản này?');">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="ConcurrencyStamp" value="@Model.ConcurrencyStamp" />
+            <label for="revoke-reason">Lý do thu hồi phiên</label>
+            <textarea id="revoke-reason" name="Reason" maxlength="500" required></textarea>
+            <button type="submit" class="admin-filter-submit">
+                <i class="ph ph-arrows-clockwise" aria-hidden="true"></i> Thu hồi phiên
+            </button>
+        </form>
+    </div>
+</section>
+
+@functions {
+    // Hiển thị vai trò ở dạng nhãn đọc được, không cung cấp thao tác đổi role.
+    private string RoleLabel()
+    {
+        if (Model.IsAdmin)
+        {
+            return "Quản trị viên";
+        }
+
+        return "Người học";
+    }
+
+    // Đổi boolean kỹ thuật sang tiếng Việt cho bảng chi tiết.
+    private static string BooleanLabel(bool value)
+    {
+        if (value)
+        {
+            return "Có";
+        }
+
+        return "Không";
+    }
+}

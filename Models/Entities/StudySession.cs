@@ -10,7 +10,8 @@ public enum StudyMode
     Quiz,      // Trắc nghiệm
     Write,     // Viết chính tả
     Match,     // Ghép đôi
-    Dictation  // Nghe chép chính tả
+    Dictation,  // Nghe chép chính tả
+    EnglishMission
 }
 
 public enum QuizRetryKind
@@ -43,6 +44,9 @@ public class StudySession
     // Điểm: Dictation/Quiz...; Flashcard thường null
     public int? Score { get; set; }
 
+    public int PlannedItemCount { get; set; }
+    public DateTime StartedAt { get; set; } = DateTime.UtcNow;
+
     // Thời gian hoàn thành phiên học
     public DateTime? CompletedAt { get; set; }
 
@@ -50,6 +54,8 @@ public class StudySession
     public int? QuizTimeLimitSeconds { get; set; }
     public int? QuizRetrySourceSessionId { get; set; }
     public QuizRetryKind? QuizRetryKind { get; set; }
+
+    public int? DurationSeconds { get; set; }
 
     // Bộ thẻ của buổi học
     [ForeignKey(nameof(FlashcardSetId))]

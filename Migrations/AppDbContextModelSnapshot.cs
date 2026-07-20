@@ -310,6 +310,9 @@ namespace ltwnc.Migrations
                     b.Property<DateTime?>("CompletedAt")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("DurationSeconds")
+                        .HasColumnType("int");
+
                     b.Property<int>("DictationContentMode")
                         .HasColumnType("int");
 
@@ -317,6 +320,9 @@ namespace ltwnc.Migrations
                         .HasColumnType("int");
 
                     b.Property<int>("Mode")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PlannedItemCount")
                         .HasColumnType("int");
 
                     b.Property<int?>("QuizRetryKind")
@@ -334,6 +340,9 @@ namespace ltwnc.Migrations
                     b.Property<int?>("Score")
                         .HasColumnType("int");
 
+                    b.Property<DateTime>("StartedAt")
+                        .HasColumnType("datetime2");
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");
@@ -347,6 +356,10 @@ namespace ltwnc.Migrations
                     b.HasIndex("UserId", "FlashcardSetId", "Mode")
                         .IsUnique()
                         .HasFilter("[Mode] = 1 AND [Score] IS NULL AND [CompletedAt] IS NULL");
+
+                    b.HasIndex("CompletedAt", "UserId");
+
+                    b.HasIndex("StartedAt");
 
                     b.ToTable("StudySessions");
                 });

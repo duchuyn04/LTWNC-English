@@ -66,6 +66,7 @@ builder.Services.AddScoped<QuizQuestionFactory>();
 builder.Services.AddScoped<IStudyModeStrategy, FlashcardModeStrategy>();
 builder.Services.AddScoped<IStudyModeStrategy, DictationModeStrategy>();
 builder.Services.AddScoped<IStudyModeStrategy, QuizModeStrategy>();
+builder.Services.AddScoped<IStudyModeStrategy, EnglishMissionModeStrategy>();
 
 // ============================================================
 // Mẫu Observer — đăng ký "trạm phát" và các "người theo dõi"

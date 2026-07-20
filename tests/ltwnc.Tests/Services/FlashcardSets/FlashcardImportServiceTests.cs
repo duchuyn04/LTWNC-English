@@ -102,6 +102,26 @@ public class FlashcardImportServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task Xlsx_with_excessive_used_rows_is_rejected_before_materializing_rows()
+    {
+        await using var stream = new MemoryStream();
+        using (var workbook = new XLWorkbook())
+        {
+            var sheet = workbook.AddWorksheet("First");
+            sheet.Cell(1, 1).Value = "Header";
+            sheet.Cell(5002, 1).Value = "Too many";
+            workbook.SaveAs(stream);
+        }
+        stream.Position = 0;
+        var file = new FormFile(stream, 0, stream.Length, "file", "large.xlsx");
+
+        FlashcardImportException exception = await Assert.ThrowsAsync<FlashcardImportException>(
+            () => _service.ImportAsync(_setId, "owner", file));
+
+        Assert.Contains("5000", exception.Message);
+    }
+
+    [Fact]
     public async Task Unsupported_extension_is_rejected_before_parsing()
     {
         await using var stream = new MemoryStream(Encoding.UTF8.GetBytes("data"));

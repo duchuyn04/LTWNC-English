@@ -594,6 +594,15 @@ public class FlashcardSetService : IFlashcardSetService
                 .Where(progress => progress.FlashcardId == cardId)
                 .ExecuteDeleteAsync();
 
+            await _context.DictationSessionDetails
+                .Where(detail => detail.FlashcardId == cardId)
+                .ExecuteDeleteAsync();
+
+            await _context.EnglishMissionTargetWords
+                .Where(word => word.FlashcardId == cardId)
+                .ExecuteDeleteAsync();
+
+            string? uploadedImagePath = card.UploadedImagePath;
             _context.Flashcards.Remove(card);
             await _context.SaveChangesAsync();
             if (transaction != null)
@@ -601,6 +610,7 @@ public class FlashcardSetService : IFlashcardSetService
                 await transaction.CommitAsync();
             }
 
+            DeleteUploadedImage(uploadedImagePath);
             return setId;
         }
         catch

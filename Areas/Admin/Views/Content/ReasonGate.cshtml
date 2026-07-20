@@ -1,0 +1,41 @@
+@model AdminContentReasonGateViewModel
+@{
+    ViewData["Title"] = "Xác nhận lý do xem";
+    ViewData["Heading"] = "Kiểm duyệt nội dung";
+}
+
+<section class="admin-panel" aria-labelledby="content-reason-gate-heading">
+    <div class="admin-panel-header">
+        <h2 id="content-reason-gate-heading">Xem nội dung bộ riêng tư</h2>
+    </div>
+
+    <p>
+        Bộ flashcard <strong>#@Model.FlashcardSetId</strong> đang ở chế độ riêng tư.
+        Vui lòng nhập lý do hỗ trợ hoặc điều tra trước khi mở nội dung chi tiết.
+        Lần xem này sẽ được ghi vào Bản ghi kiểm toán quản trị.
+    </p>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <p class="admin-alert admin-alert--danger" role="alert">@Model.ErrorMessage</p>
+    }
+
+    <form method="get" action="/Admin/Content/@Model.FlashcardSetId" class="admin-filter-form">
+        <div class="admin-filter-field">
+            <label for="reason">Lý do xem nội dung <span aria-hidden="true">*</span></label>
+            <input type="text" id="reason" name="reason" value="@Model.Reason"
+                   required maxlength="500"
+                   placeholder="Ví dụ: Hỗ trợ vụ việc #123 - tác giả yêu cầu kiểm tra" />
+        </div>
+        <button type="submit" class="admin-filter-submit">
+            <i class="ph ph-eye" aria-hidden="true"></i> Xác nhận và xem
+        </button>
+    </form>
+
+    <p>
+        <a class="admin-text-link" href="/Admin/Content">
+            <i class="ph ph-arrow-left" aria-hidden="true"></i> Quay lại danh sách nội dung
+        </a>
+    </p>
+</section>
+

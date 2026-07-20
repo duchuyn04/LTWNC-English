@@ -1,10 +1,15 @@
 namespace ltwnc.Models.ViewModels.FlashcardSet;
 
-// Một dòng thư viện /Set: entity set + thống kê học
+// Một dòng thư viện /Set: dữ liệu hiển thị bộ thẻ + thống kê học.
 public class FlashcardSetListItemViewModel
 {
-    // Bộ thẻ (title, updated...)
-    public ltwnc.Models.Entities.FlashcardSet Set { get; set; } = null!;
+    public int Id { get; set; }
+
+    public string Title { get; set; } = string.Empty;
+
+    public string? Description { get; set; }
+
+    public bool IsPublic { get; set; }
 
     // Số thẻ trong set
     public int TotalCards { get; set; }

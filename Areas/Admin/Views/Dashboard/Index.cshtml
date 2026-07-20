@@ -1,0 +1,111 @@
+@model AdminDashboardViewModel
+@{
+    ViewData["Title"] = "Tổng quan";
+    ViewData["Heading"] = "Tổng quan";
+    string snapshotUrl = $"/Admin/Snapshot?days={Model.Days}";
+}
+
+<section class="admin-dashboard"
+         data-dashboard-live
+         data-snapshot-url="@snapshotUrl">
+    <section class="admin-dashboard-context" aria-label="Phạm vi dữ liệu">
+        <div class="admin-dashboard-period">
+            <i class="ph ph-calendar-blank" aria-hidden="true"></i>
+            <p>
+                <strong data-dashboard-period>
+                    @Model.PeriodStartVietnam.ToString("dd/MM")–@Model.PeriodEndVietnam.ToString("dd/MM/yyyy")
+                </strong>
+                <span aria-hidden="true">·</span>
+                <small class="admin-dashboard-live-status"
+                       data-dashboard-live-status
+                       role="status"
+                       aria-live="polite"
+                       aria-atomic="true">
+                    Cập nhật @Model.GeneratedAtVietnam.ToString("HH:mm")
+                </small>
+            </p>
+        </div>
+        <div class="admin-header-actions">
+            <form class="admin-range-filter" method="get" action="/Admin" aria-label="Chọn khoảng thời gian">
+                @foreach (int option in Model.AllowedDays)
+                {
+                    bool isSelectedRange = Model.Days == option;
+                    string rangeButtonClass = string.Empty;
+                    string rangePressedValue = "false";
+                    if (isSelectedRange)
+                    {
+                        rangeButtonClass = "active";
+                        rangePressedValue = "true";
+                    }
+
+                    <button
+                        type="submit"
+                        name="days"
+                        value="@option"
+                        class="@rangeButtonClass"
+                        aria-pressed="@rangePressedValue">
+                        @option ngày
+                    </button>
+                }
+            </form>
+            <a class="admin-filter-submit" href="/Admin/Export/Kpis?days=@Model.Days">
+                <i class="ph ph-download-simple" aria-hidden="true"></i>
+                <span>Xuất CSV</span>
+            </a>
+        </div>
+    </section>
+
+    <section class="admin-alert-panel" aria-labelledby="admin-alert-panel-title">
+        <div class="admin-alert-heading">
+            <i class="ph ph-bell-ringing" aria-hidden="true"></i>
+            <h2 id="admin-alert-panel-title">Việc cần xử lý</h2>
+        </div>
+        <div class="admin-alert-list" data-dashboard-alerts role="status" aria-live="polite" aria-atomic="true">
+            <article class="admin-live-alert admin-live-alert--success admin-live-alert--empty">
+                <i class="ph ph-check-circle" aria-hidden="true"></i>
+                <div>
+                    <h3>Không có việc cần xử lý</h3>
+                </div>
+            </article>
+        </div>
+    </section>
+
+    <section class="admin-kpi-grid" aria-label="Chỉ số quản trị">
+        @for (int index = 0; index < Model.Kpis.Count; index++)
+        {
+            AdminDashboardKpiCardViewModel kpi = Model.Kpis[index];
+            bool isEmptyValue = kpi.Value.Length == 0 || !char.IsDigit(kpi.Value[0]);
+            <article class="admin-kpi-card admin-kpi-card--@kpi.Tone" data-kpi-index="@index">
+                <div class="admin-kpi-icon" aria-hidden="true">
+                    <i class="ph @kpi.Icon" data-kpi-icon></i>
+                </div>
+                <div class="admin-kpi-content">
+                    <h2 data-kpi-label>@kpi.Label</h2>
+                    <strong data-kpi-value class="@(isEmptyValue ? "admin-kpi-value--empty" : null)">@kpi.Value</strong>
+                    <p data-kpi-detail>@kpi.Detail</p>
+                    <span data-kpi-comparison>@kpi.Comparison</span>
+                </div>
+                <a class="admin-kpi-action" href="@kpi.ActionHref">
+                    <span>@kpi.ActionLabel</span>
+                    <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                </a>
+            </article>
+        }
+    </section>
+
+    <details class="admin-kpi-methodology">
+        <summary>
+            <span><i class="ph ph-info" aria-hidden="true"></i> Cách tính chỉ số</span>
+            <i class="ph ph-caret-down" aria-hidden="true"></i>
+        </summary>
+        <div>
+            <p>Người hoạt động được đếm một lần khi có phiên học hoặc lượt ôn thẻ trong khoảng đã chọn.</p>
+            <p>Hoàn thành bỏ qua phiên đang hoạt động dưới 30 phút; lỗi AI chỉ hiện khi có ít nhất 20 yêu cầu.</p>
+        </div>
+    </details>
+</section>
+
+@section Scripts
+{
+    <script src="~/js/admin-dashboard.js" asp-append-version="true"></script>
+}

@@ -1,0 +1,116 @@
+@model ltwnc.Models.ViewModels.AiProviders.AiProviderEditViewModel
+@{
+    string title = "Thêm nhà cung cấp AI";
+    if (Model.Id.HasValue)
+    {
+        title = "Sửa nhà cung cấp AI";
+    }
+
+    ViewData["Title"] = title;
+    ViewData["Heading"] = "Nhà cung cấp AI";
+}
+
+@section Styles
+{
+    <link rel="stylesheet" href="~/css/ai-providers.css" asp-append-version="true" />
+}
+
+<section class="provider-edit-page">
+    <a class="provider-back" href="/Admin/AiProviders">
+        <i class="ph ph-arrow-left" aria-hidden="true"></i> Danh sách nhà cung cấp
+    </a>
+    <header>
+        <span class="eyebrow">Quản trị AI</span>
+        <h1>@title</h1>
+        <p>Hiện hỗ trợ bộ chuyển đổi tương thích OpenAI. Khóa API chỉ được nhập mới, thay thế hoặc xóa dấu vết đã lưu.</p>
+    </header>
+
+    <form method="post"
+          action="/Admin/AiProviders/Save"
+          class="provider-form"
+          onsubmit="return confirm('Lưu thay đổi cấu hình nhà cung cấp này?');">
+        @Html.AntiForgeryToken()
+        <input asp-for="Id" type="hidden" />
+        <input asp-for="Version" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="provider-validation"></div>
+
+        @if (Model.IsPrimary)
+        {
+            <div class="provider-primary-note wide">
+                <i class="ph ph-star" aria-hidden="true"></i>
+                Nhà cung cấp này đang là nhà cung cấp chính.
+            </div>
+        }
+
+        <label>
+            <span>Tên nhà cung cấp</span>
+            <input asp-for="Name" placeholder="9Router Local" />
+        </label>
+        <label>
+            <span>Bộ chuyển đổi</span>
+            <select asp-for="AdapterType">
+                <option value="OpenAICompatible">Tương thích OpenAI</option>
+            </select>
+        </label>
+        <label class="wide">
+            <span>URL gốc</span>
+            <input asp-for="BaseUrl" placeholder="http://localhost:20128/v1" />
+        </label>
+        <label class="wide">
+            <span>Mã mô hình</span>
+            <input asp-for="ModelId" placeholder="cx/gpt-5.6-luna" />
+        </label>
+        <label class="wide">
+            <span>Khóa API @ApiKeyStatus()</span>
+            <input asp-for="ApiKey"
+                   autocomplete="new-password"
+                   placeholder="Để trống để giữ nguyên hoặc không dùng khóa" />
+        </label>
+        @if (Model.HasApiKey)
+        {
+            <label class="provider-checkbox wide">
+                <input asp-for="ClearApiKey" /> Xóa khóa API đã lưu
+            </label>
+        }
+        <label>
+            <span>Thứ tự ưu tiên</span>
+            <input asp-for="Priority" type="number" />
+        </label>
+        <label>
+            <span>Thời gian chờ (giây)</span>
+            <input asp-for="TimeoutSeconds" type="number" />
+        </label>
+        <label class="provider-checkbox wide">
+            <input asp-for="IsEnabled" /> Bật nhà cung cấp
+        </label>
+        <label class="wide">
+            <span>Lý do thay đổi</span>
+            <textarea asp-for="Reason"
+                      maxlength="500"
+                      required
+                      placeholder="Ví dụ: đổi mô hình mặc định sau khi kiểm tra thành công"></textarea>
+        </label>
+
+        <div class="provider-form-actions wide">
+            <a href="/Admin/AiProviders">Hủy</a>
+            <button type="submit">Lưu nhà cung cấp</button>
+        </div>
+    </form>
+</section>
+
+@functions {
+    private string ApiKeyStatus()
+    {
+        if (!Model.HasApiKey)
+        {
+            return "(tùy chọn)";
+        }
+
+        if (string.IsNullOrWhiteSpace(Model.ApiKeyLastFour))
+        {
+            return "(đã lưu)";
+        }
+
+        return "(đã lưu ****" + Model.ApiKeyLastFour + ")";
+    }
+}

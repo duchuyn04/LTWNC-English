@@ -76,7 +76,19 @@ public class AchievementUnlockService : IAchievementUnlockService
             }
             catch (DbUpdateException)
             {
-                // Request khác đã mở cùng code: coi như đã xong
+                string[] attemptedCodes = newlyUnlocked.Select(definition => definition.Code).ToArray();
+                _context.ChangeTracker.Clear();
+                List<string> persistedCodes = await _context.UserAchievements
+                    .Where(achievement => achievement.UserId == userId
+                        && attemptedCodes.Contains(achievement.Code))
+                    .Select(achievement => achievement.Code)
+                    .ToListAsync(cancellationToken);
+                if (attemptedCodes.All(code => persistedCodes.Contains(code, StringComparer.Ordinal)))
+                {
+                    return [];
+                }
+
+                throw;
             }
         }
 

@@ -1,8 +1,11 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using ltwnc.Services.Auth;
 using ltwnc.Services.FlashcardSets;
+using ltwnc.Services.ContentReports;
 using ltwnc.Models.Entities;
+using ltwnc.Models.ViewModels.Flashcards;
 using ltwnc.Models.ViewModels.FlashcardSet;
 using Microsoft.AspNetCore.Http;
 using System.Text.Json;
@@ -21,15 +24,18 @@ public class FlashcardSetController : Controller
     // User hiện tại từ cookie claims
     private readonly ICurrentUser _currentUser;
     private readonly IFlashcardImportService _importService;
+    private readonly IContentReportService _contentReportService;
 
     public FlashcardSetController(
         IFlashcardSetService setService,
         ICurrentUser currentUser,
-        IFlashcardImportService importService)
+        IFlashcardImportService importService,
+        IContentReportService contentReportService)
     {
         _setService = setService;
         _currentUser = currentUser;
         _importService = importService;
+        _contentReportService = contentReportService;
     }
 
     // GET /Set: thư viện cá nhân kèm progress
@@ -47,11 +53,66 @@ public class FlashcardSetController : Controller
         return View(sets);
     }
 
-    // GET form tạo bộ thẻ
+    // GET form tạo bộ thẻ (redirect sang unified editor)
     [Route("/Set/Create")]
     public IActionResult Create()
     {
-        return View();
+        return RedirectToAction("Editor");
+    }
+
+    // GET unified editor: tạo mới hoặc chỉnh sửa bộ thẻ
+    [Route("/flashcardset/editor/{id?}")]
+    public async Task<IActionResult> Editor(int? id)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        EditorViewModel model = new EditorViewModel();
+
+        if (id.HasValue)
+        {
+            FlashcardSet? set = await _setService.GetSetWithCardsAsync(id.Value, userId);
+            if (set == null)
+            {
+                return NotFound();
+            }
+
+            model.Id = set.Id;
+            model.Title = set.Title;
+            model.Description = set.Description;
+            model.IsPublic = set.IsPublic;
+            model.IsQuarantined = set.ModerationStatus == FlashcardSetModerationStatus.Quarantined;
+            model.ModerationPublicReason = set.ModerationPublicReason;
+            model.ModeratedAtUtc = set.ModeratedAtUtc;
+            model.Cards = set.Flashcards
+                .OrderBy(c => c.OrderIndex)
+                .Select(c => new CardViewModel
+                {
+                    Id = c.Id,
+                    FrontText = c.FrontText,
+                    BackText = c.BackText,
+                    Pronunciation = c.Pronunciation,
+                    PartOfSpeech = c.PartOfSpeech,
+                    ExampleSentence = c.ExampleSentence,
+                    ExampleMeaning = c.ExampleMeaning,
+                    Synonyms = c.Synonyms,
+                    ImageUrl = c.ImageUrl,
+                    UploadedImagePath = c.UploadedImagePath,
+                    IsStarred = c.IsStarred,
+                    OrderIndex = c.OrderIndex
+                })
+                .ToList();
+        }
+        else
+        {
+            // New set starts with one empty card
+            model.Cards.Add(new CardViewModel());
+        }
+
+        return View(model);
     }
 
     // POST tạo set, redirect Edit để thêm thẻ
@@ -71,14 +132,22 @@ public class FlashcardSetController : Controller
             return Challenge();
         }
 
-        FlashcardSet set = await _setService.CreateSetAsync(
-            model.Title,
-            model.Description,
-            model.IsPublic,
-            userId);
+        try
+        {
+            FlashcardSet set = await _setService.CreateSetAsync(
+                model.Title,
+                model.Description,
+                model.IsPublic,
+                userId);
 
-        TempData["Success"] = "Đã tạo bộ thẻ. Hãy thêm từ đầu tiên.";
-        return RedirectToAction("Edit", new { id = set.Id });
+            TempData["Success"] = "Đã tạo bộ thẻ. Hãy thêm từ đầu tiên.";
+            return RedirectToAction("Edit", new { id = set.Id });
+        }
+        catch (ArgumentException ex)
+        {
+            ModelState.AddModelError(nameof(model.Title), ex.Message);
+            return View(model);
+        }
     }
 
     // GET /Set/{id}: public hoặc owner; map SetDetailViewModel + ExistingCopyId
@@ -105,19 +174,74 @@ public class FlashcardSetController : Controller
             }
         }
 
+        bool hasOpenReport = false;
+        if (userId != null && userId != set.UserId)
+        {
+            hasOpenReport = await _contentReportService.HasOpenReportAsync(set.Id, userId);
+        }
+
         SetDetailViewModel model = new SetDetailViewModel
         {
             Id = set.Id,
             Title = set.Title,
             Description = set.Description,
             IsPublic = set.IsPublic,
-            UserId = set.UserId,
-            Flashcards = set.Flashcards.ToList(),
+            IsQuarantined = set.ModerationStatus == FlashcardSetModerationStatus.Quarantined,
+            ModerationPublicReason = set.ModerationPublicReason,
+            ModeratedAtUtc = set.ModeratedAtUtc,
+            Flashcards = FlashcardViewModelMapper.FromEntities(set.Flashcards),
             IsOwner = userId == set.UserId,
-            ExistingCopyId = existingCopyId
+            ExistingCopyId = existingCopyId,
+            ReportReasonOptions = _contentReportService.GetReasonOptions(),
+            CanReport = userId != null && userId != set.UserId && set.IsPublic && !hasOpenReport && set.ModerationStatus == FlashcardSetModerationStatus.Active,
+            HasOpenReport = hasOpenReport
         };
 
         return View(model);
+    }
+
+    // POST gửi báo cáo nội dung cho bộ công khai, dùng antiforgery và chỉ nhận lý do cố định.
+    [HttpPost]
+    [Route("/Set/{id}/Report")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Report(
+        int id,
+        ContentReportInputModel input,
+        CancellationToken cancellationToken = default)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            TempData["ContentReportError"] = FirstModelStateError();
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        ContentReportSubmitResult result = await _contentReportService.SubmitAsync(
+            new SubmitContentReportCommand(
+                FlashcardSetId: id,
+                ReporterUserId: userId,
+                Reason: input.Reason,
+                Description: input.Description),
+            cancellationToken);
+
+        if (result.Succeeded)
+        {
+            TempData["ContentReportSuccess"] = result.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+
+        if (result.Failure == ContentReportSubmitFailure.NotFoundOrPrivate)
+        {
+            return NotFound("Không tìm thấy bộ flashcard công khai có thể báo cáo.");
+        }
+
+        TempData["ContentReportError"] = result.Message;
+        return RedirectToAction(nameof(Details), new { id });
     }
 
     // POST copy public set vào thư viện; về Study hub của bản sao
@@ -140,7 +264,7 @@ public class FlashcardSetController : Controller
         }
         catch (KeyNotFoundException)
         {
-            return NotFound();
+            return NotFound("Không tìm thấy bộ flashcard công khai có thể sao chép.");
         }
         catch (UnauthorizedAccessException)
         {
@@ -148,50 +272,34 @@ public class FlashcardSetController : Controller
         }
     }
 
-    // GET Edit: form meta set + ViewBag.Cards (chỉ owner)
+    // GET Edit: redirect sang unified editor
     [Route("/Set/{id}/Edit")]
-    public async Task<IActionResult> Edit(int id)
+    public IActionResult Edit(int id)
     {
-        string? userId = _currentUser.UserId;
-        if (userId == null)
-        {
-            return Challenge();
-        }
-
-        FlashcardSet? set = await _setService.GetSetWithCardsAsync(id, userId);
-        if (set == null)
-        {
-            return NotFound();
-        }
-
-        EditSetViewModel model = new EditSetViewModel
-        {
-            Id = set.Id,
-            Title = set.Title,
-            Description = set.Description,
-            IsPublic = set.IsPublic
-        };
-
-        // Danh sách thẻ hiển thị trên form (batch actions cũng ở đây)
-        ViewBag.Cards = set.Flashcards.ToList();
-        return View(model);
+        return RedirectToAction("Editor", new { id });
     }
 
     // POST cập nhật title/description/public
     [HttpPost]
     [Route("/Set/{id}/Edit")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, EditSetViewModel model)
+    public async Task<IActionResult> Edit(int id, EditSetPageViewModel model)
     {
-        if (!ModelState.IsValid)
-        {
-            return View(model);
-        }
-
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
             return Challenge();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            EditSetPageViewModel? invalidPage = await BuildEditPageViewModelAsync(id, userId, model);
+            if (invalidPage == null)
+            {
+                return NotFound();
+            }
+
+            return View(invalidPage);
         }
 
         try
@@ -205,6 +313,17 @@ public class FlashcardSetController : Controller
             TempData["Success"] = "Đã lưu thay đổi bộ thẻ.";
             return RedirectToAction("Edit", new { id });
         }
+        catch (ArgumentException ex)
+        {
+            ModelState.AddModelError(nameof(model.Title), ex.Message);
+            EditSetPageViewModel? errorPage = await BuildEditPageViewModelAsync(id, userId, model);
+            if (errorPage == null)
+            {
+                return NotFound();
+            }
+
+            return View(errorPage);
+        }
         catch (UnauthorizedAccessException)
         {
             return Forbid();
@@ -215,6 +334,7 @@ public class FlashcardSetController : Controller
     [HttpPost]
     [Route("/Set/{id}/Import")]
     [ValidateAntiForgeryToken]
+    [EnableRateLimiting("uploads")]
     public async Task<IActionResult> Import(int id, IFormFile? file)
     {
         string? userId = _currentUser.UserId;
@@ -281,18 +401,8 @@ public class FlashcardSetController : Controller
     [HttpPost]
     [Route("/Set/{setId}/Cards/Create")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> AddCard(
-        int setId,
-        string frontText,
-        string backText,
-        string pronunciation,
-        string partOfSpeech,
-        string exampleSentence,
-        string exampleMeaning,
-        string? synonyms,
-        string? imageUrl,
-        IFormFile? imageFile,
-        bool isStarred = false)
+    [EnableRateLimiting("uploads")]
+    public async Task<IActionResult> AddCard(int setId, AddCardInputModel input)
     {
         string? userId = _currentUser.UserId;
         if (userId == null)
@@ -300,20 +410,26 @@ public class FlashcardSetController : Controller
             return Challenge();
         }
 
+        if (!ModelState.IsValid)
+        {
+            TempData["Error"] = FirstModelStateError();
+            return RedirectToAction("Edit", new { id = setId });
+        }
+
         try
         {
             await _setService.AddCardAsync(
                 setId,
-                frontText,
-                backText,
-                pronunciation,
-                partOfSpeech,
-                exampleSentence,
-                exampleMeaning,
-                synonyms,
-                imageUrl,
-                imageFile,
-                isStarred,
+                input.FrontText,
+                input.BackText,
+                input.Pronunciation,
+                input.PartOfSpeech,
+                input.ExampleSentence,
+                input.ExampleMeaning,
+                input.Synonyms,
+                input.ImageUrl,
+                input.ImageFile,
+                input.IsStarred,
                 userId);
             return RedirectToAction("Edit", new { id = setId });
         }
@@ -359,20 +475,8 @@ public class FlashcardSetController : Controller
     [HttpPost]
     [Route("/Cards/{id}/Edit")]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> EditCard(
-        int id,
-        int setId,
-        string frontText,
-        string backText,
-        string pronunciation,
-        string partOfSpeech,
-        string exampleSentence,
-        string exampleMeaning,
-        string? synonyms,
-        string? imageUrl,
-        IFormFile? imageFile,
-        bool removeUploadedImage = false,
-        bool isStarred = false)
+    [EnableRateLimiting("uploads")]
+    public async Task<IActionResult> EditCard(int id, EditCardInputModel input)
     {
         string? userId = _currentUser.UserId;
         if (userId == null)
@@ -380,21 +484,27 @@ public class FlashcardSetController : Controller
             return Challenge();
         }
 
+        if (!ModelState.IsValid)
+        {
+            TempData["Error"] = FirstModelStateError();
+            return RedirectToAction("Edit", new { id = input.SetId });
+        }
+
         try
         {
             int updatedSetId = await _setService.UpdateCardAsync(
                 id,
-                frontText,
-                backText,
-                pronunciation,
-                partOfSpeech,
-                exampleSentence,
-                exampleMeaning,
-                synonyms,
-                imageUrl,
-                imageFile,
-                removeUploadedImage,
-                isStarred,
+                input.FrontText,
+                input.BackText,
+                input.Pronunciation,
+                input.PartOfSpeech,
+                input.ExampleSentence,
+                input.ExampleMeaning,
+                input.Synonyms,
+                input.ImageUrl,
+                input.ImageFile,
+                input.RemoveUploadedImage,
+                input.IsStarred,
                 userId);
             return RedirectToAction("Edit", new { id = updatedSetId });
         }
@@ -405,7 +515,7 @@ public class FlashcardSetController : Controller
         catch (ArgumentException ex)
         {
             TempData["Error"] = ex.Message;
-            return RedirectToAction("Edit", new { id = setId });
+            return RedirectToAction("Edit", new { id = input.SetId });
         }
         catch (UnauthorizedAccessException)
         {
@@ -438,5 +548,36 @@ public class FlashcardSetController : Controller
         {
             return Forbid();
         }
+    }
+
+    private async Task<EditSetPageViewModel?> BuildEditPageViewModelAsync(
+        int setId,
+        string userId,
+        EditSetViewModel? postedSet = null)
+    {
+        FlashcardSet? set = await _setService.GetSetWithCardsAsync(setId, userId);
+        if (set == null)
+        {
+            return null;
+        }
+
+        EditSetPageViewModel pageModel = new EditSetPageViewModel
+        {
+            Id = set.Id,
+            Title = postedSet?.Title ?? set.Title,
+            Description = postedSet?.Description ?? set.Description,
+            IsPublic = postedSet?.IsPublic ?? set.IsPublic,
+            Cards = FlashcardViewModelMapper.FromEntities(set.Flashcards)
+        };
+        return pageModel;
+    }
+
+    private string FirstModelStateError()
+    {
+        return ModelState.Values
+            .SelectMany(entry => entry.Errors)
+            .Select(error => error.ErrorMessage)
+            .FirstOrDefault(message => !string.IsNullOrWhiteSpace(message))
+            ?? "Dữ liệu thẻ không hợp lệ.";
     }
 }

@@ -26,6 +26,8 @@ public interface IFlashcardSetService
 
     Task<FlashcardSet?> GetOwnedSetAsync(int id, string userId);
 
+    Task<Flashcard?> GetCardAsync(int cardId, string userId);
+
     Task<FlashcardSet?> GetExistingCopyAsync(int sourceSetId, string learnerId);
 
     Task<FlashcardSet> CopyPublicSetAsync(int sourceSetId, string learnerId);
@@ -49,10 +51,10 @@ public interface IFlashcardSetService
         int setId,
         string frontText,
         string backText,
-        string pronunciation,
-        string partOfSpeech,
-        string exampleSentence,
-        string exampleMeaning,
+        string? pronunciation,
+        string? partOfSpeech,
+        string? exampleSentence,
+        string? exampleMeaning,
         string? synonyms,
         string? imageUrl,
         IFormFile? imageFile,
@@ -63,10 +65,10 @@ public interface IFlashcardSetService
         int cardId,
         string frontText,
         string backText,
-        string pronunciation,
-        string partOfSpeech,
-        string exampleSentence,
-        string exampleMeaning,
+        string? pronunciation,
+        string? partOfSpeech,
+        string? exampleSentence,
+        string? exampleMeaning,
         string? synonyms,
         string? imageUrl,
         IFormFile? imageFile,
@@ -76,5 +78,16 @@ public interface IFlashcardSetService
 
     Task<int> DeleteCardAsync(int cardId, string userId);
 
+    Task DeleteAllCardsAsync(int setId, string userId);
+
+    // Import hàng loạt thẻ trong một transaction: xóa toàn bộ (nếu replaceAll) rồi thêm mới.
+    Task<List<Flashcard>> BatchImportCardsAsync(
+        int setId,
+        IReadOnlyList<BatchImportCardItem> cards,
+        bool replaceAll,
+        string userId);
+
     Task<bool> ToggleStarAsync(int cardId, string userId);
+
+    Task ReorderCardsAsync(int setId, int[] orderedCardIds, string userId);
 }

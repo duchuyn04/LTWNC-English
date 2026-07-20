@@ -7,7 +7,6 @@
     var isSentence = Model.ContentMode == DictationContentMode.ExampleSentence;
 }
 
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 <link rel="stylesheet" href="~/css/flashcard.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/dictation-result.css" asp-append-version="true" />
 
@@ -32,7 +31,7 @@
         <section class="result-kpi-grid result-enter" aria-label="Chỉ số tổng quan" style="--result-enter-delay: 60ms">
             <article class="result-kpi result-card">
                 <span class="result-kpi-icon" aria-hidden="true">
-                    <span class="material-symbols-outlined">format_list_numbered</span>
+                    <i class="ph ph-list-numbers" aria-hidden="true"></i>
                 </span>
                 <div>
                     <div class="result-kpi-value js-count" data-target="@Model.TotalCards" data-suffix="">0</div>
@@ -42,7 +41,7 @@
 
             <article class="result-kpi result-card">
                 <span class="result-kpi-icon is-success" aria-hidden="true">
-                    <span class="material-symbols-outlined">check_circle</span>
+                    <i class="ph ph-check-circle" aria-hidden="true"></i>
                 </span>
                 <div>
                     <div class="result-kpi-value js-count" data-target="@Model.CorrectCount" data-suffix="">0</div>
@@ -52,7 +51,7 @@
 
             <article class="result-kpi result-card">
                 <span class="result-kpi-icon is-error" aria-hidden="true">
-                    <span class="material-symbols-outlined">replay</span>
+                    <i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>
                 </span>
                 <div>
                     <div class="result-kpi-value js-count" data-target="@wrongCount" data-suffix="">0</div>
@@ -145,7 +144,7 @@
         {
             <section class="result-table-card result-card result-enter" style="--result-enter-delay: 220ms">
                 <div class="result-empty">
-                    <span class="material-symbols-outlined" aria-hidden="true">celebration</span>
+                    <i class="ph ph-confetti" aria-hidden="true"></i>
                     Chính xác 100% - không có thẻ nào cần ôn.
                 </div>
             </section>

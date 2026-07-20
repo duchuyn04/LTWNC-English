@@ -1,4 +1,4 @@
-using ltwnc.Models.Entities;
+using ltwnc.Models.ViewModels.Flashcards;
 
 namespace ltwnc.Models.ViewModels.Study;
 
@@ -8,17 +8,21 @@ public class FlashcardStudyViewModel
     // Bộ thẻ
     public int SetId { get; set; }
 
+    // StudySession.Id đang chạy; 0 với khách chưa đăng nhập.
+    public int SessionId { get; set; }
+
     // Tiêu đề header
     public string SetTitle { get; set; } = string.Empty;
 
     // Thẻ sau bộ lọc (học tuần tự / shuffle UI)
-    public List<Flashcard> Flashcards { get; set; } = new();
+    public IReadOnlyList<FlashcardViewModel> Flashcards { get; set; } = Array.Empty<FlashcardViewModel>();
 
     // Toàn bộ thẻ không filter (UI phụ, vocabulary list)
-    public List<Flashcard> VocabularyCards { get; set; } = new();
+    public IReadOnlyList<FlashcardViewModel> VocabularyCards { get; set; } = Array.Empty<FlashcardViewModel>();
 
     // cardId -> progress (đã thuộc / đúng sai...)
-    public Dictionary<int, UserProgress> ProgressByCardId { get; set; } = new();
+    public IReadOnlyDictionary<int, FlashcardProgressViewModel> ProgressByCardId { get; set; } =
+        new Dictionary<int, FlashcardProgressViewModel>();
 
     // Vị trí thẻ hiện tại (0-based, đã clamp)
     public int CurrentIndex { get; set; }
@@ -30,8 +34,12 @@ public class FlashcardStudyViewModel
     public bool UnlearnedOnly { get; set; }
 
     // Cài đặt mặt thẻ / TTS / ảnh (JS đọc)
-    public UserStudySettings Settings { get; set; } = new();
+    public StudySettingsViewModel Settings { get; set; } = new();
 
     // false = khách (ẩn mark learned / complete)
     public bool IsAuthenticated { get; set; }
+
+    // Các chế độ học thật để chuyển trực tiếp ngay trên màn Flashcard.
+    public IReadOnlyList<StudyModeOptionViewModel> Modes { get; set; } =
+        Array.Empty<StudyModeOptionViewModel>();
 }

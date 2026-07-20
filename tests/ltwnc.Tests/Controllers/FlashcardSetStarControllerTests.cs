@@ -16,7 +16,8 @@ public class FlashcardSetStarControllerTests
         var controller = new FlashcardSetController(
             service.Object,
             currentUser.Object,
-            Mock.Of<IFlashcardImportService>());
+            Mock.Of<IFlashcardImportService>(),
+            Mock.Of<ltwnc.Services.ContentReports.IContentReportService>());
         return (controller, service);
     }
 

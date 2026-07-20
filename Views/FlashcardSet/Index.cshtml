@@ -19,9 +19,9 @@
     @if (!Model.Any())
     {
         <div class="set-empty-state gsap-fade-up">
-            <div class="set-empty-state-icon">📚</div>
-            <p style="font-size: 1.1rem; font-weight: 600; color: var(--sm-ink);">Bạn chưa có bộ thẻ nào.</p>
-            <p style="margin-bottom: 1.5rem;">Tạo bộ thẻ đầu tiên để bắt đầu học.</p>
+            <div class="set-empty-state-icon"><i class="ph ph-books" aria-hidden="true"></i></div>
+            <p class="set-empty-state-title">Bạn chưa có bộ thẻ nào.</p>
+            <p class="set-empty-state-copy">Tạo bộ thẻ đầu tiên để bắt đầu học.</p>
             <a href="/Set/Create" class="btn-primary-custom gsap-scale-in">Tạo bộ thẻ đầu tiên</a>
         </div>
     }
@@ -33,23 +33,23 @@
                 <div class="col-md-6 col-lg-4">
                     <div class="set-card">
                         <div class="set-card-header">
-                            <h5 class="set-card-title">@item.Set.Title</h5>
-                            <span class="set-tag @(item.Set.IsPublic ? "set-tag-public" : "set-tag-private")">
-                                @(item.Set.IsPublic ? "Công khai" : "Riêng tư")
+                            <h5 class="set-card-title">@item.Title</h5>
+                            <span class="set-tag @(item.IsPublic ? "set-tag-public" : "set-tag-private")">
+                                @(item.IsPublic ? "Công khai" : "Riêng tư")
                             </span>
                         </div>
-                        @if (!string.IsNullOrEmpty(item.Set.Description))
+                        @if (!string.IsNullOrEmpty(item.Description))
                         {
-                            <p style="color: #78716c; font-size: 0.875rem; margin: 0 0 0.75rem;">@item.Set.Description</p>
+                            <p class="set-card-description">@item.Description</p>
                         }
                         <p class="set-card-meta">@item.TotalCards từ · Đã học @item.MasteryPercent%</p>
                         <div class="set-card-progress">
                             <div class="set-card-progress-bar" style="width: @item.MasteryPercent%;"></div>
                         </div>
                         <div class="set-card-actions">
-                            <a href="/Study/@item.Set.Id" class="btn-sm-primary"><i class="ph ph-book-open"></i> Học</a>
-                            <a href="/Set/@item.Set.Id/Edit" class="btn-sm-secondary">Quản lý</a>
-                            <form asp-action="Delete" asp-route-id="@item.Set.Id" method="post" class="d-inline" onsubmit="return confirm('Xóa bộ thẻ này?');">
+                            <a href="/Study/@item.Id" class="btn-sm-primary"><i class="ph ph-book-open"></i> Học</a>
+                            <a href="/Set/@item.Id/Edit" class="btn-sm-secondary">Quản lý</a>
+                            <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Xóa bộ thẻ này?');">
                                 @Html.AntiForgeryToken()
                                 <button type="submit" class="btn-sm-danger">Xóa</button>
                             </form>

@@ -23,17 +23,20 @@ public class CardActionsController : Controller
 
     // User hiện tại từ cookie claims
     private readonly ICurrentUser _currentUser;
+    private readonly ILogger<CardActionsController> _logger;
 
     public CardActionsController(
         ICardActionService cardActionService,
         ICardActionCommandFactory commandFactory,
         IFlashcardSetService setService,
-        ICurrentUser currentUser)
+        ICurrentUser currentUser,
+        ILogger<CardActionsController> logger)
     {
         _cardActionService = cardActionService;
         _commandFactory = commandFactory;
         _setService = setService;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     // POST batch: factory tạo command, Execute, TempData success + UndoLogId
@@ -97,14 +100,16 @@ public class CardActionsController : Controller
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Batch card action failed for set {SetId}.", setId);
+            const string safeMessage = "Không thể thực hiện thao tác. Vui lòng thử lại.";
             if (IsAjaxRequest())
             {
                 return StatusCode(
                     StatusCodes.Status500InternalServerError,
-                    new { success = false, message = ex.Message });
+                    new { success = false, message = safeMessage });
             }
 
-            TempData["Error"] = ex.Message;
+            TempData["Error"] = safeMessage;
         }
 
         return RedirectToAction("Edit", "FlashcardSet", new { id = setId });
@@ -151,7 +156,8 @@ public class CardActionsController : Controller
         }
         catch (Exception ex)
         {
-            TempData["Error"] = ex.Message;
+            _logger.LogError(ex, "Undo card action failed for log {LogId}.", logId);
+            TempData["Error"] = "Không thể hoàn tác. Vui lòng thử lại.";
         }
 
         return RedirectToAction("Edit", "FlashcardSet", new { id = log.SetId });

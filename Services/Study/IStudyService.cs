@@ -23,7 +23,9 @@ public interface IStudyService
 
     Task MarkLearnedAsync(string userId, int setId, int flashcardId, bool learned);
 
-    Task CompleteSessionAsync(string userId, int setId, StudyMode mode);
+    Task<StudySession> StartSessionAsync(string userId, int setId, StudyMode mode);
+
+    Task CompleteSessionAsync(string userId, int setId, int sessionId);
 
     Task<StudyModeSelectorViewModel> GetStudyModeSelectorDataAsync(int setId, string? userId);
 }

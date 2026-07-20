@@ -3,7 +3,6 @@
     ViewData["Title"] = "Nghe chép chính tả";
 }
 
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet" />
 <link rel="stylesheet" href="~/css/flashcard.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/dictation-redesign.css" asp-append-version="true" />
 
@@ -13,7 +12,7 @@
     <section class="dictation-stage" aria-label="Nghe chép chính tả">
         <header class="dictation-header gsap-fade-up">
             <a class="dictation-back" href="/Study/@Model.SetId" title="Thoát về trang học">
-                <span class="material-symbols-outlined">arrow_back</span>
+                <i class="ph ph-arrow-left" aria-hidden="true"></i>
             </a>
 
             <div class="dictation-title-block">
@@ -22,7 +21,7 @@
             </div>
 
             <button type="button" class="dictation-settings-btn" onclick="toggleDictationSettings(event)" title="Cài đặt nghe chép">
-                <span class="material-symbols-outlined">tune</span>
+                <i class="ph ph-sliders-horizontal" aria-hidden="true"></i>
             </button>
         </header>
 
@@ -40,7 +39,7 @@
 
                     <div class="dictation-audio-control">
                         <button type="button" id="dictation-play-btn" class="dictation-audio-btn" onclick="playCurrentPrompt()" title="Phát âm (Ctrl + 1)">
-                            <span class="material-symbols-outlined">volume_up</span>
+                            <i class="ph ph-speaker-high" aria-hidden="true"></i>
                         </button>
                         <span class="dictation-audio-label">Phát âm</span>
                         <div class="dictation-audio-speed">
@@ -73,7 +72,7 @@
                             </div>
                             <p id="dictation-example-meaning" class="dictation-example-meaning"></p>
                             <button type="button" id="dictation-replay-correct" class="dictation-feedback-replay" onclick="speak(lastCorrectAnswer)">
-                                <span class="material-symbols-outlined">volume_up</span>
+                                <i class="ph ph-speaker-high" aria-hidden="true"></i>
                                 Nghe lại câu đúng
                             </button>
                         </div>
@@ -81,16 +80,20 @@
 
                     <div class="dictation-actions">
                         <button type="button" id="dictation-check-btn" class="dictation-btn dictation-btn-primary" onclick="checkAnswer()">
-                            <span class="material-symbols-outlined">check</span>
+                            <i class="ph ph-check" aria-hidden="true"></i>
                             <span>Kiểm tra (Enter)</span>
                         </button>
                         <button type="button" id="dictation-dont-know-btn" class="dictation-btn dictation-btn-secondary" onclick="markUnknown()">
-                            <span class="material-symbols-outlined">close</span>
+                            <i class="ph ph-x" aria-hidden="true"></i>
                             <span>Tôi không biết</span>
                         </button>
                         <button type="button" id="dictation-continue-btn" class="dictation-btn dictation-btn-primary" onclick="nextCard()" hidden>
-                            <span class="material-symbols-outlined">arrow_forward</span>
+                            <i class="ph ph-arrow-right" aria-hidden="true"></i>
                             <span>Tiếp tục</span>
+                        </button>
+                        <button type="button" id="dictation-retry-btn" class="dictation-btn dictation-btn-secondary" onclick="startRetry()" hidden>
+                            <i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>
+                            <span>Thử lại</span>
                         </button>
                     </div>
                 </div>
@@ -120,11 +123,11 @@
 
                 <div class="dictation-links">
                     <a class="dictation-link" href="/Study/@Model.SetId/History">
-                        <span class="material-symbols-outlined">history</span>
+                        <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>
                         Xem lại lịch sử câu sai
                     </a>
                     <a class="dictation-link dictation-link-danger" href="/Study/@Model.SetId">
-                        <span class="material-symbols-outlined">logout</span>
+                        <i class="ph ph-sign-out" aria-hidden="true"></i>
                         Kết thúc phiên học
                     </a>
                 </div>
@@ -136,7 +139,7 @@
         <div class="dictation-settings-header">
             <span class="dictation-settings-title">Cài đặt nghe chép</span>
             <button type="button" class="dictation-settings-close" onclick="toggleDictationSettings(event)" title="Đóng">
-                <span class="material-symbols-outlined">close</span>
+                <i class="ph ph-x" aria-hidden="true"></i>
             </button>
         </div>
         <div class="dictation-settings-body">
@@ -212,6 +215,7 @@
         let correctCount = 0;
         let isAnswered = false;
         let lastCorrectAnswer = '';
+        let isRetrying = false;
 
         const synth = window.speechSynthesis;
         const voiceSelect = document.getElementById('dictation-voice');
@@ -222,6 +226,7 @@
         const checkBtn = document.getElementById('dictation-check-btn');
         const dontKnowBtn = document.getElementById('dictation-dont-know-btn');
         const playBtn = document.getElementById('dictation-play-btn');
+        const retryBtn = document.getElementById('dictation-retry-btn');
 
         let voices = [];
 
@@ -309,7 +314,14 @@
         }
 
         async function checkAnswer() {
-            if (cards.length === 0 || isAnswered) return;
+            if (cards.length === 0) return;
+
+            if (isRetrying) {
+                checkRetryAnswer();
+                return;
+            }
+
+            if (isAnswered) return;
 
             const value = answerInput.value.trim();
             if (!value) {
@@ -368,12 +380,12 @@
 
             if (data.isCorrect) {
                 feedbackPanel.className = 'dictation-feedback is-correct';
-                icon.innerHTML = '<span class="material-symbols-outlined" style="color: var(--dt-success); font-size: 1.75rem;">check_circle</span>';
+                icon.innerHTML = '<i class="ph ph-check-circle" aria-hidden="true"></i>';
                 answer.textContent = 'Chính xác!';
                 hint.textContent = '';
             } else {
                 feedbackPanel.className = 'dictation-feedback is-wrong';
-                icon.innerHTML = '<span class="material-symbols-outlined" style="color: var(--dt-error); font-size: 1.75rem;">cancel</span>';
+                icon.innerHTML = '<i class="ph ph-x-circle" aria-hidden="true"></i>';
                 if (contentMode === 'ExampleSentence') {
                     answer.textContent = 'Chưa chính xác';
                     hint.textContent = '';
@@ -395,6 +407,75 @@
                 setTimeout(nextCard, 1000);
             } else {
                 continueBtn.hidden = false;
+                if (!data.isCorrect && retryBtn) retryBtn.hidden = false;
+            }
+        }
+
+        function startRetry() {
+            if (!isAnswered) return;
+
+            isRetrying = true;
+            answerInput.value = '';
+            answerInput.readOnly = false;
+            feedbackPanel.hidden = true;
+            document.getElementById('dictation-feedback-comparison').hidden = true;
+
+            continueBtn.hidden = true;
+            if (retryBtn) retryBtn.hidden = true;
+            checkBtn.hidden = false;
+            dontKnowBtn.hidden = false;
+
+            answerInput.focus();
+        }
+
+        function normalizeRetryInput(input) {
+            if (!input) return '';
+            return input
+                .toLowerCase()
+                .replace(/[,.!?;]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim();
+        }
+
+        function checkRetryAnswer() {
+            if (!isRetrying || cards.length === 0) return;
+
+            const value = answerInput.value.trim();
+            if (!value) {
+                answerInput.focus();
+                return;
+            }
+
+            const normalizedInput = normalizeRetryInput(value);
+            const normalizedCorrect = normalizeRetryInput(lastCorrectAnswer);
+            const isNowCorrect = normalizedInput === normalizedCorrect && normalizedCorrect !== '';
+
+            feedbackPanel.hidden = false;
+            answerInput.readOnly = true;
+            checkBtn.hidden = true;
+            dontKnowBtn.hidden = true;
+
+            const icon = document.getElementById('dictation-feedback-icon');
+            const answer = document.getElementById('dictation-feedback-answer');
+            const hint = document.getElementById('dictation-feedback-hint');
+            const comparison = document.getElementById('dictation-feedback-comparison');
+            comparison.hidden = true;
+
+            if (isNowCorrect) {
+                feedbackPanel.className = 'dictation-feedback is-correct';
+                icon.innerHTML = '<i class="ph ph-check-circle" aria-hidden="true"></i>';
+                answer.textContent = 'Chính xác!';
+                hint.textContent = '';
+                continueBtn.hidden = false;
+                if (retryBtn) retryBtn.hidden = true;
+                isRetrying = false;
+            } else {
+                feedbackPanel.className = 'dictation-feedback is-wrong';
+                icon.innerHTML = '<i class="ph ph-x-circle" aria-hidden="true"></i>';
+                answer.textContent = 'Chưa chính xác';
+                hint.textContent = settings.DictationShowHint ? (cards[currentIndex].Definition || '') : '';
+                continueBtn.hidden = false;
+                if (retryBtn) retryBtn.hidden = false;
             }
         }
 
@@ -441,12 +522,14 @@
 
         function resetCard() {
             isAnswered = false;
+            isRetrying = false;
             answerInput.value = '';
             answerInput.readOnly = false;
             lastCorrectAnswer = '';
             feedbackPanel.hidden = true;
             document.getElementById('dictation-feedback-comparison').hidden = true;
             continueBtn.hidden = true;
+            if (retryBtn) retryBtn.hidden = true;
             checkBtn.hidden = false;
             dontKnowBtn.hidden = false;
             answerInput.focus();
@@ -467,12 +550,10 @@
         }
 
         async function completeSession() {
-            const score = cards.length === 0 ? 0 : Math.round((correctCount / cards.length) * 100);
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
             const params = new URLSearchParams();
             params.append('__RequestVerificationToken', token);
             params.append('sessionId', sessionId);
-            params.append('score', score);
 
             try {
                 const response = await fetch(`/Study/${setId}/Dictation/Complete`, {
@@ -582,7 +663,9 @@
                 playCurrentPrompt();
             } else if (e.key === 'Enter' && !e.shiftKey && document.activeElement === answerInput) {
                 e.preventDefault();
-                if (isAnswered) {
+                if (isRetrying) {
+                    checkRetryAnswer();
+                } else if (isAnswered) {
                     nextCard();
                 } else {
                     checkAnswer();

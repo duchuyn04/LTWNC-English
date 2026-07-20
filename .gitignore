@@ -59,10 +59,25 @@ artifacts/
 .superpowers/
 docs/superpowers/
 skills-lock.json
+AGENTS.md
+CONTEXT.md
 
 ## Tests
 tests/*
 !tests/ltwnc.Tests/
 
+## Node.js
+node_modules/
+
 ## Git worktrees
 .worktrees/
+
+## Tool artifacts
+.tmp/
+.scratch/
+.playwright-mcp/
+.understand-anything/
+.zcode/
+
+## User uploads
+wwwroot/uploads/

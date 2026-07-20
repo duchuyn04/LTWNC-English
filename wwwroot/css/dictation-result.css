@@ -1,8 +1,8 @@
 :root {
-    --dr-ring-track: var(--fc-line);
-    --dr-ring-fill: var(--fc-success);
-    --dr-bar-correct: var(--fc-success);
-    --dr-bar-wrong: var(--fc-error);
+    --dr-ring-track: var(--line);
+    --dr-ring-fill: var(--success);
+    --dr-bar-correct: var(--success);
+    --dr-bar-wrong: var(--error);
 }
 
 .visually-hidden {
@@ -18,19 +18,20 @@
 }
 
 .result-card {
-    background: var(--fc-paper);
-    border: 1px solid var(--fc-line);
-    border-radius: var(--fc-radius);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
     padding: 1.25rem;
-    box-shadow: var(--fc-shadow);
+    box-shadow: var(--shadow-card);
 }
 
 .result-shell {
     min-height: calc(100dvh - 58px);
     margin: -3rem calc(50% - 50vw);
     padding: 2rem clamp(1rem, 4vw, 2.5rem);
-    color: var(--fc-ink);
-    background: var(--fc-canvas);
+    color: var(--ink);
+    background: var(--paper);
+    font-family: var(--font-body);
 }
 
 /* Hiện ngay khi load trang (không chờ scroll như GSAP ScrollTrigger) */
@@ -75,7 +76,7 @@
 
 .result-subtitle {
     margin: 0.35rem 0 0;
-    color: var(--fc-muted);
+    color: var(--muted);
     font-weight: 600;
 }
 
@@ -102,25 +103,25 @@
 .result-kpi-icon {
     width: 48px;
     height: 48px;
-    border-radius: 14px;
+    border-radius: var(--radius-control);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    background: var(--fc-soft);
-    color: var(--fc-muted);
+    background: var(--surface-sunken);
+    color: var(--muted);
 }
 
 .result-kpi-icon.is-success {
-    background: var(--fc-success-bg);
-    color: var(--fc-success);
+    background: var(--success-bg);
+    color: var(--success);
 }
 
 .result-kpi-icon.is-error {
-    background: var(--fc-error-bg);
-    color: var(--fc-error);
+    background: var(--error-bg);
+    color: var(--error);
 }
 
-.result-kpi-icon .material-symbols-outlined {
+.result-kpi-icon i {
     font-size: 1.5rem;
 }
 
@@ -133,7 +134,7 @@
 
 .result-kpi-label {
     font-size: 0.875rem;
-    color: var(--fc-muted);
+    color: var(--muted);
     font-weight: 600;
 }
 
@@ -158,7 +159,7 @@
     margin: 0 0 1rem;
     font-size: 1rem;
     font-weight: 800;
-    color: var(--fc-ink);
+    color: var(--ink);
 }
 
 .result-donut {
@@ -186,7 +187,7 @@
 .result-donut-text {
     font-size: 1.75rem;
     font-weight: 800;
-    fill: var(--fc-ink);
+    fill: var(--ink);
     /* Số % giữa donut không nhảy layout khi đếm */
     font-variant-numeric: tabular-nums;
 }
@@ -196,7 +197,7 @@
     height: 1.75rem;
     border-radius: 999px;
     overflow: hidden;
-    background: var(--fc-soft);
+    background: var(--surface-sunken);
 }
 
 .result-stack-correct {
@@ -271,15 +272,15 @@
     font-weight: 800;
     letter-spacing: 0.06em;
     text-transform: uppercase;
-    color: var(--fc-muted);
+    color: var(--muted);
     padding: 0.75rem 0.5rem;
-    border-bottom: 1px solid var(--fc-line);
+    border-bottom: 1px solid var(--line);
     white-space: nowrap;
 }
 
 .result-table td {
     padding: 0.875rem 0.5rem;
-    border-bottom: 1px solid var(--fc-soft);
+    border-bottom: 1px solid var(--surface-sunken);
     vertical-align: top;
 }
 
@@ -289,11 +290,11 @@
 
 .result-table-term {
     font-weight: 700;
-    color: var(--fc-ink);
+    color: var(--ink);
 }
 
 .result-table-meta {
-    color: var(--fc-muted);
+    color: var(--muted);
 }
 
 /* Actions */
@@ -317,20 +318,20 @@
     justify-content: center;
     min-height: 48px;
     padding: 0.55rem 1.25rem;
-    border-radius: 999px;
+    border-radius: var(--radius-control);
     font-weight: 800;
 }
 
 .result-empty {
     text-align: center;
     padding: 2rem;
-    color: var(--fc-muted);
+    color: var(--muted);
     font-weight: 600;
 }
 
-.result-empty .material-symbols-outlined {
+.result-empty i {
     display: block;
     font-size: 2rem;
     margin-bottom: 0.5rem;
-    color: var(--fc-success);
+    color: var(--success);
 }

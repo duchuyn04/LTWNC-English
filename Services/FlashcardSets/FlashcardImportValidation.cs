@@ -4,6 +4,8 @@ namespace ltwnc.Services.FlashcardSets;
 
 public static class FlashcardImportValidation
 {
+    public const int MaxRows = 5000;
+    public const int MaxColumns = 20;
     internal const string FrontTextHeader = "THUẬT NGỮ";
     internal const string BackTextHeader = "ĐỊNH NGHĨA";
     internal const string PronunciationHeader = "IPA";

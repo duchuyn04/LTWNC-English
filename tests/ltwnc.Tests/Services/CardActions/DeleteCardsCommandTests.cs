@@ -16,6 +16,7 @@ public class DeleteCardsCommandTests : IDisposable
     private readonly UserProgress _progress;
     private readonly StudySession _session;
     private readonly DictationSessionDetail _detail;
+    private readonly EnglishMissionTargetWord _missionWord;
     private const string OwnerId = "owner";
 
     public DeleteCardsCommandTests()
@@ -91,6 +92,25 @@ public class DeleteCardsCommandTests : IDisposable
         };
         _context.DictationSessionDetails.Add(_detail);
         _context.SaveChanges();
+
+        _context.Database.ExecuteSqlInterpolated($$"""
+            INSERT INTO "EnglishMissions"
+                ("StudySessionId", "Topic", "Title", "Situation", "NpcName", "NpcRole",
+                 "OpeningLine", "GoalsJson", "Status", "TurnCount", "RowVersion", "CreatedAt")
+            VALUES
+                ({{_session.Id}}, 'travel', 'Trip', 'At the station', 'Alex', 'Clerk',
+                 'Hello', '[]', 'Active', 0, X'01', {{DateTime.UtcNow}})
+            """);
+        EnglishMission mission = _context.EnglishMissions.Single(item => item.StudySessionId == _session.Id);
+        _missionWord = new EnglishMissionTargetWord
+        {
+            EnglishMissionId = mission.Id,
+            FlashcardId = _card.Id,
+            Term = _card.FrontText,
+            Definition = _card.BackText
+        };
+        _context.EnglishMissionTargetWords.Add(_missionWord);
+        _context.SaveChanges();
     }
 
     public void Dispose()
@@ -102,7 +122,7 @@ public class DeleteCardsCommandTests : IDisposable
 
     // Sau khi xóa rồi undo, toàn bộ dữ liệu liên quan đến thẻ phải được khôi phục
     [Fact]
-    public async Task UndoAsync_restores_cards_progress_and_dictation_details()
+    public async Task UndoAsync_restores_cards_progress_dictation_details_and_mission_words()
     {
         var command = new ltwnc.Services.CardActions.DeleteCardsCommand(_context, _set.Id, OwnerId, [_card.Id]);
         await command.ExecuteAsync();
@@ -114,5 +134,6 @@ public class DeleteCardsCommandTests : IDisposable
         Assert.NotNull(await _context.Flashcards.FindAsync(_card.Id));
         Assert.NotNull(await _context.UserProgresses.FindAsync(_progress.Id));
         Assert.NotNull(await _context.DictationSessionDetails.FindAsync(_detail.Id));
+        Assert.NotNull(await _context.EnglishMissionTargetWords.FindAsync(_missionWord.Id));
     }
 }

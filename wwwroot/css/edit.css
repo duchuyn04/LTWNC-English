@@ -15,26 +15,30 @@
     display: grid;
     gap: 0.35rem;
     padding: 0.75rem;
-    border: 1px solid #EAEAEA;
-    border-radius: 12px;
-    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
 }
 
 .set-editor-sidebar a {
-    padding: 0.6rem 0.75rem;
-    border-radius: 8px;
-    color: #58708A;
+    padding: 0.65rem 0.75rem;
+    border-radius: var(--radius-control);
+    color: var(--ink-soft);
+    font-size: 0.875rem;
     font-weight: 600;
     text-decoration: none;
+    transition: background-color var(--duration-fast) var(--ease-out),
+                color var(--duration-fast) var(--ease-out);
 }
 
 .set-editor-sidebar a:hover {
-    background: #F4FAFE;
-    color: #284B63;
+    background: var(--sage-soft);
+    color: var(--ink);
 }
 
 .set-editor-sidebar a:focus-visible {
-    outline: 3px solid #8CC8F0;
+    outline: 3px solid color-mix(in srgb, var(--brass) 35%, transparent);
     outline-offset: 2px;
 }
 
@@ -44,6 +48,21 @@
 
 .set-editor-content > .row > .col-md-10 {
     width: 100%;
+}
+
+.set-section-title {
+    margin: 0 0 0.5rem;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+.set-editor-content code {
+    color: var(--brass-deep);
+    background: var(--brass-soft);
+    border-radius: 4px;
+    padding: 0.1rem 0.3rem;
 }
 
 .vocab-editor {
@@ -57,9 +76,10 @@
 .vocab-list,
 .vocab-detail {
     min-height: 0;
-    border: 1px solid #EAEAEA;
-    border-radius: 12px;
-    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
 }
 
 .vocab-list {
@@ -69,6 +89,7 @@
     min-height: 0;
     box-sizing: border-box;
     padding: 1rem;
+    scrollbar-color: var(--line-strong) transparent;
 }
 
 .vocab-list-header,
@@ -84,71 +105,102 @@
     position: sticky;
     top: -1rem;
     z-index: 4;
-    background: #fff;
     margin: -1rem -1rem 0;
     padding: 1rem 1rem 0.75rem;
+    background: var(--surface);
+    border-bottom: 1px solid var(--line);
+}
+
+.vocab-list-header h5,
+.vocab-form-header h5 {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-weight: 700;
 }
 
 .vocab-list-item {
-    width: 100%;
-    border: 1px solid transparent;
-    border-radius: 10px;
-    background: transparent;
-    color: inherit;
     display: flex;
+    width: 100%;
     gap: 0.75rem;
     padding: 0.75rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: inherit;
+    font-family: var(--font-body);
     text-align: left;
+    transition: background-color var(--duration-fast) var(--ease-out),
+                border-color var(--duration-fast) var(--ease-out);
 }
 
-.vocab-list-item.is-active,
+.vocab-list-item.is-active {
+    border-color: var(--line-strong);
+    background: var(--sage-soft);
+}
+
 .vocab-list-item:hover {
-    border-color: #D7E7F3;
-    background: #F4FAFE;
+    border-color: var(--line);
+    background: color-mix(in srgb, var(--sage-soft) 68%, var(--surface));
+}
+
+.vocab-list-item:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--brass) 35%, transparent);
+    outline-offset: 1px;
 }
 
 .vocab-star {
-    color: #B7791F;
+    color: var(--brass);
     font-size: 1.1rem;
     line-height: 1.2;
 }
 
 .vocab-list-copy {
     display: grid;
-    gap: 0.15rem;
     min-width: 0;
+    gap: 0.15rem;
+}
+
+.vocab-list-copy strong {
+    overflow: hidden;
+    color: var(--ink);
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .vocab-list-copy small,
 .vocab-list-copy span {
-    color: #787774;
-    font-size: 0.85rem;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 0.8125rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .vocab-detail {
     max-height: none;
     overflow-y: visible;
-    padding: 1rem;
+    padding: 1.25rem;
 }
 
 .vocab-empty-state {
     display: grid;
-    place-items: center;
     align-content: center;
+    place-items: center;
     gap: 1rem;
     padding: 2rem 1.25rem;
-    color: #787774;
+    color: var(--muted);
     text-align: center;
 }
 
 .vocab-empty-state > i {
     display: grid;
-    place-items: center;
     width: 3rem;
     height: 3rem;
+    place-items: center;
     border-radius: 50%;
-    background: #F4FAFE;
-    color: #58708A;
+    background: var(--sage-soft);
+    color: var(--ink-soft);
     font-size: 1.5rem;
 }
 
@@ -160,13 +212,14 @@
 
 .vocab-empty-state h5,
 .vocab-empty-state h6 {
-    color: #292524;
+    color: var(--ink);
+    font-family: var(--font-body);
     font-weight: 700;
 }
 
 .vocab-empty-state p {
-    margin-top: 0.35rem;
     max-width: 32rem;
+    margin-top: 0.35rem;
 }
 
 .vocab-editor.is-empty .vocab-list {
@@ -192,6 +245,21 @@
     gap: 1rem;
 }
 
+.vocab-card-panel.is-active {
+    animation: editor-panel-in 220ms var(--ease-out);
+}
+
+@keyframes editor-panel-in {
+    from {
+        opacity: 0;
+        transform: translateY(4px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
 .vocab-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -214,6 +282,31 @@
     box-sizing: border-box;
 }
 
+.set-import-field {
+    flex: 1 1 20rem;
+    min-width: 0;
+}
+
+.set-import-field .form-input-custom {
+    width: 100%;
+}
+
+.set-editor-content input[type="file"].form-input-custom {
+    color: var(--muted);
+}
+
+.set-editor-content input[type="file"].form-input-custom::file-selector-button {
+    margin: -0.35rem 0.7rem -0.35rem -0.7rem;
+    padding: 0.45rem 0.7rem;
+    border: 0;
+    border-right: 1px solid var(--line);
+    background: var(--sage-soft);
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-weight: 600;
+    cursor: pointer;
+}
+
 textarea[data-auto-grow] {
     min-height: 4.5rem;
     max-height: 220px;
@@ -231,75 +324,112 @@ textarea[data-auto-grow] {
 .vocab-grid span,
 .vocab-wide-field span,
 .vocab-form-label {
-    color: #58708A;
-    font-size: 0.85rem;
+    color: var(--ink-soft);
+    font-size: 0.8125rem;
     font-weight: 600;
+}
+
+.vocab-form-label {
+    display: inline-block;
+    margin-bottom: 0.2rem;
+    color: var(--brass-deep);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
 }
 
 .vocab-grid b,
 .vocab-wide-field b {
-    color: #B7791F;
+    color: var(--error);
 }
 
 .star-toggle {
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    color: #B7791F;
+    color: var(--brass-deep);
     font-weight: 600;
     cursor: pointer;
 }
 
 .star-checkbox {
-    -webkit-appearance: none;
-    appearance: none;
     position: absolute;
     width: 1px;
     height: 1px;
     opacity: 0;
+    appearance: none;
 }
 
 .star-checkbox + .star-toggle::before {
-    content: "\2606";
     display: inline-grid;
-    place-items: center;
     width: 1.8rem;
     height: 1.8rem;
     flex: 0 0 auto;
-    border: 1px solid #D7E7F3;
+    place-items: center;
+    border: 1px solid var(--line-strong);
     border-radius: 50%;
-    background: #fff;
-    color: #B7791F;
+    background: var(--surface);
+    color: var(--brass);
+    content: "\2606";
     font-size: 1.25rem;
     font-weight: 700;
     line-height: 1;
 }
 
 .star-checkbox:checked + .star-toggle::before {
+    border-color: var(--brass);
+    background: var(--brass-soft);
     content: "\2605";
-    border-color: #B7791F;
-    background: #FFF8E8;
 }
 
 .star-checkbox:focus-visible + .star-toggle::before {
-    outline: 3px solid #8CC8F0;
+    outline: 3px solid color-mix(in srgb, var(--brass) 35%, transparent);
     outline-offset: 2px;
+}
+
+.vocab-card-form[data-star-pending="true"] .star-toggle {
+    opacity: 0.65;
+    cursor: wait;
+}
+
+.star-error {
+    max-width: 15rem;
+    color: var(--error) !important;
+    font-size: 0.75rem !important;
+}
+
+.vocab-delete-form {
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+}
+
+.vocab-delete-form .btn-secondary-custom {
+    color: var(--error);
 }
 
 .set-editor-sidebar .batch-toolbar {
     position: static;
-    background: #fff;
-    margin-top: 0.75rem;
-    padding: 0.75rem;
-    border: 1px solid #EAEAEA;
-    border-radius: 12px;
     display: grid;
     gap: 0.5rem;
+    margin-top: 0.75rem;
+    padding: 0.75rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
 }
 
 .set-editor-sidebar .batch-toolbar .btn-secondary-custom {
+    display: inline-flex;
     width: 100%;
+    align-items: center;
     justify-content: flex-start;
+    gap: 0.35rem;
+    padding: 0.6rem 0.75rem;
+}
+
+.set-editor-sidebar .batch-toolbar button[value="Delete"] {
+    color: var(--error);
 }
 
 .batch-toolbar[hidden] {
@@ -310,12 +440,22 @@ textarea[data-auto-grow] {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.vocab-list-item-wrapper:last-child {
+    border-bottom: 0;
 }
 
 .card-checkbox {
-    width: 1.25rem;
-    height: 1.25rem;
+    width: 1.15rem;
+    height: 1.15rem;
     flex-shrink: 0;
+    accent-color: var(--ink);
+}
+
+#batch-feedback .alert {
+    box-shadow: var(--shadow-card);
 }
 
 @media (max-width: 900px) {
@@ -330,13 +470,18 @@ textarea[data-auto-grow] {
 
     .set-editor-sidebar nav {
         display: flex;
-        flex-wrap: nowrap;
         width: max-content;
         min-width: 100%;
+        flex-wrap: nowrap;
+        border-radius: var(--radius-control);
     }
 
     .set-editor-sidebar a {
         white-space: nowrap;
+    }
+
+    .set-editor-sidebar .batch-toolbar {
+        grid-template-columns: repeat(3, minmax(max-content, 1fr));
     }
 
     .vocab-editor {
@@ -354,5 +499,34 @@ textarea[data-auto-grow] {
 
     .vocab-grid {
         grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 575px) {
+    .set-import-form > .btn-primary-custom,
+    .set-import-form > .btn-secondary-custom {
+        width: 100%;
+        text-align: center;
+    }
+
+    .vocab-form-header {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .vocab-form-actions {
+        width: 100%;
+        align-items: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .set-editor-sidebar .batch-toolbar {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .vocab-card-panel.is-active {
+        animation: none;
     }
 }
