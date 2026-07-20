@@ -9,6 +9,7 @@ public class QuizViewTests
     private static readonly string ResultView = ReadFile("Views", "Study", "QuizResult.cshtml");
     private static readonly string ResultActionsPartial = ReadFile("Views", "Study", "_QuizResultActions.cshtml");
     private static readonly string QuizScript = ReadFile("wwwroot", "js", "quiz.js");
+    private static readonly string QuizSetupScript = ReadFile("wwwroot", "js", "quiz-setup.js");
     private static readonly string QuizStyles = ReadFile("wwwroot", "css", "quiz.css");
 
     [Fact]
@@ -35,6 +36,22 @@ public class QuizViewTests
         Assert.Contains("asp-action=\"Quiz\"", QuizSetupView);
         Assert.Contains("if (Model.DeadlineUtc.HasValue)", QuizView);
         Assert.DoesNotContain("Ã", QuizSetupView);
+    }
+
+    [Fact]
+    public void Quiz_setup_state_contract_supports_untimed_and_reduced_motion()
+    {
+        Assert.Contains("data-quiz-setup", QuizSetupView);
+        Assert.Contains("data-quiz-setup", QuizSetupScript);
+        Assert.Contains("data-quiz-preset-input", QuizSetupScript);
+        Assert.Contains("presetInput.disabled = mode !== 'Preset'", QuizSetupScript);
+        Assert.Contains("customInput.disabled = mode !== 'Custom'", QuizSetupScript);
+        Assert.Contains("Bắt đầu không giới hạn", QuizSetupScript);
+        Assert.Contains("submitLabel.disabled = true", QuizSetupScript);
+        Assert.Contains("prefers-reduced-motion", QuizStyles);
+        Assert.Contains("quiz-setup-layout", QuizStyles);
+        Assert.Contains("quiz-timing-card.is-selected", QuizStyles);
+        Assert.Contains("@media (max-width: 760px)", QuizStyles);
     }
 
     [Fact]
