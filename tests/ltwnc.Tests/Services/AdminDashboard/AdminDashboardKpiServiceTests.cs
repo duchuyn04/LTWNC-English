@@ -1,3 +1,4 @@
+using ltwnc.Areas.Admin.Models;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.AdminDashboard;
@@ -225,6 +226,50 @@ public sealed class AdminDashboardKpiServiceTests : IDisposable
         Assert.Equal(5m, snapshot.AiStatus.ErrorRatePercent);
         Assert.Equal(0, snapshot.ContentReports.PendingCount);
         Assert.Equal(0, snapshot.ContentReports.OverdueCount);
+    }
+
+    [Fact]
+    public void ToViewModel_UsesConciseLabelsActionsAndEmptyStates()
+    {
+        DateTime startUtc = new(2026, 7, 12, 17, 0, 0, DateTimeKind.Utc);
+        DateTime endUtc = new(2026, 7, 19, 17, 0, 0, DateTimeKind.Utc);
+        AdminDashboardPeriod current = new(
+            startUtc,
+            endUtc,
+            endUtc,
+            new DateTimeOffset(2026, 7, 13, 0, 0, 0, TimeSpan.FromHours(7)),
+            new DateTimeOffset(2026, 7, 20, 0, 0, 0, TimeSpan.FromHours(7)));
+        AdminDashboardPeriod previous = new(
+            startUtc.AddDays(-7),
+            startUtc,
+            startUtc,
+            new DateTimeOffset(2026, 7, 6, 0, 0, 0, TimeSpan.FromHours(7)),
+            new DateTimeOffset(2026, 7, 13, 0, 0, 0, TimeSpan.FromHours(7)));
+        PeriodMetricSet emptyMetrics = new(0, 0, 0, null, 0, 0, null, 0);
+        AdminDashboardSnapshot snapshot = new(
+            7,
+            current,
+            previous,
+            emptyMetrics,
+            emptyMetrics,
+            new DateTimeOffset(2026, 7, 19, 5, 0, 0, TimeSpan.FromHours(7)));
+
+        AdminDashboardViewModel viewModel = AdminDashboardKpiService.ToViewModel(snapshot);
+
+        Assert.Equal(
+            ["Đang hoạt động", "Mới đăng ký", "Phiên học", "Hoàn thành", "Nhiệm vụ", "Lỗi AI"],
+            viewModel.Kpis.Select(card => card.Label));
+        Assert.Equal(
+            ["Xem người dùng", "Xem người dùng", "Xem phiên học", "Xem phiên học", "Xem nhiệm vụ", "Kiểm tra AI"],
+            viewModel.Kpis.Select(card => card.ActionLabel));
+        Assert.Equal(
+            ["/Admin/Users", "/Admin/Users", "/Admin/Learning", "/Admin/Learning", "/Admin/EnglishMissions", "/Admin/AiProviders"],
+            viewModel.Kpis.Select(card => card.ActionHref));
+        Assert.All(viewModel.Kpis, card => Assert.Equal(string.Empty, card.Comparison));
+        Assert.Equal("—", viewModel.Kpis[3].Value);
+        Assert.Equal("Chưa đủ dữ liệu", viewModel.Kpis[3].Detail);
+        Assert.Equal("—", viewModel.Kpis[5].Value);
+        Assert.Equal("Chưa đủ dữ liệu", viewModel.Kpis[5].Detail);
     }
 
     public void Dispose()

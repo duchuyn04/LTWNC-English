@@ -38,4 +38,8 @@ public class FlashcardStudyViewModel
 
     // false = khách (ẩn mark learned / complete)
     public bool IsAuthenticated { get; set; }
+
+    // Các chế độ học thật để chuyển trực tiếp ngay trên màn Flashcard.
+    public IReadOnlyList<StudyModeOptionViewModel> Modes { get; set; } =
+        Array.Empty<StudyModeOptionViewModel>();
 }

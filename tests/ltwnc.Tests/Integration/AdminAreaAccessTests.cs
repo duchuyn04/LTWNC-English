@@ -57,8 +57,8 @@ public sealed class AdminAreaAccessTests : IClassFixture<AdminWebApplicationFact
         string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Trung tâm quản trị", html);
-        Assert.Contains("Tổng quan", html);
+        Assert.Contains("<h1>Tổng quan</h1>", html);
+        Assert.DoesNotContain("Trung tâm quản trị", html);
         Assert.Contains("Người dùng", html);
         Assert.Contains("Nội dung", html);
         Assert.Contains("Phiên học", html);

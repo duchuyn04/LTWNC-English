@@ -42,9 +42,14 @@ public sealed class AdminLoginFlowTests : IClassFixture<AdminWebApplicationFacto
         string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Trung tâm quản trị", html);
-        Assert.Contains("Phiên quản trị", html);
-        Assert.DoesNotContain("Phiên quản trị đặc quyền", html);
+        Assert.Contains("<h1>Tổng quan</h1>", html);
+        Assert.Contains("placeholder=\"Email hoặc mã\"", html);
+        Assert.Contains("data-admin-menu-toggle", html);
+        Assert.Contains("aria-controls=\"admin-sidebar\"", html);
+        Assert.Contains("data-admin-menu-backdrop", html);
+        Assert.Contains("/js/admin-shell.js", html);
+        Assert.DoesNotContain("LTWNC / ADMIN", html);
+        Assert.DoesNotContain("Phiên quản trị", html);
         Assert.DoesNotContain("hai bước", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("AdminTwoFactor", html);
     }

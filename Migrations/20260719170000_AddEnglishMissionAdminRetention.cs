@@ -1,10 +1,15 @@
 using System;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using ltwnc.Data;
 
 #nullable disable
 
 namespace ltwnc.Migrations
 {
+    // Gắn metadata để EF CLI nhận diện migration thủ công khi chạy database update.
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20260719170000_AddEnglishMissionAdminRetention")]
     public partial class AddEnglishMissionAdminRetention : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)

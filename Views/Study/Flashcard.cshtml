@@ -1,6 +1,10 @@
 @model FlashcardStudyViewModel
 @{
     ViewData["Title"] = "Học flashcard";
+    ViewData["HideLayoutChrome"] = true;
+
+    var dictationMode = Model.Modes.FirstOrDefault(mode => mode.Mode == StudyMode.Dictation);
+    var missionMode = Model.Modes.FirstOrDefault(mode => mode.Mode == StudyMode.EnglishMission);
 }
 
 <link rel="stylesheet" href="~/css/flashcard.css" asp-append-version="true" />
@@ -9,27 +13,93 @@
     @Html.AntiForgeryToken()
 
     <section id="study-view" class="study-stage" aria-label="Học flashcard">
-        <header class="study-header gsap-fade-up">
-            <a class="exit-link" href="/Study/@Model.SetId" title="Backspace: thoát về trang học">
+        <header class="study-page-header gsap-fade-up">
+            <a class="study-back" href="/Set/@Model.SetId" title="Backspace: quay lại bộ từ">
                 <i class="ph ph-arrow-left" aria-hidden="true"></i>
-                <span class="exit-label">Thoát</span>
+                <span>Quay lại</span>
             </a>
 
-            <div class="set-meta">
-                <h1 class="set-title">@Model.SetTitle</h1>
-            </div>
+            <nav class="study-breadcrumb" aria-label="Breadcrumb">
+                <a href="/Set">Bộ thẻ của tôi</a>
+                <i class="ph ph-caret-right" aria-hidden="true"></i>
+                <a href="/Set/@Model.SetId">@Model.SetTitle</a>
+                <i class="ph ph-caret-right" aria-hidden="true"></i>
+                <span aria-current="page">Học</span>
+            </nav>
 
-            <button type="button" class="icon-button study-settings-button" onclick="toggleSettingsDrawer(event)" title="Cài đặt học">
-                <i class="ph ph-sliders-horizontal" aria-hidden="true"></i>
-            </button>
+            <div class="study-title-row">
+                <div class="set-meta">
+                    <span class="study-title-kicker">Bộ từ đang học</span>
+                    <h1 class="set-title">@Model.SetTitle</h1>
+                </div>
+
+                <div class="study-title-actions">
+                    <a class="study-edit-link" href="/Set/@Model.SetId/Edit">
+                        <i class="ph ph-pencil-simple" aria-hidden="true"></i>
+                        <span>Chỉnh sửa bộ từ</span>
+                    </a>
+                    <button type="button" class="icon-button study-settings-button" onclick="toggleSettingsDrawer(event)" title="Cài đặt học" aria-label="Mở cài đặt học">
+                        <i class="ph ph-sliders-horizontal" aria-hidden="true"></i>
+                    </button>
+                </div>
+            </div>
         </header>
 
-        <div class="progress-strip gsap-fade-up">
-            <div class="progress-track" aria-hidden="true">
-                <div id="card-progress-fill" class="progress-fill"></div>
+        @if (TempData["Message"] is string message)
+        {
+            <div class="study-status" role="status">
+                <i class="ph ph-info" aria-hidden="true"></i>
+                <span>@message</span>
             </div>
-            <span id="card-progress-text" class="progress-text">Thẻ 1 / 1</span>
+        }
+
+        <div class="study-mode-row gsap-fade-up">
+            <nav class="study-mode-tabs" aria-label="Chế độ học">
+                <a class="study-mode-tab is-active" href="/Study/@Model.SetId/Flashcard" aria-current="page">
+                    <i class="ph ph-cards" aria-hidden="true"></i>
+                    <span>Flashcard</span>
+                </a>
+
+                @if (dictationMode?.IsAvailable == true)
+                {
+                    <a class="study-mode-tab" href="@dictationMode.ActionUrl">
+                        <i class="ph ph-headphones" aria-hidden="true"></i>
+                        <span>Nghe chép</span>
+                    </a>
+                }
+                else
+                {
+                    <span class="study-mode-tab is-disabled" aria-disabled="true" title="@(dictationMode?.UnavailableReason ?? "Chế độ chưa khả dụng")">
+                        <i class="ph ph-headphones" aria-hidden="true"></i>
+                        <span>Nghe chép</span>
+                    </span>
+                }
+
+                @if (missionMode?.IsAvailable == true)
+                {
+                    <a class="study-mode-tab" href="@missionMode.ActionUrl">
+                        <i class="ph ph-chats-circle" aria-hidden="true"></i>
+                        <span>English Mission</span>
+                    </a>
+                }
+                else
+                {
+                    <span class="study-mode-tab is-disabled" aria-disabled="true" title="@(missionMode?.UnavailableReason ?? "Chế độ chưa khả dụng")">
+                        <i class="ph ph-chats-circle" aria-hidden="true"></i>
+                        <span>English Mission</span>
+                    </span>
+                }
+            </nav>
         </div>
+
+        <div class="study-focus-column">
+            <div class="progress-strip gsap-fade-up">
+                <span class="progress-label">Tiến độ</span>
+                <span id="card-progress-text" class="progress-text">Thẻ 1 / 1</span>
+                <div class="progress-track" aria-hidden="true">
+                    <div id="card-progress-fill" class="progress-fill"></div>
+                </div>
+            </div>
 
         <main class="card-area gsap-scale-in">
             <div class="flashcard-frame" onclick="toggleCardFlip()" role="button" tabindex="0" aria-label="Lật thẻ">
@@ -116,74 +186,31 @@
             <span class="keyboard-divider" aria-hidden="true"></span>
             <span class="keyboard-group"><kbd>Backspace</kbd> thoát</span>
         </p>
+        </div>
 
-        <details class="study-accordion">
-            <summary class="study-accordion-summary">
-                <i class="ph ph-student" aria-hidden="true"></i>
-                <span>Chế độ học</span>
-                <i class="ph ph-caret-down accordion-chevron" aria-hidden="true"></i>
-            </summary>
-            <div class="study-accordion-body">
-                <div class="learning-modes-grid">
-                    <button type="button" class="btn learning-chip" disabled>
-                        <i class="ph ph-microphone" aria-hidden="true"></i>
-                        <span>Speaking</span>
-                    </button>
-                    <button type="button" class="btn learning-chip" disabled>
-                        <i class="ph ph-chats-circle" aria-hidden="true"></i>
-                        <span>Hội thoại</span>
-                    </button>
-                    <button type="button" class="btn learning-chip" disabled>
-                        <i class="ph ph-book-open" aria-hidden="true"></i>
-                        <span>Ngữ pháp</span>
-                    </button>
-                    <button type="button" class="btn learning-chip" disabled>
-                        <i class="ph ph-article" aria-hidden="true"></i>
-                        <span>Đọc hiểu</span>
-                    </button>
-                    <button type="button" class="btn learning-chip is-active">
-                        <i class="ph ph-student-fill" aria-hidden="true"></i>
-                        <span>Học</span>
-                    </button>
-                    <button type="button" class="btn learning-chip" disabled>
-                        <i class="ph ph-exam" aria-hidden="true"></i>
-                        <span>Kiểm tra</span>
-                    </button>
-                    <button type="button" class="btn learning-chip" disabled>
-                        <i class="ph ph-headphones" aria-hidden="true"></i>
-                        <span>Nghe Chép</span>
-                    </button>
+        <section class="study-vocabulary-section" aria-labelledby="study-vocabulary-title">
+            <header class="study-vocabulary-header">
+                <div>
+                    <h2 id="study-vocabulary-title">Danh sách từ</h2>
+                    <p>@Model.VocabularyCards.Count thẻ · xem nhanh nội dung trong bộ</p>
                 </div>
-            </div>
-        </details>
+                <div class="vocab-panel-toolbar">
+                    <select id="vocab-sort" class="form-select vocab-sort-select" aria-label="Sắp xếp từ vựng">
+                        <option value="original">Tất cả thẻ</option>
+                        <option value="starred">Đã đánh dấu trước</option>
+                        <option value="unlearned">Chưa học trước</option>
+                        <option value="learning">Đang học trước</option>
+                        <option value="mastered">Đã thành thạo trước</option>
+                    </select>
+                    <a class="vocab-edit-link" href="/Set/@Model.SetId/Edit">
+                        <i class="ph ph-pencil-simple" aria-hidden="true"></i>
+                        <span>Chỉnh sửa</span>
+                    </a>
+                </div>
+            </header>
 
-        <details class="study-accordion">
-            <summary class="study-accordion-summary">
-                <i class="ph ph-book-open" aria-hidden="true"></i>
-                <span>Từ trong bộ (@Model.Flashcards.Count từ)</span>
-                <i class="ph ph-caret-down accordion-chevron" aria-hidden="true"></i>
-            </summary>
-            <div class="study-accordion-body">
-                <section class="vocab-panel" aria-label="Danh sách từ vựng">
-                    <div class="vocab-panel-toolbar">
-                        <a class="vocab-edit-link" href="/Set/@Model.SetId/Edit">
-                            <i class="ph ph-pencil-simple" aria-hidden="true"></i>
-                            <span>Chỉnh sửa</span>
-                        </a>
-
-                        <select id="vocab-sort" class="form-select vocab-sort-select" aria-label="Sắp xếp từ vựng">
-                            <option value="original">Thứ tự gốc</option>
-                            <option value="starred">Được đánh dấu sao trước</option>
-                            <option value="unlearned">Chưa học trước</option>
-                            <option value="learning">Đang học trước</option>
-                            <option value="mastered">Đã thành thạo trước</option>
-                        </select>
-                    </div>
-
-                    <div id="vocab-list" class="vocab-list"></div>
-                </section>
-            </div>
-        </details>
+            <div id="vocab-list" class="vocab-list"></div>
+        </section>
     </section>
 
     <aside id="study-settings-drawer" class="study-settings-drawer" hidden>
@@ -331,7 +358,7 @@
         const speedSelect = document.getElementById('tts-speed');
 
         function exitStudy() {
-            window.location.href = `/Study/${setId}`;
+            window.location.href = `/Set/${setId}`;
         }
 
         function loadVoices() {
@@ -471,31 +498,25 @@
                 rows.className = 'vocab-group-rows';
 
                 items.forEach(card => {
+                    const visibleIndex = cards.indexOf(card) + 1;
                     const row = document.createElement('div');
-                    row.className = `vocab-row glass-card ${isMastered ? 'mastered-border' : ''}`;
+                    row.className = `vocab-row ${isMastered ? 'mastered-border' : ''}`;
                     row.innerHTML = `
-                        <div class="row g-3 align-items-center">
-                            <div class="col-12 col-md-6">
-                                <div class="d-flex align-items-center gap-3">
-                                    <i class="${card.IsStarred ? 'ph ph-star-fill text-dark' : 'ph ph-star text-muted'}" aria-hidden="true"></i>
-                                    <div>
-                                        <p class="vocab-word ${isMastered ? 'fw-bold' : ''}">${escapeHtml(card.FrontText || '')}</p>
-                                        <p class="vocab-meta">${escapeHtml([card.PartOfSpeech, card.Pronunciation].filter(Boolean).join(' · '))}</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-12 col-md-6">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div>
-                                        <p class="vocab-meaning">${escapeHtml(card.BackText || '')}</p>
-                                        <p class="vocab-example">${escapeHtml(card.ExampleSentence || '')}</p>
-                                    </div>
-                                    <button type="button" class="btn vocab-audio" title="Phát giọng đọc">
-                                        <i class="ph ph-speaker-high" aria-hidden="true"></i>
-                                    </button>
-                                </div>
+                        <span class="vocab-row-index" aria-hidden="true">${visibleIndex}</span>
+                        <div class="vocab-row-term">
+                            <i class="${card.IsStarred ? 'ph ph-star-fill is-starred' : 'ph ph-star'}" aria-hidden="true"></i>
+                            <div>
+                                <p class="vocab-word ${isMastered ? 'fw-bold' : ''}">${escapeHtml(card.FrontText || '')}</p>
+                                <p class="vocab-meta">${escapeHtml([card.PartOfSpeech, card.Pronunciation].filter(Boolean).join(' · '))}</p>
                             </div>
                         </div>
+                        <div class="vocab-row-meaning">
+                            <p class="vocab-meaning">${escapeHtml(card.BackText || '')}</p>
+                            <p class="vocab-example">${escapeHtml(card.ExampleSentence || '')}</p>
+                        </div>
+                        <button type="button" class="btn vocab-audio" aria-label="Phát giọng đọc ${escapeHtml(card.FrontText || '')}">
+                            <i class="ph ph-speaker-high" aria-hidden="true"></i>
+                        </button>
                     `;
                     const audio = row.querySelector('.vocab-audio');
                     audio.addEventListener('click', () => speak(card.FrontText || '', false));

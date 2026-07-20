@@ -7,6 +7,7 @@
     let rootElement = null;
     let snapshotUrl = null;
     let intervalMs = DEFAULT_INTERVAL_MS;
+    let lastUpdatedTime = '';
 
     // Khởi động polling cho dashboard; options chỉ dùng để test trình duyệt với chu kỳ ngắn.
     function start(options) {
@@ -20,6 +21,9 @@
         if (!snapshotUrl) {
             return;
         }
+
+        const initialStatus = rootElement.querySelector('[data-dashboard-live-status]');
+        lastUpdatedTime = extractTime(initialStatus ? initialStatus.textContent : '');
 
         intervalMs = DEFAULT_INTERVAL_MS;
         if (options && Number.isFinite(options.intervalMs) && options.intervalMs > 0) {
@@ -88,7 +92,9 @@
         inFlight = true;
         abortController = new AbortController();
         try {
-            setStatus('Đang cập nhật...');
+            if (!lastUpdatedTime) {
+                setStatus('Đang cập nhật...');
+            }
             const response = await fetch(snapshotUrl, {
                 headers: {
                     'Accept': 'application/json'
@@ -104,7 +110,10 @@
             renderSnapshot(snapshot);
         } catch (error) {
             if (!error || error.name !== 'AbortError') {
-                setStatus('Không cập nhật được dữ liệu mới. Đang giữ số liệu gần nhất.');
+                const suffix = lastUpdatedTime
+                    ? ' · đang hiển thị số liệu lúc ' + lastUpdatedTime
+                    : '';
+                setStatus('Không thể cập nhật' + suffix);
             }
         } finally {
             inFlight = false;
@@ -133,6 +142,11 @@
 
             setText(card.querySelector('[data-kpi-label]'), kpi.label);
             setText(card.querySelector('[data-kpi-value]'), kpi.value);
+            const valueElement = card.querySelector('[data-kpi-value]');
+            if (valueElement) {
+                const isEmptyValue = !kpi.value || !/^\d/.test(kpi.value);
+                valueElement.classList.toggle('admin-kpi-value--empty', isEmptyValue);
+            }
             setText(card.querySelector('[data-kpi-detail]'), kpi.detail);
             setText(card.querySelector('[data-kpi-comparison]'), kpi.comparison);
             card.className = 'admin-kpi-card admin-kpi-card--' + normalizeKpiTone(kpi.tone);
@@ -155,8 +169,8 @@
         if (alerts.length === 0) {
             container.appendChild(createAlert({
                 tone: 'success',
-                title: 'Không có cảnh báo vận hành',
-                detail: 'Dữ liệu hiện tại chưa ghi nhận việc cần xử lý ngay.',
+                title: 'Không có việc cần xử lý',
+                detail: '',
                 actionText: '',
                 href: ''
             }));
@@ -173,13 +187,20 @@
         const article = document.createElement('article');
         article.className = 'admin-live-alert admin-live-alert--' + normalizeAlertTone(alert.tone);
 
+        const icon = document.createElement('i');
+        icon.className = 'ph ' + alertIcon(alert.tone);
+        icon.setAttribute('aria-hidden', 'true');
+        article.appendChild(icon);
+
         const body = document.createElement('div');
         const title = document.createElement('h3');
-        title.textContent = alert.title || 'Cảnh báo vận hành';
-        const detail = document.createElement('p');
-        detail.textContent = alert.detail || '';
+        title.textContent = alert.title || 'Việc cần xử lý';
         body.appendChild(title);
-        body.appendChild(detail);
+        if (alert.detail) {
+            const detail = document.createElement('p');
+            detail.textContent = alert.detail;
+            body.appendChild(detail);
+        }
         article.appendChild(body);
 
         if (alert.href && alert.actionText) {
@@ -199,9 +220,14 @@
         }
 
         const generatedAt = new Date(period.generatedAtVietnam);
-        const formatted = formatVietnamDateTime(generatedAt);
-        setStatus('Cập nhật lúc ' + formatted + ' giờ Việt Nam.');
-        setText(rootElement.querySelector('[data-dashboard-updated]'), 'Cập nhật lúc ' + formatted + ' giờ Việt Nam.');
+        lastUpdatedTime = formatVietnamTime(generatedAt);
+        setStatus('Cập nhật ' + lastUpdatedTime);
+
+        if (period.startVietnam && period.endVietnam) {
+            setText(
+                rootElement.querySelector('[data-dashboard-period]'),
+                formatVietnamDateRange(new Date(period.startVietnam), new Date(period.endVietnam)));
+        }
     }
 
     // Ghi text an toàn cho các node có thể không tồn tại.
@@ -244,17 +270,50 @@
         return 'neutral';
     }
 
+    function alertIcon(tone) {
+        if (tone === 'positive' || tone === 'success') {
+            return 'ph-check-circle';
+        }
+
+        if (tone === 'negative' || tone === 'danger') {
+            return 'ph-warning-octagon';
+        }
+
+        if (tone === 'warning') {
+            return 'ph-warning';
+        }
+
+        return 'ph-info';
+    }
+
     // Định dạng ngày giờ theo locale Việt Nam cho phần trạng thái cập nhật.
-    function formatVietnamDateTime(value) {
-        return value.toLocaleString('vi-VN', {
+    function formatVietnamTime(value) {
+        return value.toLocaleTimeString('vi-VN', {
             hour: '2-digit',
             minute: '2-digit',
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric',
             hour12: false,
             timeZone: 'Asia/Ho_Chi_Minh'
         });
+    }
+
+    function formatVietnamDateRange(start, end) {
+        const startText = start.toLocaleDateString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            timeZone: 'Asia/Ho_Chi_Minh'
+        });
+        const endText = end.toLocaleDateString('vi-VN', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric',
+            timeZone: 'Asia/Ho_Chi_Minh'
+        });
+        return startText + '–' + endText;
+    }
+
+    function extractTime(value) {
+        const match = String(value || '').match(/\b([01]\d|2[0-3]):[0-5]\d\b/);
+        return match ? match[0] : '';
     }
 
     window.AdminDashboardLive = {

@@ -5,12 +5,11 @@ using Microsoft.AspNetCore.Authorization;
 using ltwnc.Models;
 using ltwnc.Models.Entities;
 using ltwnc.Services.FlashcardSets;
-using ltwnc.Services.Auth;
 using ltwnc.Models.ViewModels.Home;
 
 namespace ltwnc.Controllers;
 
-// Trang chủ (khách) và trang lỗi. User đã login vào /Set luôn.
+// Trang chủ công khai và trang lỗi.
 public class HomeController : Controller
 {
     // Lấy / tìm bộ thẻ public
@@ -22,16 +21,9 @@ public class HomeController : Controller
         _setService = setService;
     }
 
-    // GET / : nếu đã login redirect /Set; không thì list public hoặc search theo q
+    // GET /: hiển thị trang chủ cho cả khách và user đã đăng nhập.
     public async Task<IActionResult> Index(string? q)
     {
-        if (User.Identity?.IsAuthenticated == true)
-        {
-            return Redirect(User.IsInRole(AdminRoleBootstrapper.AdminRole)
-                ? "/Admin"
-                : "/Set");
-        }
-
         HomeViewModel model = new HomeViewModel();
         List<FlashcardSet> publicSets;
 

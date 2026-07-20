@@ -1,9 +1,14 @@
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using ltwnc.Data;
 
 #nullable disable
 
 namespace ltwnc.Migrations
 {
+    // Gắn metadata để EF CLI nhận diện migration thủ công khi chạy database update.
+    [DbContext(typeof(AppDbContext))]
+    [Migration("20260719194500_AddAdminGlobalSearchIndexes")]
     public partial class AddAdminGlobalSearchIndexes : Migration
     {
         // Tạo index metadata phục vụ tìm kiếm toàn cục an toàn cho Admin.

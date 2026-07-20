@@ -30,6 +30,11 @@ using ltwnc.Services.Leaderboard;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Giới hạn logging vào console/debug để môi trường local không bị lỗi quyền ghi Windows EventLog.
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+
 // Add DbContext
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -244,7 +249,22 @@ builder.Services.AddRateLimiter(options =>
             });
     });
 });
-builder.Services.AddDataProtection();
+if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing"))
+{
+    string dataProtectionKeyPath = Path.Combine(
+        builder.Environment.ContentRootPath,
+        ".tmp",
+        "data-protection-keys");
+    Directory.CreateDirectory(dataProtectionKeyPath);
+
+    // Lưu key local trong workspace để tránh lỗi quyền AppData khi chạy app bằng tool/CI/dev shell.
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyPath));
+}
+else
+{
+    builder.Services.AddDataProtection();
+}
 builder.Services.AddScoped<ltwnc.Services.Ai.OpenAiCompatibleClient>();
 builder.Services.AddScoped<ltwnc.Services.Ai.IAiProviderAdapter, ltwnc.Services.Ai.OpenAiCompatibleAdapter>();
 builder.Services.AddScoped<ltwnc.Services.Ai.IAiCompletionRouter, ltwnc.Services.Ai.AiCompletionRouter>();

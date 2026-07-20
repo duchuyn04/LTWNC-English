@@ -31,7 +31,7 @@ test.describe('Admin dashboard live polling', () => {
             releaseFirstResponse();
         }
         await expect.poll(() => requestCount).toBeGreaterThanOrEqual(2);
-        await expect(page.locator('[data-dashboard-live-status]')).toContainText('Cập nhật lúc');
+        await expect(page.locator('[data-dashboard-live-status]')).toHaveText('Cập nhật 12:00');
 
         await page.evaluate(() => window.AdminDashboardLive.stop());
     });
@@ -68,6 +68,33 @@ test.describe('Admin dashboard live polling', () => {
         const requestCountAfterPageHide = requestCount;
         await page.waitForTimeout(120);
         expect(requestCount).toBe(requestCountAfterPageHide);
+    });
+
+    test('keeps the last snapshot and its server-rendered CTA when refresh fails', async ({ page }) => {
+        let requestCount = 0;
+        await page.route('/Admin/Snapshot?days=30', async route => {
+            requestCount += 1;
+            if (requestCount === 1) {
+                await route.fulfill({
+                    contentType: 'application/json',
+                    body: JSON.stringify(snapshotPayload('Đang ổn định'))
+                });
+                return;
+            }
+
+            await route.fulfill({ status: 503, body: 'Unavailable' });
+        });
+        await loadDashboardHarness(page);
+
+        await page.evaluate(() => window.AdminDashboardLive.start({ intervalMs: 50 }));
+        await expect(page.locator('[data-kpi-value]')).toHaveText('12');
+        await expect.poll(() => requestCount).toBeGreaterThanOrEqual(2);
+        await expect(page.locator('[data-dashboard-live-status]'))
+            .toHaveText('Không thể cập nhật · đang hiển thị số liệu lúc 12:00');
+        await expect(page.locator('[data-kpi-value]')).toHaveText('12');
+        await expect(page.locator('[data-kpi-action]')).toHaveAttribute('href', '/Admin/Learning');
+
+        await page.evaluate(() => window.AdminDashboardLive.stop());
     });
 
     test('keeps keyboard focus visible at 360px and respects reduced motion', async ({ page }) => {
@@ -151,6 +178,7 @@ async function loadDashboardHarness(page) {
                 <strong data-kpi-value></strong>
                 <p data-kpi-detail></p>
                 <span data-kpi-comparison></span>
+                <a data-kpi-action href="/Admin/Learning">Xem phiên học</a>
             </article>
         </section>
     `

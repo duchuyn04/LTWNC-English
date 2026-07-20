@@ -12,7 +12,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Newsreader:ital,opsz,wght@0,6..72,500..800;1,6..72,500..800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://unpkg.com/phosphor-icons@1.4.2/src/css/icons.css" />
     <link rel="stylesheet" href="/css/site.css" />
     <link rel="stylesheet" href="/css/admin-dashboard.css" />
@@ -21,7 +20,22 @@
 <body class="admin-body">
     <a class="admin-skip-link" href="#admin-main">Bỏ qua điều hướng</a>
     <div class="admin-shell">
-        <aside class="admin-sidebar" aria-label="Điều hướng quản trị">
+        <header class="admin-mobile-bar">
+            <a class="admin-mobile-brand" href="/Admin" aria-label="Trang tổng quan LTWNC Admin">
+                <span aria-hidden="true">LT</span>
+                <strong>LTWNC Admin</strong>
+            </a>
+            <button type="button"
+                    class="admin-menu-toggle"
+                    data-admin-menu-toggle
+                    aria-expanded="false"
+                    aria-controls="admin-sidebar">
+                <i class="ph ph-list" aria-hidden="true"></i>
+                <span>Menu</span>
+            </button>
+        </header>
+
+        <aside id="admin-sidebar" class="admin-sidebar" data-admin-menu-panel aria-label="Điều hướng quản trị">
             <a class="admin-brand" href="/Admin" aria-label="Trang tổng quan LTWNC Admin">
                 <span aria-hidden="true">LT</span>
                 <strong>LTWNC</strong>
@@ -35,7 +49,7 @@
                 <a class="@(currentPath.StartsWith("/Admin/Users", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/Users">
                     <i class="ph ph-users-three" aria-hidden="true"></i><span>Người dùng</span>
                 </a>
-                <a class="@(currentPath.StartsWith("/Admin/Content", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/Content">
+                <a class="@((currentPath.Equals("/Admin/Content", StringComparison.OrdinalIgnoreCase) || currentPath.StartsWith("/Admin/Content/", StringComparison.OrdinalIgnoreCase)) ? "active" : null)" href="/Admin/Content">
                     <i class="ph ph-stack" aria-hidden="true"></i><span>Nội dung</span>
                 </a>
                 <a class="@(currentPath.StartsWith("/Admin/Learning", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/Learning">
@@ -72,11 +86,15 @@
                 </div>
             </div>
         </aside>
+        <button type="button"
+                class="admin-sidebar-backdrop"
+                data-admin-menu-backdrop
+                hidden
+                aria-label="Đóng menu"></button>
 
         <div class="admin-workspace">
             <header class="admin-topbar">
-                <div>
-                    <p>LTWNC / ADMIN</p>
+                <div class="admin-page-title">
                     <h1>@pageHeading</h1>
                 </div>
                 <form class="admin-global-search" method="get" action="/Admin/Search" role="search">
@@ -84,12 +102,11 @@
                     <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
                     <input id="admin-global-search-input" name="q" type="search"
                            value="@(Context.Request.Path.StartsWithSegments("/Admin/Search") ? Context.Request.Query["q"].ToString() : string.Empty)"
-                           placeholder="Email, mã, SET-12, EM-12" maxlength="100" />
+                           placeholder="Email hoặc mã" maxlength="100" />
                     <button type="submit" title="Tìm kiếm" aria-label="Tìm kiếm">
                         <i class="ph ph-arrow-right" aria-hidden="true"></i>
                     </button>
                 </form>
-                <span class="admin-role-badge"><i class="ph ph-shield-check" aria-hidden="true"></i> Phiên quản trị</span>
             </header>
             <main id="admin-main" class="admin-main" tabindex="-1">
                 @RenderBody()
@@ -97,7 +114,7 @@
         </div>
     </div>
 
-    <script src="/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/admin-shell.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

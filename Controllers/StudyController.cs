@@ -37,7 +37,7 @@ public class StudyController : Controller
         _currentUser = currentUser;
     }
 
-    // GET Study Hub: chỉ set của owner; query filter ghi settings nếu đã login
+    // Entry route: lưu bộ lọc nếu có rồi mở thẳng Flashcard.
     [AllowAnonymous]
     [Route("/Study/{setId:int}")]
     public async Task<IActionResult> Index(
@@ -58,12 +58,15 @@ public class StudyController : Controller
             await _studyService.SaveFilterSettingsAsync(userId, starredOnly, unlearnedOnly);
         }
 
-        StudyModeSelectorViewModel model =
-            await _studyService.GetStudyModeSelectorDataAsync(setId, userId);
-        return View(model);
+        return RedirectToAction(nameof(Flashcard), new
+        {
+            setId,
+            starredOnly,
+            unlearnedOnly
+        });
     }
 
-    // GET màn flashcard: gộp filter query + settings; empty -> hub + TempData
+    // GET màn flashcard: gộp filter query + settings; bộ lọc rỗng được tự bỏ.
     [AllowAnonymous]
     [Route("/Study/{setId:int}/Flashcard")]
     public async Task<IActionResult> Flashcard(
@@ -111,17 +114,29 @@ public class StudyController : Controller
 
         if (!cards.Any())
         {
-            if (effectiveStarredOnly || effectiveUnlearnedOnly)
+            if (vocabularyCards.Any() && (effectiveStarredOnly || effectiveUnlearnedOnly))
             {
-                TempData["Message"] = "Không có thẻ phù hợp với bộ lọc hiện tại.";
-            }
-            else
-            {
-                TempData["Message"] = "Bộ thẻ này chưa có thẻ nào.";
+                TempData["Message"] = "Không có thẻ phù hợp. Bộ lọc đã được bỏ để bạn tiếp tục học.";
+
+                if (userId != null)
+                {
+                    await _studyService.SaveFilterSettingsAsync(userId, false, false);
+                }
+
+                return RedirectToAction(nameof(Flashcard), new
+                {
+                    setId,
+                    starredOnly = false,
+                    unlearnedOnly = false
+                });
             }
 
-            return RedirectToAction("Index", new { setId });
+            TempData["Message"] = "Thêm ít nhất một thẻ để bắt đầu học.";
+            return RedirectToAction("Edit", "FlashcardSet", new { id = setId });
         }
+
+        StudyModeSelectorViewModel modeSelector =
+            await _studyService.GetStudyModeSelectorDataAsync(setId, userId);
 
         StudySession? session = userId == null
             ? null
@@ -141,7 +156,8 @@ public class StudyController : Controller
             StarredOnly = effectiveStarredOnly,
             Settings = StudySettingsMapper.ToViewModel(settings),
             IsAuthenticated = userId != null,
-            UnlearnedOnly = effectiveUnlearnedOnly
+            UnlearnedOnly = effectiveUnlearnedOnly,
+            Modes = modeSelector.Modes
         };
 
         return View(model);

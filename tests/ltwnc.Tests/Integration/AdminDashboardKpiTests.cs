@@ -33,14 +33,28 @@ public sealed class AdminDashboardKpiTests
         string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Chỉ số vận hành hệ thống", html);
+        Assert.Contains("<h1>Tổng quan</h1>", html);
         Assert.Contains("aria-pressed=\"true\"", html);
-        Assert.Contains("Người dùng hoạt động", html);
-        Assert.Contains("Đăng ký mới", html);
+        Assert.Contains("Đang hoạt động", html);
+        Assert.Contains("Mới đăng ký", html);
         Assert.Contains("Phiên học", html);
-        Assert.Contains("Tỷ lệ hoàn thành", html);
-        Assert.Contains("Nhiệm vụ tiếng Anh", html);
-        Assert.Contains("Tỷ lệ lỗi AI", html);
+        Assert.Contains("Hoàn thành", html);
+        Assert.Contains("Nhiệm vụ", html);
+        Assert.Contains("Lỗi AI", html);
+        Assert.Contains("href=\"/Admin/Users\">", html);
+        Assert.Contains("Xem người dùng", html);
+        Assert.Contains("href=\"/Admin/Learning\">", html);
+        Assert.Contains("Xem phiên học", html);
+        Assert.Contains("href=\"/Admin/EnglishMissions\">", html);
+        Assert.Contains("Xem nhiệm vụ", html);
+        Assert.Contains("href=\"/Admin/AiProviders\">", html);
+        Assert.Contains("Kiểm tra AI", html);
+        Assert.Contains("<details", html);
+        Assert.Contains("Cách tính chỉ số", html);
+        Assert.DoesNotContain("TRUNG TÂM VẬN HÀNH", html);
+        Assert.DoesNotContain("Chỉ số vận hành hệ thống", html);
+        Assert.DoesNotContain("Quy tắc tính", html);
+        Assert.DoesNotContain("hồ sơ tạo trong khoảng", html);
         Assert.Contains("50%", html);
         Assert.Contains("25%", html);
     }

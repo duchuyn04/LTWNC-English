@@ -18,4 +18,6 @@ public sealed class AdminDashboardKpiCardViewModel
     public string Comparison { get; init; } = string.Empty;
     public string Tone { get; init; } = "neutral";
     public string Icon { get; init; } = "ph-chart-line-up";
+    public string ActionLabel { get; init; } = string.Empty;
+    public string ActionHref { get; init; } = string.Empty;
 }

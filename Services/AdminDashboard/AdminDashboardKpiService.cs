@@ -114,36 +114,41 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
             Kpis =
             [
                 CountCard(
-                    "Người dùng hoạt động",
+                    "Đang hoạt động",
                     snapshot.CurrentMetrics.ActiveUsers,
                     snapshot.PreviousMetrics.ActiveUsers,
-                    "người dùng có hoạt động học",
-                    "ph-users-three"),
+                    "ph-users-three",
+                    "Xem người dùng",
+                    "/Admin/Users"),
                 CountCard(
-                    "Đăng ký mới",
+                    "Mới đăng ký",
                     snapshot.CurrentMetrics.NewRegistrations,
                     snapshot.PreviousMetrics.NewRegistrations,
-                    "hồ sơ tạo trong khoảng",
-                    "ph-user-plus"),
+                    "ph-user-plus",
+                    "Xem người dùng",
+                    "/Admin/Users"),
                 CountCard(
                     "Phiên học",
                     snapshot.CurrentMetrics.StudySessions,
                     snapshot.PreviousMetrics.StudySessions,
-                    "phiên bắt đầu trong khoảng",
-                    "ph-graduation-cap"),
+                    "ph-graduation-cap",
+                    "Xem phiên học",
+                    "/Admin/Learning"),
                 PercentCard(
-                    "Tỷ lệ hoàn thành",
+                    "Hoàn thành",
                     snapshot.CurrentMetrics.CompletionRatePercent,
                     snapshot.PreviousMetrics.CompletionRatePercent,
                     snapshot.CurrentMetrics.CompletionRateDenominator,
-                    "loại phiên đang học dưới 30 phút",
-                    "ph-check-circle"),
+                    "ph-check-circle",
+                    "Xem phiên học",
+                    "/Admin/Learning"),
                 CountCard(
-                    "Nhiệm vụ tiếng Anh",
+                    "Nhiệm vụ",
                     snapshot.CurrentMetrics.EnglishMissions,
                     snapshot.PreviousMetrics.EnglishMissions,
-                    "mission tạo trong khoảng",
-                    "ph-chats-circle"),
+                    "ph-chats-circle",
+                    "Xem nhiệm vụ",
+                    "/Admin/EnglishMissions"),
                 AiErrorCard(
                     snapshot.CurrentMetrics.AiErrorRatePercent,
                     snapshot.PreviousMetrics.AiErrorRatePercent,
@@ -488,8 +493,9 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
         string label,
         int current,
         int previous,
-        string detail,
-        string icon)
+        string icon,
+        string actionLabel,
+        string actionHref)
     {
         int delta = current - previous;
         string value = current.ToString("N0");
@@ -500,10 +506,12 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
         {
             Label = label,
             Value = value,
-            Detail = detail,
+            Detail = string.Empty,
             Comparison = comparison,
             Tone = tone,
-            Icon = icon
+            Icon = icon,
+            ActionLabel = actionLabel,
+            ActionHref = actionHref
         };
     }
 
@@ -513,22 +521,21 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
         decimal? current,
         decimal? previous,
         int denominator,
-        string detail,
-        string icon)
+        string icon,
+        string actionLabel,
+        string actionHref)
     {
         decimal? delta = CalculatePercentDelta(current, previous);
 
-        string value = "Chưa có dữ liệu";
+        string value = "—";
         if (current.HasValue)
         {
             value = $"{current:0.#}%";
         }
 
-        string resolvedDetail = detail;
-        if (denominator == 0)
-        {
-            resolvedDetail = "chưa có phiên đủ điều kiện";
-        }
+        string resolvedDetail = denominator == 0 || !current.HasValue
+            ? "Chưa đủ dữ liệu"
+            : string.Empty;
 
         string tone = "neutral";
         if (delta.HasValue)
@@ -543,7 +550,9 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
             Detail = resolvedDetail,
             Comparison = FormatPercentComparison(delta, previous),
             Tone = tone,
-            Icon = icon
+            Icon = icon,
+            ActionLabel = actionLabel,
+            ActionHref = actionHref
         };
     }
 
@@ -556,7 +565,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
     {
         decimal? delta = CalculatePercentDelta(current, previous);
 
-        string value = "Chưa đủ dữ liệu";
+        string value = "—";
         if (current.HasValue)
         {
             value = $"{current:0.#}%";
@@ -565,7 +574,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
         string detail;
         if (currentSample < MinimumAiSampleSize)
         {
-            detail = $"{currentSample:N0}/{MinimumAiSampleSize:N0} yêu cầu tối thiểu";
+            detail = "Chưa đủ dữ liệu";
         }
         else
         {
@@ -582,12 +591,14 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
 
         return new AdminDashboardKpiCardViewModel
         {
-            Label = "Tỷ lệ lỗi AI",
+            Label = "Lỗi AI",
             Value = value,
             Detail = detail,
             Comparison = FormatPercentComparison(delta, previous, previousInsufficient),
             Tone = tone,
-            Icon = "ph-warning-circle"
+            Icon = "ph-warning-circle",
+            ActionLabel = "Kiểm tra AI",
+            ActionHref = "/Admin/AiProviders"
         };
     }
 
@@ -596,7 +607,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
     {
         if (delta == 0)
         {
-            return "Không đổi so với kỳ trước";
+            return string.Empty;
         }
 
         if (delta > 0)
@@ -615,17 +626,17 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
     {
         if (previousInsufficient)
         {
-            return "Kỳ trước chưa đủ dữ liệu";
+            return string.Empty;
         }
 
         if (!delta.HasValue || !previous.HasValue)
         {
-            return "Chưa có kỳ so sánh";
+            return string.Empty;
         }
 
         if (delta.Value == 0)
         {
-            return "Không đổi so với kỳ trước";
+            return string.Empty;
         }
 
         if (delta.Value > 0)

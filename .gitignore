@@ -73,6 +73,7 @@ node_modules/
 .worktrees/
 
 ## Tool artifacts
+.tmp/
 .scratch/
 .playwright-mcp/
 .understand-anything/
