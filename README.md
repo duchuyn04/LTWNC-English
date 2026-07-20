@@ -247,23 +247,6 @@ Tạo/cập nhật database:
 dotnet ef database update
 ```
 
-### 🔧 Reset database sau đổi schema auth
-
-Auth đã chuyển sang ASP.NET Core Identity. Bảng `Users` cũ thay bằng `AspNetUsers`, password hash cũ không tương thích. Dev nên drop DB tạo lại rồi đăng ký user mới:
-
-```bash
-dotnet ef database drop --force --project ltwnc.csproj
-dotnet ef database update --project ltwnc.csproj
-```
-
-### 👤 Profile và trang 404
-
-- Profile công khai: `/{username}`. URL cũ `/u/{username}` redirect 301.
-- Chỉnh sửa profile: `/Account/Profile/Edit`.
-- Username 3-50 ký tự, bắt đầu/kết thúc bằng chữ không dấu hoặc số, cho phép `.`, `_`, `-`, không trùng route hệ thống.
-- Username chỉ đổi một lần mỗi 30 ngày.
-- Trang không tồn tại trả HTTP 404, hiển thị giao diện Wrong Turn.
-
 ## ▶️ Chạy ứng dụng
 
 ```bash
