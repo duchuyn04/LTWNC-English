@@ -10,8 +10,8 @@ public enum StudyMode
     Quiz,      // Trắc nghiệm
     Write,     // Viết chính tả
     Match,     // Ghép đôi
-    Dictation,  // Nghe chép chính tả
-    EnglishMission
+    Dictation,      // Nghe chép chính tả
+    EnglishMission // Hội thoại tình huống với AI
 }
 
 public enum QuizRetryKind
@@ -20,7 +20,7 @@ public enum QuizRetryKind
     All
 }
 
-// Bảng StudySessions: một buổi học đã hoàn thành.
+// Bảng StudySessions: một phiên học đang chạy hoặc đã hoàn thành.
 public class StudySession
 {
     // Khóa chính, tự động tăng
@@ -44,18 +44,22 @@ public class StudySession
     // Điểm: Dictation/Quiz...; Flashcard thường null
     public int? Score { get; set; }
 
+    // Number of questions planned for this session. Dictation scoring uses this server-side value.
     public int PlannedItemCount { get; set; }
+
+    // Thời điểm bắt đầu phiên học.
     public DateTime StartedAt { get; set; } = DateTime.UtcNow;
 
-    // Thời gian hoàn thành phiên học
+    // Thời gian hoàn thành phiên học; null nếu user bỏ dở.
     public DateTime? CompletedAt { get; set; }
+
+    // Số giây học được server tính khi hoàn tất; null với session cũ/chưa hoàn tất.
+    public int? DurationSeconds { get; set; }
 
     public DateTime? QuizStartedAtUtc { get; set; }
     public int? QuizTimeLimitSeconds { get; set; }
     public int? QuizRetrySourceSessionId { get; set; }
     public QuizRetryKind? QuizRetryKind { get; set; }
-
-    public int? DurationSeconds { get; set; }
 
     // Bộ thẻ của buổi học
     [ForeignKey(nameof(FlashcardSetId))]

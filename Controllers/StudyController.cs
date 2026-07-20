@@ -63,12 +63,9 @@ public class StudyController : Controller
             await _studyService.SaveFilterSettingsAsync(userId, starredOnly, unlearnedOnly);
         }
 
-        return RedirectToAction(nameof(Flashcard), new
-        {
-            setId,
-            starredOnly,
-            unlearnedOnly
-        });
+        StudyModeSelectorViewModel model =
+            await _studyService.GetStudyModeSelectorDataAsync(setId, userId);
+        return View(model);
     }
 
     // GET màn flashcard: gộp filter query + settings; bộ lọc rỗng được tự bỏ.

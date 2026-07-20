@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using System;
 using System.IO;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Formats;
 
 namespace ltwnc.Services.FlashcardSets;
 
@@ -13,6 +15,7 @@ namespace ltwnc.Services.FlashcardSets;
 // Sửa/xóa chỉ chủ sở hữu.
 public class FlashcardSetService : IFlashcardSetService
 {
+    private const string UploadedImageUrlPrefix = "/uploads/flashcards/";
     // FlashcardSets, Flashcards, progress liên quan
     private readonly AppDbContext _context;
 
@@ -102,18 +105,88 @@ public class FlashcardSetService : IFlashcardSetService
             throw new ArgumentException("Ảnh chỉ hỗ trợ JPG, PNG hoặc WebP.");
         }
 
+        await using Stream input = imageFile.OpenReadStream();
+        Image image;
+        try
+        {
+            IImageFormat? format = await Image.DetectFormatAsync(input);
+            if (format == null || !IsAllowedImageFormat(format))
+            {
+                throw new ArgumentException("File ảnh không đúng định dạng JPG, PNG hoặc WebP.");
+            }
+
+            input.Position = 0;
+            ImageInfo info = await Image.IdentifyAsync(input);
+            if (info.Width > 4096 || info.Height > 4096)
+            {
+                throw new ArgumentException("Kích thước ảnh không được vượt quá 4096 x 4096 pixel.");
+            }
+
+            input.Position = 0;
+            image = await Image.LoadAsync(input);
+        }
+        catch (UnknownImageFormatException exception)
+        {
+            throw new ArgumentException("File ảnh không hợp lệ.", exception);
+        }
+        catch (InvalidImageContentException exception)
+        {
+            throw new ArgumentException("File ảnh không hợp lệ.", exception);
+        }
+
         string uploadRoot = Path.Combine(_environment.WebRootPath, "uploads", "flashcards");
         Directory.CreateDirectory(uploadRoot);
 
-        string fileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+        string fileName = $"{Guid.NewGuid():N}.png";
         string absolutePath = Path.Combine(uploadRoot, fileName);
-
-        await using (FileStream stream = File.Create(absolutePath))
+        using (image)
         {
-            await imageFile.CopyToAsync(stream);
+            await image.SaveAsPngAsync(absolutePath);
+        }
+
+        const long maxStoredBytes = 5L * 1024 * 1024;
+        if (new FileInfo(absolutePath).Length > maxStoredBytes)
+        {
+            File.Delete(absolutePath);
+            throw new ArgumentException("Ảnh sau khi xử lý vượt quá 5 MB.");
         }
 
         return $"/uploads/flashcards/{fileName}";
+    }
+
+    private static bool IsAllowedImageFormat(IImageFormat format) =>
+        format.Name.Equals("JPEG", StringComparison.OrdinalIgnoreCase)
+        || format.Name.Equals("PNG", StringComparison.OrdinalIgnoreCase)
+        || format.Name.Equals("WEBP", StringComparison.OrdinalIgnoreCase);
+
+    // Bộ chỉ thật sự công khai khi chủ sở hữu bật public và Admin chưa cách ly.
+    private static bool IsPubliclyAvailable(FlashcardSet set)
+    {
+        return set.IsPublic
+            && set.ModerationStatus == FlashcardSetModerationStatus.Active;
+    }
+
+    private void DeleteUploadedImage(string? uploadedImagePath)
+    {
+        if (string.IsNullOrWhiteSpace(uploadedImagePath)
+            || !uploadedImagePath.StartsWith(UploadedImageUrlPrefix, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        string relativeName = uploadedImagePath[UploadedImageUrlPrefix.Length..];
+        string fileName = Path.GetFileName(relativeName);
+        if (!string.Equals(relativeName, fileName, StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        string uploadRoot = Path.GetFullPath(Path.Combine(_environment.WebRootPath, "uploads", "flashcards"));
+        string physicalPath = Path.GetFullPath(Path.Combine(uploadRoot, fileName));
+        if (physicalPath.StartsWith(uploadRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        {
+            File.Delete(physicalPath);
+        }
     }
 
     // Lấy tất cả bộ thẻ thuộc về một người dùng
@@ -180,7 +253,10 @@ public class FlashcardSetService : IFlashcardSetService
 
             items.Add(new FlashcardSetListItemViewModel
             {
-                Set = set,
+                Id = set.Id,
+                Title = set.Title,
+                Description = set.Description,
+                IsPublic = set.IsPublic,
                 TotalCards = totalCards,
                 LearnedCount = learnedCount,
                 MasteryPercent = masteryPercent
@@ -194,7 +270,9 @@ public class FlashcardSetService : IFlashcardSetService
     public async Task<List<FlashcardSet>> GetPublicSetsAsync()
     {
         List<FlashcardSet> sets = await _context.FlashcardSets
-            .Where(set => set.IsPublic)
+            .Where(set =>
+                set.IsPublic
+                && set.ModerationStatus == FlashcardSetModerationStatus.Active)
             .OrderByDescending(set => set.UpdatedAt)
             .Take(20)
             .ToListAsync();
@@ -206,7 +284,10 @@ public class FlashcardSetService : IFlashcardSetService
     public async Task<List<FlashcardSet>> SearchPublicSetsAsync(string query)
     {
         List<FlashcardSet> sets = await _context.FlashcardSets
-            .Where(set => set.IsPublic && set.Title.Contains(query))
+            .Where(set =>
+                set.IsPublic
+                && set.ModerationStatus == FlashcardSetModerationStatus.Active
+                && set.Title.Contains(query))
             .OrderByDescending(set => set.UpdatedAt)
             .Take(20)
             .ToListAsync();
@@ -231,7 +312,7 @@ public class FlashcardSetService : IFlashcardSetService
             return null;
         }
 
-        bool canAccess = set.IsPublic || set.UserId == userId;
+        bool canAccess = IsPubliclyAvailable(set) || set.UserId == userId;
         if (!canAccess)
         {
             return null;
@@ -266,7 +347,7 @@ public class FlashcardSetService : IFlashcardSetService
             return null;
         }
 
-        bool canAccess = set.IsPublic || set.UserId == userId;
+        bool canAccess = IsPubliclyAvailable(set) || set.UserId == userId;
         if (!canAccess)
         {
             return null;
@@ -286,6 +367,27 @@ public class FlashcardSetService : IFlashcardSetService
         }
 
         return set;
+    }
+
+    // Lấy thẻ kèm bộ thẻ chỉ khi user là chủ sở hữu; trả null nếu không tìm thấy, ném UnauthorizedAccessException nếu không phải chủ.
+    public async Task<Flashcard?> GetCardAsync(int cardId, string userId)
+    {
+        Flashcard? card = await _context.Flashcards
+            .AsNoTracking()
+            .Include(c => c.FlashcardSet)
+            .FirstOrDefaultAsync(c => c.Id == cardId);
+
+        if (card == null)
+        {
+            return null;
+        }
+
+        if (card.FlashcardSet == null || card.FlashcardSet.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("Không có quyền xem thẻ này.");
+        }
+
+        return card;
     }
 
     // Kiểm tra user đã sao chép bộ thẻ nguồn này trước đó chưa
@@ -308,7 +410,7 @@ public class FlashcardSetService : IFlashcardSetService
             .Include(set => set.Flashcards.OrderBy(flashcard => flashcard.OrderIndex))
             .FirstOrDefaultAsync(set => set.Id == sourceSetId);
 
-        if (source == null || !source.IsPublic)
+        if (source == null || !IsPubliclyAvailable(source))
         {
             throw new KeyNotFoundException("Bộ thẻ nguồn không tồn tại.");
         }
@@ -391,7 +493,7 @@ public class FlashcardSetService : IFlashcardSetService
     {
         FlashcardSet set = new FlashcardSet
         {
-            Title = title,
+            Title = RequiredText(title, "Tên bộ từ", 200),
             Description = description,
             IsPublic = isPublic,
             UserId = userId,
@@ -419,7 +521,7 @@ public class FlashcardSetService : IFlashcardSetService
             throw new UnauthorizedAccessException("Không có quyền sửa bộ thẻ này.");
         }
 
-        set.Title = title;
+        set.Title = RequiredText(title, "Tên bộ từ", 200);
         set.Description = description;
         set.IsPublic = isPublic;
         set.UpdatedAt = DateTime.UtcNow;
@@ -438,6 +540,11 @@ public class FlashcardSetService : IFlashcardSetService
             throw new UnauthorizedAccessException("Không có quyền xóa bộ thẻ này.");
         }
 
+        List<string> uploadedImagePaths = await _context.Flashcards
+            .Where(card => card.FlashcardSetId == id && card.UploadedImagePath != null)
+            .Select(card => card.UploadedImagePath!)
+            .ToListAsync();
+
         await _context.UserProgresses
             .Where(progress => progress.Flashcard!.FlashcardSetId == id)
             .ExecuteDeleteAsync();
@@ -448,6 +555,10 @@ public class FlashcardSetService : IFlashcardSetService
 
         _context.FlashcardSets.Remove(set);
         await _context.SaveChangesAsync();
+        foreach (string path in uploadedImagePaths)
+        {
+            DeleteUploadedImage(path);
+        }
     }
 
     // Thêm thẻ mới vào bộ
@@ -455,10 +566,10 @@ public class FlashcardSetService : IFlashcardSetService
         int setId,
         string frontText,
         string backText,
-        string pronunciation,
-        string partOfSpeech,
-        string exampleSentence,
-        string exampleMeaning,
+        string? pronunciation,
+        string? partOfSpeech,
+        string? exampleSentence,
+        string? exampleMeaning,
         string? synonyms,
         string? imageUrl,
         IFormFile? imageFile,
@@ -476,10 +587,10 @@ public class FlashcardSetService : IFlashcardSetService
 
         frontText = RequiredText(frontText, "Thuật ngữ");
         backText = RequiredText(backText, "Định nghĩa");
-        pronunciation = RequiredText(pronunciation, "IPA");
-        partOfSpeech = RequiredText(partOfSpeech, "Loại từ", 80);
-        exampleSentence = RequiredText(exampleSentence, "Ví dụ tiếng Anh");
-        exampleMeaning = RequiredText(exampleMeaning, "Nghĩa câu ví dụ tiếng Việt");
+        pronunciation = (pronunciation ?? string.Empty).Trim();
+        partOfSpeech = (partOfSpeech ?? string.Empty).Trim();
+        exampleSentence = (exampleSentence ?? string.Empty).Trim();
+        exampleMeaning = (exampleMeaning ?? string.Empty).Trim();
         synonyms = OptionalText(synonyms);
         imageUrl = OptionalText(imageUrl);
         string? uploadedImagePath = await SaveImageAsync(imageFile);
@@ -507,7 +618,15 @@ public class FlashcardSetService : IFlashcardSetService
         };
 
         await _context.Flashcards.AddAsync(card);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch
+        {
+            DeleteUploadedImage(uploadedImagePath);
+            throw;
+        }
         return card;
     }
 
@@ -516,10 +635,10 @@ public class FlashcardSetService : IFlashcardSetService
         int cardId,
         string frontText,
         string backText,
-        string pronunciation,
-        string partOfSpeech,
-        string exampleSentence,
-        string exampleMeaning,
+        string? pronunciation,
+        string? partOfSpeech,
+        string? exampleSentence,
+        string? exampleMeaning,
         string? synonyms,
         string? imageUrl,
         IFormFile? imageFile,
@@ -543,13 +662,14 @@ public class FlashcardSetService : IFlashcardSetService
 
         card.FrontText = RequiredText(frontText, "Thuật ngữ");
         card.BackText = RequiredText(backText, "Định nghĩa");
-        card.Pronunciation = RequiredText(pronunciation, "IPA");
-        card.PartOfSpeech = RequiredText(partOfSpeech, "Loại từ", 80);
-        card.ExampleSentence = RequiredText(exampleSentence, "Ví dụ tiếng Anh");
-        card.ExampleMeaning = RequiredText(exampleMeaning, "Nghĩa câu ví dụ tiếng Việt");
+        card.Pronunciation = (pronunciation ?? string.Empty).Trim();
+        card.PartOfSpeech = (partOfSpeech ?? string.Empty).Trim();
+        card.ExampleSentence = (exampleSentence ?? string.Empty).Trim();
+        card.ExampleMeaning = (exampleMeaning ?? string.Empty).Trim();
         card.Synonyms = OptionalText(synonyms);
         card.ImageUrl = OptionalText(imageUrl);
 
+        string? oldUploadedImagePath = card.UploadedImagePath;
         if (removeUploadedImage)
         {
             card.UploadedImagePath = null;
@@ -564,7 +684,23 @@ public class FlashcardSetService : IFlashcardSetService
         card.IsStarred = isStarred;
 
         _context.Flashcards.Update(card);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch
+        {
+            if (!string.Equals(newUpload, oldUploadedImagePath, StringComparison.Ordinal))
+            {
+                DeleteUploadedImage(newUpload);
+            }
+            throw;
+        }
+
+        if (!string.Equals(oldUploadedImagePath, card.UploadedImagePath, StringComparison.Ordinal))
+        {
+            DeleteUploadedImage(oldUploadedImagePath);
+        }
         return setId;
     }
 
@@ -624,6 +760,121 @@ public class FlashcardSetService : IFlashcardSetService
         }
     }
 
+    // Xóa toàn bộ thẻ trong một bộ thẻ (chủ sở hữu).
+    // Load một lần rồi xóa tập trung, tránh vòng lặp xóa từng thẻ (N+1).
+    public async Task DeleteAllCardsAsync(int setId, string userId)
+    {
+        FlashcardSet? set = await _context.FlashcardSets.FindAsync(setId);
+
+        if (set == null || set.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("Không có quyền xóa thẻ trong bộ thẻ này.");
+        }
+
+        List<string> uploadedImagePaths = await RemoveAllCardsInternalAsync(setId);
+        await _context.SaveChangesAsync();
+        foreach (string path in uploadedImagePaths)
+        {
+            DeleteUploadedImage(path);
+        }
+    }
+
+    // Xóa progress + thẻ của một bộ nhưng KHÔNG SaveChanges — dùng chung cho batch import trong transaction.
+    private async Task<List<string>> RemoveAllCardsInternalAsync(int setId)
+    {
+        List<UserProgress> progresses = await _context.UserProgresses
+            .Where(progress => progress.Flashcard!.FlashcardSetId == setId)
+            .ToListAsync();
+        _context.UserProgresses.RemoveRange(progresses);
+
+        List<DictationSessionDetail> details = await _context.DictationSessionDetails
+            .Where(detail => detail.Flashcard!.FlashcardSetId == setId)
+            .ToListAsync();
+        _context.DictationSessionDetails.RemoveRange(details);
+
+        List<EnglishMissionTargetWord> missionWords = await _context.EnglishMissionTargetWords
+            .Where(word => word.Flashcard!.FlashcardSetId == setId)
+            .ToListAsync();
+        _context.EnglishMissionTargetWords.RemoveRange(missionWords);
+
+        List<Flashcard> cards = await _context.Flashcards
+            .Where(card => card.FlashcardSetId == setId)
+            .ToListAsync();
+        _context.Flashcards.RemoveRange(cards);
+        return cards
+            .Select(card => card.UploadedImagePath)
+            .Where(path => !string.IsNullOrWhiteSpace(path))
+            .Select(path => path!)
+            .ToList();
+    }
+
+    // Import hàng loạt thẻ một cách nguyên tử:
+    // xóa (nếu replaceAll) + thêm mới được gộp trong MỘT lần SaveChangesAsync,
+    // EF Core tự bọc trong một transaction — lỗi giữa chừng thì rollback, không mất dữ liệu.
+    // (Không dùng BeginTransactionAsync tường minh để tương thích InMemory provider trong test.)
+    public async Task<List<Flashcard>> BatchImportCardsAsync(
+        int setId,
+        IReadOnlyList<BatchImportCardItem> cards,
+        bool replaceAll,
+        string userId)
+    {
+        if (cards.Count > FlashcardImportValidation.MaxRows)
+        {
+            throw new ArgumentException($"Mỗi lần chỉ được nhập tối đa {FlashcardImportValidation.MaxRows} thẻ.");
+        }
+
+        FlashcardSet? set = await _context.FlashcardSets
+            .Include(row => row.Flashcards)
+            .FirstOrDefaultAsync(row => row.Id == setId);
+
+        if (set == null || set.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("Không có quyền thêm thẻ.");
+        }
+
+        int nextOrder = 0;
+        List<string> uploadedImagePaths = [];
+        if (replaceAll)
+        {
+            uploadedImagePaths = await RemoveAllCardsInternalAsync(setId);
+        }
+        else if (set.Flashcards.Any())
+        {
+            nextOrder = set.Flashcards.Max(card => card.OrderIndex) + 1;
+        }
+
+        List<Flashcard> created = new List<Flashcard>();
+        foreach (BatchImportCardItem item in cards)
+        {
+            Flashcard card = new Flashcard
+            {
+                FlashcardSetId = setId,
+                FrontText = RequiredText(item.FrontText, "Thuật ngữ"),
+                BackText = RequiredText(item.BackText, "Định nghĩa"),
+                Pronunciation = (item.Pronunciation ?? string.Empty).Trim(),
+                PartOfSpeech = (item.PartOfSpeech ?? string.Empty).Trim(),
+                ExampleSentence = (item.ExampleSentence ?? string.Empty).Trim(),
+                ExampleMeaning = (item.ExampleMeaning ?? string.Empty).Trim(),
+                Synonyms = OptionalText(item.Synonyms),
+                ImageUrl = OptionalText(item.ImageUrl),
+                UploadedImagePath = null,
+                IsStarred = item.IsStarred,
+                OrderIndex = nextOrder
+            };
+
+            nextOrder++;
+            created.Add(card);
+        }
+
+        await _context.Flashcards.AddRangeAsync(created);
+        await _context.SaveChangesAsync();
+        foreach (string path in uploadedImagePaths)
+        {
+            DeleteUploadedImage(path);
+        }
+        return created;
+    }
+
     // Đổi trạng thái đánh sao của thẻ
     public async Task<bool> ToggleStarAsync(int cardId, string userId)
     {
@@ -644,5 +895,47 @@ public class FlashcardSetService : IFlashcardSetService
         _context.Flashcards.Update(card);
         await _context.SaveChangesAsync();
         return card.IsStarred;
+    }
+
+    // Cập nhật thứ tự các thẻ theo mảng id được sắp xếp
+    public async Task ReorderCardsAsync(int setId, int[] orderedCardIds, string userId)
+    {
+        FlashcardSet? set = await _context.FlashcardSets.FindAsync(setId);
+        if (set == null || set.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("Không có quyền sửa bộ thẻ này.");
+        }
+
+        List<Flashcard> cards = await _context.Flashcards
+            .Where(c => c.FlashcardSetId == setId)
+            .ToListAsync();
+
+        HashSet<int> cardIds = cards.Select(c => c.Id).ToHashSet();
+        HashSet<int> orderedIds = orderedCardIds.ToHashSet();
+
+        List<int> unknownIds = orderedIds.Except(cardIds).ToList();
+        if (unknownIds.Count > 0)
+        {
+            throw new ArgumentException($"Các id thẻ không thuộc bộ thẻ: {string.Join(", ", unknownIds)}.");
+        }
+
+        List<int> missingIds = cardIds.Except(orderedIds).ToList();
+        if (missingIds.Count > 0)
+        {
+            throw new ArgumentException($"Thiếu thứ tự cho các thẻ: {string.Join(", ", missingIds)}.");
+        }
+
+        if (orderedCardIds.Length != cardIds.Count)
+        {
+            throw new ArgumentException("Danh sách thứ tự chứa id thẻ trùng lặp.");
+        }
+
+        Dictionary<int, Flashcard> cardMap = cards.ToDictionary(c => c.Id);
+        for (int i = 0; i < orderedCardIds.Length; i++)
+        {
+            cardMap[orderedCardIds[i]].OrderIndex = i;
+        }
+
+        await _context.SaveChangesAsync();
     }
 }
