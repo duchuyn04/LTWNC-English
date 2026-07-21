@@ -4,7 +4,7 @@
 
 ## ✨ Tính năng chính
 
-- 🔐 Đăng ký, đăng nhập, đăng xuất (ASP.NET Core Identity)
+- 🔐 Đăng ký, đăng nhập, đăng xuất (auth tự quản, cookie)
 - 👤 Profile cá nhân/công khai tại `/{username}`, thống kê học tập, timeline, quyền riêng tư
 - 🖼️ Avatar upload JPG/PNG/WebP tối đa 5 MB, crop theo khung tròn
 - 🔀 Trang 404 tương tác concept Wrong Turn với vocabulary card
@@ -100,7 +100,7 @@ Các application service (`FlashcardSetService`, `StudyService`, `DictationServi
 | 🖥️ Framework | ASP.NET Core MVC (.NET 10.0) |
 | 🗄️ Database | SQL Server |
 | ⚙️ ORM | Entity Framework Core |
-| 🔑 Xác thực | ASP.NET Core Identity (cookie) |
+| 🔑 Xác thực | Cookie authentication tự quản (PasswordHasher của ASP.NET Core) |
 | 🎨 UI | Razor Views, Bootstrap, CSS riêng |
 | 🔷 Icons | Phosphor Icons |
 | 🔊 TTS | Web Speech API |
@@ -119,7 +119,15 @@ Model: cx/gpt-5.6-luna
 API key: không có
 ```
 
-User cấu hình tại `AdminBootstrap:UserId` được gán role `Admin` khi database áp đủ migration. Có thể đặt bằng biến môi trường `AdminBootstrap__UserId`. Sau khi gán role, cần đăng xuất đăng nhập lại để cookie nhận role claim.
+### Tạo tài khoản Admin
+
+Auth tự quản không có cơ chế bootstrap. Sau khi đăng ký tài khoản qua UI, cấp quyền admin bằng SQL:
+
+```sql
+UPDATE AppUsers SET IsAdmin = 1 WHERE NormalizedEmail = 'EMAIL@EXAMPLE.COM';
+```
+
+Khu vực `/Admin` yêu cầu claim `IsAdmin` — đăng xuất rồi đăng nhập lại sau khi cấp quyền để cookie mới có claim.
 
 Provider từ xa bắt buộc HTTPS. HTTP chỉ được phép cho localhost/loopback. Timeout, lỗi mạng, 429/5xx hoặc output sai schema thì thử provider tiếp theo. 400/401/403 là lỗi cấu hình, không fallback.
 
@@ -145,7 +153,7 @@ ltwnc/
 │   ├── AdminUsers/                   # Admin quản lý tài khoản + khóa
 │   ├── Ai/                           # AI completion router, adapter, provider
 │   ├── Audit/                        # Ghi audit log cho hành động admin
-│   ├── Auth/                         # Identity auth, CurrentUser, AdminRoleBootstrapper
+│   ├── Auth/                         # AuthService tự quản, CurrentUser
 │   ├── CardActions/                  # Command: batch delete/star/unstar + undo
 │   ├── ContentModeration/            # Kiểm duyệt nội dung (quarantine/restrict/allow)
 │   ├── ContentReports/               # Xử lý báo cáo nội dung từ user
