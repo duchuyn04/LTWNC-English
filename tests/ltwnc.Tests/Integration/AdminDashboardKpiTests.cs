@@ -2,7 +2,6 @@ using System.Net;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Tests.Infrastructure;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -61,20 +60,13 @@ public sealed class AdminDashboardKpiTests
 
     private static async Task SeedObservedDashboardDataAsync(AdminWebApplicationFactory factory)
     {
+        const string learnerEmail = "dashboard-learner@example.com";
+        await factory.SeedUserAsync("dashboard_learner", learnerEmail);
+
         using IServiceScope scope = factory.Services.CreateScope();
         AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        UserManager<IdentityUser> userManager = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-
-        IdentityUser learner = new()
-        {
-            UserName = "dashboard_learner",
-            Email = "dashboard-learner@example.com"
-        };
-        IdentityResult createResult = await userManager.CreateAsync(learner, "Testpass1");
-        if (!createResult.Succeeded)
-        {
-            throw new InvalidOperationException(string.Join("; ", createResult.Errors.Select(error => error.Description)));
-        }
+        AppUser learner = await context.AppUsers
+            .SingleAsync(item => item.NormalizedEmail == learnerEmail.ToUpperInvariant());
 
         DateTime now = factory.Clock.GetUtcNow().UtcDateTime;
         context.UserProfiles.Add(new UserProfile

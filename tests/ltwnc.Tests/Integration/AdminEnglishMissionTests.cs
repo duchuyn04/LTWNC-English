@@ -4,7 +4,6 @@ using ltwnc.Models.Entities;
 using ltwnc.Services.AdminEnglishMissions;
 using ltwnc.Services.Audit;
 using ltwnc.Tests.Infrastructure;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -241,9 +240,8 @@ public sealed class AdminEnglishMissionTests
     {
         using IServiceScope scope = factory.Services.CreateScope();
         AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        UserManager<IdentityUser> userManager =
-            scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-        IdentityUser learner = await userManager.FindByEmailAsync(learnerEmail)
+        AppUser learner = await context.AppUsers
+            .SingleOrDefaultAsync(item => item.NormalizedEmail == learnerEmail.ToUpperInvariant())
             ?? throw new InvalidOperationException("Không tìm thấy learner test.");
 
         var set = new FlashcardSet

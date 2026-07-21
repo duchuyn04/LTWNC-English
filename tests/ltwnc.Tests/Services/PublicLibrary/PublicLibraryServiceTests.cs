@@ -1,7 +1,6 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.PublicLibrary;
-using Microsoft.AspNetCore.Identity;
 
 namespace ltwnc.Tests.Services.PublicLibrary;
 
@@ -114,7 +113,14 @@ public class PublicLibraryServiceTests : IDisposable
 
     private async Task SeedUserAsync(string id, string userName)
     {
-        _db.Users.Add(new IdentityUser { Id = id, UserName = userName });
+        _db.AppUsers.Add(new AppUser
+        {
+            Id = id,
+            UserName = userName,
+            NormalizedUserName = userName.ToUpperInvariant(),
+            Email = $"{userName}@example.com",
+            NormalizedEmail = $"{userName.ToUpperInvariant()}@EXAMPLE.COM"
+        });
         await _db.SaveChangesAsync();
     }
 

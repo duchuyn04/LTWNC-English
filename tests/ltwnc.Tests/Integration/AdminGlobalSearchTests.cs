@@ -131,20 +131,18 @@ public sealed class AdminGlobalSearchTests
     {
         using IServiceScope scope = factory.Services.CreateScope();
         AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        UserManager<IdentityUser> userManager =
-            scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
 
-        var learner = new IdentityUser
+        var learner = new AppUser
         {
             Id = learnerUserName,
             UserName = learnerUserName,
-            Email = learnerEmail
+            NormalizedUserName = learnerUserName.ToUpperInvariant(),
+            Email = learnerEmail,
+            NormalizedEmail = learnerEmail.ToUpperInvariant()
         };
-        IdentityResult createResult = await userManager.CreateAsync(learner, "Testpass1");
-        if (!createResult.Succeeded)
-        {
-            throw new InvalidOperationException(string.Join("; ", createResult.Errors.Select(error => error.Description)));
-        }
+        learner.PasswordHash = new PasswordHasher<AppUser>().HashPassword(learner, "Testpass1");
+        context.AppUsers.Add(learner);
+        await context.SaveChangesAsync();
 
         DateTime nowUtc = factory.Clock.GetUtcNow().UtcDateTime;
         var set = new FlashcardSet

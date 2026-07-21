@@ -173,6 +173,16 @@ public sealed class AdminWebApplicationFactory : WebApplicationFactory<Program>
         return user.ConcurrencyStamp;
     }
 
+    // Xóa user để mô phỏng cookie của tài khoản không còn tồn tại.
+    public async Task DeleteUserAsync(string email)
+    {
+        using IServiceScope scope = Services.CreateScope();
+        AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        ltwnc.Models.Entities.AppUser user = await FindUserByEmailAsync(dbContext, email);
+        dbContext.AppUsers.Remove(user);
+        await dbContext.SaveChangesAsync();
+    }
+
     // Đổi security stamp để mô phỏng thu hồi phiên (cookie cũ phải bị đăng xuất).
     public async Task RotateSecurityStampAsync(string email)
     {

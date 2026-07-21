@@ -157,7 +157,7 @@ public sealed class AdminDashboardLiveSnapshotTests
             ActorDisplay = "Admin",
             Action = AdminAuditActions.AchievementsResyncUser,
             Outcome = AdminAuditOutcome.Failure,
-            TargetType = "IdentityUser",
+            TargetType = "AppUser",
             TargetId = "private-user-id"
         });
         await context.SaveChangesAsync();

@@ -3,7 +3,6 @@ using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.AdminDashboard;
 using ltwnc.Services.Audit;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 
@@ -280,7 +279,7 @@ public sealed class AdminDashboardKpiServiceTests : IDisposable
 
     private async Task SeedUserWithProfileAsync(string userId, string email, DateTime createdAtUtc)
     {
-        _context.Users.Add(new IdentityUser
+        _context.AppUsers.Add(new AppUser
         {
             Id = userId,
             UserName = userId,
