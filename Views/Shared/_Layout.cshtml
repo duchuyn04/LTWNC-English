@@ -55,7 +55,7 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="/Achievements">Thành tích</a>
                             </li>
-                            @if (User.IsInRole(ltwnc.Services.Auth.AdminRoleBootstrapper.AdminRole))
+                            @if (User.HasClaim(ltwnc.Services.Auth.AppClaimTypes.IsAdmin, "true"))
                             {
                                 <li class="nav-item">
                                     <a class="nav-link" href="/Admin">Quản trị</a>
