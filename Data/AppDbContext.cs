@@ -21,6 +21,7 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
     public DbSet<UserStudySettings> UserStudySettings => Set<UserStudySettings>();
     public DbSet<DictationSessionDetail> DictationSessionDetails => Set<DictationSessionDetail>();
     public DbSet<CardActionLog> CardActionLogs => Set<CardActionLog>();
+    public DbSet<AppUser> AppUsers => Set<AppUser>();
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
 
     // Bảng thành tích (huy hiệu) user đã mở khóa — do Observer ghi khi có sự kiện học
@@ -37,6 +38,23 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
     protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
+
+        builder.Entity<AppUser>(entity =>
+        {
+            entity.Property(user => user.Id).HasMaxLength(450);
+            entity.Property(user => user.Email).HasMaxLength(256);
+            entity.Property(user => user.NormalizedEmail).HasMaxLength(256);
+            entity.Property(user => user.UserName).HasMaxLength(256);
+            entity.Property(user => user.NormalizedUserName).HasMaxLength(256);
+            entity.HasIndex(user => user.NormalizedEmail)
+                .IsUnique()
+                .HasDatabaseName("AppUserEmailIndex")
+                .HasFilter("[NormalizedEmail] IS NOT NULL");
+            entity.HasIndex(user => user.NormalizedUserName)
+                .IsUnique()
+                .HasDatabaseName("AppUserNameIndex")
+                .HasFilter("[NormalizedUserName] IS NOT NULL");
+        });
 
         builder.Entity<IdentityUser>()
             .HasIndex(u => u.NormalizedEmail)
