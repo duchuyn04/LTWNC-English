@@ -40,31 +40,11 @@ builder.Logging.AddDebug();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ASP.NET Core Identity (UserManager/SignInManager), không roles.
+// Auth tự quản dùng cookie và bảng AppUsers.
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddIdentityCore<IdentityUser>(options =>
-    {
-        // Password policy giữ nguyên như custom auth cũ
-        options.Password.RequiredLength = 8;
-        options.Password.RequireDigit = true;
-        options.Password.RequireUppercase = true;
-        options.Password.RequireLowercase = true;
-        options.Password.RequireNonAlphanumeric = false;
-        options.User.RequireUniqueEmail = true;
-        options.User.AllowedUserNameCharacters = UsernamePolicy.AllowedIdentityCharacters;
-        options.Lockout.AllowedForNewUsers = true;
-        options.Lockout.MaxFailedAccessAttempts = 5;
-        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-    })
-    .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddSignInManager()
-    .AddDefaultTokenProviders();
-
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie()
-    .AddIdentityCookies();
+    .AddCookie();
 builder.Services.AddScoped<IPasswordHasher<ltwnc.Models.Entities.AppUser>,
     PasswordHasher<ltwnc.Models.Entities.AppUser>>();
 builder.Services.AddScoped<IAuthService, AuthService>();
@@ -158,7 +138,6 @@ if (!builder.Environment.IsEnvironment("Testing"))
     // Tác vụ nền dọn audit quá hạn theo batch; log chỉ chứa trạng thái vận hành và số lượng.
     builder.Services.AddHostedService<AdminAuditRetentionCleanupHostedService>();
 }
-builder.Services.AddScoped<AdminRoleBootstrapper>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IAvatarService, AvatarService>();
@@ -287,17 +266,6 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddScoped<ltwnc.Controllers.ApiExceptionFilter>();
 
 var app = builder.Build();
-
-string? bootstrapAdminUserId = app.Configuration["AdminBootstrap:UserId"];
-if (!string.IsNullOrWhiteSpace(bootstrapAdminUserId))
-{
-    using IServiceScope scope = app.Services.CreateScope();
-    AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    bool schemaIsCurrent = !(await dbContext.Database.GetPendingMigrationsAsync()).Any();
-    AdminRoleBootstrapper adminBootstrapper =
-        scope.ServiceProvider.GetRequiredService<AdminRoleBootstrapper>();
-    await adminBootstrapper.BootstrapAsync(schemaIsCurrent);
-}
 
 // Cấu hình middleware pipeline
 // Cấu hình pipeline middleware

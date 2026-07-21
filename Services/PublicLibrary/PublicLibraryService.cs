@@ -45,7 +45,7 @@ public sealed class PublicLibraryService : IPublicLibraryService
             filtered = filtered.Where(set =>
                 set.Title.ToLower().Contains(search) ||
                 (set.Description != null && set.Description.ToLower().Contains(search)) ||
-                _db.Users.Any(author => author.Id == set.UserId &&
+                _db.AppUsers.Any(author => author.Id == set.UserId &&
                     author.UserName != null && author.UserName.ToLower().Contains(search)));
         }
 
@@ -72,7 +72,7 @@ public sealed class PublicLibraryService : IPublicLibraryService
 
         IQueryable<PublicLibrarySetItem> projected =
             from set in ordered.Skip((page - 1) * PageSize).Take(PageSize)
-            join author in _db.Users.AsNoTracking() on set.UserId equals author.Id into authors
+            join author in _db.AppUsers.AsNoTracking() on set.UserId equals author.Id into authors
             from author in authors.DefaultIfEmpty()
             select new PublicLibrarySetItem(
                 set.Id,

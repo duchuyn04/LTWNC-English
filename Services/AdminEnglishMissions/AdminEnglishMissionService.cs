@@ -2,7 +2,6 @@ using System.Text.Json;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Audit;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using MissionEntity = ltwnc.Models.Entities.EnglishMission;
 
@@ -62,7 +61,7 @@ public sealed class AdminEnglishMissionService : IAdminEnglishMissionService
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
-        Dictionary<string, IdentityUser> usersById =
+        Dictionary<string, AppUser> usersById =
             await LoadUsersByIdAsync(items.Select(mission => mission.StudySession!.UserId), cancellationToken);
 
         List<AdminEnglishMissionRow> rows = items
@@ -98,7 +97,7 @@ public sealed class AdminEnglishMissionService : IAdminEnglishMissionService
         }
 
         DateTime nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
-        IdentityUser? user = await _context.Users
+        AppUser? user = await _context.AppUsers
             .AsNoTracking()
             .FirstOrDefaultAsync(item => item.Id == mission.StudySession.UserId, cancellationToken);
         if (mission.ConversationContentDeletedAtUtc != null)
@@ -365,11 +364,11 @@ public sealed class AdminEnglishMissionService : IAdminEnglishMissionService
     private static AdminEnglishMissionRow ToRow(
         MissionEntity mission,
         DateTime nowUtc,
-        IReadOnlyDictionary<string, IdentityUser> usersById)
+        IReadOnlyDictionary<string, AppUser> usersById)
     {
         StudySession session = mission.StudySession!;
         FlashcardSet? set = session.FlashcardSet;
-        IdentityUser? user = null;
+        AppUser? user = null;
         usersById.TryGetValue(session.UserId, out user);
         DateTime retentionDeadlineUtc = CalculateRetentionDeadline(mission);
         bool available = mission.ConversationContentDeletedAtUtc == null
@@ -399,7 +398,7 @@ public sealed class AdminEnglishMissionService : IAdminEnglishMissionService
     // Dựng dữ liệu hội thoại đã lọc cho Admin, không gồm ProviderName/ModelId hay chi tiết vận hành AI.
     private static AdminEnglishMissionConversation ToConversation(
         MissionEntity mission,
-        IdentityUser? user,
+        AppUser? user,
         AdminEnglishMissionAccessCommand command,
         DateTime retentionDeadlineUtc)
     {
@@ -521,8 +520,8 @@ public sealed class AdminEnglishMissionService : IAdminEnglishMissionService
         return value.Trim();
     }
 
-    // Tải thông tin Identity cho các phiên trên trang hiện tại để hiển thị email/tên người học.
-    private async Task<Dictionary<string, IdentityUser>> LoadUsersByIdAsync(
+    // Tải thông tin tài khoản cho các phiên trên trang hiện tại để hiển thị email/tên người học.
+    private async Task<Dictionary<string, AppUser>> LoadUsersByIdAsync(
         IEnumerable<string> userIds,
         CancellationToken cancellationToken)
     {
@@ -532,10 +531,10 @@ public sealed class AdminEnglishMissionService : IAdminEnglishMissionService
             .ToArray();
         if (ids.Length == 0)
         {
-            return new Dictionary<string, IdentityUser>(StringComparer.Ordinal);
+            return new Dictionary<string, AppUser>(StringComparer.Ordinal);
         }
 
-        List<IdentityUser> users = await _context.Users
+        List<AppUser> users = await _context.AppUsers
             .AsNoTracking()
             .Where(user => ids.Contains(user.Id))
             .ToListAsync(cancellationToken);

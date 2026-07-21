@@ -1,13 +1,10 @@
-using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using ltwnc.Models.Entities;
 
 namespace ltwnc.Data;
 
-// DbContext chính của ứng dụng — dùng ASP.NET Core Identity không roles.
-// Quản lý kết nối database và cấu hình các bảng (entities)
-public class AppDbContext : IdentityDbContext<IdentityUser>
+// DbContext chính của ứng dụng — auth tự quản qua bảng AppUsers.
+public class AppDbContext : DbContext
 {
     // Constructor — nhận DbContextOptions từ DI container (connection string, provider...)
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
@@ -56,18 +53,12 @@ public class AppDbContext : IdentityDbContext<IdentityUser>
                 .HasFilter("[NormalizedUserName] IS NOT NULL");
         });
 
-        builder.Entity<IdentityUser>()
-            .HasIndex(u => u.NormalizedEmail)
-            .IsUnique()
-            .HasDatabaseName("EmailIndex")
-            .HasFilter("[NormalizedEmail] IS NOT NULL");
-
         builder.Entity<UserProfile>(entity =>
         {
             entity.HasKey(profile => profile.UserId);
             entity.Property(profile => profile.UserId).HasMaxLength(450);
             entity.Property(profile => profile.Bio).HasMaxLength(500);
-            entity.HasOne<IdentityUser>()
+            entity.HasOne<AppUser>()
                 .WithOne()
                 .HasForeignKey<UserProfile>(profile => profile.UserId)
                 .OnDelete(DeleteBehavior.Cascade);

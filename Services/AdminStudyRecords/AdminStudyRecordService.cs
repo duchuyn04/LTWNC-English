@@ -2,7 +2,6 @@ using ltwnc.Areas.Admin;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Audit;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Services.AdminStudyRecords;
@@ -71,11 +70,11 @@ public sealed class AdminStudyRecordService : IAdminStudyRecordService
                 session.Id,
                 session.UserId,
                 // Tên đăng nhập và email lấy bằng truy vấn con, không cần Include.
-                _context.Users
+                _context.AppUsers
                     .Where(user => user.Id == session.UserId)
                     .Select(user => user.UserName)
                     .FirstOrDefault() ?? string.Empty,
-                _context.Users
+                _context.AppUsers
                     .Where(user => user.Id == session.UserId)
                     .Select(user => user.Email)
                     .FirstOrDefault() ?? string.Empty,
@@ -128,7 +127,7 @@ public sealed class AdminStudyRecordService : IAdminStudyRecordService
             return null;
         }
 
-        IdentityUser? user = await _context.Users
+        AppUser? user = await _context.AppUsers
             .AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == session.UserId, cancellationToken);
 
@@ -196,7 +195,7 @@ public sealed class AdminStudyRecordService : IAdminStudyRecordService
 
         string term = search.Trim();
         // Chỉ giữ phiên của tài khoản khớp từ khóa; truy vấn con dịch sang EXISTS trong SQL.
-        return sessions.Where(session => _context.Users.Any(user =>
+        return sessions.Where(session => _context.AppUsers.Any(user =>
             user.Id == session.UserId
             && ((user.Email != null && user.Email.Contains(term))
                 || (user.UserName != null && user.UserName.Contains(term))
@@ -304,7 +303,7 @@ public sealed class AdminStudyRecordService : IAdminStudyRecordService
         {
             // Sắp theo email ngườ học qua truy vấn con để tránh join làm rối câu SQL.
             return sessions
-                .OrderBy(session => _context.Users
+                .OrderBy(session => _context.AppUsers
                     .Where(user => user.Id == session.UserId)
                     .Select(user => user.Email)
                     .FirstOrDefault())
@@ -418,7 +417,7 @@ public sealed class AdminStudyRecordService : IAdminStudyRecordService
     // Ghi Bản ghi kiểm toán truy cập nhạy cảm; ném lỗi khi ghi không thành công.
     private async Task RecordAccessAuditAsync(
         StudySession session,
-        IdentityUser? user,
+        AppUser? user,
         string status,
         AdminStudyRecordAccessCommand access,
         CancellationToken cancellationToken)

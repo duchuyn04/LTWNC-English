@@ -1,6 +1,6 @@
 namespace ltwnc.Models.Entities;
 
-// Tài khoản người dùng tự quản — thay thế IdentityUser.
+// Tài khoản người dùng do ứng dụng tự quản.
 public class AppUser
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
