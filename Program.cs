@@ -27,6 +27,7 @@ using ltwnc.Services.StudyEvents;
 using ltwnc.Services.StudyModes;
 using ltwnc.Services.Profiles;
 using ltwnc.Services.Leaderboard;
+using ltwnc.Services.PublicLibrary;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -174,6 +175,7 @@ builder.Services.Configure<RouteOptions>(options =>
 
 // Application services — inject qua interface (swap/decorator sau này không sửa controller)
 builder.Services.AddScoped<IFlashcardSetService, FlashcardSetService>();
+builder.Services.AddScoped<IPublicLibraryService, PublicLibraryService>();
 builder.Services.AddScoped<IContentReportService, ContentReportService>();
 builder.Services.AddScoped<IContentModerationService, ContentModerationService>();
 builder.Services.AddScoped<IFlashcardImportService, FlashcardImportService>();
