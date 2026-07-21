@@ -33,8 +33,45 @@ public sealed class PublicLibraryService : IPublicLibraryService
                     visibleSets.Any(set => set.Id == copy.SourceSetId.Value),
                 cancellationToken));
 
+        string? search = string.IsNullOrWhiteSpace(query.Search)
+            ? null
+            : query.Search.Trim().ToLowerInvariant();
+
+        // Lọc và sắp xếp ở tầng entity để EF dịch được sang SQL;
+        // sắp xếp trên DTO sau projection không dịch được (subquery đếm trong OrderBy).
+        IQueryable<FlashcardSet> filtered = visibleSets;
+        if (search != null)
+        {
+            filtered = filtered.Where(set =>
+                set.Title.ToLower().Contains(search) ||
+                (set.Description != null && set.Description.ToLower().Contains(search)) ||
+                _db.Users.Any(author => author.Id == set.UserId &&
+                    author.UserName != null && author.UserName.ToLower().Contains(search)));
+        }
+
+        int totalItems = await filtered.CountAsync(cancellationToken);
+        string sort = PublicLibrarySort.Normalize(query.Sort);
+
+        IQueryable<FlashcardSet> ordered = sort switch
+        {
+            PublicLibrarySort.Recent => filtered
+                .OrderByDescending(set => set.UpdatedAt)
+                .ThenBy(set => set.Id),
+            PublicLibrarySort.Cards => filtered
+                .OrderByDescending(set => set.Flashcards.Count)
+                .ThenByDescending(set => set.UpdatedAt)
+                .ThenBy(set => set.Id),
+            _ => filtered
+                .OrderByDescending(set => _db.FlashcardSets.Count(copy => copy.SourceSetId == set.Id))
+                .ThenByDescending(set => set.UpdatedAt)
+                .ThenBy(set => set.Id)
+        };
+
+        int totalPages = (totalItems + PageSize - 1) / PageSize;
+        int page = totalPages == 0 ? 1 : Math.Clamp(query.Page, 1, totalPages);
+
         IQueryable<PublicLibrarySetItem> projected =
-            from set in visibleSets
+            from set in ordered.Skip((page - 1) * PageSize).Take(PageSize)
             join author in _db.Users.AsNoTracking() on set.UserId equals author.Id into authors
             from author in authors.DefaultIfEmpty()
             select new PublicLibrarySetItem(
@@ -46,41 +83,24 @@ public sealed class PublicLibraryService : IPublicLibraryService
                 _db.FlashcardSets.Count(copy => copy.SourceSetId == set.Id),
                 set.UpdatedAt);
 
-        string? search = string.IsNullOrWhiteSpace(query.Search)
-            ? null
-            : query.Search.Trim().ToLowerInvariant();
-        if (search != null)
-        {
-            projected = projected.Where(item =>
-                item.Title.ToLower().Contains(search) ||
-                (item.Description != null && item.Description.ToLower().Contains(search)) ||
-                item.AuthorName.ToLower().Contains(search));
-        }
+        List<PublicLibrarySetItem> items = await projected.ToListAsync(cancellationToken);
 
-        int totalItems = await projected.CountAsync(cancellationToken);
-        string sort = PublicLibrarySort.Normalize(query.Sort);
-
-        IQueryable<PublicLibrarySetItem> ordered = sort switch
+        // LEFT JOIN ngoài subquery phân trang không bảo đảm thứ tự;
+        // áp lại đúng comparator trên tối đa 12 dòng của trang.
+        items = (sort switch
         {
-            PublicLibrarySort.Recent => projected
+            PublicLibrarySort.Recent => items
                 .OrderByDescending(item => item.UpdatedAt)
                 .ThenBy(item => item.Id),
-            PublicLibrarySort.Cards => projected
+            PublicLibrarySort.Cards => items
                 .OrderByDescending(item => item.CardCount)
                 .ThenByDescending(item => item.UpdatedAt)
                 .ThenBy(item => item.Id),
-            _ => projected
+            _ => items
                 .OrderByDescending(item => item.CopyCount)
                 .ThenByDescending(item => item.UpdatedAt)
                 .ThenBy(item => item.Id)
-        };
-
-        int totalPages = (totalItems + PageSize - 1) / PageSize;
-        int page = totalPages == 0 ? 1 : Math.Clamp(query.Page, 1, totalPages);
-        List<PublicLibrarySetItem> items = await ordered
-            .Skip((page - 1) * PageSize)
-            .Take(PageSize)
-            .ToListAsync(cancellationToken);
+        }).ToList();
 
         return new PublicLibraryResult(
             search,

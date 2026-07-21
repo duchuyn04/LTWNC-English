@@ -56,6 +56,17 @@ public class PublicLibraryRouteTests
         Assert.Contains("/Account/Login", response.Headers.Location?.OriginalString);
     }
 
+    [Fact]
+    public async Task OldPrototypeRoute_ReturnsNotFound()
+    {
+        await using WebApplicationFactory<Program> factory = CreateFactory();
+        using HttpClient client = CreateClient(factory);
+
+        HttpResponseMessage response = await client.GetAsync("/prototype/library");
+
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
     private static HttpClient CreateClient(WebApplicationFactory<Program> factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions
         {
