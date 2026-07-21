@@ -62,19 +62,23 @@ builder.Services.AddIdentityCore<IdentityUser>(options =>
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
-builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie()
     .AddIdentityCookies();
+builder.Services.AddScoped<IPasswordHasher<ltwnc.Models.Entities.AppUser>,
+    PasswordHasher<ltwnc.Models.Entities.AppUser>>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(AdminAreaPolicy.Name, policy =>
     {
-        policy.RequireRole(AdminRoleBootstrapper.AdminRole);
+        policy.RequireClaim(AppClaimTypes.IsAdmin, "true");
     });
 });
 
 builder.Services.Configure<CookieAuthenticationOptions>(
-    IdentityConstants.ApplicationScheme,
+    CookieAuthenticationDefaults.AuthenticationScheme,
     options =>
     {
         options.LoginPath = "/Account/Login";
@@ -104,45 +108,34 @@ builder.Services.Configure<CookieAuthenticationOptions>(
         };
         options.Events.OnValidatePrincipal = async context =>
         {
-            // Giữ kiểm tra security stamp mặc định của Identity để cookie cũ mất hiệu lực khi stamp đổi.
-            await SecurityStampValidator.ValidatePrincipalAsync(context);
-            if (context.Principal?.Identity?.IsAuthenticated != true)
+            // Kiểm tra mỗi request: user còn tồn tại, security stamp khớp, không bị khóa.
+            string? userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+            string? stamp = context.Principal?.FindFirstValue(AppClaimTypes.SecurityStamp);
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(stamp))
             {
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 return;
             }
 
-            string? userId = context.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                context.RejectPrincipal();
-                await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
-                return;
-            }
+            AppDbContext dbContext =
+                context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+            TimeProvider timeProvider =
+                context.HttpContext.RequestServices.GetRequiredService<TimeProvider>();
+            ltwnc.Models.Entities.AppUser? user = await dbContext.AppUsers
+                .AsNoTracking()
+                .SingleOrDefaultAsync(item => item.Id == userId);
 
-            UserManager<IdentityUser> userManager =
-                context.HttpContext.RequestServices.GetRequiredService<UserManager<IdentityUser>>();
-            IdentityUser? user = await userManager.FindByIdAsync(userId);
-            if (user == null)
+            DateTimeOffset now = timeProvider.GetUtcNow();
+            bool locked = user?.LockoutEnd != null && user.LockoutEnd > now;
+            if (user == null || user.SecurityStamp != stamp || locked)
             {
                 context.RejectPrincipal();
-                await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
-                return;
-            }
-
-            // Tài khoản đã bị khóa không được tiếp tục dùng cookie còn tồn tại ở trình duyệt.
-            if (await userManager.IsLockedOutAsync(user))
-            {
-                context.RejectPrincipal();
-                await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             }
         };
         options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
-    });
-
-builder.Services.Configure<SecurityStampValidatorOptions>(options =>
-{
-    options.ValidationInterval = TimeSpan.Zero;
 });
 
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();

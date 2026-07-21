@@ -3,7 +3,6 @@ using System.Text.RegularExpressions;
 using ltwnc.Data;
 using ltwnc.Services.Auth;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -53,6 +52,13 @@ public sealed class AdminWebApplicationFactory : WebApplicationFactory<Program>
                 }
             });
             services.AddSingleton<TimeProvider>(Clock);
+            // Cookie test phải dùng wall-clock giống CookieContainer; clock cố định vẫn dành cho nghiệp vụ Admin.
+            services.RemoveAll<IAuthService>();
+            services.AddScoped<IAuthService>(provider => new AuthService(
+                provider.GetRequiredService<AppDbContext>(),
+                provider.GetRequiredService<Microsoft.AspNetCore.Identity.IPasswordHasher<ltwnc.Models.Entities.AppUser>>(),
+                provider.GetRequiredService<Microsoft.AspNetCore.Http.IHttpContextAccessor>(),
+                TimeProvider.System));
         });
     }
 
@@ -74,33 +80,27 @@ public sealed class AdminWebApplicationFactory : WebApplicationFactory<Program>
         bool twoFactorEnabled = false)
     {
         using IServiceScope scope = Services.CreateScope();
-        UserManager<IdentityUser> userManager =
-            scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-        RoleManager<IdentityRole> roleManager =
-            scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+        AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        var passwordHasher = new Microsoft.AspNetCore.Identity.PasswordHasher<ltwnc.Models.Entities.AppUser>();
 
-        IdentityUser? user = await userManager.FindByEmailAsync(email);
+        string normalizedEmail = email.ToUpperInvariant();
+        ltwnc.Models.Entities.AppUser? user = await dbContext.AppUsers
+            .SingleOrDefaultAsync(item => item.NormalizedEmail == normalizedEmail);
         if (user == null)
         {
-            user = new IdentityUser { UserName = userName, Email = email };
-            EnsureSucceeded(await userManager.CreateAsync(user, TestPassword));
+            user = new ltwnc.Models.Entities.AppUser
+            {
+                UserName = userName,
+                NormalizedUserName = userName.ToUpperInvariant(),
+                Email = email,
+                NormalizedEmail = normalizedEmail
+            };
+            user.PasswordHash = passwordHasher.HashPassword(user, TestPassword);
+            dbContext.AppUsers.Add(user);
         }
 
-        if (isAdmin)
-        {
-            if (!await roleManager.RoleExistsAsync(AdminRoleBootstrapper.AdminRole))
-            {
-                EnsureSucceeded(await roleManager.CreateAsync(
-                    new IdentityRole(AdminRoleBootstrapper.AdminRole)));
-            }
-
-            if (!await userManager.IsInRoleAsync(user, AdminRoleBootstrapper.AdminRole))
-            {
-                EnsureSucceeded(await userManager.AddToRoleAsync(
-                    user,
-                    AdminRoleBootstrapper.AdminRole));
-            }
-        }
+        user.IsAdmin = isAdmin;
+        await dbContext.SaveChangesAsync();
 
         // Tham số cũ được giữ để các test hiện có không phải đổi chữ ký helper.
         _ = twoFactorEnabled;
@@ -150,21 +150,17 @@ public sealed class AdminWebApplicationFactory : WebApplicationFactory<Program>
     public async Task<bool> IsLockedOutAsync(string email)
     {
         using IServiceScope scope = Services.CreateScope();
-        UserManager<IdentityUser> userManager =
-            scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-        IdentityUser user = await userManager.FindByEmailAsync(email)
-            ?? throw new InvalidOperationException("Không tìm thấy người dùng thử nghiệm.");
-        return await userManager.IsLockedOutAsync(user);
+        AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        ltwnc.Models.Entities.AppUser user = await FindUserByEmailAsync(dbContext, email);
+        return user.LockoutEnd != null && user.LockoutEnd > Clock.GetUtcNow();
     }
 
-    // Lấy mã IdentityUser theo email để test có thể gọi trang chi tiết Admin/Users.
+    // Lấy mã AppUser theo email để test có thể gọi trang chi tiết Admin/Users.
     public async Task<string> GetUserIdAsync(string email)
     {
         using IServiceScope scope = Services.CreateScope();
-        UserManager<IdentityUser> userManager =
-            scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-        IdentityUser user = await userManager.FindByEmailAsync(email)
-            ?? throw new InvalidOperationException("Không tìm thấy người dùng thử nghiệm.");
+        AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        ltwnc.Models.Entities.AppUser user = await FindUserByEmailAsync(dbContext, email);
         return user.Id;
     }
 
@@ -172,12 +168,19 @@ public sealed class AdminWebApplicationFactory : WebApplicationFactory<Program>
     public async Task<string> GetSecurityStampAsync(string email)
     {
         using IServiceScope scope = Services.CreateScope();
-        UserManager<IdentityUser> userManager =
-            scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-        IdentityUser user = await userManager.FindByEmailAsync(email)
-            ?? throw new InvalidOperationException("Không tìm thấy người dùng thử nghiệm.");
-        return user.ConcurrencyStamp
-            ?? throw new InvalidOperationException("Người dùng thử nghiệm chưa có concurrency stamp.");
+        AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        ltwnc.Models.Entities.AppUser user = await FindUserByEmailAsync(dbContext, email);
+        return user.ConcurrencyStamp;
+    }
+
+    // Đổi security stamp để mô phỏng thu hồi phiên (cookie cũ phải bị đăng xuất).
+    public async Task RotateSecurityStampAsync(string email)
+    {
+        using IServiceScope scope = Services.CreateScope();
+        AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        ltwnc.Models.Entities.AppUser user = await FindUserByEmailAsync(dbContext, email);
+        user.SecurityStamp = Guid.NewGuid().ToString();
+        await dbContext.SaveChangesAsync();
     }
 
     public static async Task<HttpResponseMessage> SubmitFormAsync(
@@ -205,14 +208,14 @@ public sealed class AdminWebApplicationFactory : WebApplicationFactory<Program>
         return await client.PostAsync(postPath, form);
     }
 
-    private static void EnsureSucceeded(IdentityResult result)
+    private static async Task<ltwnc.Models.Entities.AppUser> FindUserByEmailAsync(
+        AppDbContext dbContext,
+        string email)
     {
-        if (!result.Succeeded)
-        {
-            throw new InvalidOperationException(string.Join(
-                "; ",
-                result.Errors.Select(error => error.Description)));
-        }
+        string normalizedEmail = email.ToUpperInvariant();
+        return await dbContext.AppUsers
+            .SingleOrDefaultAsync(item => item.NormalizedEmail == normalizedEmail)
+            ?? throw new InvalidOperationException("Không tìm thấy người dùng thử nghiệm.");
     }
 
     protected override void Dispose(bool disposing)
