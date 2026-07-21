@@ -1,8 +1,8 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Profile;
+using ltwnc.Services.Auth;
 using ltwnc.Services.Profiles;
-using Microsoft.AspNetCore.Identity;
 using Moq;
 
 namespace ltwnc.Tests.Services.Profiles;
@@ -19,24 +19,29 @@ public class ProfileServiceTests
         return new AppDbContext(options);
     }
 
-    private static Mock<UserManager<IdentityUser>> MockUserManager(IdentityUser user)
+    private static AppUser CreateUser(string id, string userName)
     {
-        var store = new Mock<IUserStore<IdentityUser>>();
-        var manager = new Mock<UserManager<IdentityUser>>(
-            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        manager.Setup(item => item.FindByNameAsync(user.UserName!)).ReturnsAsync(user);
-        manager.Setup(item => item.FindByIdAsync(user.Id)).ReturnsAsync(user);
-        return manager;
+        return new AppUser
+        {
+            Id = id,
+            UserName = userName,
+            NormalizedUserName = userName.ToUpperInvariant(),
+            Email = $"{userName}@example.com",
+            NormalizedEmail = $"{userName.ToUpperInvariant()}@EXAMPLE.COM"
+        };
     }
 
     private static ProfileService CreateService(
         AppDbContext db,
-        IdentityUser user,
-        DateTimeOffset? now = null)
+        AppUser user,
+        DateTimeOffset? now = null,
+        Mock<IAuthService>? authService = null)
     {
+        db.AppUsers.Add(user);
+        db.SaveChanges();
         return new ProfileService(
             db,
-            MockUserManager(user).Object,
+            (authService ?? new Mock<IAuthService>()).Object,
             new FixedTimeProvider(now ?? Now));
     }
 
@@ -44,7 +49,7 @@ public class ProfileServiceTests
     public async Task GetPublicProfile_PrivateProfile_ReturnsPrivateShellForNonOwner()
     {
         using AppDbContext db = CreateContext();
-        var user = new IdentityUser { Id = "user-1", UserName = "private-user" };
+        AppUser user = CreateUser("user-1", "private-user");
         db.UserProfiles.Add(new UserProfile { UserId = user.Id, IsPublic = false });
         await db.SaveChangesAsync();
         ProfileService service = CreateService(db, user);
@@ -63,7 +68,7 @@ public class ProfileServiceTests
     public async Task GetPublicProfile_HiddenSections_AreNotReturned()
     {
         using AppDbContext db = CreateContext();
-        var user = new IdentityUser { Id = "user-1", UserName = "user1" };
+        AppUser user = CreateUser("user-1", "user1");
         db.UserProfiles.Add(new UserProfile { UserId = user.Id, IsPublic = true });
         await db.SaveChangesAsync();
         ProfileService service = CreateService(db, user);
@@ -80,7 +85,7 @@ public class ProfileServiceTests
     public async Task GetPublicProfile_VisibleSections_ReturnCorrectCountsAndNewestTwentyEvents()
     {
         using AppDbContext db = CreateContext();
-        var user = new IdentityUser { Id = "user-1", UserName = "user1" };
+        AppUser user = CreateUser("user-1", "user1");
         db.UserProfiles.Add(new UserProfile
         {
             UserId = user.Id,
@@ -159,7 +164,7 @@ public class ProfileServiceTests
     public async Task GetPublicProfile_StreakStopsAtFirstUtcDateGap()
     {
         using AppDbContext db = CreateContext();
-        var user = new IdentityUser { Id = "user-1", UserName = "user1" };
+        AppUser user = CreateUser("user-1", "user1");
         db.UserProfiles.Add(new UserProfile
         {
             UserId = user.Id,
@@ -195,7 +200,7 @@ public class ProfileServiceTests
     public async Task UpdateProfile_UsernameChangedWithinThirtyDays_ReturnsCooldownError()
     {
         using AppDbContext db = CreateContext();
-        var user = new IdentityUser { Id = "user-1", UserName = "user1" };
+        AppUser user = CreateUser("user-1", "user1");
         db.UserProfiles.Add(new UserProfile
         {
             UserId = user.Id,
@@ -215,58 +220,45 @@ public class ProfileServiceTests
     }
 
     [Fact]
-    public async Task UpdateProfile_InvalidUsername_DoesNotCallIdentity()
+    public async Task UpdateProfile_InvalidUsername_DoesNotLoadUser()
     {
         using AppDbContext db = CreateContext();
-        var user = new IdentityUser { Id = "user-1", UserName = "legacy user" };
-        db.UserProfiles.Add(new UserProfile { UserId = user.Id });
-        await db.SaveChangesAsync();
-        var userManager = MockUserManager(user);
-        ProfileService service = new(db, userManager.Object, new FixedTimeProvider(Now));
+        var authService = new Mock<IAuthService>();
+        ProfileService service = new(db, authService.Object, new FixedTimeProvider(Now));
 
         ProfileOperationResult result = await service.UpdateProfileAsync(
-            user.Id,
+            "user-1",
             new ProfileEditViewModel { Username = "profile", IsPublic = true });
 
         Assert.False(result.Succeeded);
         Assert.Contains(result.Errors, error =>
             error.Field == nameof(ProfileEditViewModel.Username) &&
             error.Message == "Username này được dành riêng cho hệ thống.");
-        userManager.Verify(
-            manager => manager.SetUserNameAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()),
-            Times.Never);
-        userManager.Verify(
-            manager => manager.FindByIdAsync(It.IsAny<string>()),
-            Times.Never);
+        Assert.Empty(db.AppUsers);
     }
 
     [Fact]
-    public async Task UpdateProfile_UsernameChangedAfterThirtyDays_UpdatesIdentityAndTimestamp()
+    public async Task UpdateProfile_UsernameChangedAfterThirtyDays_UpdatesAppUserAndTimestamp()
     {
         using AppDbContext db = CreateContext();
-        var user = new IdentityUser
-        {
-            Id = "user-1",
-            UserName = "user1",
-            Email = "user1@example.com"
-        };
+        AppUser user = CreateUser("user-1", "user1");
+        string originalSecurityStamp = user.SecurityStamp;
         db.UserProfiles.Add(new UserProfile
         {
             UserId = user.Id,
             LastUsernameChangedAt = Now.UtcDateTime.AddDays(-31)
         });
         await db.SaveChangesAsync();
-        var userManager = MockUserManager(user);
-        userManager.Setup(item => item.SetUserNameAsync(user, "new-name"))
-            .ReturnsAsync(IdentityResult.Success);
-        ProfileService service = new(db, userManager.Object, new FixedTimeProvider(Now));
+        ProfileService service = CreateService(db, user);
 
         ProfileOperationResult result = await service.UpdateProfileAsync(
             user.Id,
             new ProfileEditViewModel { Username = "new-name", IsPublic = true });
 
         Assert.True(result.Succeeded);
-        userManager.Verify(item => item.SetUserNameAsync(user, "new-name"), Times.Once);
+        Assert.Equal("new-name", user.UserName);
+        Assert.Equal("NEW-NAME", user.NormalizedUserName);
+        Assert.NotEqual(originalSecurityStamp, user.SecurityStamp);
         Assert.Equal(Now.UtcDateTime, db.UserProfiles.Single().LastUsernameChangedAt);
     }
 
@@ -274,13 +266,18 @@ public class ProfileServiceTests
     public async Task ChangePassword_WrongCurrentPassword_ReturnsVietnameseFieldError()
     {
         using AppDbContext db = CreateContext();
-        var user = new IdentityUser { Id = "user-1", UserName = "user1" };
+        AppUser user = CreateUser("user-1", "user1");
         db.UserProfiles.Add(new UserProfile { UserId = user.Id });
         await db.SaveChangesAsync();
-        var userManager = MockUserManager(user);
-        userManager.Setup(item => item.CheckPasswordAsync(user, "Wrong123"))
-            .ReturnsAsync(false);
-        ProfileService service = new(db, userManager.Object, new FixedTimeProvider(Now));
+        var authService = new Mock<IAuthService>();
+        authService.Setup(service => service.ChangePasswordAsync(
+                user,
+                "Wrong123",
+                "NewPass123",
+                default))
+            .ReturnsAsync(AuthResult.Failure(
+                new AuthError("PasswordMismatch", "Mật khẩu hiện tại không đúng.")));
+        ProfileService service = CreateService(db, user, authService: authService);
 
         ProfileOperationResult result = await service.ChangePasswordAsync(
             user.Id,
@@ -298,27 +295,21 @@ public class ProfileServiceTests
     }
 
     [Fact]
-    public async Task UpdateProfile_SaveFails_RestoresOriginalUsername()
+    public async Task UpdateProfile_SaveFails_PropagatesDatabaseError()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
             .Options;
         await using var db = new FailingProfileDbContext(options);
-        var user = new IdentityUser { Id = "user-1", UserName = "user1" };
+        AppUser user = CreateUser("user-1", "user1");
         db.UserProfiles.Add(new UserProfile { UserId = user.Id });
         await db.SaveChangesAsync();
+        ProfileService service = CreateService(db, user);
         db.FailSaves = true;
-        var userManager = MockUserManager(user);
-        userManager.Setup(item => item.SetUserNameAsync(user, It.IsAny<string>()))
-            .ReturnsAsync(IdentityResult.Success);
-        ProfileService service = new(db, userManager.Object, new FixedTimeProvider(Now));
 
         await Assert.ThrowsAsync<InvalidOperationException>(() => service.UpdateProfileAsync(
             user.Id,
             new ProfileEditViewModel { Username = "new-name", IsPublic = true }));
-
-        userManager.Verify(item => item.SetUserNameAsync(user, "new-name"), Times.Once);
-        userManager.Verify(item => item.SetUserNameAsync(user, "user1"), Times.Once);
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset utcNow) : TimeProvider

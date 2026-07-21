@@ -1,44 +1,28 @@
 using System.Security.Claims;
 using ltwnc.Controllers;
+using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Profile;
 using ltwnc.Services.Auth;
 using ltwnc.Services.Profiles;
-using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Moq;
 
 namespace ltwnc.Tests.Controllers;
 
 public class ProfileControllerTests
 {
-    private static Mock<SignInManager<IdentityUser>> MockSignInManager()
-    {
-        var store = new Mock<IUserStore<IdentityUser>>();
-        var userManager = new Mock<UserManager<IdentityUser>>(
-            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-        return new Mock<SignInManager<IdentityUser>>(
-            userManager.Object,
-            new Mock<IHttpContextAccessor>().Object,
-            new Mock<IUserClaimsPrincipalFactory<IdentityUser>>().Object,
-            Options.Create(new IdentityOptions()),
-            NullLogger<SignInManager<IdentityUser>>.Instance,
-            new Mock<IAuthenticationSchemeProvider>().Object,
-            new Mock<IUserConfirmation<IdentityUser>>().Object);
-    }
-
     private static ProfileController CreateController(
         Mock<IProfileService> profileService,
         Mock<ICurrentUser> currentUser,
+        Mock<IAuthService>? authService = null,
         Mock<IAvatarService>? avatarService = null)
     {
         var controller = new ProfileController(
             profileService.Object,
             currentUser.Object,
-            MockSignInManager().Object,
+            (authService ?? new Mock<IAuthService>()).Object,
             (avatarService ?? new Mock<IAvatarService>()).Object);
         controller.ControllerContext = new ControllerContext
         {
@@ -49,6 +33,7 @@ public class ProfileControllerTests
                     "Test"))
             }
         };
+        controller.TempData = new Mock<ITempDataDictionary>().Object;
         return controller;
     }
 
@@ -146,5 +131,28 @@ public class ProfileControllerTests
         Assert.Contains(controller.ModelState[nameof(ProfileEditViewModel.Username)]!.Errors,
             error => error.ErrorMessage == "Tên đăng nhập đã được sử dụng.");
         Assert.Equal("Edit", result.ViewName);
+    }
+
+    [Fact]
+    public async Task EditPost_Success_RefreshesCurrentUsersCookie()
+    {
+        var profileService = new Mock<IProfileService>();
+        profileService.Setup(service => service.UpdateProfileAsync(
+                "user-1", It.IsAny<ProfileEditViewModel>(), default))
+            .ReturnsAsync(ProfileOperationResult.Success());
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.SetupGet(user => user.UserId).Returns("user-1");
+        var authService = new Mock<IAuthService>();
+        var user = new AppUser { Id = "user-1", UserName = "new-name" };
+        authService.Setup(service => service.FindByIdAsync("user-1", default))
+            .ReturnsAsync(user);
+        ProfileController controller = CreateController(profileService, currentUser, authService);
+
+        IActionResult result = await controller.Edit(
+            new ProfileEditViewModel { Username = "new-name" },
+            default);
+
+        Assert.IsType<RedirectToActionResult>(result);
+        authService.Verify(service => service.RefreshSignInAsync(user), Times.Once);
     }
 }
