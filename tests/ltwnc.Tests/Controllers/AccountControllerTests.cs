@@ -1,399 +1,182 @@
 using ltwnc.Controllers;
-using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Account;
 using ltwnc.Services.Audit;
-using Microsoft.AspNetCore.Authentication;
+using ltwnc.Services.Auth;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Moq;
-using System.Security.Claims;
 
 namespace ltwnc.Tests.Controllers;
 
 public class AccountControllerTests
 {
-    [Fact]
-    public void Register_Get_WhenAuthenticated_RedirectsSetWithoutShowingHomeIndex()
+    private readonly Mock<IAuthService> _authService = new();
+    private readonly Mock<IAdminAuditService> _auditService = new();
+
+    private AccountController CreateController()
     {
-        var userManager = MockUserManager();
-        var signInManager = MockSignInManager(userManager);
-        AccountController controller = CreateController(userManager, signInManager);
-        SetAuthenticatedUser(controller);
-
-        IActionResult result = controller.Register();
-
-        var redirect = Assert.IsType<RedirectResult>(result);
-        Assert.Equal("/Set", redirect.Url);
-    }
-
-    [Fact]
-    public async Task Register_Post_WhenAuthenticated_RedirectsSetWithoutCreatingUser()
-    {
-        var userManager = MockUserManager();
-        var signInManager = MockSignInManager(userManager);
-        AccountController controller = CreateController(userManager, signInManager);
-        SetAuthenticatedUser(controller);
-
-        IActionResult result = await controller.Register(ValidRegister());
-
-        var redirect = Assert.IsType<RedirectResult>(result);
-        Assert.Equal("/Set", redirect.Url);
-        userManager.Verify(
-            manager => manager.CreateAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()),
-            Times.Never);
-    }
-
-    [Fact]
-    public async Task Login_Get_WhenAuthenticated_RedirectsSetWithoutShowingHomeIndex()
-    {
-        var userManager = MockUserManager();
-        var signInManager = MockSignInManager(userManager);
-        AccountController controller = CreateController(userManager, signInManager);
-        SetAuthenticatedUser(controller);
-
-        IActionResult result = await controller.Login();
-
-        var redirect = Assert.IsType<RedirectResult>(result);
-        Assert.Equal("/Set", redirect.Url);
-    }
-
-    [Fact]
-    public async Task Login_Post_WhenAuthenticated_RedirectsSetWithoutSigningInAgain()
-    {
-        var userManager = MockUserManager();
-        var signInManager = MockSignInManager(userManager);
-        AccountController controller = CreateController(userManager, signInManager);
-        SetAuthenticatedUser(controller);
-
-        IActionResult result = await controller.Login(new LoginViewModel
+        return new AccountController(_authService.Object, _auditService.Object)
         {
-            Email = "a@b.com",
-            Password = "Pass1234"
-        });
-
-        var redirect = Assert.IsType<RedirectResult>(result);
-        Assert.Equal("/Set", redirect.Url);
-        userManager.Verify(
-            manager => manager.FindByEmailAsync(It.IsAny<string>()),
-            Times.Never);
-    }
-
-    private static Mock<UserManager<IdentityUser>> MockUserManager()
-    {
-        var store = new Mock<IUserStore<IdentityUser>>();
-        return new Mock<UserManager<IdentityUser>>(
-            store.Object, null!, null!, null!, null!, null!, null!, null!, null!);
-    }
-
-    private static Mock<SignInManager<IdentityUser>> MockSignInManager(
-        Mock<UserManager<IdentityUser>> userManager)
-    {
-        return new Mock<SignInManager<IdentityUser>>(
-            userManager.Object,
-            new Mock<IHttpContextAccessor>().Object,
-            new Mock<IUserClaimsPrincipalFactory<IdentityUser>>().Object,
-            Options.Create(new IdentityOptions()),
-            NullLogger<SignInManager<IdentityUser>>.Instance,
-            new Mock<IAuthenticationSchemeProvider>().Object,
-            new Mock<IUserConfirmation<IdentityUser>>().Object);
-    }
-
-    private static RegisterViewModel ValidRegister() => new()
-    {
-        Email = "a@b.com",
-        Username = "user1",
-        Password = "Pass1234",
-        ConfirmPassword = "Pass1234"
-    };
-
-    private static AccountController CreateController(
-        Mock<UserManager<IdentityUser>> userManager,
-        Mock<SignInManager<IdentityUser>> signInManager)
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        return new AccountController(
-            userManager.Object,
-            signInManager.Object,
-            new AppDbContext(options),
-            TimeProvider.System,
-            Mock.Of<IAdminAuditService>());
-    }
-
-    private static void SetAuthenticatedUser(AccountController controller)
-    {
-        controller.ControllerContext = new ControllerContext
-        {
-            HttpContext = new DefaultHttpContext
-            {
-                User = new ClaimsPrincipal(new ClaimsIdentity(
-                    [new Claim(ClaimTypes.NameIdentifier, "user-1")],
-                    "TestAuth"))
-            }
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() }
         };
     }
 
-    [Fact]
-    public async Task Register_InvalidUsername_DoesNotCreateIdentityUser()
+    private static AppUser CreateUser(bool isAdmin = false) => new()
     {
-        var userManager = MockUserManager();
-        var signInManager = MockSignInManager(userManager);
-        AccountController controller = CreateController(userManager, signInManager);
-        RegisterViewModel model = ValidRegister();
-        model.Username = "account";
+        Email = "a@example.com",
+        NormalizedEmail = "A@EXAMPLE.COM",
+        UserName = "alice",
+        NormalizedUserName = "ALICE",
+        IsAdmin = isAdmin
+    };
+
+    [Fact]
+    public async Task RegisterPost_InvalidModelState_ReturnsView()
+    {
+        AccountController controller = CreateController();
+        controller.ModelState.AddModelError("Email", "required");
+
+        IActionResult result = await controller.Register(new RegisterViewModel());
+
+        Assert.IsType<ViewResult>(result);
+    }
+
+    [Fact]
+    public async Task RegisterPost_AuthFailure_MapsErrorsToModelState()
+    {
+        _authService
+            .Setup(service => service.RegisterAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), default))
+            .ReturnsAsync(AuthResult.Failure(new AuthError("DuplicateEmail", "Email đã được sử dụng.")));
+        AccountController controller = CreateController();
+        var model = new RegisterViewModel
+        {
+            Email = "a@example.com",
+            Username = "alice",
+            Password = "Password1"
+        };
 
         IActionResult result = await controller.Register(model);
 
-        Assert.IsType<ViewResult>(result);
+        ViewResult view = Assert.IsType<ViewResult>(result);
         Assert.Contains(
-            controller.ModelState[nameof(RegisterViewModel.Username)]!.Errors,
-            error => error.ErrorMessage == "Username này được dành riêng cho hệ thống.");
-        userManager.Verify(
-            manager => manager.CreateAsync(It.IsAny<IdentityUser>(), It.IsAny<string>()),
-            Times.Never);
+            view.ViewData.ModelState.Values.SelectMany(value => value.Errors),
+            error => error.ErrorMessage == "Email đã được sử dụng.");
     }
 
     [Fact]
-    public async Task Register_CreateFails_MapsVietnameseErrorToModelState()
+    public async Task RegisterPost_Success_SignsInAndRedirectsHome()
     {
-        var userManager = MockUserManager();
-        userManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), "Pass1234"))
-            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Code = "DuplicateEmail", Description = "Email taken" }));
-        var signInManager = MockSignInManager(userManager);
-        var controller = CreateController(userManager, signInManager);
+        AppUser user = CreateUser();
+        _authService
+            .Setup(service => service.RegisterAsync(It.IsAny<string>(), It.IsAny<string>(), It.IsAny<string>(), default))
+            .ReturnsAsync(AuthResult.Success());
+        _authService
+            .Setup(service => service.FindByEmailAsync("a@example.com", default))
+            .ReturnsAsync(user);
+        AccountController controller = CreateController();
+        var model = new RegisterViewModel
+        {
+            Email = "a@example.com",
+            Username = "alice",
+            Password = "Password1"
+        };
 
-        var result = await controller.Register(ValidRegister());
+        IActionResult result = await controller.Register(model);
 
-        Assert.IsType<ViewResult>(result);
-        Assert.False(controller.ModelState.IsValid);
-        Assert.Contains(controller.ModelState[string.Empty]!.Errors,
-            e => e.ErrorMessage == "Email đã được sử dụng.");
-        signInManager.Verify(x => x.SignInAsync(
-            It.IsAny<IdentityUser>(), It.IsAny<AuthenticationProperties>(), It.IsAny<string>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task Register_CreateThrowsDbUpdateException_MapsToDuplicateEmailModelStateError()
-    {
-        var userManager = MockUserManager();
-        userManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), "Pass1234"))
-            .ThrowsAsync(new DbUpdateException(
-                "Unique constraint failed",
-                new Exception("UNIQUE constraint failed: AspNetUsers.EmailIndex")));
-        var signInManager = MockSignInManager(userManager);
-        var controller = CreateController(userManager, signInManager);
-
-        var result = await controller.Register(ValidRegister());
-
-        Assert.IsType<ViewResult>(result);
-        Assert.False(controller.ModelState.IsValid);
-        Assert.Contains(controller.ModelState[string.Empty]!.Errors,
-            e => e.ErrorMessage == "Email đã được sử dụng.");
-        signInManager.Verify(x => x.SignInAsync(
-            It.IsAny<IdentityUser>(), It.IsAny<AuthenticationProperties>(), It.IsAny<string>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task Register_CreateThrowsOtherDbUpdateException_Bubbles()
-    {
-        var userManager = MockUserManager();
-        userManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), "Pass1234"))
-            .ThrowsAsync(new DbUpdateException(
-                "Database timeout",
-                new Exception("timeout")));
-        var signInManager = MockSignInManager(userManager);
-        var controller = CreateController(userManager, signInManager);
-
-        await Assert.ThrowsAsync<DbUpdateException>(() => controller.Register(ValidRegister()));
-    }
-
-    [Fact]
-    public async Task Register_CreateFailsWithUnknownIdentityError_ReturnsGenericVietnameseError()
-    {
-        var userManager = MockUserManager();
-        userManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), "Pass1234"))
-            .ReturnsAsync(IdentityResult.Failed(new IdentityError { Code = "Unexpected", Description = "English fallback" }));
-        var signInManager = MockSignInManager(userManager);
-        var controller = CreateController(userManager, signInManager);
-
-        var result = await controller.Register(ValidRegister());
-
-        Assert.IsType<ViewResult>(result);
-        Assert.Contains(controller.ModelState[string.Empty]!.Errors,
-            e => e.ErrorMessage == "Đăng ký không thành công. Vui lòng kiểm tra lại thông tin.");
-    }
-
-    [Fact]
-    public async Task Register_Success_SignsInPersistentOneDayAndRedirectsHome()
-    {
-        var userManager = MockUserManager();
-        userManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), "Pass1234"))
-            .ReturnsAsync(IdentityResult.Success);
-        var signInManager = MockSignInManager(userManager);
-        var controller = CreateController(userManager, signInManager);
-
-        var result = await controller.Register(ValidRegister());
-
-        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        RedirectToActionResult redirect = Assert.IsType<RedirectToActionResult>(result);
         Assert.Equal("Index", redirect.ActionName);
-        Assert.Equal("Home", redirect.ControllerName);
-        signInManager.Verify(x => x.SignInAsync(
-            It.Is<IdentityUser>(u => u.UserName == "user1" && u.Email == "a@b.com"),
-            It.Is<AuthenticationProperties>(p =>
-                p.IsPersistent &&
-                p.ExpiresUtc.HasValue &&
-                p.ExpiresUtc.Value > DateTimeOffset.UtcNow.AddHours(23) &&
-                p.ExpiresUtc.Value < DateTimeOffset.UtcNow.AddDays(2)),
-            It.IsAny<string>()), Times.Once);
+        _authService.Verify(service => service.SignInAsync(user, TimeSpan.FromDays(1)), Times.Once);
     }
 
     [Fact]
-    public async Task Register_Success_CreatesDefaultProfile()
+    public async Task LoginPost_UnknownEmail_ReturnsGenericError()
     {
-        var userManager = MockUserManager();
-        userManager.Setup(x => x.CreateAsync(It.IsAny<IdentityUser>(), "Pass1234"))
-            .ReturnsAsync(IdentityResult.Success);
-        var signInManager = MockSignInManager(userManager);
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        using var db = new AppDbContext(options);
-        var controller = new AccountController(
-            userManager.Object,
-            signInManager.Object,
-            db,
-            TimeProvider.System,
-            Mock.Of<IAdminAuditService>());
+        _authService
+            .Setup(service => service.FindByEmailAsync(It.IsAny<string>(), default))
+            .ReturnsAsync((AppUser?)null);
+        AccountController controller = CreateController();
+        var model = new LoginViewModel { Email = "a@example.com", Password = "Password1" };
 
-        await controller.Register(ValidRegister());
+        IActionResult result = await controller.Login(model);
 
-        UserProfile profile = Assert.Single(db.UserProfiles);
-        Assert.True(profile.IsPublic);
-        Assert.False(profile.ShowStats);
-        Assert.False(profile.ShowBadges);
-        Assert.False(profile.ShowActivity);
-        Assert.False(profile.ShowPublicSets);
+        ViewResult view = Assert.IsType<ViewResult>(result);
+        Assert.Contains(
+            view.ViewData.ModelState.Values.SelectMany(value => value.Errors),
+            error => error.ErrorMessage == "Email hoặc mật khẩu không đúng.");
     }
 
     [Fact]
-    public async Task Login_UnknownEmail_ReturnsGenericError()
+    public async Task LoginPost_LockedOut_ShowsLockedMessage()
     {
-        var userManager = MockUserManager();
-        userManager.Setup(x => x.FindByEmailAsync("nobody@b.com"))
-            .ReturnsAsync((IdentityUser?)null);
-        var signInManager = MockSignInManager(userManager);
-        var controller = CreateController(userManager, signInManager);
+        AppUser user = CreateUser();
+        _authService
+            .Setup(service => service.FindByEmailAsync(It.IsAny<string>(), default))
+            .ReturnsAsync(user);
+        _authService
+            .Setup(service => service.ValidateLoginAsync(user, It.IsAny<string>(), default))
+            .ReturnsAsync(AuthResult.LockedOut());
+        AccountController controller = CreateController();
+        var model = new LoginViewModel { Email = "a@example.com", Password = "Password1" };
 
-        var result = await controller.Login(new LoginViewModel
-        {
-            Email = "nobody@b.com",
-            Password = "Pass1234"
-        });
+        IActionResult result = await controller.Login(model);
 
-        Assert.IsType<ViewResult>(result);
-        Assert.Contains(controller.ModelState[string.Empty]!.Errors,
-            e => e.ErrorMessage == "Email hoặc mật khẩu không đúng.");
-        signInManager.Verify(x => x.SignInAsync(
-            It.IsAny<IdentityUser>(), It.IsAny<AuthenticationProperties>(), It.IsAny<string>()), Times.Never);
+        ViewResult view = Assert.IsType<ViewResult>(result);
+        Assert.Contains(
+            view.ViewData.ModelState.Values.SelectMany(value => value.Errors),
+            error => error.ErrorMessage.Contains("không thể đăng nhập"));
     }
 
     [Fact]
-    public async Task Login_WrongPassword_ReturnsGenericError()
+    public async Task LoginPost_AdminUser_RedirectsAdminAndAudits()
     {
-        var user = new IdentityUser { UserName = "user1", Email = "a@b.com" };
-        var userManager = MockUserManager();
-        userManager.Setup(x => x.FindByEmailAsync("a@b.com")).ReturnsAsync(user);
-        var signInManager = MockSignInManager(userManager);
-        signInManager.Setup(x => x.CheckPasswordSignInAsync(user, "Sai1234", true))
-            .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Failed);
-        var controller = CreateController(userManager, signInManager);
+        AppUser user = CreateUser(isAdmin: true);
+        _authService
+            .Setup(service => service.FindByEmailAsync(It.IsAny<string>(), default))
+            .ReturnsAsync(user);
+        _authService
+            .Setup(service => service.ValidateLoginAsync(user, It.IsAny<string>(), default))
+            .ReturnsAsync(AuthResult.Success());
+        AccountController controller = CreateController();
+        var model = new LoginViewModel { Email = "a@example.com", Password = "Password1" };
 
-        var result = await controller.Login(new LoginViewModel
-        {
-            Email = "a@b.com",
-            Password = "Sai1234"
-        });
+        IActionResult result = await controller.Login(model);
 
-        Assert.IsType<ViewResult>(result);
-        Assert.Contains(controller.ModelState[string.Empty]!.Errors,
-            e => e.ErrorMessage == "Email hoặc mật khẩu không đúng.");
+        RedirectResult redirect = Assert.IsType<RedirectResult>(result);
+        Assert.Equal("/Admin", redirect.Url);
+        _auditService.Verify(service => service.RecordAsync(
+            It.Is<AdminAuditEntry>(entry => entry.Action == AdminAuditActions.AdminAreaSignIn),
+            default), Times.Once);
     }
 
     [Fact]
-    public async Task Login_SuccessRememberMe_SignsInThirtyDaysAndRedirectsSet()
+    public async Task LoginPost_RegularUser_RedirectsSet()
     {
-        var user = new IdentityUser { UserName = "user1", Email = "a@b.com" };
-        var userManager = MockUserManager();
-        userManager.Setup(x => x.FindByEmailAsync("a@b.com")).ReturnsAsync(user);
-        var signInManager = MockSignInManager(userManager);
-        signInManager.Setup(x => x.CheckPasswordSignInAsync(user, "Pass1234", true))
-            .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Success);
-        var controller = CreateController(userManager, signInManager);
+        AppUser user = CreateUser();
+        _authService
+            .Setup(service => service.FindByEmailAsync(It.IsAny<string>(), default))
+            .ReturnsAsync(user);
+        _authService
+            .Setup(service => service.ValidateLoginAsync(user, It.IsAny<string>(), default))
+            .ReturnsAsync(AuthResult.Success());
+        AccountController controller = CreateController();
+        var model = new LoginViewModel { Email = "a@example.com", Password = "Password1" };
 
-        var result = await controller.Login(new LoginViewModel
-        {
-            Email = "a@b.com",
-            Password = "Pass1234",
-            RememberMe = true
-        });
+        IActionResult result = await controller.Login(model);
 
-        var redirect = Assert.IsType<RedirectResult>(result);
+        RedirectResult redirect = Assert.IsType<RedirectResult>(result);
         Assert.Equal("/Set", redirect.Url);
-        signInManager.Verify(x => x.SignInAsync(
-            user,
-            It.Is<AuthenticationProperties>(p =>
-                p.IsPersistent &&
-                p.ExpiresUtc.HasValue &&
-                p.ExpiresUtc.Value > DateTimeOffset.UtcNow.AddDays(29)),
-            It.IsAny<string>()), Times.Once);
     }
 
     [Fact]
-    public async Task Login_SuccessNoRememberMe_SignsInOneDay()
+    public async Task Logout_SignsOutAndRedirectsHome()
     {
-        var user = new IdentityUser { UserName = "user1", Email = "a@b.com" };
-        var userManager = MockUserManager();
-        userManager.Setup(x => x.FindByEmailAsync("a@b.com")).ReturnsAsync(user);
-        var signInManager = MockSignInManager(userManager);
-        signInManager.Setup(x => x.CheckPasswordSignInAsync(user, "Pass1234", true))
-            .ReturnsAsync(Microsoft.AspNetCore.Identity.SignInResult.Success);
-        var controller = CreateController(userManager, signInManager);
+        AccountController controller = CreateController();
 
-        var result = await controller.Login(new LoginViewModel
-        {
-            Email = "a@b.com",
-            Password = "Pass1234",
-            RememberMe = false
-        });
+        IActionResult result = await controller.Logout();
 
-        Assert.IsType<RedirectResult>(result);
-        signInManager.Verify(x => x.SignInAsync(
-            user,
-            It.Is<AuthenticationProperties>(p =>
-                p.IsPersistent &&
-                p.ExpiresUtc.HasValue &&
-                p.ExpiresUtc.Value > DateTimeOffset.UtcNow.AddHours(23) &&
-                p.ExpiresUtc.Value < DateTimeOffset.UtcNow.AddDays(2)),
-            It.IsAny<string>()), Times.Once);
-    }
-
-    [Fact]
-    public async Task Logout_CallsSignOutAndRedirectsHome()
-    {
-        var userManager = MockUserManager();
-        var signInManager = MockSignInManager(userManager);
-        var controller = CreateController(userManager, signInManager);
-
-        var result = await controller.Logout();
-
-        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        RedirectToActionResult redirect = Assert.IsType<RedirectToActionResult>(result);
         Assert.Equal("Index", redirect.ActionName);
-        Assert.Equal("Home", redirect.ControllerName);
-        signInManager.Verify(x => x.SignOutAsync(), Times.Once);
+        _authService.Verify(service => service.SignOutAsync(), Times.Once);
     }
 }

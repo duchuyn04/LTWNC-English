@@ -1,0 +1,52 @@
+@startuml
+!theme plain
+title Quy trình thực hiện một phiên học
+
+|Người dùng|
+start
+:Chọn một bộ flashcard;
+
+|Giao diện học tập|
+:Hiển thị Study Hub và các bộ lọc;
+
+|Người dùng|
+:Chọn bộ lọc và chế độ học;
+:Bắt đầu phiên học;
+
+|Giao diện học tập|
+:Gửi yêu cầu bắt đầu;
+
+|Hệ thống|
+:Kiểm tra quyền truy cập và lấy danh sách thẻ;
+if (Có nội dung phù hợp?) then (Không)
+  |Giao diện học tập|
+  :Thông báo không có thẻ phù hợp;
+  |Người dùng|
+  :Thay đổi bộ lọc hoặc quay lại;
+  stop
+else (Có)
+  |Hệ thống|
+  :Tạo phiên học và chuẩn bị nội dung;
+endif
+
+while (Còn nội dung trong phiên?) is (Có)
+  |Giao diện học tập|
+  :Hiển thị thẻ hoặc câu hỏi hiện tại;
+  |Người dùng|
+  :Thực hiện hoạt động học tập;
+  |Giao diện học tập|
+  :Gửi kết quả của nội dung hiện tại;
+  |Hệ thống|
+  :Kiểm tra và lưu kết quả;
+  :Cập nhật tiến trình của thẻ;
+endwhile (Không)
+
+:Hoàn thành phiên và tổng hợp kết quả;
+
+|Giao diện học tập|
+:Hiển thị trang tổng kết;
+
+|Người dùng|
+:Xem kết quả và chọn hướng học tiếp theo;
+stop
+@enduml

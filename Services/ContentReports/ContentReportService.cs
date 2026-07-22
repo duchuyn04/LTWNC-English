@@ -254,8 +254,8 @@ public sealed class ContentReportService : IContentReportService
     {
         return from report in reports
                join set in _context.FlashcardSets on report.FlashcardSetId equals set.Id
-               join reporter in _context.Users on report.ReporterUserId equals reporter.Id
-               join owner in _context.Users on set.UserId equals owner.Id
+               join reporter in _context.AppUsers on report.ReporterUserId equals reporter.Id
+               join owner in _context.AppUsers on set.UserId equals owner.Id
                select new AdminContentReportRowData(
                    report.Id,
                    set.Id,
@@ -369,7 +369,7 @@ public sealed class ContentReportService : IContentReportService
             || _context.FlashcardSets.Any(set =>
                 set.Id == report.FlashcardSetId
                 && set.Title.Contains(term))
-            || _context.Users.Any(user =>
+            || _context.AppUsers.Any(user =>
                 (user.Id == report.ReporterUserId
                     || _context.FlashcardSets.Any(set =>
                         set.Id == report.FlashcardSetId

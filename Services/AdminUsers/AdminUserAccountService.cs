@@ -3,7 +3,6 @@ using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Audit;
 using ltwnc.Services.Auth;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -19,25 +18,19 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
         new(new DateTime(9999, 12, 31, 23, 59, 59, DateTimeKind.Utc));
 
     private readonly AppDbContext _context;
-    private readonly UserManager<IdentityUser> _userManager;
     private readonly IAdminAuditService _auditService;
-    private readonly IConfiguration _configuration;
     private readonly TimeProvider _timeProvider;
     private readonly AdminUserLockCoordinator _lockCoordinator;
 
-    // Nhận các dependency cần cho Identity, database, audit và thời gian kiểm thử được.
+    // Nhận database, audit, clock và coordinator để thao tác tài khoản an toàn.
     public AdminUserAccountService(
         AppDbContext context,
-        UserManager<IdentityUser> userManager,
         IAdminAuditService auditService,
-        IConfiguration configuration,
         TimeProvider timeProvider,
         AdminUserLockCoordinator lockCoordinator)
     {
         _context = context;
-        _userManager = userManager;
         _auditService = auditService;
-        _configuration = configuration;
         _timeProvider = timeProvider;
         _lockCoordinator = lockCoordinator;
     }
@@ -49,17 +42,15 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
     {
         int page = Math.Max(DefaultPage, query.Page);
         int pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
-        // Tách truy vấn role Admin riêng để EF dịch sang SQL thay vì tải hết user role lên bộ nhớ.
-        IQueryable<string> adminUserIds = BuildAdminUserIdQuery();
-        IQueryable<IdentityUser> users = _context.Users.AsNoTracking();
+        IQueryable<AppUser> users = _context.AppUsers.AsNoTracking();
 
         // Giữ thứ tự lọc rõ ràng trên entity gốc để EF Core dịch SQL ổn định.
         users = ApplySearch(users, query.Search);
-        users = ApplyStatus(users, query.Status, adminUserIds);
+        users = ApplyStatus(users, query.Status);
         users = ApplySort(users, query.Sort);
 
         int totalCount = await users.CountAsync(cancellationToken);
-        List<AdminUserAccountRow> items = await BuildUserRows(users, adminUserIds)
+        List<AdminUserAccountRow> items = await BuildUserRows(users)
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
             .ToListAsync(cancellationToken);
@@ -72,7 +63,7 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
         string userId,
         CancellationToken cancellationToken = default)
     {
-        IdentityUser? user = await _context.Users
+        AppUser? user = await _context.AppUsers
             .AsNoTracking()
             .SingleOrDefaultAsync(item => item.Id == userId, cancellationToken);
         if (user == null)
@@ -83,25 +74,22 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
         UserProfile? profile = await _context.UserProfiles
             .AsNoTracking()
             .SingleOrDefaultAsync(item => item.UserId == user.Id, cancellationToken);
-        bool isAdmin = await _userManager.IsInRoleAsync(user, AdminRoleBootstrapper.AdminRole);
         bool isLocked = IsLocked(user);
 
         return new AdminUserAccountDetails(
             Id: user.Id,
-            UserName: user.UserName ?? string.Empty,
-            Email: user.Email ?? string.Empty,
-            EmailConfirmed: user.EmailConfirmed,
-            LockoutEnabled: user.LockoutEnabled,
-            IsAdmin: isAdmin,
+            UserName: user.UserName,
+            Email: user.Email,
+            IsAdmin: user.IsAdmin,
             IsLocked: isLocked,
             AccessFailedCount: user.AccessFailedCount,
-            ConcurrencyStamp: user.ConcurrencyStamp ?? string.Empty,
+            ConcurrencyStamp: user.ConcurrencyStamp,
             CreatedAtUtc: profile?.CreatedAt,
             UpdatedAtUtc: profile?.UpdatedAt,
             LockoutEnd: user.LockoutEnd);
     }
 
-    // Khóa tài khoản bằng Identity, kiểm tra bất biến Admin và ghi audit cùng transaction.
+    // Khóa tài khoản, kiểm tra bất biến Admin và ghi audit cùng transaction.
     public async Task<AdminUserOperationResult> LockAsync(
         AdminUserAccountCommand command,
         CancellationToken cancellationToken = default)
@@ -121,14 +109,15 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
                 IsolationLevel.Serializable,
                 cancellationToken);
 
-        IdentityUser? user = await _userManager.FindByIdAsync(command.TargetUserId);
+        AppUser? user = await _context.AppUsers.SingleOrDefaultAsync(
+            item => item.Id == command.TargetUserId,
+            cancellationToken);
         if (user == null)
         {
             return AdminUserOperationResult.Failure("Không tìm thấy tài khoản cần khóa.");
         }
 
-        bool isAdmin = await _userManager.IsInRoleAsync(user, AdminRoleBootstrapper.AdminRole);
-        string? denialReason = await GetLockDenialReasonAsync(command, user, isAdmin);
+        string? denialReason = await GetLockDenialReasonAsync(command, user, user.IsAdmin);
         if (denialReason != null)
         {
             // Quyết định bị từ chối vẫn được audit để Admin khác có thể truy vết.
@@ -149,15 +138,10 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
             return conflict;
         }
 
-        // Khóa tài khoản bằng Identity và đổi security stamp để cookie cũ bị vô hiệu ở request kế tiếp.
-        IdentityResult lockoutEnabledResult = await _userManager.SetLockoutEnabledAsync(user, true);
-        EnsureIdentitySucceeded(lockoutEnabledResult, "Không thể bật cơ chế khóa cho tài khoản.");
-
-        IdentityResult lockoutResult = await _userManager.SetLockoutEndDateAsync(user, PermanentLockoutEnd);
-        EnsureIdentitySucceeded(lockoutResult, "Không thể khóa tài khoản.");
-
-        IdentityResult stampResult = await _userManager.UpdateSecurityStampAsync(user);
-        EnsureIdentitySucceeded(stampResult, "Không thể thu hồi phiên sau khi khóa tài khoản.");
+        // Khóa tài khoản và đổi stamp để cookie cũ bị vô hiệu ở request kế tiếp.
+        user.LockoutEnd = PermanentLockoutEnd;
+        user.SecurityStamp = Guid.NewGuid().ToString();
+        user.ConcurrencyStamp = Guid.NewGuid().ToString();
 
         // Enqueue audit vào cùng DbContext để commit nghiệp vụ và audit đi cùng nhau.
         _auditService.Enqueue(BuildAuditEntry(
@@ -184,7 +168,9 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
             return AdminUserOperationResult.Failure(validationError);
         }
 
-        IdentityUser? user = await _userManager.FindByIdAsync(command.TargetUserId);
+        AppUser? user = await _context.AppUsers.SingleOrDefaultAsync(
+            item => item.Id == command.TargetUserId,
+            cancellationToken);
         if (user == null)
         {
             return AdminUserOperationResult.Failure("Không tìm thấy tài khoản cần mở khóa.");
@@ -205,8 +191,9 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
             await _context.Database.BeginTransactionAsync(cancellationToken);
 
         // Chỉ xóa lockout, không chạm vào tiến độ học, thành tích hay nội dung của người dùng.
-        IdentityResult unlockResult = await _userManager.SetLockoutEndDateAsync(user, null);
-        EnsureIdentitySucceeded(unlockResult, "Không thể mở khóa tài khoản.");
+        user.LockoutEnd = null;
+        user.AccessFailedCount = 0;
+        user.ConcurrencyStamp = Guid.NewGuid().ToString();
 
         // Audit nằm trong cùng transaction với thay đổi mở khóa.
         _auditService.Enqueue(BuildAuditEntry(
@@ -233,7 +220,9 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
             return AdminUserOperationResult.Failure(validationError);
         }
 
-        IdentityUser? user = await _userManager.FindByIdAsync(command.TargetUserId);
+        AppUser? user = await _context.AppUsers.SingleOrDefaultAsync(
+            item => item.Id == command.TargetUserId,
+            cancellationToken);
         if (user == null)
         {
             return AdminUserOperationResult.Failure("Không tìm thấy tài khoản cần thu hồi phiên.");
@@ -254,8 +243,8 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
             await _context.Database.BeginTransactionAsync(cancellationToken);
 
         // Thu hồi phiên độc lập với trạng thái khóa tài khoản.
-        IdentityResult stampResult = await _userManager.UpdateSecurityStampAsync(user);
-        EnsureIdentitySucceeded(stampResult, "Không thể thu hồi phiên đăng nhập.");
+        user.SecurityStamp = Guid.NewGuid().ToString();
+        user.ConcurrencyStamp = Guid.NewGuid().ToString();
 
         // Audit cùng transaction để không có trường hợp báo thành công mà thiếu dấu vết.
         _auditService.Enqueue(BuildAuditEntry(
@@ -270,19 +259,9 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
         return AdminUserOperationResult.Success("Đã thu hồi toàn bộ phiên đăng nhập của tài khoản.");
     }
 
-    // Tạo truy vấn lấy Id của các tài khoản thuộc role Admin.
-    private IQueryable<string> BuildAdminUserIdQuery()
-    {
-        return from userRole in _context.Set<IdentityUserRole<string>>()
-               join role in _context.Roles on userRole.RoleId equals role.Id
-               where role.Name == AdminRoleBootstrapper.AdminRole
-               select userRole.UserId;
-    }
-
-    // Ghép IdentityUser đã lọc với hồ sơ tối thiểu và trạng thái Admin/khóa để dựng hàng danh sách.
+    // Ghép AppUser đã lọc với hồ sơ tối thiểu và trạng thái Admin/khóa để dựng hàng danh sách.
     private IQueryable<AdminUserAccountRow> BuildUserRows(
-        IQueryable<IdentityUser> users,
-        IQueryable<string> adminUserIds)
+        IQueryable<AppUser> users)
     {
         return from user in users
                let createdAtUtc = _context.UserProfiles
@@ -291,18 +270,17 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
                    .FirstOrDefault()
                select new AdminUserAccountRow(
                    user.Id,
-                   user.UserName ?? string.Empty,
-                   user.Email ?? string.Empty,
-                   user.EmailConfirmed,
-                   adminUserIds.Contains(user.Id),
+                   user.UserName,
+                   user.Email,
+                   user.IsAdmin,
                    user.LockoutEnd != null,
                    createdAtUtc,
                    user.LockoutEnd);
     }
 
     // Áp dụng tìm kiếm an toàn trên email, username và mã định danh trước khi projection.
-    private static IQueryable<IdentityUser> ApplySearch(
-        IQueryable<IdentityUser> users,
+    private static IQueryable<AppUser> ApplySearch(
+        IQueryable<AppUser> users,
         string? search)
     {
         if (string.IsNullOrWhiteSpace(search))
@@ -312,16 +290,15 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
 
         string term = search.Trim();
         return users.Where(user =>
-            (user.Email != null && user.Email.Contains(term))
-            || (user.UserName != null && user.UserName.Contains(term))
+            user.Email.Contains(term)
+            || user.UserName.Contains(term)
             || user.Id.Contains(term));
     }
 
     // Lọc theo các trạng thái được UI hỗ trợ, giá trị lạ được xem như "tất cả".
-    private static IQueryable<IdentityUser> ApplyStatus(
-        IQueryable<IdentityUser> users,
-        string? status,
-        IQueryable<string> adminUserIds)
+    private static IQueryable<AppUser> ApplyStatus(
+        IQueryable<AppUser> users,
+        string? status)
     {
         string normalizedStatus = NormalizeToken(status);
         if (normalizedStatus == "locked")
@@ -336,15 +313,15 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
 
         if (normalizedStatus == "admin")
         {
-            return users.Where(user => adminUserIds.Contains(user.Id));
+            return users.Where(user => user.IsAdmin);
         }
 
         return users;
     }
 
     // Sắp xếp server-side theo danh sách khóa cố định để tránh truyền field tùy ý vào truy vấn.
-    private IQueryable<IdentityUser> ApplySort(
-        IQueryable<IdentityUser> users,
+    private IQueryable<AppUser> ApplySort(
+        IQueryable<AppUser> users,
         string? sort)
     {
         string normalizedSort = NormalizeToken(sort);
@@ -374,19 +351,13 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
     // Gom các bất biến khóa Admin vào một chỗ để controller không tự quyết định bảo mật.
     private async Task<string?> GetLockDenialReasonAsync(
         AdminUserAccountCommand command,
-        IdentityUser target,
+        AppUser target,
         bool targetIsAdmin)
     {
         // Không cho tự khóa để tránh Admin tự làm mất quyền truy cập trong phiên hiện tại.
         if (string.Equals(command.ActorUserId, target.Id, StringComparison.Ordinal))
         {
             return "Quản trị viên không thể tự khóa tài khoản của mình.";
-        }
-
-        // Tài khoản bootstrap là điểm khôi phục vận hành, nên không khóa từ dashboard.
-        if (IsBootstrapAdmin(target.Id))
-        {
-            return "Không thể khóa tài khoản Quản trị viên khởi tạo.";
         }
 
         // Người học không ảnh hưởng số lượng Admin còn hoạt động.
@@ -411,29 +382,22 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
     // Đếm Admin chưa bị khóa để bảo vệ bất biến "luôn còn ít nhất một Admin hoạt động".
     private async Task<int> CountActiveAdminsAsync()
     {
-        IList<IdentityUser> admins =
-            await _userManager.GetUsersInRoleAsync(AdminRoleBootstrapper.AdminRole);
-        int activeCount = 0;
-
-        foreach (IdentityUser admin in admins)
-        {
-            if (!IsLocked(admin))
-            {
-                activeCount++;
-            }
-        }
-
-        return activeCount;
+        DateTimeOffset now = _timeProvider.GetUtcNow();
+        List<DateTimeOffset?> lockoutEnds = await _context.AppUsers
+            .Where(user => user.IsAdmin)
+            .Select(user => user.LockoutEnd)
+            .ToListAsync();
+        return lockoutEnds.Count(lockoutEnd => lockoutEnd == null || lockoutEnd <= now);
     }
 
     // So sánh concurrency stamp và ghi audit bị từ chối khi phát hiện dữ liệu cũ.
     private async Task<AdminUserOperationResult?> DetectConflictAsync(
         AdminUserAccountCommand command,
-        IdentityUser user,
+        AppUser user,
         string action,
         CancellationToken cancellationToken)
     {
-        string currentStamp = user.ConcurrencyStamp ?? string.Empty;
+        string currentStamp = user.ConcurrencyStamp;
         if (string.Equals(currentStamp, command.ConcurrencyStamp, StringComparison.Ordinal))
         {
             return null;
@@ -449,7 +413,7 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
         AdminUserAccountCommand command,
         string action,
         string outcome,
-        IdentityUser target,
+        AppUser target,
         string? denialReason,
         CancellationToken cancellationToken)
     {
@@ -462,7 +426,7 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
         AdminUserAccountCommand command,
         string action,
         string outcome,
-        IdentityUser target,
+        AppUser target,
         string? denialReason)
     {
         var metadata = new Dictionary<string, string?>
@@ -477,14 +441,14 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
             ActorDisplay: command.ActorDisplay,
             Action: action,
             Outcome: outcome,
-            TargetType: "IdentityUser",
+            TargetType: "AppUser",
             TargetId: target.Id,
             Reason: command.Reason,
             CorrelationId: command.CorrelationId,
             Metadata: metadata);
     }
 
-    // Kiểm tra dữ liệu lệnh trước khi gọi Identity hoặc ghi database.
+    // Kiểm tra dữ liệu lệnh trước khi ghi database.
     private string? ValidateCommand(AdminUserAccountCommand command)
     {
         if (string.IsNullOrWhiteSpace(command.ActorUserId))
@@ -515,20 +479,8 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
         return null;
     }
 
-    // Xác định tài khoản Admin khởi tạo từ cấu hình deployment.
-    private bool IsBootstrapAdmin(string userId)
-    {
-        string? configuredUserId = _configuration["AdminBootstrap:UserId"]?.Trim();
-        if (string.IsNullOrWhiteSpace(configuredUserId))
-        {
-            return false;
-        }
-
-        return string.Equals(configuredUserId, userId, StringComparison.Ordinal);
-    }
-
     // Kiểm tra khóa theo thời gian hiện tại để test có thể điều khiển bằng TimeProvider.
-    private bool IsLocked(IdentityUser user)
+    private bool IsLocked(AppUser user)
     {
         DateTimeOffset now = _timeProvider.GetUtcNow();
         if (user.LockoutEnd == null)
@@ -550,15 +502,4 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
         return value.Trim().ToLowerInvariant();
     }
 
-    // Đổi lỗi Identity thành exception rõ nghĩa vì thao tác Admin không được thành công âm thầm.
-    private static void EnsureIdentitySucceeded(IdentityResult result, string message)
-    {
-        if (result.Succeeded)
-        {
-            return;
-        }
-
-        string details = string.Join("; ", result.Errors.Select(error => error.Description));
-        throw new InvalidOperationException($"{message} {details}".Trim());
-    }
 }

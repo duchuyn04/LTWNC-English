@@ -34,23 +34,6 @@
     font-family: var(--font-body);
 }
 
-/* Hiện ngay khi load trang (không chờ scroll như GSAP ScrollTrigger) */
-@keyframes result-enter {
-    from {
-        opacity: 0;
-        transform: translateY(12px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
-}
-
-.result-enter {
-    animation: result-enter 0.45s cubic-bezier(0.22, 1, 0.36, 1) both;
-    animation-delay: var(--result-enter-delay, 0ms);
-}
-
 .result-container {
     width: min(100%, 900px);
     margin: 0 auto;
@@ -180,15 +163,13 @@
     stroke-width: 18;
     transform: rotate(-90deg);
     transform-origin: 50% 50%;
-    /* Mượt khi JS cập nhật dasharray từng frame */
-    transition: stroke 0.2s ease;
+    transition: stroke var(--duration-fast) var(--ease-out);
 }
 
 .result-donut-text {
     font-size: 1.75rem;
     font-weight: 800;
     fill: var(--ink);
-    /* Số % giữa donut không nhảy layout khi đếm */
     font-variant-numeric: tabular-nums;
 }
 
@@ -202,31 +183,12 @@
 
 .result-stack-correct {
     background: var(--dr-bar-correct);
-    width: 0;
     min-width: 0;
-    will-change: width;
 }
 
 .result-stack-wrong {
     background: var(--dr-bar-wrong);
-    width: 0;
     min-width: 0;
-    will-change: width;
-}
-
-/* Người dùng tắt animation hệ thống: không transition thanh / không ẩn entrance */
-@media (prefers-reduced-motion: reduce) {
-    .result-stack-correct,
-    .result-stack-wrong,
-    .result-donut-fill {
-        transition: none !important;
-    }
-
-    .result-enter {
-        animation: none !important;
-        opacity: 1 !important;
-        transform: none !important;
-    }
 }
 
 .result-legend {

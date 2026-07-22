@@ -52,7 +52,7 @@ public sealed class ContentModerationService : IContentModerationService
             .Select(set => new AdminContentSetRow(
                 set.Id,
                 set.Title,
-                _context.Users
+                _context.AppUsers
                     .Where(user => user.Id == set.UserId)
                     .Select(user => user.Email ?? user.UserName ?? user.Id)
                     .FirstOrDefault() ?? set.UserId,
@@ -329,7 +329,7 @@ public sealed class ContentModerationService : IContentModerationService
         FlashcardSet set,
         CancellationToken cancellationToken)
     {
-        string ownerDisplay = await _context.Users
+        string ownerDisplay = await _context.AppUsers
             .AsNoTracking()
             .Where(user => user.Id == set.UserId)
             .Select(user => user.Email ?? user.UserName ?? user.Id)
@@ -382,7 +382,7 @@ public sealed class ContentModerationService : IContentModerationService
         return sets.Where(set =>
             (parsedSetId != null && set.Id == parsedSetId.Value)
             || set.Title.Contains(term)
-            || _context.Users.Any(user =>
+            || _context.AppUsers.Any(user =>
                 user.Id == set.UserId
                 && ((user.Email != null && user.Email.Contains(term))
                     || (user.UserName != null && user.UserName.Contains(term))

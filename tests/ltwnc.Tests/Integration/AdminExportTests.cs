@@ -5,7 +5,6 @@ using ltwnc.Models.Entities;
 using ltwnc.Services.AdminExports;
 using ltwnc.Services.Audit;
 using ltwnc.Tests.Infrastructure;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -138,20 +137,13 @@ public sealed class AdminExportTests
     // Seed một phiên học trong 7 ngày hiện tại để export KPI phản ánh bộ lọc days.
     private static async Task SeedDashboardSessionAsync(AdminWebApplicationFactory factory)
     {
+        const string learnerEmail = "export-kpi-learner@example.com";
+        await factory.SeedUserAsync("export_kpi_learner", learnerEmail);
+
         using IServiceScope scope = factory.Services.CreateScope();
         AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        UserManager<IdentityUser> userManager =
-            scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-        IdentityUser learner = new()
-        {
-            UserName = "export_kpi_learner",
-            Email = "export-kpi-learner@example.com"
-        };
-        IdentityResult result = await userManager.CreateAsync(learner, "Testpass1");
-        if (!result.Succeeded)
-        {
-            throw new InvalidOperationException(string.Join("; ", result.Errors.Select(error => error.Description)));
-        }
+        AppUser learner = await context.AppUsers
+            .SingleAsync(item => item.NormalizedEmail == learnerEmail.ToUpperInvariant());
 
         var set = new FlashcardSet
         {

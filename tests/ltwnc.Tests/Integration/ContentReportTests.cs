@@ -4,7 +4,6 @@ using ltwnc.Models.Entities;
 using ltwnc.Services.Audit;
 using ltwnc.Services.ContentReports;
 using ltwnc.Tests.Infrastructure;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -246,9 +245,8 @@ public sealed class ContentReportTests
     {
         using IServiceScope scope = factory.Services.CreateScope();
         AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        UserManager<IdentityUser> userManager =
-            scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-        IdentityUser owner = await userManager.FindByEmailAsync(ownerEmail)
+        AppUser owner = await context.AppUsers
+            .SingleOrDefaultAsync(item => item.NormalizedEmail == ownerEmail.ToUpperInvariant())
             ?? throw new InvalidOperationException("Không tìm thấy owner test.");
 
         FlashcardSet set = new()
@@ -274,9 +272,8 @@ public sealed class ContentReportTests
     {
         using IServiceScope scope = factory.Services.CreateScope();
         AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        UserManager<IdentityUser> userManager =
-            scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-        IdentityUser reporter = await userManager.FindByEmailAsync(reporterEmail)
+        AppUser reporter = await context.AppUsers
+            .SingleOrDefaultAsync(item => item.NormalizedEmail == reporterEmail.ToUpperInvariant())
             ?? throw new InvalidOperationException("Không tìm thấy reporter test.");
 
         ContentReport report = new()

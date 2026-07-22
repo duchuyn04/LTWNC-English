@@ -53,8 +53,8 @@
 
     /* Motion */
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-    --duration-fast: 150ms;
-    --duration-med: 300ms;
+    --duration-fast: 120ms;
+    --duration-med: 180ms;
 }
 
 /* Legacy token aliases — keep transitional pages harmonised until
@@ -472,7 +472,7 @@ a:hover {
     height: 100%;
     background: var(--ink);
     border-radius: 3px;
-    transition: width 0.3s var(--ease-out);
+    transition: width var(--duration-med) var(--ease-out);
 }
 
 /* ==================== BOOTSTRAP HARMONISATION ==================== */
@@ -548,50 +548,19 @@ a:hover {
     box-shadow: 0 0 0 3px rgba(163, 59, 59, 0.12) !important;
 }
 
-/* ==================== PAGE TRANSITION OVERLAY ==================== */
-
-#pt-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 9999;
-    background: var(--paper);
-    opacity: 0;
-    pointer-events: none;
-    transition: opacity 350ms ease-out;
-}
-
-#pt-overlay.pt-overlay--visible,
-#pt-overlay.pt-overlay--in {
-    opacity: 1;
-    pointer-events: all;
-}
-
-#pt-overlay.pt-overlay--out {
-    opacity: 0;
-    pointer-events: none;
-    transition-duration: 400ms;
-}
-
-noscript #pt-overlay {
-    display: none !important;
-}
-
 /* ==================== REDUCED MOTION ==================== */
 
-/* Preserve functional transitions (page changes, carousel, card flip,
-   drawers and feedback). Only decorative CSS loops stop repeating. */
 @media (prefers-reduced-motion: reduce) {
     *,
     *::before,
     *::after {
+        animation-duration: 0.01ms !important;
         animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        transition-delay: 0ms !important;
     }
 
     html {
         scroll-behavior: auto !important;
     }
 }
-
-/* GSAP utility classes are registered in ~/js/site.js:
-   .gsap-fade-up, .gsap-fade-in, .gsap-scale-in,
-   .gsap-from-left, .gsap-from-right, .gsap-stagger */

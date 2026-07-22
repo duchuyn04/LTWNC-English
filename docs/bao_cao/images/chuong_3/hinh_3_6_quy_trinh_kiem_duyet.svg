@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980">
+  <defs>
+    <linearGradient id="bg6" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#fff1f2"/></linearGradient>
+    <filter id="s6" x="0" y="0" width="140%" height="140%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#0f172a" flood-opacity="0.12"/></filter>
+    <marker id="a6" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 34px 'Segoe UI',Arial,sans-serif;fill:#0f172a;text-anchor:middle}
+      .lane{font:700 19px 'Segoe UI',Arial,sans-serif;fill:#fff;text-anchor:middle}
+      .text{font:600 16px 'Segoe UI',Arial,sans-serif;fill:#1e293b;text-anchor:middle}
+      .small{font:500 14px 'Segoe UI',Arial,sans-serif;fill:#475569;text-anchor:middle}
+      .decision{font:700 16px 'Segoe UI',Arial,sans-serif;fill:#7c2d12;text-anchor:middle}
+      .arrow{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#a6)}
+    </style>
+  </defs>
+  <rect width="1600" height="980" fill="url(#bg6)"/>
+  <text x="800" y="54" class="title">QUY TRÌNH TIẾP NHẬN VÀ KIỂM DUYỆT NỘI DUNG</text>
+
+  <rect x="55" y="90" width="1490" height="825" rx="24" fill="#fff" stroke="#fecdd3" stroke-width="2" filter="url(#s6)"/>
+  <rect x="55" y="90" width="235" height="825" rx="24" fill="#fff1f2"/>
+  <line x1="290" y1="90" x2="290" y2="915" stroke="#fecdd3" stroke-width="3"/>
+  <rect x="75" y="120" width="195" height="60" rx="14" fill="#2563eb"/><text x="173" y="157" class="lane">THÀNH VIÊN</text>
+  <rect x="75" y="370" width="195" height="60" rx="14" fill="#be123c"/><text x="173" y="407" class="lane">QUẢN TRỊ VIÊN</text>
+  <rect x="75" y="685" width="195" height="60" rx="14" fill="#15803d"/><text x="173" y="722" class="lane">HỆ THỐNG</text>
+
+  <circle cx="350" cy="150" r="22" fill="#2563eb"/>
+  <path d="M372 150 L430 150" class="arrow"/>
+  <rect x="430" y="115" width="255" height="70" rx="18" fill="#eff6ff" stroke="#60a5fa" stroke-width="2"/>
+  <text x="558" y="146" class="text">Mở bộ thẻ công khai</text><text x="558" y="168" class="small">chọn lý do báo cáo phù hợp</text>
+  <path d="M685 150 L745 150" class="arrow"/>
+  <rect x="745" y="115" width="255" height="70" rx="18" fill="#eff6ff" stroke="#60a5fa" stroke-width="2"/>
+  <text x="873" y="146" class="text">Gửi báo cáo nội dung</text><text x="873" y="168" class="small">mỗi bộ thẻ chỉ có một báo cáo mở</text>
+  <path d="M873 185 L873 245" class="arrow"/>
+  <rect x="745" y="245" width="255" height="70" rx="18" fill="#f0fdf4" stroke="#4ade80" stroke-width="2"/>
+  <text x="873" y="276" class="text">Kiểm tra và lưu báo cáo</text><text x="873" y="298" class="small">trạng thái chờ xử lý</text>
+
+  <path d="M873 315 L873 385" class="arrow"/>
+  <rect x="745" y="385" width="255" height="70" rx="18" fill="#fff1f2" stroke="#fb7185" stroke-width="2"/>
+  <text x="873" y="416" class="text">Tra cứu danh sách báo cáo</text><text x="873" y="438" class="small">lọc theo trạng thái và thời gian</text>
+  <path d="M1000 420 L1090 420" class="arrow"/>
+  <rect x="1090" y="385" width="255" height="70" rx="18" fill="#fff1f2" stroke="#fb7185" stroke-width="2"/>
+  <text x="1218" y="416" class="text">Xem nội dung liên quan</text><text x="1218" y="438" class="small">đánh giá lý do và mức độ vi phạm</text>
+  <path d="M1218 455 L1218 515" class="arrow"/>
+  <polygon points="1218,515 1350,585 1218,655 1086,585" fill="#fff7ed" stroke="#fb923c" stroke-width="3" filter="url(#s6)"/>
+  <text x="1218" y="578" class="decision">Nội dung có vi phạm</text><text x="1218" y="600" class="small">quy định hay không?</text>
+
+  <path d="M1086 585 L920 585" class="arrow"/><text x="1010" y="570" class="decision">KHÔNG</text>
+  <rect x="665" y="550" width="255" height="70" rx="18" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+  <text x="793" y="581" class="text">Bác bỏ báo cáo</text><text x="793" y="603" class="small">ghi nhận lý do xử lý</text>
+  <path d="M793 620 L793 700" class="arrow"/>
+
+  <path d="M1218 655 L1218 700" class="arrow"/><text x="1265" y="680" class="decision">CÓ</text>
+  <rect x="1090" y="700" width="255" height="70" rx="18" fill="#ffe4e6" stroke="#f43f5e" stroke-width="2"/>
+  <text x="1218" y="731" class="text">Cách ly bộ thẻ</text><text x="1218" y="753" class="small">hạn chế xuất hiện ở khu vực công khai</text>
+
+  <path d="M793 700 L793 805" class="arrow"/>
+  <path d="M1218 770 L1218 805 L900 805" class="arrow"/>
+  <rect x="645" y="805" width="310" height="70" rx="18" fill="#f0fdf4" stroke="#4ade80" stroke-width="2"/>
+  <text x="800" y="836" class="text">Cập nhật trạng thái và ghi nhật ký</text><text x="800" y="858" class="small">lưu người thực hiện, lý do và đối tượng</text>
+  <path d="M955 840 L1035 840" class="arrow"/>
+  <circle cx="1064" cy="840" r="27" fill="#fff" stroke="#15803d" stroke-width="5"/><circle cx="1064" cy="840" r="16" fill="#15803d"/>
+
+  <path d="M1345 735 C1450 735 1455 610 1455 500 C1455 365 1370 300 1000 280" class="arrow"/>
+  <text x="1445" y="620" class="small" transform="rotate(90 1445 620)">Có thể khôi phục sau khi nội dung đã được xử lý phù hợp</text>
+</svg>

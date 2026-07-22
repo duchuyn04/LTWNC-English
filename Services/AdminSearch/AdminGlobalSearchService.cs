@@ -72,7 +72,7 @@ public sealed partial class AdminGlobalSearchService : IAdminGlobalSearchService
     {
         string normalizedToken = term.ToUpperInvariant();
         DateTimeOffset now = _timeProvider.GetUtcNow();
-        List<UserSearchRow> users = await _context.Users
+        List<UserSearchRow> users = await _context.AppUsers
             .AsNoTracking()
             .Where(user =>
                 user.Id.StartsWith(term)

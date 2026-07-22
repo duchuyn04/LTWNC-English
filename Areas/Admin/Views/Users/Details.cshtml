@@ -33,14 +33,6 @@
             <dd>@RoleLabel()</dd>
         </div>
         <div>
-            <dt>Email đã xác minh</dt>
-            <dd>@BooleanLabel(Model.EmailConfirmed)</dd>
-        </div>
-        <div>
-            <dt>Cho phép khóa</dt>
-            <dd>@BooleanLabel(Model.LockoutEnabled)</dd>
-        </div>
-        <div>
             <dt>Số lần đăng nhập lỗi</dt>
             <dd>@Model.AccessFailedCount</dd>
         </div>
@@ -126,16 +118,5 @@
         }
 
         return "Người học";
-    }
-
-    // Đổi boolean kỹ thuật sang tiếng Việt cho bảng chi tiết.
-    private static string BooleanLabel(bool value)
-    {
-        if (value)
-        {
-            return "Có";
-        }
-
-        return "Không";
     }
 }

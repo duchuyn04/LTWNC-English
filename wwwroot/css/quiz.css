@@ -96,7 +96,9 @@
     border-radius: 18px;
     background: #ffffff;
     cursor: pointer;
-    transition: transform 160ms ease, border-color 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+    transition: border-color var(--duration-fast) ease,
+                box-shadow var(--duration-fast) ease,
+                background-color var(--duration-fast) ease;
 }
 
 .quiz-timing-grid .quiz-timing-card {
@@ -104,7 +106,6 @@
 }
 
 .quiz-timing-card:hover {
-    transform: translateY(-2px);
     border-color: #c7b9a8;
 }
 
@@ -201,7 +202,6 @@
 
 .quiz-setup-submit:hover:not(:disabled) {
     background: #92400e;
-    transform: translateY(-1px);
 }
 
 .quiz-setup-submit:disabled {
@@ -361,7 +361,7 @@
     height: 100%;
     border-radius: inherit;
     background: var(--quiz-accent);
-    transition: width 200ms ease;
+    transition: width var(--duration-med) ease;
 }
 
 .quiz-card,
@@ -413,12 +413,12 @@
     font-weight: 700;
     text-align: left;
     cursor: pointer;
-    transition: border-color 160ms ease, background-color 160ms ease, transform 160ms ease;
+    transition: border-color var(--duration-fast) ease,
+                background-color var(--duration-fast) ease;
 }
 
 .quiz-choice:hover:not(:disabled) {
     border-color: #a8a29e;
-    transform: translateY(-1px);
 }
 
 .quiz-choice:focus-visible,

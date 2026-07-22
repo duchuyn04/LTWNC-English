@@ -28,7 +28,7 @@ public sealed class LeaderboardService : ILeaderboardService
             from session in _db.StudySessions.AsNoTracking()
             join profile in _db.UserProfiles.AsNoTracking()
                 on session.UserId equals profile.UserId
-            join user in _db.Users.AsNoTracking()
+            join user in _db.AppUsers.AsNoTracking()
                 on session.UserId equals user.Id
             where profile.IsPublic
                 && profile.ShowStats

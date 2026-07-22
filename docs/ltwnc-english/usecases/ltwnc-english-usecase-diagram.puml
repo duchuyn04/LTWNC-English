@@ -1,0 +1,79 @@
+@startuml
+top to bottom direction
+skinparam backgroundColor #F8FAFC
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam defaultFontName Arial
+skinparam defaultFontSize 16
+skinparam ArrowColor #64748B
+skinparam ArrowThickness 1.5
+skinparam nodesep 45
+skinparam ranksep 55
+skinparam ActorBorderColor #334155
+skinparam ActorFontColor #0F172A
+skinparam UsecaseBackgroundColor #FFFFFF
+skinparam UsecaseBorderColor #6366F1
+skinparam UsecaseFontColor #1E293B
+skinparam RectangleBorderColor #94A3B8
+skinparam RectangleFontColor #0F172A
+skinparam PackageBorderColor #CBD5E1
+skinparam PackageFontColor #334155
+
+actor "Khách chưa\nđăng nhập" as Guest
+actor "Người dùng đã\nđăng nhập" as Member
+actor "Quản trị viên" as Admin
+
+rectangle "HỆ THỐNG LTWNC ENGLISH" as System {
+  package "TRUY CẬP CÔNG KHAI" as PublicArea #EFF6FF {
+    usecase "Truy cập trang chủ\nvà nội dung công khai" as UC01
+    usecase "Đăng ký tài khoản" as UC02
+    usecase "Đăng nhập" as UC03
+  }
+
+  package "CHỨC NĂNG NGƯỜI DÙNG" as MemberArea #F0FDF4 {
+    usecase "Quản lý hồ sơ" as UC04
+    usecase "Quản lý bộ flashcard" as UC05
+    usecase "Thực hiện hoạt động học tập" as UC06
+    usecase "Theo dõi kết quả\nvà thành tích" as UC07
+    usecase "Sử dụng thư viện công khai" as UC08
+  }
+
+  package "QUẢN TRỊ HỆ THỐNG" as AdminArea #FFF1F2 {
+    usecase "Quản lý tài khoản" as UC09
+    usecase "Kiểm duyệt nội dung\nvà xử lý báo cáo" as UC10
+    usecase "Theo dõi tình trạng\nhoạt động hệ thống" as UC11
+  }
+
+  PublicArea -[hidden]right- MemberArea
+  MemberArea -[hidden]right- AdminArea
+  UC01 -[hidden]down- UC02
+  UC02 -[hidden]down- UC03
+  UC04 -[hidden]down- UC05
+  UC05 -[hidden]down- UC06
+  UC06 -[hidden]down- UC07
+  UC07 -[hidden]down- UC08
+  UC09 -[hidden]down- UC10
+  UC10 -[hidden]down- UC11
+}
+
+Guest -down- UC01
+Guest -down- UC02
+Guest -down- UC03
+
+Member -down- UC04
+Member -down- UC05
+Member -down- UC06
+Member -down- UC07
+Member -down- UC08
+
+Admin -down- UC09
+Admin -down- UC10
+Admin -down- UC11
+
+Guest -[hidden]right- Member
+Member -[hidden]right- Admin
+Guest -[hidden]down- PublicArea
+Member -[hidden]down- MemberArea
+Admin -[hidden]down- AdminArea
+@enduml

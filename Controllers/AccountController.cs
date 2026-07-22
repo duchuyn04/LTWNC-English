@@ -1,14 +1,10 @@
-using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Account;
 using ltwnc.Services.Audit;
 using ltwnc.Services.Auth;
 using ltwnc.Services.Profiles;
-using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Controllers;
 
@@ -18,23 +14,14 @@ public class AccountController : Controller
     private static readonly TimeSpan RememberMeCookieLifetime = TimeSpan.FromDays(30);
     private static readonly TimeSpan SessionCookieLifetime = TimeSpan.FromDays(1);
 
-    private readonly UserManager<IdentityUser> _userManager;
-    private readonly SignInManager<IdentityUser> _signInManager;
-    private readonly AppDbContext _db;
-    private readonly TimeProvider _timeProvider;
+    private readonly IAuthService _authService;
     private readonly IAdminAuditService _adminAuditService;
 
     public AccountController(
-        UserManager<IdentityUser> userManager,
-        SignInManager<IdentityUser> signInManager,
-        AppDbContext db,
-        TimeProvider timeProvider,
+        IAuthService authService,
         IAdminAuditService adminAuditService)
     {
-        _userManager = userManager;
-        _signInManager = signInManager;
-        _db = db;
-        _timeProvider = timeProvider;
+        _authService = authService;
         _adminAuditService = adminAuditService;
     }
 
@@ -71,58 +58,25 @@ public class AccountController : Controller
             return View(model);
         }
 
-        var user = new IdentityUser
-        {
-            UserName = model.Username.Trim(),
-            Email = model.Email.Trim()
-        };
-
-        IdentityResult result;
-
-        try
-        {
-            result = await _userManager.CreateAsync(user, model.Password);
-        }
-        catch (DbUpdateException ex) when (IsDuplicateEmailViolation(ex))
-        {
-            ModelState.AddModelError(string.Empty, "Email đã được sử dụng.");
-            return View(model);
-        }
-
+        AuthResult result = await _authService.RegisterAsync(
+            model.Email.Trim(),
+            model.Username.Trim(),
+            model.Password);
         if (!result.Succeeded)
         {
-            foreach (IdentityError error in result.Errors)
+            foreach (AuthError error in result.Errors)
             {
-                ModelState.AddModelError(string.Empty, MapIdentityError(error));
+                ModelState.AddModelError(string.Empty, error.Message);
             }
 
             return View(model);
         }
 
-        DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
-        try
+        AppUser? user = await _authService.FindByEmailAsync(model.Email.Trim());
+        if (user != null)
         {
-            _db.UserProfiles.Add(new UserProfile
-            {
-                UserId = user.Id,
-                CreatedAt = now,
-                UpdatedAt = now
-            });
-            await _db.SaveChangesAsync();
+            await _authService.SignInAsync(user, RegisterCookieLifetime);
         }
-        catch
-        {
-            await _userManager.DeleteAsync(user);
-            throw;
-        }
-
-        await _signInManager.SignInAsync(
-            user,
-            new AuthenticationProperties
-            {
-                IsPersistent = true,
-                ExpiresUtc = DateTimeOffset.UtcNow.Add(RegisterCookieLifetime)
-            });
 
         return RedirectToAction("Index", "Home");
     }
@@ -153,21 +107,14 @@ public class AccountController : Controller
             return View(model);
         }
 
-        IdentityUser? user = await _userManager.FindByEmailAsync(model.Email.Trim());
+        AppUser? user = await _authService.FindByEmailAsync(model.Email.Trim());
         if (user is null)
         {
             ModelState.AddModelError(string.Empty, "Email hoặc mật khẩu không đúng.");
             return View(model);
         }
 
-        bool isAdmin = await _userManager.IsInRoleAsync(
-            user,
-            AdminRoleBootstrapper.AdminRole);
-        Microsoft.AspNetCore.Identity.SignInResult result = await _signInManager.CheckPasswordSignInAsync(
-            user,
-            model.Password,
-            lockoutOnFailure: true);
-
+        AuthResult result = await _authService.ValidateLoginAsync(user, model.Password);
         if (!result.Succeeded)
         {
             if (result.IsLockedOut)
@@ -181,15 +128,9 @@ public class AccountController : Controller
         }
 
         TimeSpan lifetime = model.RememberMe ? RememberMeCookieLifetime : SessionCookieLifetime;
-        await _signInManager.SignInAsync(
-            user,
-            new AuthenticationProperties
-            {
-                IsPersistent = true,
-                ExpiresUtc = DateTimeOffset.UtcNow.Add(lifetime)
-            });
+        await _authService.SignInAsync(user, lifetime);
 
-        if (isAdmin)
+        if (user.IsAdmin)
         {
             await RecordAdminSignInAuditAsync(user);
             return Redirect("/Admin");
@@ -202,34 +143,22 @@ public class AccountController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
-        await _signInManager.SignOutAsync();
+        await _authService.SignOutAsync();
         return RedirectToAction("Index", "Home");
     }
 
-    private static string MapIdentityError(IdentityError error) => error.Code switch
-    {
-        nameof(IdentityErrorDescriber.DuplicateEmail) or "DuplicateEmail" => "Email đã được sử dụng.",
-        nameof(IdentityErrorDescriber.DuplicateUserName) or "DuplicateUserName" => "Tên đăng nhập đã được sử dụng.",
-        nameof(IdentityErrorDescriber.InvalidUserName) or "InvalidUserName" => "Tên đăng nhập không hợp lệ.",
-        nameof(IdentityErrorDescriber.PasswordTooShort) or "PasswordTooShort" => "Mật khẩu phải có ít nhất 8 ký tự.",
-        nameof(IdentityErrorDescriber.PasswordRequiresUpper) or "PasswordRequiresUpper" => "Mật khẩu phải có ít nhất một chữ hoa.",
-        nameof(IdentityErrorDescriber.PasswordRequiresLower) or "PasswordRequiresLower" => "Mật khẩu phải có ít nhất một chữ thường.",
-        nameof(IdentityErrorDescriber.PasswordRequiresDigit) or "PasswordRequiresDigit" => "Mật khẩu phải có ít nhất một chữ số.",
-        _ => "Đăng ký không thành công. Vui lòng kiểm tra lại thông tin."
-    };
-
     private string GetAuthenticatedLandingPath() =>
-        User.IsInRole(AdminRoleBootstrapper.AdminRole) ? "/Admin" : "/Set";
+        User.HasClaim(AppClaimTypes.IsAdmin, "true") ? "/Admin" : "/Set";
 
     // Ghi audit sau khi Admin đăng nhập thành công; không ghi mật khẩu hoặc thông tin nhạy cảm.
-    private async Task RecordAdminSignInAuditAsync(IdentityUser user)
+    private async Task RecordAdminSignInAuditAsync(AppUser user)
     {
         await _adminAuditService.RecordAsync(new AdminAuditEntry(
             ActorUserId: user.Id,
-            ActorDisplay: user.Email ?? user.UserName ?? user.Id,
+            ActorDisplay: user.Email,
             Action: AdminAuditActions.AdminAreaSignIn,
             Outcome: AdminAuditOutcome.Success,
-            TargetType: "IdentityUser",
+            TargetType: "AppUser",
             TargetId: user.Id,
             CorrelationId: HttpContext.TraceIdentifier));
     }
@@ -240,17 +169,5 @@ public class AccountController : Controller
         ModelState.AddModelError(
             string.Empty,
             "Tài khoản hiện không thể đăng nhập. Vui lòng liên hệ bộ phận hỗ trợ để được kiểm tra.");
-    }
-
-    private static bool IsDuplicateEmailViolation(DbUpdateException exception)
-    {
-        string message = exception.InnerException?.Message ?? exception.Message;
-
-        return message.Contains("AspNetUsers", StringComparison.OrdinalIgnoreCase)
-            && message.Contains("Email", StringComparison.OrdinalIgnoreCase)
-            && (
-                message.Contains("unique constraint failed", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("duplicate key", StringComparison.OrdinalIgnoreCase)
-                || message.Contains("EmailIndex", StringComparison.OrdinalIgnoreCase));
     }
 }

@@ -28,7 +28,6 @@
             <a href="#section-avatar" class="settings-nav-link active"><i class="ph ph-image-square"></i> Ảnh đại diện</a>
             <a href="#section-info" class="settings-nav-link"><i class="ph ph-user"></i> Thông tin</a>
             <a href="#section-privacy" class="settings-nav-link"><i class="ph ph-lock"></i> Quyền riêng tư</a>
-            <a href="#section-email" class="settings-nav-link"><i class="ph ph-envelope-simple"></i> Email</a>
             <a href="#section-password" class="settings-nav-link"><i class="ph ph-key"></i> Mật khẩu</a>
         </nav>
     </aside>
@@ -130,28 +129,6 @@
                 <button class="settings-btn settings-btn-primary" type="submit">Lưu thay đổi</button>
             </section>
         </form>
-
-        <section id="section-email" class="settings-card">
-            <h2>Đổi email</h2>
-            <p class="settings-card-desc">Email dùng để đăng nhập và nhận thông báo.</p>
-            <form asp-controller="Profile" asp-action="ChangeEmail" method="post">
-                @Html.AntiForgeryToken()
-                <div asp-validation-summary="All" class="text-danger"></div>
-                <div class="settings-field">
-                    <label for="NewEmail">Email mới</label>
-                    <input id="NewEmail" name="NewEmail" type="email" value="@Model.Email" required class="settings-input" />
-                </div>
-                <div class="settings-field">
-                    <label for="ConfirmEmail">Nhập lại email mới</label>
-                    <input id="ConfirmEmail" name="ConfirmEmail" type="email" required class="settings-input" />
-                </div>
-                <div class="settings-field">
-                    <label for="CurrentPasswordEmail">Mật khẩu hiện tại</label>
-                    <input id="CurrentPasswordEmail" name="CurrentPassword" type="password" required autocomplete="current-password" class="settings-input" />
-                </div>
-                <button class="settings-btn settings-btn-primary" type="submit">Cập nhật email</button>
-            </form>
-        </section>
 
         <section id="section-password" class="settings-card">
             <h2>Đổi mật khẩu</h2>

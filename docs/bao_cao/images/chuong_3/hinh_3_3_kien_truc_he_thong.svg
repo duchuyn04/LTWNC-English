@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980">
+  <defs>
+    <linearGradient id="bg3" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#eef2ff"/></linearGradient>
+    <filter id="s3" x="0" y="0" width="140%" height="140%"><feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#0f172a" flood-opacity="0.14"/></filter>
+    <marker id="a3" markerWidth="11" markerHeight="11" refX="9" refY="4" orient="auto"><path d="M0,0 L0,8 L10,4 z" fill="#64748b"/></marker>
+    <style>
+      .title{font:700 34px 'Segoe UI',Arial,sans-serif;fill:#0f172a;text-anchor:middle}
+      .layer{font:700 23px 'Segoe UI',Arial,sans-serif;fill:#fff;text-anchor:middle}
+      .box{font:600 17px 'Segoe UI',Arial,sans-serif;fill:#1e293b;text-anchor:middle}
+      .note{font:500 15px 'Segoe UI',Arial,sans-serif;fill:#475569;text-anchor:middle}
+      .arrow{stroke:#64748b;stroke-width:3;fill:none;marker-end:url(#a3)}
+      .bi{stroke:#64748b;stroke-width:3;fill:none;marker-start:url(#a3);marker-end:url(#a3)}
+    </style>
+  </defs>
+  <rect width="1600" height="980" fill="url(#bg3)"/>
+  <text x="800" y="55" class="title">KIẾN TRÚC LOGIC CỦA HỆ THỐNG</text>
+
+  <rect x="80" y="105" width="1440" height="130" rx="24" fill="#ffffff" stroke="#bfdbfe" stroke-width="2" filter="url(#s3)"/>
+  <rect x="80" y="105" width="245" height="130" rx="24" fill="#2563eb"/>
+  <text x="203" y="160" class="layer">LỚP GIAO DIỆN</text>
+  <text x="203" y="190" class="layer">NGƯỜI DÙNG</text>
+  <rect x="365" y="132" width="250" height="76" rx="16" fill="#eff6ff" stroke="#60a5fa" stroke-width="2"/>
+  <text x="490" y="164" class="box">Razor Views</text><text x="490" y="187" class="note">HTML, CSS, JavaScript</text>
+  <rect x="655" y="132" width="250" height="76" rx="16" fill="#eff6ff" stroke="#60a5fa" stroke-width="2"/>
+  <text x="780" y="164" class="box">Giao diện thành viên</text><text x="780" y="187" class="note">học tập và nội dung cá nhân</text>
+  <rect x="945" y="132" width="250" height="76" rx="16" fill="#eff6ff" stroke="#60a5fa" stroke-width="2"/>
+  <text x="1070" y="164" class="box">Giao diện quản trị</text><text x="1070" y="187" class="note">dashboard và nghiệp vụ quản lý</text>
+  <rect x="1235" y="132" width="245" height="76" rx="16" fill="#eff6ff" stroke="#60a5fa" stroke-width="2"/>
+  <text x="1358" y="164" class="box">Trình duyệt</text><text x="1358" y="187" class="note">cookie và Web Speech API</text>
+
+  <path d="M800 235 L800 280" class="bi"/>
+
+  <rect x="80" y="280" width="1440" height="142" rx="24" fill="#ffffff" stroke="#c4b5fd" stroke-width="2" filter="url(#s3)"/>
+  <rect x="80" y="280" width="245" height="142" rx="24" fill="#6d28d9"/>
+  <text x="203" y="338" class="layer">LỚP ĐIỀU KHIỂN</text>
+  <text x="203" y="369" class="layer">MVC</text>
+  <rect x="365" y="313" width="260" height="78" rx="16" fill="#f5f3ff" stroke="#a78bfa" stroke-width="2"/>
+  <text x="495" y="345" class="box">Controllers công khai</text><text x="495" y="369" class="note">Account, Library, Profile</text>
+  <rect x="665" y="313" width="260" height="78" rx="16" fill="#f5f3ff" stroke="#a78bfa" stroke-width="2"/>
+  <text x="795" y="345" class="box">Controllers học tập</text><text x="795" y="369" class="note">Set, Study, Mission</text>
+  <rect x="965" y="313" width="260" height="78" rx="16" fill="#f5f3ff" stroke="#a78bfa" stroke-width="2"/>
+  <text x="1095" y="345" class="box">Controllers quản trị</text><text x="1095" y="369" class="note">Users, Content, AI, Logs</text>
+  <rect x="1265" y="313" width="215" height="78" rx="16" fill="#f5f3ff" stroke="#a78bfa" stroke-width="2"/>
+  <text x="1373" y="345" class="box">Bộ lọc và ràng buộc</text><text x="1373" y="369" class="note">xác thực, phân quyền</text>
+
+  <path d="M800 422 L800 468" class="bi"/>
+
+  <rect x="80" y="468" width="1440" height="185" rx="24" fill="#ffffff" stroke="#86efac" stroke-width="2" filter="url(#s3)"/>
+  <rect x="80" y="468" width="245" height="185" rx="24" fill="#15803d"/>
+  <text x="203" y="545" class="layer">LỚP NGHIỆP VỤ</text>
+  <text x="203" y="577" class="layer">ỨNG DỤNG</text>
+  <rect x="365" y="500" width="220" height="55" rx="14" fill="#f0fdf4" stroke="#4ade80" stroke-width="2"/><text x="475" y="534" class="box">Tài khoản và hồ sơ</text>
+  <rect x="610" y="500" width="220" height="55" rx="14" fill="#f0fdf4" stroke="#4ade80" stroke-width="2"/><text x="720" y="534" class="box">Bộ thẻ và thư viện</text>
+  <rect x="855" y="500" width="220" height="55" rx="14" fill="#f0fdf4" stroke="#4ade80" stroke-width="2"/><text x="965" y="534" class="box">Học và tiến trình</text>
+  <rect x="1100" y="500" width="220" height="55" rx="14" fill="#f0fdf4" stroke="#4ade80" stroke-width="2"/><text x="1210" y="534" class="box">Thành tích và xếp hạng</text>
+  <rect x="365" y="575" width="220" height="55" rx="14" fill="#f0fdf4" stroke="#4ade80" stroke-width="2"/><text x="475" y="609" class="box">English Mission</text>
+  <rect x="610" y="575" width="220" height="55" rx="14" fill="#f0fdf4" stroke="#4ade80" stroke-width="2"/><text x="720" y="609" class="box">Kiểm duyệt nội dung</text>
+  <rect x="855" y="575" width="220" height="55" rx="14" fill="#f0fdf4" stroke="#4ade80" stroke-width="2"/><text x="965" y="609" class="box">Quản trị và nhật ký</text>
+  <rect x="1100" y="575" width="220" height="55" rx="14" fill="#f0fdf4" stroke="#4ade80" stroke-width="2"/><text x="1210" y="609" class="box">Định tuyến AI</text>
+  <rect x="1345" y="500" width="135" height="130" rx="14" fill="#ecfdf5" stroke="#4ade80" stroke-width="2"/>
+  <text x="1413" y="548" class="box">Xử lý nền</text><text x="1413" y="574" class="note">dọn dữ liệu</text><text x="1413" y="598" class="note">hết hạn</text>
+
+  <path d="M800 653 L800 702" class="bi"/>
+
+  <rect x="80" y="702" width="930" height="158" rx="24" fill="#ffffff" stroke="#fcd34d" stroke-width="2" filter="url(#s3)"/>
+  <rect x="80" y="702" width="245" height="158" rx="24" fill="#d97706"/>
+  <text x="203" y="766" class="layer">LỚP TRUY CẬP</text>
+  <text x="203" y="798" class="layer">DỮ LIỆU</text>
+  <rect x="370" y="737" width="270" height="88" rx="16" fill="#fffbeb" stroke="#fbbf24" stroke-width="2"/>
+  <text x="505" y="773" class="box">Entity Framework Core</text><text x="505" y="798" class="note">AppDbContext và ánh xạ entity</text>
+  <rect x="680" y="737" width="270" height="88" rx="16" fill="#fffbeb" stroke="#fbbf24" stroke-width="2"/>
+  <text x="815" y="773" class="box">SQL Server</text><text x="815" y="798" class="note">dữ liệu nghiệp vụ và vận hành</text>
+  <path d="M640 781 L680 781" class="bi"/>
+
+  <rect x="1050" y="702" width="470" height="158" rx="24" fill="#ffffff" stroke="#fda4af" stroke-width="2" filter="url(#s3)"/>
+  <text x="1285" y="737" class="box">DỊCH VỤ VÀ TÀI NGUYÊN BÊN NGOÀI</text>
+  <rect x="1085" y="760" width="180" height="65" rx="14" fill="#fff1f2" stroke="#fb7185" stroke-width="2"/>
+  <text x="1175" y="789" class="box">Nhà cung cấp AI</text><text x="1175" y="811" class="note">HTTP API</text>
+  <rect x="1305" y="760" width="180" height="65" rx="14" fill="#fff1f2" stroke="#fb7185" stroke-width="2"/>
+  <text x="1395" y="789" class="box">Tệp tải lên</text><text x="1395" y="811" class="note">ảnh và dữ liệu nhập</text>
+
+  <path d="M1210 653 C1210 680 1175 700 1175 760" class="arrow"/>
+  <path d="M720 653 C820 680 1395 680 1395 760" class="arrow"/>
+  <text x="800" y="922" class="note">Luồng chính đi từ trình duyệt qua MVC, lớp nghiệp vụ và lớp dữ liệu. Các tích hợp bên ngoài chỉ được gọi qua dịch vụ chuyên trách.</text>
+</svg>

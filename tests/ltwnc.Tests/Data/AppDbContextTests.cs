@@ -1,6 +1,5 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore.Metadata;
 
 namespace ltwnc.Tests.Data;
@@ -8,7 +7,7 @@ namespace ltwnc.Tests.Data;
 public class AppDbContextTests
 {
     [Fact]
-    public void Identity_email_index_is_unique_and_keeps_identity_name()
+    public void AppUser_email_and_username_indexes_are_unique()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -16,19 +15,24 @@ public class AppDbContextTests
 
         using var db = new AppDbContext(options);
 
-        var entityType = db.Model.FindEntityType(typeof(IdentityUser));
+        IEntityType entityType = db.Model.FindEntityType(typeof(AppUser))!;
         Assert.NotNull(entityType);
 
-        var index = Assert.Single(entityType!.GetIndexes(), i =>
-            i.Properties.Count == 1 &&
-            i.Properties[0].Name == nameof(IdentityUser.NormalizedEmail));
+        IIndex emailIndex = Assert.Single(entityType.GetIndexes(), index =>
+            index.Properties.Count == 1 &&
+            index.Properties[0].Name == nameof(AppUser.NormalizedEmail));
+        Assert.Equal("AppUserEmailIndex", emailIndex.GetDatabaseName());
+        Assert.True(emailIndex.IsUnique);
 
-        Assert.Equal("EmailIndex", index.GetDatabaseName());
-        Assert.True(index.IsUnique);
+        IIndex userNameIndex = Assert.Single(entityType.GetIndexes(), index =>
+            index.Properties.Count == 1 &&
+            index.Properties[0].Name == nameof(AppUser.NormalizedUserName));
+        Assert.Equal("AppUserNameIndex", userNameIndex.GetDatabaseName());
+        Assert.True(userNameIndex.IsUnique);
     }
 
     [Fact]
-    public void UserProfile_UsesUserIdAsPrimaryKeyAndIdentityForeignKey()
+    public void UserProfile_UsesUserIdAsPrimaryKeyAndAppUserForeignKey()
     {
         var options = new DbContextOptionsBuilder<AppDbContext>()
             .UseInMemoryDatabase(Guid.NewGuid().ToString())
@@ -39,7 +43,7 @@ public class AppDbContextTests
 
         Assert.Equal(nameof(UserProfile.UserId), Assert.Single(entity.FindPrimaryKey()!.Properties).Name);
         IForeignKey foreignKey = Assert.Single(entity.GetForeignKeys());
-        Assert.Equal(typeof(IdentityUser), foreignKey.PrincipalEntityType.ClrType);
+        Assert.Equal(typeof(AppUser), foreignKey.PrincipalEntityType.ClrType);
         Assert.Equal(DeleteBehavior.Cascade, foreignKey.DeleteBehavior);
     }
 

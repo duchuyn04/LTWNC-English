@@ -61,7 +61,9 @@ body {
     min-width: 44px;
     border-radius: var(--radius-control);
     font-weight: 700;
-    transition: transform 180ms ease, border-color 180ms ease, background-color 180ms ease, color 180ms ease;
+    transition: border-color var(--duration-fast) ease,
+                background-color var(--duration-fast) ease,
+                color var(--duration-fast) ease;
     box-shadow: var(--shadow-card);
 }
 
@@ -77,7 +79,6 @@ body {
 
 .study-back:hover {
     color: var(--fc-ink);
-    transform: translateX(-2px);
 }
 
 .study-breadcrumb {
@@ -163,7 +164,6 @@ body {
     border-color: var(--fc-ink);
     background: var(--fc-soft);
     color: var(--fc-ink);
-    transform: translateY(-1px);
 }
 
 .icon-button {
@@ -214,13 +214,14 @@ body {
     font-size: 0.82rem;
     font-weight: 700;
     text-decoration: none;
-    transition: border-color 180ms ease, background-color 180ms ease, color 180ms ease, transform 180ms ease;
+    transition: border-color var(--duration-fast) ease,
+                background-color var(--duration-fast) ease,
+                color var(--duration-fast) ease;
 }
 
 .study-mode-tab:hover:not(.is-disabled) {
     border-color: var(--fc-ink);
     color: var(--fc-ink);
-    transform: translateY(-1px);
 }
 
 .study-mode-tab.is-active {
@@ -270,7 +271,7 @@ body {
     width: 0%;
     border-radius: inherit;
     background: var(--fc-accent);
-    transition: width 300ms ease;
+    transition: width var(--duration-med) ease;
 }
 
 .progress-text {
@@ -298,12 +299,7 @@ body {
     background: var(--fc-paper);
     box-shadow: var(--fc-shadow-lg);
     cursor: pointer;
-    transition: transform 220ms ease, box-shadow 220ms ease;
-}
-
-.flashcard-frame:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-lift);
+    transition: box-shadow var(--duration-fast) ease;
 }
 
 .flashcard-core {
@@ -311,7 +307,7 @@ body {
     height: clamp(360px, 52vh, 520px);
     border-radius: var(--fc-radius);
     transform-style: preserve-3d;
-    transition: transform 520ms cubic-bezier(0.34, 1.56, 0.64, 1);
+    transition: transform 300ms var(--ease-out);
 }
 
 .flashcard-core.flipped {
@@ -396,7 +392,7 @@ body {
     margin: 1rem auto 0;
     border-radius: var(--radius-control);
     border: 1px solid var(--fc-line);
-    transition: transform 180ms ease, filter 180ms ease;
+    transition: filter var(--duration-fast) ease;
 }
 
 .card-study-image.is-large {
@@ -431,13 +427,13 @@ body {
     justify-content: center;
     font-size: 1.25rem;
     cursor: pointer;
-    transition: color 160ms ease, transform 160ms ease, background 160ms ease;
+    transition: color var(--duration-fast) ease,
+                background-color var(--duration-fast) ease;
 }
 
 .card-audio-btn:hover {
     color: var(--fc-ink);
     background: var(--fc-line);
-    transform: translateY(-1px);
 }
 
 .card-star-btn {
@@ -456,11 +452,10 @@ body {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    transition: transform 180ms ease, color 180ms ease;
+    transition: color var(--duration-fast) ease;
 }
 
 .card-star-btn:hover {
-    transform: scale(1.15);
     color: var(--fc-accent);
 }
 
@@ -514,7 +509,11 @@ body {
     border-radius: var(--radius-control);
     font-weight: 700;
     cursor: pointer;
-    transition: transform 150ms ease, background-color 150ms ease, border-color 150ms ease, color 150ms ease, box-shadow 150ms ease;
+    transition: transform var(--duration-fast) ease,
+                background-color var(--duration-fast) ease,
+                border-color var(--duration-fast) ease,
+                color var(--duration-fast) ease,
+                box-shadow var(--duration-fast) ease;
     box-shadow: var(--shadow-card);
 }
 
@@ -682,7 +681,7 @@ body {
 
 .study-accordion-summary .accordion-chevron {
     margin-left: auto;
-    transition: transform 200ms ease;
+    transition: transform var(--duration-med) ease;
 }
 
 .study-accordion[open] .accordion-chevron {
@@ -691,18 +690,6 @@ body {
 
 .study-accordion-body {
     padding: 0 1.1rem 1.1rem;
-    animation: accordionOpen 250ms ease;
-}
-
-@keyframes accordionOpen {
-    from {
-        opacity: 0;
-        transform: translateY(-6px);
-    }
-    to {
-        opacity: 1;
-        transform: translateY(0);
-    }
 }
 
 .learning-modes-grid {
@@ -725,14 +712,16 @@ body {
     font-size: 0.72rem;
     font-weight: 700;
     cursor: pointer;
-    transition: transform 0.15s ease, background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    transition: background-color var(--duration-fast) ease,
+                border-color var(--duration-fast) ease,
+                color var(--duration-fast) ease,
+                box-shadow var(--duration-fast) ease;
 }
 
 .learning-chip:hover:not(:disabled, .is-active) {
     background: var(--fc-accent-bg);
     border-color: var(--fc-accent);
     color: var(--fc-ink);
-    transform: translateY(-2px);
     box-shadow: var(--shadow-card);
 }
 
@@ -740,10 +729,6 @@ body {
     outline: none;
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--brass) 30%, transparent);
     border-color: var(--fc-accent);
-}
-
-.learning-chip:active:not(:disabled, .is-active) {
-    transform: translateY(0);
 }
 
 .learning-chip:disabled {
@@ -763,7 +748,6 @@ body {
     background: var(--fc-ink);
     border-color: var(--fc-ink);
     color: var(--fc-paper);
-    transform: translateY(-1px);
     box-shadow: var(--shadow-lift);
 }
 
@@ -826,7 +810,8 @@ body {
     border: 1px solid var(--fc-line);
     background: var(--fc-soft);
     color: var(--fc-ink);
-    transition: all 0.2s ease;
+    transition: background-color var(--duration-fast) ease,
+                color var(--duration-fast) ease;
 }
 
 .vocab-edit-link:hover {
@@ -973,7 +958,7 @@ body {
     border: 0;
     background: transparent;
     color: var(--fc-muted);
-    transition: all 0.2s ease;
+    transition: color var(--duration-fast) ease;
 }
 
 .vocab-audio:hover {
@@ -984,7 +969,8 @@ body {
 .glass-card {
     background: var(--fc-paper);
     border: 1px solid var(--fc-line);
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: border-color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-med) var(--ease-out);
     box-shadow: var(--shadow-card);
 }
 
@@ -1006,7 +992,7 @@ body {
     background: var(--fc-paper);
     box-shadow: var(--shadow-lift);
     transform: translateX(0);
-    transition: transform 250ms ease;
+    transition: transform var(--duration-med) var(--ease-out);
 }
 
 .study-settings-drawer[hidden] {
@@ -1237,53 +1223,6 @@ body {
 
 .primary-dark:hover {
     filter: brightness(0.92);
-}
-
-#fireworksCanvas {
-    position: absolute;
-    inset: -2rem;
-    width: calc(100% + 4rem);
-    height: calc(100% + 4rem);
-    pointer-events: none;
-    z-index: 1;
-}
-
-/* Card transition animations */
-.flashcard-core.is-exit-left {
-    animation: cardExitLeft 220ms ease forwards;
-}
-
-.flashcard-core.is-exit-right {
-    animation: cardExitRight 220ms ease forwards;
-}
-
-.flashcard-core.is-enter {
-    animation: cardEnter 260ms ease forwards;
-}
-
-@keyframes cardExitLeft {
-    to {
-        opacity: 0;
-        transform: translateX(-30px);
-    }
-}
-
-@keyframes cardExitRight {
-    to {
-        opacity: 0;
-        transform: translateX(30px);
-    }
-}
-
-@keyframes cardEnter {
-    from {
-        opacity: 0;
-        transform: translateX(var(--enter-direction, 30px));
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0);
-    }
 }
 
 /* Responsive */

@@ -1,0 +1,50 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="1180" viewBox="0 0 1700 1180">
+  <defs>
+    <linearGradient id="bg5" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#fff7ed"/></linearGradient>
+    <marker id="a5" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <marker id="ad5" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#94a3b8"/></marker>
+    <style>
+      .title{font:700 34px 'Segoe UI',Arial,sans-serif;fill:#0f172a;text-anchor:middle}
+      .head{font:700 17px 'Segoe UI',Arial,sans-serif;fill:#fff;text-anchor:middle}
+      .msg{font:600 15px 'Segoe UI',Arial,sans-serif;fill:#334155;text-anchor:middle}
+      .note{font:500 14px 'Segoe UI',Arial,sans-serif;fill:#475569;text-anchor:middle}
+      .life{stroke:#94a3b8;stroke-width:2;stroke-dasharray:8 7}
+      .call{stroke:#475569;stroke-width:2.5;fill:none;marker-end:url(#a5)}
+      .return{stroke:#94a3b8;stroke-width:2.5;stroke-dasharray:8 6;fill:none;marker-end:url(#ad5)}
+    </style>
+  </defs>
+  <rect width="1700" height="1180" fill="url(#bg5)"/>
+  <text x="850" y="52" class="title">BIỂU ĐỒ TUẦN TỰ ENGLISH MISSION</text>
+
+  <g><rect x="45" y="85" width="200" height="62" rx="15" fill="#2563eb"/><text x="145" y="123" class="head">Người học</text><line x1="145" y1="147" x2="145" y2="1130" class="life"/></g>
+  <g><rect x="315" y="85" width="220" height="62" rx="15" fill="#6d28d9"/><text x="425" y="111" class="head">EnglishMission</text><text x="425" y="133" class="head">Controller</text><line x1="425" y1="147" x2="425" y2="1130" class="life"/></g>
+  <g><rect x="605" y="85" width="220" height="62" rx="15" fill="#15803d"/><text x="715" y="111" class="head">EnglishMission</text><text x="715" y="133" class="head">Service</text><line x1="715" y1="147" x2="715" y2="1130" class="life"/></g>
+  <g><rect x="895" y="85" width="180" height="62" rx="15" fill="#d97706"/><text x="985" y="123" class="head">AppDbContext</text><line x1="985" y1="147" x2="985" y2="1130" class="life"/></g>
+  <g><rect x="1145" y="85" width="210" height="62" rx="15" fill="#be123c"/><text x="1250" y="111" class="head">AI Completion</text><text x="1250" y="133" class="head">Router</text><line x1="1250" y1="147" x2="1250" y2="1130" class="life"/></g>
+  <g><rect x="1425" y="85" width="230" height="62" rx="15" fill="#0f766e"/><text x="1540" y="111" class="head">Nhà cung cấp AI</text><text x="1540" y="133" class="head">tương thích OpenAI</text><line x1="1540" y1="147" x2="1540" y2="1130" class="life"/></g>
+
+  <path d="M145 200 L425 200" class="call"/><text x="285" y="190" class="msg">1. Chọn chủ đề và bắt đầu</text>
+  <path d="M425 250 L715 250" class="call"/><text x="570" y="240" class="msg">2. StartAsync</text>
+  <path d="M715 300 L985 300" class="call"/><text x="850" y="290" class="msg">3. Kiểm tra quyền và lấy thẻ</text>
+  <path d="M985 350 L715 350" class="return"/><text x="850" y="340" class="msg">4. Bộ thẻ cùng từ mục tiêu</text>
+  <path d="M715 400 L1250 400" class="call"/><text x="983" y="390" class="msg">5. Yêu cầu tạo lời mở đầu</text>
+  <path d="M1250 450 L1540 450" class="call"/><text x="1395" y="440" class="msg">6. Gọi nhà cung cấp ưu tiên</text>
+
+  <rect x="1120" y="480" width="565" height="154" rx="18" fill="#fff7ed" stroke="#fb923c" stroke-width="2"/>
+  <text x="1403" y="510" class="msg">Nhánh dự phòng khi xảy ra lỗi có thể phục hồi</text>
+  <path d="M1540 544 L1250 544" class="return"/><text x="1395" y="534" class="note">timeout, lỗi dịch vụ hoặc phản hồi sai cấu trúc</text>
+  <path d="M1250 588 L1540 588" class="call"/><text x="1395" y="578" class="note">chọn nhà cung cấp hợp lệ tiếp theo theo độ ưu tiên</text>
+
+  <path d="M1540 675 L1250 675" class="return"/><text x="1395" y="665" class="msg">7. Nội dung hội thoại hợp lệ</text>
+  <path d="M1250 725 L715 725" class="return"/><text x="983" y="715" class="msg">8. Kết quả và thông tin nhà cung cấp</text>
+  <path d="M715 775 L985 775" class="call"/><text x="850" y="765" class="msg">9. Lưu mission, từ mục tiêu và lượt AI</text>
+  <path d="M715 825 L425 825" class="return"/><text x="570" y="815" class="msg">10. Dữ liệu phiên hội thoại</text>
+  <path d="M425 875 L145 875" class="return"/><text x="285" y="865" class="msg">11. Hiển thị giao diện trò chuyện</text>
+
+  <path d="M145 930 L425 930" class="call"/><text x="285" y="920" class="msg">12. Gửi câu trả lời kèm mã lượt</text>
+  <path d="M425 975 L715 975" class="call"/><text x="570" y="965" class="msg">13. RespondAsync</text>
+  <path d="M715 1020 L985 1020" class="call"/><text x="850" y="1010" class="msg">14. Kiểm tra trùng lượt và lưu câu trả lời</text>
+  <path d="M715 1065 L1250 1065" class="call"/><text x="983" y="1055" class="msg">15. Gửi ngữ cảnh để AI phản hồi và đánh giá</text>
+  <path d="M1250 1110 L715 1110" class="return"/><text x="983" y="1100" class="msg">16. Phản hồi mới, tiến độ từ mục tiêu, trạng thái hoàn thành</text>
+  <rect x="680" y="165" width="70" height="970" fill="#22c55e" opacity="0.08" stroke="#22c55e" stroke-width="1"/>
+</svg>

@@ -55,7 +55,9 @@
     border: 1px solid var(--dt-border);
     background: var(--dt-surface);
     color: var(--dt-muted);
-    transition: all var(--dt-transition);
+    transition: background-color var(--dt-transition),
+                border-color var(--dt-transition),
+                color var(--dt-transition);
 }
 
 .dictation-back:hover,
@@ -114,7 +116,7 @@
     width: 0%;
     border-radius: inherit;
     background: var(--brass);
-    transition: width 400ms var(--ease-out);
+    transition: width var(--duration-med) var(--ease-out);
 }
 
 .dictation-progress-text {
@@ -174,7 +176,7 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all var(--dt-transition);
+    transition: background-color var(--dt-transition);
     flex-shrink: 0;
 }
 
@@ -183,12 +185,7 @@
 }
 
 .dictation-audio-btn.is-playing {
-    animation: dtPulse 1.2s ease-in-out infinite;
-}
-
-@keyframes dtPulse {
-    0%, 100% { transform: scale(1); }
-    50% { transform: scale(1.08); }
+    background: var(--brass);
 }
 
 .dictation-audio-btn i {
@@ -241,7 +238,8 @@
     line-height: 1.5;
     resize: vertical;
     outline: none;
-    transition: all var(--dt-transition);
+    transition: border-color var(--dt-transition),
+                box-shadow var(--dt-transition);
     font-family: inherit;
     margin-bottom: 1rem;
 }
@@ -265,16 +263,10 @@
     padding: 1rem;
     border-radius: var(--dt-radius-sm);
     display: none;
-    animation: dtFeedbackIn 250ms ease forwards;
 }
 
 .dictation-feedback:not([hidden]) {
     display: block;
-}
-
-@keyframes dtFeedbackIn {
-    from { opacity: 0; transform: translateY(-4px); }
-    to { opacity: 1; transform: translateY(0); }
 }
 
 .dictation-feedback.is-correct {
@@ -439,7 +431,8 @@
     font-weight: 600;
     font-size: 0.95rem;
     cursor: pointer;
-    transition: all var(--dt-transition);
+    transition: background-color var(--dt-transition),
+                color var(--dt-transition);
     border: none;
     outline: none;
 }
@@ -605,7 +598,7 @@
     background: var(--dt-surface);
     border-left: 1px solid var(--dt-border);
     transform: translateX(0);
-    transition: transform 300ms ease;
+    transition: transform var(--duration-med) var(--ease-out);
 }
 
 .dictation-settings-drawer[hidden] {
@@ -638,7 +631,8 @@
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    transition: all var(--dt-transition);
+    transition: background-color var(--dt-transition),
+                color var(--dt-transition);
 }
 
 .dictation-settings-close:hover {
@@ -726,7 +720,8 @@
     font-weight: 500;
     outline: none;
     cursor: pointer;
-    transition: all var(--dt-transition);
+    transition: border-color var(--dt-transition),
+                box-shadow var(--dt-transition);
 }
 
 .dictation-settings-select:focus {
@@ -740,7 +735,7 @@
     z-index: 99;
     background: color-mix(in srgb, var(--ink) 30%, transparent);
     backdrop-filter: blur(2px);
-    transition: opacity 200ms ease;
+    transition: opacity var(--duration-med) var(--ease-out);
 }
 
 .dictation-settings-backdrop[hidden] {

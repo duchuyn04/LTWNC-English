@@ -2,7 +2,6 @@ using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Achievements;
 using ltwnc.Services.Audit;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Storage;
 
@@ -19,7 +18,6 @@ public sealed class AdminAchievementService : IAdminAchievementService
     private const int MaxReasonLength = 500;
 
     private readonly AppDbContext _context;
-    private readonly UserManager<IdentityUser> _userManager;
     private readonly IAchievementProgressService _progressService;
     private readonly IAchievementUnlockService _unlockService;
     private readonly IAdminAuditService _auditService;
@@ -28,14 +26,12 @@ public sealed class AdminAchievementService : IAdminAchievementService
     // Nhận các dependency đọc/ghi cần thiết để controller không tự tính thành tích.
     public AdminAchievementService(
         AppDbContext context,
-        UserManager<IdentityUser> userManager,
         IAchievementProgressService progressService,
         IAchievementUnlockService unlockService,
         IAdminAuditService auditService,
         AdminAchievementSyncCoordinator syncCoordinator)
     {
         _context = context;
-        _userManager = userManager;
         _progressService = progressService;
         _unlockService = unlockService;
         _auditService = auditService;
@@ -55,11 +51,11 @@ public sealed class AdminAchievementService : IAdminAchievementService
         IReadOnlyList<AdminAchievementDefinitionSummary> catalog =
             BuildCatalogSummaries(recipientCounts);
 
-        IQueryable<IdentityUser> users = ApplySearch(
-            _context.Users.AsNoTracking(),
+        IQueryable<AppUser> users = ApplySearch(
+            _context.AppUsers.AsNoTracking(),
             query.Search);
         int totalUsers = await users.CountAsync(cancellationToken);
-        List<IdentityUser> pageUsers = await users
+        List<AppUser> pageUsers = await users
             .OrderBy(user => user.Email)
             .ThenBy(user => user.UserName)
             .Skip((page - 1) * pageSize)
@@ -83,7 +79,9 @@ public sealed class AdminAchievementService : IAdminAchievementService
             return AdminAchievementSyncResult.Failure(validationError, 0);
         }
 
-        IdentityUser? target = await _userManager.FindByIdAsync(command.TargetUserId);
+        AppUser? target = await _context.AppUsers.SingleOrDefaultAsync(
+            item => item.Id == command.TargetUserId,
+            cancellationToken);
         if (target == null)
         {
             return AdminAchievementSyncResult.Failure("Không tìm thấy người dùng cần đồng bộ.");
@@ -139,7 +137,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
         string? lastProcessedUserId = null;
         while (true)
         {
-            IQueryable<IdentityUser> userBatchQuery = _context.Users.AsNoTracking();
+            IQueryable<AppUser> userBatchQuery = _context.AppUsers.AsNoTracking();
             if (lastProcessedUserId != null)
             {
                 // Keyset theo Id giữ vị trí ổn định khi có tài khoản mới xuất hiện giữa hai batch.
@@ -148,7 +146,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
             }
 
             // Chỉ đọc một trang user từ database để không giữ toàn bộ mã tài khoản trong bộ nhớ.
-            List<IdentityUser> users = await userBatchQuery
+            List<AppUser> users = await userBatchQuery
                 .OrderBy(user => user.Id)
                 .Take(batchSize)
                 .ToListAsync(cancellationToken);
@@ -157,7 +155,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
                 break;
             }
 
-            foreach (IdentityUser user in users)
+            foreach (AppUser user in users)
             {
                 AdminAchievementSyncResult result = await RunUserSyncAsync(
                     new AdminAchievementSyncCommand(
@@ -239,7 +237,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
 
     // Tạo kết quả theo user trên trang hiện tại, gồm số đã nhận, đủ điều kiện và còn thiếu.
     private async Task<IReadOnlyList<AdminAchievementUserResult>> BuildUserResultsAsync(
-        IReadOnlyList<IdentityUser> users,
+        IReadOnlyList<AppUser> users,
         CancellationToken cancellationToken)
     {
         if (users.Count == 0)
@@ -259,7 +257,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
             await _progressService.GetSnapshotsAsync(userIds, cancellationToken);
 
         List<AdminAchievementUserResult> results = new();
-        foreach (IdentityUser user in users)
+        foreach (AppUser user in users)
         {
             achievementsByUser.TryGetValue(user.Id, out List<UserAchievement>? userAchievements);
             userAchievements ??= [];
@@ -292,8 +290,8 @@ public sealed class AdminAchievementService : IAdminAchievementService
 
             results.Add(new AdminAchievementUserResult(
                 user.Id,
-                user.UserName ?? string.Empty,
-                user.Email ?? string.Empty,
+                user.UserName,
+                user.Email,
                 unlockedCodes.Count,
                 eligibleCount,
                 missingCodes.Count,
@@ -305,8 +303,8 @@ public sealed class AdminAchievementService : IAdminAchievementService
     }
 
     // Lọc user theo email, tên đăng nhập hoặc mã định danh; giá trị rỗng trả về toàn bộ.
-    private static IQueryable<IdentityUser> ApplySearch(
-        IQueryable<IdentityUser> users,
+    private static IQueryable<AppUser> ApplySearch(
+        IQueryable<AppUser> users,
         string? search)
     {
         if (string.IsNullOrWhiteSpace(search))
@@ -316,15 +314,15 @@ public sealed class AdminAchievementService : IAdminAchievementService
 
         string term = search.Trim();
         return users.Where(user =>
-            (user.Email != null && user.Email.Contains(term))
-            || (user.UserName != null && user.UserName.Contains(term))
+            user.Email.Contains(term)
+            || user.UserName.Contains(term)
             || user.Id.Contains(term));
     }
 
     // Chạy đồng bộ một user trong transaction riêng và ghi audit cùng transaction khi thành công.
     private async Task<AdminAchievementSyncResult> RunUserSyncAsync(
         AdminAchievementSyncCommand command,
-        IdentityUser target,
+        AppUser target,
         string scope,
         CancellationToken cancellationToken)
     {
@@ -347,7 +345,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
             await transaction.CommitAsync(cancellationToken);
 
             return AdminAchievementSyncResult.Success(
-                $"Đã đồng bộ thành tích cho {target.Email ?? target.UserName}. Thêm {unlocked.Count:N0} thành tích còn thiếu.",
+                $"Đã đồng bộ thành tích cho {target.Email}. Thêm {unlocked.Count:N0} thành tích còn thiếu.",
                 unlocked.Count);
         }
         catch (Exception exception)
@@ -367,7 +365,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
     // Ghi audit bị từ chối khi có tác vụ khác đang chạy cùng phạm vi.
     private async Task RecordDeniedAuditAsync(
         AdminAchievementSyncCommand command,
-        IdentityUser target,
+        AppUser target,
         string denialReason,
         CancellationToken cancellationToken)
     {
@@ -385,7 +383,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
     // Ghi audit thất bại ngoài transaction nghiệp vụ sau khi đã rollback đồng bộ user.
     private async Task RecordFailureAuditAsync(
         AdminAchievementSyncCommand command,
-        IdentityUser target,
+        AppUser target,
         string scope,
         string failureKind,
         CancellationToken cancellationToken)
@@ -437,7 +435,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
     // Tạo audit đồng bộ user chỉ gồm thông tin an toàn và các số đếm cần cho điều tra.
     private static AdminAuditEntry BuildUserAuditEntry(
         AdminAchievementSyncCommand command,
-        IdentityUser target,
+        AppUser target,
         string outcome,
         string scope,
         int changedCount,
@@ -458,7 +456,7 @@ public sealed class AdminAchievementService : IAdminAchievementService
             ActorDisplay: command.ActorDisplay,
             Action: AdminAuditActions.AchievementsResyncUser,
             Outcome: outcome,
-            TargetType: "IdentityUser",
+            TargetType: "AppUser",
             TargetId: target.Id,
             Reason: command.Reason?.Trim(),
             CorrelationId: command.CorrelationId,

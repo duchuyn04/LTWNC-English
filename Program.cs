@@ -3,8 +3,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.AspNetCore.Routing;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using ltwnc.Areas.Admin;
@@ -27,6 +27,7 @@ using ltwnc.Services.StudyEvents;
 using ltwnc.Services.StudyModes;
 using ltwnc.Services.Profiles;
 using ltwnc.Services.Leaderboard;
+using ltwnc.Services.PublicLibrary;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -39,41 +40,25 @@ builder.Logging.AddDebug();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// ASP.NET Core Identity (UserManager/SignInManager), không roles.
+// Auth tự quản dùng cookie và bảng AppUsers.
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddIdentityCore<IdentityUser>(options =>
-    {
-        // Password policy giữ nguyên như custom auth cũ
-        options.Password.RequiredLength = 8;
-        options.Password.RequireDigit = true;
-        options.Password.RequireUppercase = true;
-        options.Password.RequireLowercase = true;
-        options.Password.RequireNonAlphanumeric = false;
-        options.User.RequireUniqueEmail = true;
-        options.User.AllowedUserNameCharacters = UsernamePolicy.AllowedIdentityCharacters;
-        options.Lockout.AllowedForNewUsers = true;
-        options.Lockout.MaxFailedAccessAttempts = 5;
-        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
-    })
-    .AddRoles<IdentityRole>()
-    .AddEntityFrameworkStores<AppDbContext>()
-    .AddSignInManager()
-    .AddDefaultTokenProviders();
-
-builder.Services.AddAuthentication(IdentityConstants.ApplicationScheme)
-    .AddIdentityCookies();
+builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie();
+builder.Services.AddScoped<IPasswordHasher<ltwnc.Models.Entities.AppUser>,
+    PasswordHasher<ltwnc.Models.Entities.AppUser>>();
+builder.Services.AddScoped<IAuthService, AuthService>();
 
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(AdminAreaPolicy.Name, policy =>
     {
-        policy.RequireRole(AdminRoleBootstrapper.AdminRole);
+        policy.RequireClaim(AppClaimTypes.IsAdmin, "true");
     });
 });
 
 builder.Services.Configure<CookieAuthenticationOptions>(
-    IdentityConstants.ApplicationScheme,
+    CookieAuthenticationDefaults.AuthenticationScheme,
     options =>
     {
         options.LoginPath = "/Account/Login";
@@ -103,45 +88,34 @@ builder.Services.Configure<CookieAuthenticationOptions>(
         };
         options.Events.OnValidatePrincipal = async context =>
         {
-            // Giữ kiểm tra security stamp mặc định của Identity để cookie cũ mất hiệu lực khi stamp đổi.
-            await SecurityStampValidator.ValidatePrincipalAsync(context);
-            if (context.Principal?.Identity?.IsAuthenticated != true)
+            // Kiểm tra mỗi request: user còn tồn tại, security stamp khớp, không bị khóa.
+            string? userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
+            string? stamp = context.Principal?.FindFirstValue(AppClaimTypes.SecurityStamp);
+            if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(stamp))
             {
+                context.RejectPrincipal();
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
                 return;
             }
 
-            string? userId = context.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (string.IsNullOrWhiteSpace(userId))
-            {
-                context.RejectPrincipal();
-                await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
-                return;
-            }
+            AppDbContext dbContext =
+                context.HttpContext.RequestServices.GetRequiredService<AppDbContext>();
+            TimeProvider timeProvider =
+                context.HttpContext.RequestServices.GetRequiredService<TimeProvider>();
+            ltwnc.Models.Entities.AppUser? user = await dbContext.AppUsers
+                .AsNoTracking()
+                .SingleOrDefaultAsync(item => item.Id == userId);
 
-            UserManager<IdentityUser> userManager =
-                context.HttpContext.RequestServices.GetRequiredService<UserManager<IdentityUser>>();
-            IdentityUser? user = await userManager.FindByIdAsync(userId);
-            if (user == null)
+            DateTimeOffset now = timeProvider.GetUtcNow();
+            bool locked = user?.LockoutEnd != null && user.LockoutEnd > now;
+            if (user == null || user.SecurityStamp != stamp || locked)
             {
                 context.RejectPrincipal();
-                await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
-                return;
-            }
-
-            // Tài khoản đã bị khóa không được tiếp tục dùng cookie còn tồn tại ở trình duyệt.
-            if (await userManager.IsLockedOutAsync(user))
-            {
-                context.RejectPrincipal();
-                await context.HttpContext.SignOutAsync(IdentityConstants.ApplicationScheme);
+                await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
             }
         };
         options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
-    });
-
-builder.Services.Configure<SecurityStampValidatorOptions>(options =>
-{
-    options.ValidationInterval = TimeSpan.Zero;
 });
 
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
@@ -164,7 +138,6 @@ if (!builder.Environment.IsEnvironment("Testing"))
     // Tác vụ nền dọn audit quá hạn theo batch; log chỉ chứa trạng thái vận hành và số lượng.
     builder.Services.AddHostedService<AdminAuditRetentionCleanupHostedService>();
 }
-builder.Services.AddScoped<AdminRoleBootstrapper>();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<IAvatarService, AvatarService>();
@@ -174,6 +147,7 @@ builder.Services.Configure<RouteOptions>(options =>
 
 // Application services — inject qua interface (swap/decorator sau này không sửa controller)
 builder.Services.AddScoped<IFlashcardSetService, FlashcardSetService>();
+builder.Services.AddScoped<IPublicLibraryService, PublicLibraryService>();
 builder.Services.AddScoped<IContentReportService, ContentReportService>();
 builder.Services.AddScoped<IContentModerationService, ContentModerationService>();
 builder.Services.AddScoped<IFlashcardImportService, FlashcardImportService>();
@@ -292,17 +266,6 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddScoped<ltwnc.Controllers.ApiExceptionFilter>();
 
 var app = builder.Build();
-
-string? bootstrapAdminUserId = app.Configuration["AdminBootstrap:UserId"];
-if (!string.IsNullOrWhiteSpace(bootstrapAdminUserId))
-{
-    using IServiceScope scope = app.Services.CreateScope();
-    AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    bool schemaIsCurrent = !(await dbContext.Database.GetPendingMigrationsAsync()).Any();
-    AdminRoleBootstrapper adminBootstrapper =
-        scope.ServiceProvider.GetRequiredService<AdminRoleBootstrapper>();
-    await adminBootstrapper.BootstrapAsync(schemaIsCurrent);
-}
 
 // Cấu hình middleware pipeline
 // Cấu hình pipeline middleware

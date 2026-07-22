@@ -3,10 +3,8 @@ using ltwnc.Data;
 using ltwnc.Services.AdminUsers;
 using ltwnc.Services.Audit;
 using ltwnc.Tests.Infrastructure;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ltwnc.Tests.Integration;
@@ -190,12 +188,16 @@ public sealed class AdminUserAccountTests : IClassFixture<AdminWebApplicationFac
             learnerId);
     }
 
-    // Service từ chối khóa tài khoản Admin khởi tạo dù người thao tác là Admin khác.
+    // Custom auth không còn tài khoản bootstrap đặc biệt; Admin vẫn khóa được khi còn Admin khác hoạt động.
     [Fact]
-    public async Task Lock_BootstrapAdmin_IsDenied()
+    public async Task Lock_FormerBootstrapAdmin_IsTreatedLikeRegularAdmin()
     {
         using var factory = new AdminWebApplicationFactory();
         const string bootstrapEmail = "admin-users-bootstrap@example.com";
+        await factory.SeedUserAsync(
+            "admin_users_recovery",
+            "admin-users-recovery@example.com",
+            isAdmin: true);
         await factory.SeedUserAsync(
             "admin_users_bootstrap",
             bootstrapEmail,
@@ -204,7 +206,7 @@ public sealed class AdminUserAccountTests : IClassFixture<AdminWebApplicationFac
         string bootstrapId = await factory.GetUserIdAsync(bootstrapEmail);
         string stamp = await factory.GetSecurityStampAsync(bootstrapEmail);
         (IServiceScope scope, IAdminUserAccountService service) =
-            CreateServiceWithBootstrap(factory, bootstrapId);
+            CreateService(factory);
         using (scope)
         {
             AdminUserOperationResult result = await service.LockAsync(new AdminUserAccountCommand(
@@ -214,10 +216,9 @@ public sealed class AdminUserAccountTests : IClassFixture<AdminWebApplicationFac
                 Reason: "Kiểm tra bất biến bootstrap.",
                 ConcurrencyStamp: stamp));
 
-            Assert.False(result.Succeeded);
-            Assert.Contains("khởi tạo", result.Message);
+            Assert.True(result.Succeeded);
         }
-        Assert.False(await factory.IsLockedOutAsync(bootstrapEmail));
+        Assert.True(await factory.IsLockedOutAsync(bootstrapEmail));
     }
 
     // Service từ chối khóa khi thao tác sẽ làm hệ thống không còn Admin hoạt động.
@@ -234,7 +235,7 @@ public sealed class AdminUserAccountTests : IClassFixture<AdminWebApplicationFac
         string adminId = await factory.GetUserIdAsync(adminEmail);
         string stamp = await factory.GetSecurityStampAsync(adminEmail);
         (IServiceScope scope, IAdminUserAccountService service) =
-            CreateServiceWithBootstrap(factory, null);
+            CreateService(factory);
         using (scope)
         {
             AdminUserOperationResult result = await service.LockAsync(new AdminUserAccountCommand(
@@ -264,9 +265,9 @@ public sealed class AdminUserAccountTests : IClassFixture<AdminWebApplicationFac
         string firstStamp = await factory.GetSecurityStampAsync(firstAdminEmail);
         string secondStamp = await factory.GetSecurityStampAsync(secondAdminEmail);
         (IServiceScope firstScope, IAdminUserAccountService firstService) =
-            CreateServiceWithBootstrap(factory, null);
+            CreateService(factory);
         (IServiceScope secondScope, IAdminUserAccountService secondService) =
-            CreateServiceWithBootstrap(factory, null);
+            CreateService(factory);
 
         using (firstScope)
         using (secondScope)
@@ -309,34 +310,12 @@ public sealed class AdminUserAccountTests : IClassFixture<AdminWebApplicationFac
         Assert.True(exists);
     }
 
-    // Tạo service thủ công để test cấu hình AdminBootstrap riêng cho từng fixture cô lập.
-    private static (IServiceScope Scope, IAdminUserAccountService Service) CreateServiceWithBootstrap(
-        AdminWebApplicationFactory factory,
-        string? bootstrapUserId)
+    private static (IServiceScope Scope, IAdminUserAccountService Service) CreateService(
+        AdminWebApplicationFactory factory)
     {
         IServiceScope scope = factory.Services.CreateScope();
-        AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-        UserManager<IdentityUser> userManager =
-            scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
-        IAdminAuditService auditService =
-            scope.ServiceProvider.GetRequiredService<IAdminAuditService>();
-        TimeProvider timeProvider = scope.ServiceProvider.GetRequiredService<TimeProvider>();
-        AdminUserLockCoordinator lockCoordinator =
-            scope.ServiceProvider.GetRequiredService<AdminUserLockCoordinator>();
-        IConfiguration configuration = new ConfigurationBuilder()
-            .AddInMemoryCollection(new Dictionary<string, string?>
-            {
-                ["AdminBootstrap:UserId"] = bootstrapUserId
-            })
-            .Build();
-
-        IAdminUserAccountService service = new AdminUserAccountService(
-            context,
-            userManager,
-            auditService,
-            configuration,
-            timeProvider,
-            lockCoordinator);
+        IAdminUserAccountService service =
+            scope.ServiceProvider.GetRequiredService<IAdminUserAccountService>();
         return (scope, service);
     }
 

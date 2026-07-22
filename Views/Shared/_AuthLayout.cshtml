@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"] - LTWNC English</title>
+    <meta name="description" content="Đăng nhập hoặc đăng ký LTWNC English để học từ vựng bằng flashcard, nghe chép và hội thoại AI." />
+    <link rel="icon" href="~/favicon.ico" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&family=Newsreader:ital,opsz,wght@0,6..72,600;1,6..72,600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/auth.css" asp-append-version="true" />
+</head>
+<body class="auth-page">
+    <div class="auth-page__frame">
+        <header class="auth-header">
+            <a class="auth-brand" href="/" aria-label="LTWNC English - Trang chủ">
+                <span class="auth-brand__mark" aria-hidden="true">L</span>
+                <span>LTWNC English</span>
+            </a>
+            <a class="auth-home-link" href="/">Về trang chủ <span aria-hidden="true">↗</span></a>
+        </header>
+
+        <div class="auth-shell">
+            <main class="auth-panel">
+                @RenderBody()
+            </main>
+
+            <aside class="auth-studio" aria-hidden="true">
+                <picture class="auth-studio__picture">
+                    <source media="(max-width: 980px)" srcset="@Url.Content("~/images/auth/auth-learning-studio-mobile.webp")" type="image/webp" />
+                    <source srcset="@Url.Content("~/images/auth/auth-learning-studio.webp")" type="image/webp" />
+                    <img src="~/images/auth/auth-learning-studio.jpg"
+                         width="1600"
+                         height="1200"
+                         alt=""
+                         loading="eager"
+                         fetchpriority="high" />
+                </picture>
+                <div class="auth-studio__veil"></div>
+                <article class="auth-word-card">
+                    <div class="auth-word-card__meta"><span>Word of the day</span><span>01 / 12</span></div>
+                    <strong>curiosity</strong>
+                    <em>/ˌkjʊəriˈɒsəti/</em>
+                    <p>sự tò mò, ham hiểu biết</p>
+                    <div class="auth-word-card__foot"><span>Tap to reveal</span><span>↻</span></div>
+                </article>
+                <div class="auth-streak"><strong>12</strong><span>ngày học liên tiếp</span></div>
+                <p class="auth-studio__caption">Một tài khoản.<br />Mọi tiến bộ đều được ghi lại.</p>
+            </aside>
+        </div>
+    </div>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    <script src="~/js/auth.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

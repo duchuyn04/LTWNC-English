@@ -2,7 +2,6 @@ using System.Security.Claims;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Leaderboard;
-using Microsoft.AspNetCore.Identity;
 
 namespace ltwnc.Tests.Services.Leaderboard;
 
@@ -106,11 +105,13 @@ public sealed class LeaderboardServiceTests
         bool isPublic,
         bool showStats)
     {
-        context.Users.Add(new IdentityUser
+        context.AppUsers.Add(new AppUser
         {
             Id = userId,
             UserName = username,
-            NormalizedUserName = username.ToUpperInvariant()
+            NormalizedUserName = username.ToUpperInvariant(),
+            Email = $"{username}@example.com",
+            NormalizedEmail = $"{username.ToUpperInvariant()}@EXAMPLE.COM"
         });
         context.UserProfiles.Add(new UserProfile
         {

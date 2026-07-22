@@ -81,7 +81,6 @@
 
 .home-hero-copy {
     min-width: 0;
-    animation: home-enter-left 420ms var(--ease-out) both;
 }
 
 .home-hero h1 {
@@ -139,21 +138,10 @@
     font-size: 1rem;
 }
 
-@keyframes home-enter-left {
-    from { opacity: 0; transform: translateX(-1.25rem); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
-@keyframes home-enter-right {
-    from { opacity: 0; transform: translateX(1.25rem); }
-    to { opacity: 1; transform: translateX(0); }
-}
-
 /* ==================== HERO CAROUSEL ==================== */
 
 .home-carousel-column {
     min-width: 0;
-    animation: home-enter-right 420ms var(--ease-out) 80ms both;
 }
 
 .home-carousel {
@@ -175,9 +163,9 @@
     width: min(22.5rem, calc(100% - 5rem));
     height: 14.5rem;
     transform-origin: center;
-    transition: opacity 420ms var(--ease-out),
-                transform 420ms var(--ease-out),
-                filter 420ms var(--ease-out);
+    transition: opacity var(--duration-med) var(--ease-out),
+                transform var(--duration-med) var(--ease-out),
+                filter var(--duration-med) var(--ease-out);
 }
 
 .home-carousel-item.pos-center {
@@ -223,19 +211,11 @@
     cursor: pointer;
     font: inherit;
     transform-style: preserve-3d;
-    transition: transform 520ms var(--ease-out);
-}
-
-.home-carousel-item.pos-center .flashcard-3d-card:hover {
-    transform: translateY(-0.35rem);
+    transition: transform 300ms var(--ease-out);
 }
 
 .flashcard-3d-card.flipped {
     transform: rotateY(180deg);
-}
-
-.home-carousel-item.pos-center .flashcard-3d-card.flipped:hover {
-    transform: rotateY(180deg) translateY(-0.35rem);
 }
 
 .flashcard-face {
@@ -336,8 +316,7 @@
     min-width: 0;
 }
 
-.home-carousel-control,
-.home-carousel-toggle {
+.home-carousel-control {
     display: inline-flex;
     min-height: 2.75rem;
     align-items: center;
@@ -348,8 +327,7 @@
     cursor: pointer;
     font: inherit;
     transition: border-color var(--duration-fast) var(--ease-out),
-                background-color var(--duration-fast) var(--ease-out),
-                transform var(--duration-fast) var(--ease-out);
+                background-color var(--duration-fast) var(--ease-out);
 }
 
 .home-carousel-control {
@@ -359,28 +337,9 @@
     font-size: 1rem;
 }
 
-.home-carousel-toggle {
-    gap: 0.4rem;
-    padding: 0.5rem 0.8rem;
-    border-radius: var(--radius-control);
-    font-size: 0.75rem;
-    font-weight: 600;
-}
-
-.home-carousel-control:hover,
-.home-carousel-toggle:hover:not(:disabled) {
+.home-carousel-control:hover {
     border-color: var(--ink);
     background: var(--sage-soft);
-}
-
-.home-carousel-control:active,
-.home-carousel-toggle:active:not(:disabled) {
-    transform: scale(0.97);
-}
-
-.home-carousel-toggle:disabled {
-    color: var(--muted-light);
-    cursor: default;
 }
 
 .home-carousel-status {
@@ -617,8 +576,7 @@
     min-height: 17rem;
     padding: clamp(1.5rem, 3vw, 2.5rem);
     background: var(--surface);
-    transition: background-color var(--duration-med) var(--ease-out),
-                transform var(--duration-med) var(--ease-out);
+    transition: background-color var(--duration-fast) var(--ease-out);
 }
 
 .home-mode-card::after {
@@ -996,8 +954,7 @@
     border: 1px solid var(--line-strong);
     border-radius: var(--radius-card);
     background: var(--paper);
-    transition: border-color var(--duration-med) var(--ease-out),
-                transform var(--duration-med) var(--ease-out);
+    transition: border-color var(--duration-fast) var(--ease-out);
 }
 
 .home-testimonial::before {
@@ -1010,7 +967,6 @@
 
 .home-testimonial:hover {
     border-color: var(--brass-deep);
-    transform: translateY(-0.3rem);
 }
 
 .home-testimonial blockquote {
@@ -1061,34 +1017,6 @@
 .home-testimonial figcaption small {
     color: var(--muted);
     font-size: 0.75rem;
-}
-
-/* ==================== MOTION ==================== */
-
-.home-motion-ready [data-home-reveal] {
-    opacity: 0;
-    transform: translateY(1.5rem);
-    transition: opacity 560ms var(--ease-out),
-                transform 560ms var(--ease-out);
-}
-
-.home-motion-ready [data-home-reveal].is-visible {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.home-motion-ready .home-mode-card:nth-child(2),
-.home-motion-ready .home-testimonial:nth-child(2) {
-    transition-delay: 70ms;
-}
-
-.home-motion-ready .home-mode-card:nth-child(3),
-.home-motion-ready .home-testimonial:nth-child(3) {
-    transition-delay: 140ms;
-}
-
-.home-motion-ready .home-mode-card:nth-child(4) {
-    transition-delay: 210ms;
 }
 
 /* ==================== CLOSING ==================== */
@@ -1435,11 +1363,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-    .home-hero-copy,
-    .home-carousel-column {
-        animation: none;
-    }
-
     .home-landing *,
     .home-landing *::before,
     .home-landing *::after {
@@ -1449,18 +1372,4 @@
         animation-iteration-count: 1 !important;
     }
 
-    .home-motion-ready [data-home-reveal] {
-        opacity: 1;
-        transform: none;
-    }
-
-    /* Keep short, user-triggered feedback even when autoplay is disabled. */
-    .home-carousel-item,
-    .flashcard-copy {
-        transition-duration: 260ms !important;
-    }
-
-    .flashcard-3d-card {
-        transition-duration: 320ms !important;
-    }
 }

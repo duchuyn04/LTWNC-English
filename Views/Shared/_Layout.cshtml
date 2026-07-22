@@ -14,13 +14,6 @@
     @await RenderSectionAsync("Styles", required: false)
 </head>
 <body>
-    <div id="pt-overlay" class="pt-overlay--visible"></div>
-    <noscript>
-        <style>
-            #pt-overlay { display: none !important; }
-        </style>
-    </noscript>
-
     @{
         var hideLayoutChrome = ViewData["HideLayoutChrome"] as bool? == true;
         var signedIn = User.Identity?.IsAuthenticated == true;
@@ -44,6 +37,9 @@
                         <li class="nav-item">
                             <a class="nav-link" href="/Leaderboard">Bảng xếp hạng</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="/Library">Thư viện</a>
+                        </li>
                         @if (signedIn)
                         {
                             <li class="nav-item">
@@ -52,7 +48,7 @@
                             <li class="nav-item">
                                 <a class="nav-link" href="/Achievements">Thành tích</a>
                             </li>
-                            @if (User.IsInRole(ltwnc.Services.Auth.AdminRoleBootstrapper.AdminRole))
+                            @if (User.HasClaim(ltwnc.Services.Auth.AppClaimTypes.IsAdmin, "true"))
                             {
                                 <li class="nav-item">
                                     <a class="nav-link" href="/Admin">Quản trị</a>
@@ -133,6 +129,7 @@
                     <ul class="app-footer-links">
                         <li><a href="/">Trang chủ</a></li>
                         <li><a href="/Leaderboard">Bảng xếp hạng</a></li>
+                        <li><a href="/Library">Thư viện</a></li>
                         @if (signedIn)
                         {
                             <li><a href="/Set">Bộ thẻ của tôi</a></li>
@@ -159,10 +156,7 @@
 
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
-    <script src="~/js/page-transition.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

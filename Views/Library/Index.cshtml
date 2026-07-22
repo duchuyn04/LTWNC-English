@@ -1,0 +1,159 @@
+@model ltwnc.Models.ViewModels.Library.LibraryIndexViewModel
+@using ltwnc.Services.PublicLibrary
+@{
+    ViewData["Title"] = "Thư viện bộ thẻ";
+    var sortTabs = new[]
+    {
+        (Key: PublicLibrarySort.Popular, Label: "Phổ biến"),
+        (Key: PublicLibrarySort.Recent, Label: "Mới cập nhật"),
+        (Key: PublicLibrarySort.Cards, Label: "Nhiều thẻ nhất")
+    };
+    int pageWindowStart = Math.Max(1, Model.Page - 2);
+    int pageWindowEnd = Math.Min(Model.TotalPages, Model.Page + 2);
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/library.css" asp-append-version="true" />
+}
+
+@section FullWidth {
+<div class="container py-5 library-page">
+    <main class="library-a" aria-labelledby="library-title">
+        <section class="library-a-hero">
+            <div class="library-a-intro">
+                <span class="library-eyebrow">Thư viện cộng đồng</span>
+                <h1 id="library-title">Tìm đúng bộ từ.<br /><em>Học ngay.</em></h1>
+                <p>Tìm bộ thẻ theo mục tiêu, xem mức độ phổ biến rồi sao chép vào thư viện của bạn.</p>
+            </div>
+            <form class="library-search-panel" method="get" action="/Library" role="search">
+                <input type="hidden" name="sort" value="@Model.Sort" />
+                <label for="library-search">Bạn muốn học gì?</label>
+                <div class="library-search-control">
+                    <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                    <input id="library-search" name="q" value="@Model.Search" type="search"
+                           placeholder="Tên bộ thẻ, mô tả hoặc tác giả..." />
+                    <button type="submit">Tìm bộ thẻ</button>
+                </div>
+                <div class="library-a-proof" aria-label="Thống kê thư viện">
+                    <span><strong>@Model.Summary.SetCount</strong>Bộ thẻ</span>
+                    <span><strong>@Model.Summary.CardCount</strong>Thẻ</span>
+                    <span><strong>@Model.Summary.CopyCount</strong>Lượt sao chép</span>
+                </div>
+            </form>
+        </section>
+
+        <section aria-labelledby="library-results">
+            <header class="library-section-heading">
+                <div>
+                    <span class="library-eyebrow">Được học nhiều</span>
+                    <h2 id="library-results">Bộ thẻ cộng đồng</h2>
+                    <p>
+                        @if (Model.Search is null)
+                        {
+                            @:Có @Model.TotalItems bộ thẻ công khai. Chọn một bộ để xem trước nội dung.
+                        }
+                        else
+                        {
+                            @:Tìm thấy @Model.TotalItems bộ thẻ cho &ldquo;@Model.Search&rdquo;.
+                        }
+                    </p>
+                </div>
+                <nav class="library-sort-tabs" aria-label="Sắp xếp">
+                    @foreach (var tab in sortTabs)
+                    {
+                        <a class="@(Model.Sort == tab.Key ? "is-active" : null)"
+                           asp-controller="Library" asp-action="Index"
+                           asp-route-q="@Model.Search" asp-route-sort="@tab.Key" asp-route-page="1"
+                           aria-current="@(Model.Sort == tab.Key ? "true" : null)">@tab.Label</a>
+                    }
+                </nav>
+            </header>
+
+            @if (Model.Items.Count > 0)
+            {
+                <div class="library-card-grid">
+                    @for (var i = 0; i < Model.Items.Count; i++)
+                    {
+                        var item = Model.Items[i];
+                        <article class="library-set-card @item.AccentClass">
+                            <header>
+                                <span class="library-topic">Bộ thẻ</span>
+                                <span class="library-card-number">@(((Model.Page - 1) * Model.PageSize + i + 1).ToString("00"))</span>
+                            </header>
+                            <div class="library-set-card-body">
+                                <h3>@item.Title</h3>
+                                @if (!string.IsNullOrWhiteSpace(item.Description))
+                                {
+                                    <p>@item.Description</p>
+                                }
+                            </div>
+                            <div class="library-author-row">
+                                <span class="library-avatar">@item.AuthorInitials</span>
+                                <span><small>Chia sẻ bởi</small><strong>@item.AuthorName</strong></span>
+                            </div>
+                            <footer>
+                                <div class="library-card-metrics">
+                                    <span><i class="ph ph-cards" aria-hidden="true"></i>@item.CardCount thẻ</span>
+                                    <span><i class="ph ph-copy" aria-hidden="true"></i>@item.CopyCount lượt sao chép</span>
+                                </div>
+                                <a href="/Set/@item.Id">Xem bộ <i class="ph ph-arrow-up-right" aria-hidden="true"></i></a>
+                            </footer>
+                        </article>
+                    }
+                </div>
+
+                @if (Model.TotalPages > 1)
+                {
+                    <nav class="library-pager" aria-label="Phân trang">
+                        @if (Model.HasPreviousPage)
+                        {
+                            <a class="library-pager-step"
+                               asp-controller="Library" asp-action="Index"
+                               asp-route-q="@Model.Search" asp-route-sort="@Model.Sort" asp-route-page="@(Model.Page - 1)">
+                                <i class="ph ph-arrow-left" aria-hidden="true"></i> Trước
+                            </a>
+                        }
+                        @for (var pageNumber = pageWindowStart; pageNumber <= pageWindowEnd; pageNumber++)
+                        {
+                            <a class="library-pager-page @(pageNumber == Model.Page ? "is-active" : null)"
+                               asp-controller="Library" asp-action="Index"
+                               asp-route-q="@Model.Search" asp-route-sort="@Model.Sort" asp-route-page="@pageNumber"
+                               aria-current="@(pageNumber == Model.Page ? "page" : null)">@pageNumber</a>
+                        }
+                        @if (Model.HasNextPage)
+                        {
+                            <a class="library-pager-step"
+                               asp-controller="Library" asp-action="Index"
+                               asp-route-q="@Model.Search" asp-route-sort="@Model.Sort" asp-route-page="@(Model.Page + 1)">
+                                Sau <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                            </a>
+                        }
+                    </nav>
+                }
+            }
+            else if (Model.Search is null)
+            {
+                <div class="library-empty">
+                    <i class="ph ph-cards" aria-hidden="true"></i>
+                    <h3>Thư viện chưa có bộ thẻ công khai</h3>
+                    <p>Khi thành viên chia sẻ bộ thẻ công khai, chúng sẽ xuất hiện tại đây.</p>
+                </div>
+            }
+            else
+            {
+                <div class="library-empty">
+                    <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                    <h3>Không tìm thấy bộ thẻ phù hợp</h3>
+                    <p>Không có bộ thẻ nào khớp với &ldquo;@Model.Search&rdquo;. Thử từ khoá khác hoặc
+                        <a asp-controller="Library" asp-action="Index" asp-route-sort="@Model.Sort" asp-route-page="1">xem toàn bộ thư viện</a>.
+                    </p>
+                </div>
+            }
+        </section>
+    </main>
+</div>
+}
+
+@section Scripts {
+    <script src="~/js/library.js" asp-append-version="true"></script>
+}

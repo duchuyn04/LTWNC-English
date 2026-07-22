@@ -126,13 +126,11 @@
     border: 1px solid var(--sm-line);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-card);
-    transition: transform var(--duration-med) var(--ease-out),
-                box-shadow var(--duration-med) var(--ease-out),
+    transition: box-shadow var(--duration-med) var(--ease-out),
                 border-color var(--duration-fast) var(--ease-out);
 }
 
 .set-card:hover {
-    transform: translateY(-2px);
     border-color: var(--sm-line-strong);
     box-shadow: var(--shadow-lift);
 }
@@ -183,7 +181,7 @@
     height: 100%;
     background: var(--sm-accent);
     border-radius: inherit;
-    transition: width 300ms var(--ease-out);
+    transition: width var(--duration-med) var(--ease-out);
 }
 
 .set-card-progress-bar.is-high {

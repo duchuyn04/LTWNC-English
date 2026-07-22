@@ -18,23 +18,22 @@
      data-correct-pct="@correctPct"
      data-wrong-pct="@wrongPct">
     <div class="result-container">
-        @* Không dùng gsap-fade-up (ScrollTrigger): phần dưới trang bị ẩn đến khi scroll *@
-        <header class="result-header result-enter">
+        <header class="result-header">
             <span class="badge badge-green">Hoàn thành</span>
             <h1 class="result-title">Tổng kết buổi học</h1>
             <p class="result-subtitle">
-                <span class="js-count" data-target="@Model.CorrectCount" data-suffix="">0</span> đúng ·
-                <span class="js-count" data-target="@wrongCount" data-suffix="">0</span> cần ôn
+                <span>@Model.CorrectCount</span> đúng ·
+                <span>@wrongCount</span> cần ôn
             </p>
         </header>
 
-        <section class="result-kpi-grid result-enter" aria-label="Chỉ số tổng quan" style="--result-enter-delay: 60ms">
+        <section class="result-kpi-grid" aria-label="Chỉ số tổng quan">
             <article class="result-kpi result-card">
                 <span class="result-kpi-icon" aria-hidden="true">
                     <i class="ph ph-list-numbers" aria-hidden="true"></i>
                 </span>
                 <div>
-                    <div class="result-kpi-value js-count" data-target="@Model.TotalCards" data-suffix="">0</div>
+                    <div class="result-kpi-value">@Model.TotalCards</div>
                     <div class="result-kpi-label">Tổng thể</div>
                 </div>
             </article>
@@ -44,7 +43,7 @@
                     <i class="ph ph-check-circle" aria-hidden="true"></i>
                 </span>
                 <div>
-                    <div class="result-kpi-value js-count" data-target="@Model.CorrectCount" data-suffix="">0</div>
+                    <div class="result-kpi-value">@Model.CorrectCount</div>
                     <div class="result-kpi-label">Đã thuộc</div>
                 </div>
             </article>
@@ -54,43 +53,40 @@
                     <i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>
                 </span>
                 <div>
-                    <div class="result-kpi-value js-count" data-target="@wrongCount" data-suffix="">0</div>
+                    <div class="result-kpi-value">@wrongCount</div>
                     <div class="result-kpi-label">Cần ôn</div>
                 </div>
             </article>
         </section>
 
         <section class="result-charts-grid" aria-label="Biểu đồ kết quả">
-            <article class="result-chart-panel result-card result-enter" style="--result-enter-delay: 120ms">
+            <article class="result-chart-panel result-card">
                 <h2 class="result-chart-title">Độ chính xác</h2>
                 <svg class="result-donut" viewBox="0 0 120 120" role="img" aria-label="Độ chính xác @Model.Score%">
                     <circle class="result-donut-track" cx="60" cy="60" r="45" pathLength="100"></circle>
-                    @* Bắt đầu từ 0; JS sẽ animate stroke-dasharray tới Score *@
-                    <circle class="result-donut-fill js-donut-fill"
+                    <circle class="result-donut-fill"
                             cx="60" cy="60" r="45" pathLength="100"
-                            stroke-dasharray="0 100"
-                            data-target="@Model.Score"></circle>
-                    <text class="result-donut-text js-count" data-target="@Model.Score" data-suffix="%" x="60" y="60" text-anchor="middle" dominant-baseline="middle">0%</text>
+                            stroke-dasharray="@Model.Score 100"></circle>
+                    <text class="result-donut-text" x="60" y="60" text-anchor="middle" dominant-baseline="middle">@Model.Score%</text>
                 </svg>
             </article>
 
-            <article class="result-chart-panel result-card result-enter" style="--result-enter-delay: 180ms">
+            <article class="result-chart-panel result-card">
                 <h2 class="result-chart-title">Tỷ lệ đúng / sai</h2>
                 <div class="result-stack" role="img" aria-label="Đúng @correctPct%, sai @wrongPct%">
-                    @* Width 0 ban đầu; JS animate tới correctPct / wrongPct *@
-                    <div class="result-stack-correct js-stack-bar" data-target="@correctPct" style="width:0%"></div>
-                    <div class="result-stack-wrong js-stack-bar" data-target="@wrongPct" style="width:0%"></div>
+                    <div class="result-stack-correct" style="width:@correctPct%"></div>
+                    <div class="result-stack-wrong" style="width:@wrongPct%"></div>
                 </div>
                 <div class="result-legend">
                     <span class="result-legend-item">
                         <span class="result-legend-dot" style="background:var(--dr-bar-correct);"></span>
-                        Đúng <span class="js-count" data-target="@Model.CorrectCount" data-suffix="">0</span>
-                        (<span class="js-count" data-target="@correctPct" data-prefix="(" data-suffix="%)">(0%)</span>
+                        Đúng <span>@Model.CorrectCount</span>
+                        <span>(@correctPct%)</span>
                     </span>
                     <span class="result-legend-item">
                         <span class="result-legend-dot" style="background:var(--dr-bar-wrong);"></span>
-                        Sai <span class="js-count" data-target="@wrongCount" data-suffix="">0</span>
-                        <span class="js-count" data-target="@wrongPct" data-prefix="(" data-suffix="%)">(0%)</span>
+                        Sai <span>@wrongCount</span>
+                        <span>(@wrongPct%)</span>
                     </span>
                 </div>
             </article>
@@ -98,7 +94,7 @@
 
         @if (Model.WrongCards.Any())
         {
-            <section class="result-table-card result-card result-enter" style="--result-enter-delay: 220ms" aria-label="Danh sách thẻ cần ôn">
+            <section class="result-table-card result-card" aria-label="Danh sách thẻ cần ôn">
                 <h2 class="result-chart-title" id="wrong-cards-heading">@(Model.WrongCards.Count) thẻ cần ôn lại</h2>
                 <table class="result-table" aria-labelledby="wrong-cards-heading">
                     <caption class="visually-hidden">Danh sách thẻ cần ôn lại</caption>
@@ -142,7 +138,7 @@
         }
         else
         {
-            <section class="result-table-card result-card result-enter" style="--result-enter-delay: 220ms">
+            <section class="result-table-card result-card">
                 <div class="result-empty">
                     <i class="ph ph-confetti" aria-hidden="true"></i>
                     Chính xác 100% - không có thẻ nào cần ôn.
@@ -150,7 +146,7 @@
             </section>
         }
 
-        <nav class="result-actions result-enter" style="--result-enter-delay: 280ms" aria-label="Hành động tiếp theo">
+        <nav class="result-actions" aria-label="Hành động tiếp theo">
             @if (wrongCount > 0)
             {
                 <a class="study-button is-red" href="/Study/@Model.SetId/Dictation">Ôn lại @wrongCount thẻ cần nhớ</a>
@@ -161,85 +157,3 @@
         </nav>
     </div>
 </div>
-
-@section Scripts {
-<script>
-// Animation trang kết quả Dictation:
-// - Đếm số KPI / % từ 0 lên giá trị thật
-// - Vòng donut và thanh đúng/sai "chạy" từ 0
-// Tôn trọng prefers-reduced-motion: hiện số cuối ngay, không animate.
-(function () {
-    const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    const duration = reduced ? 0 : 1200;
-
-    function easeOutQuad(t) {
-        return t * (2 - t);
-    }
-
-    // Đếm số nguyên từ 0 → target, kèm prefix/suffix tùy chọn
-    function animateCount(el) {
-        const target = Number(el.getAttribute('data-target') || 0);
-        const suffix = el.getAttribute('data-suffix') ?? '';
-        const prefix = el.getAttribute('data-prefix') ?? '';
-
-        if (duration === 0) {
-            el.textContent = prefix + target + suffix;
-            return;
-        }
-
-        const start = performance.now();
-        function frame(now) {
-            const t = Math.min((now - start) / duration, 1);
-            const value = Math.round(easeOutQuad(t) * target);
-            el.textContent = prefix + value + suffix;
-            if (t < 1) requestAnimationFrame(frame);
-            else el.textContent = prefix + target + suffix;
-        }
-        requestAnimationFrame(frame);
-    }
-
-    // Thanh stack: width 0% → target%
-    function animateBar(el) {
-        const target = Number(el.getAttribute('data-target') || 0);
-        if (duration === 0) {
-            el.style.width = target + '%';
-            return;
-        }
-        // Force reflow để transition CSS chạy
-        void el.offsetWidth;
-        el.style.transition = 'width ' + duration + 'ms cubic-bezier(0.22, 1, 0.36, 1)';
-        el.style.width = target + '%';
-    }
-
-    // Donut SVG: stroke-dasharray từ "0 100" → "score 100"
-    function animateDonut(el) {
-        const target = Number(el.getAttribute('data-target') || 0);
-        if (duration === 0) {
-            el.setAttribute('stroke-dasharray', target + ' 100');
-            return;
-        }
-        const start = performance.now();
-        function frame(now) {
-            const t = Math.min((now - start) / duration, 1);
-            const value = easeOutQuad(t) * target;
-            el.setAttribute('stroke-dasharray', value + ' 100');
-            if (t < 1) requestAnimationFrame(frame);
-            else el.setAttribute('stroke-dasharray', target + ' 100');
-        }
-        requestAnimationFrame(frame);
-    }
-
-    function run() {
-        document.querySelectorAll('.js-count').forEach(animateCount);
-        document.querySelectorAll('.js-stack-bar').forEach(animateBar);
-        document.querySelectorAll('.js-donut-fill').forEach(animateDonut);
-    }
-
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', run);
-    } else {
-        run();
-    }
-})();
-</script>
-}

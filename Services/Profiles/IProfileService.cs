@@ -18,11 +18,6 @@ public interface IProfileService
         ProfileEditViewModel model,
         CancellationToken cancellationToken = default);
 
-    Task<ProfileOperationResult> ChangeEmailAsync(
-        string userId,
-        ChangeEmailViewModel model,
-        CancellationToken cancellationToken = default);
-
     Task<ProfileOperationResult> ChangePasswordAsync(
         string userId,
         ChangePasswordViewModel model,
