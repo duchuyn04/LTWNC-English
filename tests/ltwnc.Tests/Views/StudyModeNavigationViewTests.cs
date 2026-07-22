@@ -5,6 +5,9 @@ public sealed class StudyModeNavigationViewTests
     private static readonly string FlashcardView =
         ReadFile("Views", "Study", "Flashcard.cshtml");
 
+    private static readonly string FlashcardStyles =
+        ReadFile("wwwroot", "css", "flashcard.css");
+
     [Fact]
     public void Flashcard_navigation_renders_every_registered_mode_from_the_model()
     {
@@ -21,6 +24,16 @@ public sealed class StudyModeNavigationViewTests
     {
         Assert.DoesNotContain("var dictationMode =", FlashcardView);
         Assert.DoesNotContain("var missionMode =", FlashcardView);
+    }
+
+    [Fact]
+    public void Flashcard_navigation_uses_a_balanced_mobile_grid_for_four_modes()
+    {
+        Assert.Contains("grid-template-columns: repeat(2, minmax(0, 1fr));", FlashcardStyles);
+        Assert.Contains("flex-wrap: wrap;", FlashcardStyles);
+        Assert.Matches(
+            "(?s)@media \\(max-width: 767px\\).*?\\.study-mode-tabs\\s*\\{.*?grid-template-columns: repeat\\(2, minmax\\(0, 1fr\\)\\);",
+            FlashcardStyles);
     }
 
     private static string ReadFile(params string[] parts)
