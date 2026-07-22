@@ -110,4 +110,18 @@ public class AuthLayoutMarkupTests
         Assert.Contains("tối thiểu 8 ký tự", view);
         Assert.Contains("href=\"/Account/Login\"", view);
     }
+
+    [Fact]
+    public void AuthScript_TogglesControlledPasswordAndUpdatesAccessibleCopy()
+    {
+        string script = Read("wwwroot/js/auth.js");
+
+        Assert.Contains("[data-password-toggle]", script);
+        Assert.Contains("getAttribute(\"aria-controls\")", script);
+        Assert.Contains("document.getElementById", script);
+        Assert.Contains("input.type = reveal ? \"text\" : \"password\"", script);
+        Assert.Contains("button.textContent = reveal ? \"Ẩn\" : \"Hiện\"", script);
+        Assert.Contains("button.setAttribute(\"aria-label\"", script);
+        Assert.DoesNotContain("submit", script, StringComparison.OrdinalIgnoreCase);
+    }
 }
