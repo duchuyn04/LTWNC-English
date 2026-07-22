@@ -3,8 +3,6 @@
     ViewData["Title"] = "Học flashcard";
     ViewData["HideLayoutChrome"] = true;
 
-    var dictationMode = Model.Modes.FirstOrDefault(mode => mode.Mode == StudyMode.Dictation);
-    var missionMode = Model.Modes.FirstOrDefault(mode => mode.Mode == StudyMode.EnglishMission);
 }
 
 <link rel="stylesheet" href="~/css/flashcard.css" asp-append-version="true" />
@@ -55,39 +53,28 @@
 
         <div class="study-mode-row gsap-fade-up">
             <nav class="study-mode-tabs" aria-label="Chế độ học">
-                <a class="study-mode-tab is-active" href="/Study/@Model.SetId/Flashcard" aria-current="page">
-                    <i class="ph ph-cards" aria-hidden="true"></i>
-                    <span>Flashcard</span>
-                </a>
+                @foreach (var mode in Model.Modes)
+                {
+                    bool isActive = mode.Mode == StudyMode.Flashcard;
 
-                @if (dictationMode?.IsAvailable == true)
-                {
-                    <a class="study-mode-tab" href="@dictationMode.ActionUrl">
-                        <i class="ph ph-headphones" aria-hidden="true"></i>
-                        <span>Nghe chép</span>
-                    </a>
-                }
-                else
-                {
-                    <span class="study-mode-tab is-disabled" aria-disabled="true" title="@(dictationMode?.UnavailableReason ?? "Chế độ chưa khả dụng")">
-                        <i class="ph ph-headphones" aria-hidden="true"></i>
-                        <span>Nghe chép</span>
-                    </span>
-                }
-
-                @if (missionMode?.IsAvailable == true)
-                {
-                    <a class="study-mode-tab" href="@missionMode.ActionUrl">
-                        <i class="ph ph-chats-circle" aria-hidden="true"></i>
-                        <span>English Mission</span>
-                    </a>
-                }
-                else
-                {
-                    <span class="study-mode-tab is-disabled" aria-disabled="true" title="@(missionMode?.UnavailableReason ?? "Chế độ chưa khả dụng")">
-                        <i class="ph ph-chats-circle" aria-hidden="true"></i>
-                        <span>English Mission</span>
-                    </span>
+                    if (mode.IsAvailable)
+                    {
+                        <a class="study-mode-tab @(isActive ? "is-active" : "")"
+                           href="@mode.ActionUrl"
+                           aria-current="@(isActive ? "page" : null)">
+                            <i class="ph @mode.IconClass" aria-hidden="true"></i>
+                            <span>@mode.Name</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="study-mode-tab is-disabled"
+                              aria-disabled="true"
+                              title="@(mode.UnavailableReason ?? "Chế độ chưa khả dụng")">
+                            <i class="ph @mode.IconClass" aria-hidden="true"></i>
+                            <span>@mode.Name</span>
+                        </span>
+                    }
                 }
             </nav>
         </div>
