@@ -124,4 +124,16 @@ public class AuthLayoutMarkupTests
         Assert.Contains("button.setAttribute(\"aria-label\"", script);
         Assert.DoesNotContain("submit", script, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void ProductionAuth_DoesNotRetainPrototypeRouteOrAssets()
+    {
+        string controller = Read("Controllers/AccountController.cs");
+
+        Assert.DoesNotContain("AuthPrototype", controller);
+        Assert.False(File.Exists(Path.Combine(Root, "Views", "Account", "AuthPrototype.cshtml")));
+        Assert.False(Directory.Exists(Path.Combine(Root, "Views", "Account", "Prototypes")));
+        Assert.False(File.Exists(Path.Combine(Root, "wwwroot", "css", "auth-prototype.css")));
+        Assert.False(File.Exists(Path.Combine(Root, "wwwroot", "js", "auth-prototype.js")));
+    }
 }
