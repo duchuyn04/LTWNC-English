@@ -34,7 +34,10 @@
         if (turn.correctionEn) detail += '<div class="mission-correction"><strong>Tự nhiên hơn</strong><span lang="en">' + escapeText(turn.correctionEn) + '</span><small>' + escapeText(turn.correctionExplanationVi) + '</small></div>';
         npc.innerHTML = '<span class="mission-avatar">AI</span><div>' + detail + '</div>';
         transcript.appendChild(npc);
-        npc.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        npc.scrollIntoView({
+            behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+            block: 'end'
+        });
     }
 
     function updateWords(words) {

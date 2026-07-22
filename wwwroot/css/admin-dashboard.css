@@ -696,7 +696,7 @@
 
 .admin-kpi-action i {
     flex: 0 0 auto;
-    transition: transform var(--duration-fast) var(--ease-out);
+    transition: color var(--duration-fast) var(--ease-out);
 }
 
 .admin-kpi-action:hover,
@@ -705,7 +705,7 @@
 }
 
 .admin-kpi-action:hover i {
-    transform: translateX(2px);
+    color: var(--brass-deep);
 }
 
 /* ---------- Alert panel ---------- */

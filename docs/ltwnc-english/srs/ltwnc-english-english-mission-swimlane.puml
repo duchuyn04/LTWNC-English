@@ -1,0 +1,81 @@
+@startuml
+!theme plain
+title Quy trình thực hiện English Mission
+
+|Người dùng|
+start
+:Mở English Mission từ Study Hub;
+
+|Giao diện hội thoại|
+:Hiển thị danh sách chủ đề;
+
+|Người dùng|
+:Chọn chủ đề giao tiếp;
+
+|Giao diện hội thoại|
+:Gửi yêu cầu khởi tạo nhiệm vụ;
+
+|Hệ thống|
+:Kiểm tra quyền truy cập và chọn từ mục tiêu;
+if (Có đủ từ mục tiêu?) then (Không)
+  |Giao diện hội thoại|
+  :Thông báo bộ thẻ chưa đủ nội dung;
+  |Người dùng|
+  :Quay lại Study Hub;
+  stop
+else (Có)
+  |Hệ thống|
+  :Chuẩn bị bối cảnh và yêu cầu tạo nhiệm vụ;
+endif
+
+|Dịch vụ AI|
+:Tạo tình huống và câu mở đầu;
+
+|Hệ thống|
+:Kiểm tra phản hồi khởi tạo;
+if (Phản hồi hợp lệ?) then (Không)
+  |Giao diện hội thoại|
+  :Thông báo chưa thể tạo nhiệm vụ;
+  |Người dùng|
+  :Thử lại sau hoặc quay về Study Hub;
+  stop
+else (Có)
+  |Hệ thống|
+  :Lưu phiên học, nhiệm vụ và từ mục tiêu;
+endif
+
+while (Nhiệm vụ còn tiếp tục?) is (Có)
+  |Giao diện hội thoại|
+  :Hiển thị bối cảnh và lịch sử hội thoại;
+  |Người dùng|
+  :Nhập câu trả lời bằng tiếng Anh;
+  |Giao diện hội thoại|
+  :Gửi câu trả lời;
+  |Hệ thống|
+  :Kiểm tra nội dung và mã lượt;
+  if (Câu trả lời hợp lệ?) then (Không)
+    |Giao diện hội thoại|
+    :Thông báo để người dùng chỉnh sửa;
+  else (Có)
+    |Hệ thống|
+    :Chuẩn bị bối cảnh hội thoại hiện tại;
+    |Dịch vụ AI|
+    :Tạo phản hồi và nhận xét;
+    |Hệ thống|
+    :Kiểm tra và lưu lượt hội thoại;
+    :Cập nhật từ mục tiêu và tiến độ;
+    |Giao diện hội thoại|
+    :Hiển thị phản hồi và góp ý;
+  endif
+endwhile (Không)
+
+|Hệ thống|
+:Tính điểm và hoàn thành phiên học;
+
+|Giao diện hội thoại|
+:Hiển thị kết quả nhiệm vụ;
+
+|Người dùng|
+:Xem từ đã sử dụng và câu cần ôn lại;
+stop
+@enduml

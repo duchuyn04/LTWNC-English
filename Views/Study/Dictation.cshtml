@@ -10,7 +10,7 @@
     @Html.AntiForgeryToken()
 
     <section class="dictation-stage" aria-label="Nghe chép chính tả">
-        <header class="dictation-header gsap-fade-up">
+        <header class="dictation-header">
             <a class="dictation-back" href="/Study/@Model.SetId" title="Thoát về trang học">
                 <i class="ph ph-arrow-left" aria-hidden="true"></i>
             </a>
@@ -25,7 +25,7 @@
             </button>
         </header>
 
-        <div class="dictation-progress gsap-fade-up">
+        <div class="dictation-progress">
             <div class="dictation-progress-track" aria-hidden="true">
                 <div id="dictation-progress-fill" class="dictation-progress-fill"></div>
             </div>
@@ -34,7 +34,7 @@
 
         <div class="dictation-layout">
             <main class="dictation-main">
-                <div class="dictation-card gsap-scale-in">
+                <div class="dictation-card">
                     <h2 class="dictation-card-title">Bài tập nghe chép</h2>
 
                     <div class="dictation-audio-control">
@@ -99,7 +99,7 @@
                 </div>
             </main>
 
-            <aside class="dictation-sidebar gsap-stagger">
+            <aside class="dictation-sidebar">
                 <div class="dictation-stat-card">
                     <h3 class="dictation-stat-title">Tiến độ buổi học</h3>
                     <div class="dictation-stat-row"><span>Đã hoàn thành</span><span id="stat-completed">0 / @Model.Cards.Count</span></div>

@@ -293,7 +293,6 @@
     border-color: var(--line-strong);
     background: var(--sage);
     color: var(--ink);
-    transform: translateY(-1px);
 }
 
 .public-set-list span {

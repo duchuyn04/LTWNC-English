@@ -38,12 +38,12 @@
     </aside>
 
     <div class="set-editor-content">
-<div class="row justify-content-center gsap-fade-up">
+<div class="row justify-content-center">
     <div class="col-md-10 col-lg-8">
-        <div id="set-info" class="set-form-card mb-4 gsap-scale-in">
+        <div id="set-info" class="set-form-card mb-4">
             <h1 class="set-form-title">Quản lý bộ thẻ</h1>
 
-            <form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="mt-4 gsap-stagger">
+            <form asp-action="Edit" asp-route-id="@Model.Id" method="post" class="mt-4">
                 <div asp-validation-summary="ModelOnly" class="mb-3"></div>
 
                 <div class="mb-3">
@@ -122,8 +122,8 @@
             </div>
         }
 
-        <div id="card-list" class="vocab-editor @(cards.Any() ? null : "is-empty") gsap-fade-up">
-            <aside class="vocab-list gsap-stagger">
+        <div id="card-list" class="vocab-editor @(cards.Any() ? null : "is-empty")">
+            <aside class="vocab-list">
                 <div class="vocab-list-header">
                     <h5>Danh sách từ</h5>
                 </div>

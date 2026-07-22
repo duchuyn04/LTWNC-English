@@ -1,0 +1,61 @@
+@startuml
+!theme plain
+title Quy trình tạo và cập nhật bộ flashcard
+
+|Người dùng|
+start
+:Mở danh sách bộ flashcard;
+:Chọn tạo bộ mới hoặc quản lý bộ hiện có;
+
+|Giao diện web|
+:Gửi yêu cầu mở trình chỉnh sửa;
+
+|Hệ thống|
+if (Chỉnh sửa bộ đã có?) then (Có)
+  :Kiểm tra bộ và quyền sở hữu;
+  if (Có quyền chỉnh sửa?) then (Không)
+    |Giao diện web|
+    :Thông báo không có quyền truy cập;
+    stop
+  else (Có)
+    |Hệ thống|
+    :Tải thông tin bộ và danh sách thẻ;
+  endif
+else (Không)
+  :Khởi tạo dữ liệu cho bộ mới;
+endif
+
+|Giao diện web|
+:Hiển thị trình chỉnh sửa;
+
+|Người dùng|
+:Nhập thông tin bộ và nội dung các thẻ;
+:Chọn lưu thay đổi;
+
+|Giao diện web|
+:Gửi dữ liệu đến hệ thống;
+
+|Hệ thống|
+:Kiểm tra quyền sở hữu và dữ liệu đầu vào;
+while (Dữ liệu hợp lệ?) is (Không)
+  |Giao diện web|
+  :Hiển thị nội dung cần chỉnh sửa;
+  |Người dùng|
+  :Sửa thông tin chưa hợp lệ;
+  :Chọn lưu lại;
+  |Giao diện web|
+  :Gửi lại dữ liệu;
+  |Hệ thống|
+  :Kiểm tra lại quyền và dữ liệu;
+endwhile (Có)
+
+:Lưu bộ flashcard và danh sách thẻ;
+
+|Giao diện web|
+:Thông báo lưu thành công;
+:Hiển thị bộ flashcard đã cập nhật;
+
+|Người dùng|
+:Xem kết quả;
+stop
+@enduml

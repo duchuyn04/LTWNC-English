@@ -6,13 +6,13 @@
 <link rel="stylesheet" href="~/css/set-management.css" asp-append-version="true" />
 
 <div class="set-management-shell">
-    <div class="row justify-content-center gsap-fade-up">
+    <div class="row justify-content-center">
         <div class="col-md-8 col-lg-6">
-            <div class="set-form-card gsap-scale-in">
+            <div class="set-form-card">
                 <h1 class="set-form-title">Tạo bộ thẻ mới</h1>
                 <p class="set-form-intro mb-4">Đặt tiêu đề và mô tả cho bộ thẻ của bạn.</p>
 
-                <form asp-action="Create" method="post" class="gsap-stagger">
+                <form asp-action="Create" method="post">
                     <div asp-validation-summary="ModelOnly" class="mb-3"></div>
 
                     <div class="mb-3">

@@ -40,7 +40,7 @@
                 </div>
 
                 <div class="home-carousel-column">
-                    <div class="home-carousel" data-home-carousel data-autoplay-ms="4500" aria-label="Flashcard mẫu">
+                    <div class="home-carousel" data-home-carousel aria-label="Flashcard mẫu">
                         <div class="home-carousel-stage" id="heroCarousel">
                             <article class="home-carousel-item pos-center" data-carousel-item data-index="0" aria-hidden="false">
                                 <button class="flashcard-3d-card" type="button" data-carousel-card aria-label="Lật thẻ consistency" aria-pressed="false" tabindex="0">
@@ -128,10 +128,6 @@
                                 <i class="ph ph-arrow-left" aria-hidden="true"></i>
                             </button>
                             <span class="home-carousel-status" data-carousel-status aria-live="off">1 / 4</span>
-                            <button type="button" class="home-carousel-toggle" data-carousel-toggle aria-controls="heroCarousel" aria-label="Tạm dừng chuyển thẻ" aria-pressed="false">
-                                <i class="ph ph-pause" data-carousel-toggle-icon aria-hidden="true"></i>
-                                <span data-carousel-toggle-label>Tạm dừng</span>
-                            </button>
                             <button type="button" class="home-carousel-control" data-carousel-next aria-controls="heroCarousel" aria-label="Thẻ tiếp theo">
                                 <i class="ph ph-arrow-right" aria-hidden="true"></i>
                             </button>
@@ -145,13 +141,13 @@
 
     <section class="home-section home-feature" id="benefits" aria-labelledby="home-feature-title">
         <div class="container">
-            <header class="home-editorial-header" data-home-reveal>
+            <header class="home-editorial-header">
                 <span class="home-section-number" aria-hidden="true">01</span>
                 <h2 id="home-feature-title">Một thẻ, đủ để hiểu từ.</h2>
                 <p>Nghĩa, cách đọc và trạng thái học nằm cùng một chỗ.</p>
             </header>
 
-            <div class="home-feature-grid" data-home-reveal>
+            <div class="home-feature-grid">
                 <article class="home-word-specimen" aria-label="Ví dụ nội dung một flashcard">
                     <span class="home-specimen-label">Trong một thẻ</span>
                     <div class="home-specimen-word">context</div>
@@ -187,14 +183,14 @@
 
     <section class="home-section home-modes" id="services" aria-labelledby="home-modes-title">
         <div class="container">
-            <header class="home-editorial-header" data-home-reveal>
+            <header class="home-editorial-header">
                 <span class="home-section-number" aria-hidden="true">02</span>
                 <h2 id="home-modes-title">Không chỉ có flashcard.</h2>
                 <p>Chọn cách luyện phù hợp với mục tiêu của từng buổi học.</p>
             </header>
 
             <div class="home-mode-grid">
-                <article class="home-mode-card home-mode-card--primary" data-home-reveal>
+                <article class="home-mode-card home-mode-card--primary">
                     <span class="home-mode-index">01</span>
                     <i class="ph ph-cards" aria-hidden="true"></i>
                     <div>
@@ -202,7 +198,7 @@
                         <p>Lật thẻ, nghe phát âm và đánh dấu những từ cần ôn lại.</p>
                     </div>
                 </article>
-                <article class="home-mode-card" data-home-reveal>
+                <article class="home-mode-card">
                     <span class="home-mode-index">02</span>
                     <i class="ph ph-headphones" aria-hidden="true"></i>
                     <div>
@@ -210,7 +206,7 @@
                         <p>Nghe từ hoặc câu ví dụ, gõ lại và xem lỗi ngay sau mỗi lượt.</p>
                     </div>
                 </article>
-                <article class="home-mode-card" data-home-reveal>
+                <article class="home-mode-card">
                     <span class="home-mode-index">03</span>
                     <i class="ph ph-chats-circle" aria-hidden="true"></i>
                     <div>
@@ -218,7 +214,7 @@
                         <p>Dùng từ vừa học trong hội thoại tình huống với gia sư AI.</p>
                     </div>
                 </article>
-                <article class="home-mode-card home-mode-card--progress" data-home-reveal>
+                <article class="home-mode-card home-mode-card--progress">
                     <span class="home-mode-index">04</span>
                     <i class="ph ph-trophy" aria-hidden="true"></i>
                     <div>
@@ -233,7 +229,7 @@
 
     <section class="home-section home-sets" id="featured-sets" aria-labelledby="home-sets-title">
         <div class="container">
-            <header class="home-editorial-header home-sets-header" data-home-reveal>
+            <header class="home-editorial-header home-sets-header">
                 <span class="home-section-number" aria-hidden="true">03</span>
                 <div>
                     <span class="home-eyebrow">Bộ thẻ cộng đồng</span>
@@ -269,7 +265,7 @@
             else
             {
                 var featuredSet = Model.PublicSets.First();
-                <div class="home-set-discovery @(Model.PublicSets.Count > 1 ? "" : "home-set-discovery--single")" data-home-reveal>
+                <div class="home-set-discovery @(Model.PublicSets.Count > 1 ? "" : "home-set-discovery--single")">
                     <article class="home-set-featured">
                         <span class="home-set-featured-label">Bộ thẻ nổi bật</span>
                         <div class="home-set-featured-copy">
@@ -314,22 +310,22 @@
 
     <section class="home-section home-testimonials" id="testimonials" aria-labelledby="home-testimonials-title">
         <div class="container">
-            <header class="home-editorial-header" data-home-reveal>
+            <header class="home-editorial-header">
                 <span class="home-section-number" aria-hidden="true">04</span>
                 <h2 id="home-testimonials-title">Người học nói gì.</h2>
                 <p>Những điều họ thấy hữu ích khi học theo nhiều chế độ.</p>
             </header>
 
             <div class="home-testimonial-grid">
-                <figure class="home-testimonial" data-home-reveal>
+                <figure class="home-testimonial">
                     <blockquote>“Chế độ nghe chép giúp mình nhận ra ngay những từ nghe quen nhưng vẫn viết sai.”</blockquote>
                     <figcaption><span>MA</span><div><strong>Minh Anh</strong><small>Sinh viên</small></div></figcaption>
                 </figure>
-                <figure class="home-testimonial" data-home-reveal>
+                <figure class="home-testimonial">
                     <blockquote>“English Mission buộc mình dùng từ trong câu, thay vì chỉ nhớ nghĩa trên thẻ.”</blockquote>
                     <figcaption><span>HN</span><div><strong>Hoàng Nam</strong><small>Người học giao tiếp</small></div></figcaption>
                 </figure>
-                <figure class="home-testimonial" data-home-reveal>
+                <figure class="home-testimonial">
                     <blockquote>“Mình nhìn được tiến độ của từng buổi và biết chính xác nhóm từ nào cần học lại.”</blockquote>
                     <figcaption><span>TH</span><div><strong>Thu Hà</strong><small>Người tự học</small></div></figcaption>
                 </figure>
@@ -339,7 +335,7 @@
 
     <section class="home-closing" aria-labelledby="home-closing-title">
         <div class="container">
-            <div class="home-closing-grid" data-home-reveal>
+            <div class="home-closing-grid">
                 <div>
                     <span class="home-eyebrow">Bắt đầu hôm nay</span>
                     <h2 id="home-closing-title">Bắt đầu buổi học đầu tiên.</h2>

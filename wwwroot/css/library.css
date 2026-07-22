@@ -284,7 +284,8 @@
     border-radius: 18px;
     background: var(--lib-surface);
     box-shadow: 0 12px 30px rgba(35, 48, 33, 0.05);
-    transition: border-color 180ms ease, transform 180ms ease, box-shadow 180ms ease;
+    transition: border-color var(--duration-fast) ease,
+                box-shadow var(--duration-med) ease;
 }
 
 .library-set-card::before {
@@ -297,7 +298,6 @@
 
 .library-set-card:hover {
     border-color: color-mix(in srgb, var(--card-accent, var(--lib-sage)) 42%, var(--lib-line));
-    transform: translateY(-3px);
     box-shadow: 0 18px 42px rgba(35, 48, 33, 0.09);
 }
 

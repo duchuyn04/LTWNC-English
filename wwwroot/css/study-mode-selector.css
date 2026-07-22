@@ -159,14 +159,13 @@ body {
     font-size: 0.8125rem;
     font-weight: 600;
     text-decoration: none;
-    transition: background-color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
+    transition: background-color var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), color var(--duration-fast) var(--ease-out);
 }
 
 .filter-pill:hover {
     color: var(--ink);
     background: var(--sage-soft);
     border-color: var(--ink-soft);
-    transform: translateY(-1px);
 }
 
 .filter-pill.active {
@@ -211,18 +210,13 @@ body {
     font-weight: 700;
     text-decoration: none;
     box-shadow: var(--shadow-card);
-    transition: transform var(--duration-fast) var(--ease-out), background-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
+    transition: background-color var(--duration-fast) var(--ease-out), box-shadow var(--duration-fast) var(--ease-out);
 }
 
 .btn-study-primary:hover {
     color: var(--surface);
     background: var(--ink-soft);
     box-shadow: var(--shadow-lift);
-    transform: translateY(-2px);
-}
-
-.btn-study-primary:active {
-    transform: translateY(0) scale(0.99);
 }
 
 .btn-study-primary:disabled {
@@ -264,17 +258,12 @@ body {
     border: 1px solid var(--line);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-card);
-    transition: box-shadow var(--duration-med) var(--ease-out), transform var(--duration-fast) var(--ease-out), border-color var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
+    transition: box-shadow var(--duration-med) var(--ease-out), border-color var(--duration-fast) var(--ease-out), opacity var(--duration-fast) var(--ease-out);
 }
 
 .mode-card:hover {
     border-color: var(--line-strong);
     box-shadow: var(--shadow-lift);
-    transform: translateY(-2px);
-}
-
-.mode-card:active {
-    transform: translateY(0);
 }
 
 .mode-card-recommended {

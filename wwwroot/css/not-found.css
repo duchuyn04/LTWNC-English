@@ -138,7 +138,7 @@ body {
     box-shadow: 12px 17px 0 rgba(69, 80, 63, 0.25);
     cursor: pointer;
     transform-style: preserve-3d;
-    transition: transform 0.6s var(--ease-out), box-shadow 0.25s var(--ease-out);
+    transition: transform 300ms var(--ease-out), box-shadow var(--duration-med) var(--ease-out);
 }
 
 .not-found-card:hover {
@@ -215,7 +215,7 @@ body {
     font-size: 0.8125rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.15s var(--ease-out), transform 0.15s var(--ease-out);
+    transition: background-color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
 }
 
 .not-found-flip:hover {
@@ -272,7 +272,7 @@ body {
     font-size: 0.8125rem;
     font-weight: 600;
     text-decoration: none;
-    transition: background-color 0.15s var(--ease-out), transform 0.15s var(--ease-out);
+    transition: background-color var(--duration-fast) var(--ease-out), transform var(--duration-fast) var(--ease-out);
 }
 
 .not-found-home:hover {

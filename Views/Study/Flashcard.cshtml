@@ -13,7 +13,7 @@
     @Html.AntiForgeryToken()
 
     <section id="study-view" class="study-stage" aria-label="Học flashcard">
-        <header class="study-page-header gsap-fade-up">
+        <header class="study-page-header">
             <a class="study-back" href="/Set/@Model.SetId" title="Backspace: quay lại bộ từ">
                 <i class="ph ph-arrow-left" aria-hidden="true"></i>
                 <span>Quay lại</span>
@@ -53,7 +53,7 @@
             </div>
         }
 
-        <div class="study-mode-row gsap-fade-up">
+        <div class="study-mode-row">
             <nav class="study-mode-tabs" aria-label="Chế độ học">
                 <a class="study-mode-tab is-active" href="/Study/@Model.SetId/Flashcard" aria-current="page">
                     <i class="ph ph-cards" aria-hidden="true"></i>
@@ -93,7 +93,7 @@
         </div>
 
         <div class="study-focus-column">
-            <div class="progress-strip gsap-fade-up">
+            <div class="progress-strip">
                 <span class="progress-label">Tiến độ</span>
                 <span id="card-progress-text" class="progress-text">Thẻ 1 / 1</span>
                 <div class="progress-track" aria-hidden="true">
@@ -101,7 +101,7 @@
                 </div>
             </div>
 
-        <main class="card-area gsap-scale-in">
+        <main class="card-area">
             <div class="flashcard-frame" onclick="toggleCardFlip()" role="button" tabindex="0" aria-label="Lật thẻ">
                 <div id="study-card-core" class="flashcard-core">
                     <article class="card-face card-front">
@@ -148,7 +148,7 @@
             </div>
         </main>
 
-        <div class="control-bar gsap-fade-up" aria-label="Điều khiển học">
+        <div class="control-bar" aria-label="Điều khiển học">
             <button type="button" id="nav-left-btn" class="control-btn control-btn-prev" onclick="handleLeftAction()" title="Thẻ trước (←)">
                 <i class="ph ph-arrow-left" aria-hidden="true"></i>
             </button>
@@ -272,7 +272,6 @@
     <div id="settings-drawer-backdrop" class="settings-drawer-backdrop" hidden onclick="toggleSettingsDrawer(event)"></div>
 
     <section id="completion-view" class="completion-view" aria-label="Hoàn thành">
-        <canvas id="fireworksCanvas"></canvas>
         <div class="completion-inner">
             <span class="badge badge-green">Đã hoàn thành bộ thẻ</span>
             <h2 class="completion-title">Hoàn thành phiên học</h2>
@@ -732,17 +731,8 @@
 
         function nextCard() {
             if (currentIndex < flashcards.length - 1) {
-                const core = document.getElementById('study-card-core');
-                core.classList.add('is-exit-right');
-
-                setTimeout(() => {
-                    currentIndex++;
-                    updateUI();
-                    core.classList.remove('is-exit-right');
-                    core.style.setProperty('--enter-direction', '30px');
-                    core.classList.add('is-enter');
-                    setTimeout(() => core.classList.remove('is-enter'), 260);
-                }, 220);
+                currentIndex++;
+                updateUI();
                 return;
             }
 
@@ -751,17 +741,8 @@
 
         function prevCard() {
             if (currentIndex > 0) {
-                const core = document.getElementById('study-card-core');
-                core.classList.add('is-exit-left');
-
-                setTimeout(() => {
-                    currentIndex--;
-                    updateUI();
-                    core.classList.remove('is-exit-left');
-                    core.style.setProperty('--enter-direction', '-30px');
-                    core.classList.add('is-enter');
-                    setTimeout(() => core.classList.remove('is-enter'), 260);
-                }, 220);
+                currentIndex--;
+                updateUI();
             }
         }
 
@@ -856,8 +837,6 @@
 
             document.getElementById('study-view').style.display = 'none';
             document.getElementById('completion-view').style.display = 'block';
-
-            startFireworks();
         }
 
         document.addEventListener('keydown', function(e) {
@@ -1012,137 +991,5 @@
         document.getElementById('vocab-sort')?.addEventListener('change', renderVocabularyPanel);
         renderVocabularyPanel();
         updateUI();
-
-        let canvas, ctx, animationFrameId;
-        let fireworksList = [];
-        let particlesList = [];
-        const rootStyles = getComputedStyle(document.documentElement);
-        const celebrateColors = ['--success', '--brass', '--error', '--brass-deep', '--ink']
-            .map(token => rootStyles.getPropertyValue(token).trim());
-
-        class CanvasParticle {
-            constructor(x, y, color) {
-                this.x = x;
-                this.y = y;
-                this.color = color;
-                this.angle = Math.random() * Math.PI * 2;
-                this.speed = Math.random() * 4 + 1.5;
-                this.friction = 0.96;
-                this.gravity = 0.08;
-                this.alpha = 1;
-                this.decay = Math.random() * 0.015 + 0.008;
-                this.radius = Math.random() * 2 + 1.5;
-            }
-
-            update() {
-                this.speed *= this.friction;
-                this.x += Math.cos(this.angle) * this.speed;
-                this.y += Math.sin(this.angle) * this.speed + this.gravity;
-                this.alpha -= this.decay;
-            }
-
-            draw() {
-                ctx.save();
-                ctx.globalAlpha = this.alpha;
-                ctx.fillStyle = this.color;
-                ctx.beginPath();
-                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
-                ctx.fill();
-                ctx.restore();
-            }
-        }
-
-        class CanvasFirework {
-            constructor() {
-                const w = canvas.width / window.devicePixelRatio;
-                const h = canvas.height / window.devicePixelRatio;
-                this.x = Math.random() * w;
-                this.y = h;
-                this.targetY = Math.random() * (h * 0.55) + 30;
-                this.speed = Math.random() * 5 + 6;
-                this.color = celebrateColors[Math.floor(Math.random() * celebrateColors.length)];
-                this.exploded = false;
-            }
-
-            update() {
-                if (!this.exploded) {
-                    this.y -= this.speed;
-                    this.speed *= 0.98;
-                    if (this.speed <= 1 || this.y <= this.targetY) {
-                        this.exploded = true;
-                        this.explode();
-                    }
-                }
-            }
-
-            draw() {
-                if (!this.exploded) {
-                    ctx.fillStyle = this.color;
-                    ctx.beginPath();
-                    ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
-                    ctx.fill();
-                }
-            }
-
-            explode() {
-                const count = Math.floor(Math.random() * 25) + 35;
-                for (let i = 0; i < count; i++) {
-                    particlesList.push(new CanvasParticle(this.x, this.y, this.color));
-                }
-            }
-        }
-
-        function resizeCanvas() {
-            if (!canvas || !ctx) return;
-
-            const dpr = window.devicePixelRatio || 1;
-            canvas.width = canvas.offsetWidth * dpr;
-            canvas.height = canvas.offsetHeight * dpr;
-            ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-        }
-
-        function animateFireworks() {
-            const w = canvas.width / (window.devicePixelRatio || 1);
-            const h = canvas.height / (window.devicePixelRatio || 1);
-
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.22)';
-            ctx.fillRect(0, 0, w, h);
-
-            if (Math.random() < 0.05 && fireworksList.length < 4) {
-                fireworksList.push(new CanvasFirework());
-            }
-
-            for (let i = fireworksList.length - 1; i >= 0; i--) {
-                fireworksList[i].update();
-                fireworksList[i].draw();
-                if (fireworksList[i].exploded) fireworksList.splice(i, 1);
-            }
-
-            for (let i = particlesList.length - 1; i >= 0; i--) {
-                particlesList[i].update();
-                particlesList[i].draw();
-                if (particlesList[i].alpha <= 0) particlesList.splice(i, 1);
-            }
-
-            animationFrameId = requestAnimationFrame(animateFireworks);
-        }
-
-        function startFireworks() {
-            canvas = document.getElementById('fireworksCanvas');
-            ctx = canvas.getContext('2d');
-            window.addEventListener('resize', resizeCanvas);
-            resizeCanvas();
-            fireworksList = [];
-            particlesList = [];
-            animateFireworks();
-        }
-
-        function stopFireworks() {
-            if (animationFrameId) {
-                cancelAnimationFrame(animationFrameId);
-                animationFrameId = null;
-            }
-            window.removeEventListener('resize', resizeCanvas);
-        }
     </script>
 }

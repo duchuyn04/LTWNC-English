@@ -109,7 +109,10 @@
                 panel.querySelectorAll('textarea[data-auto-grow]').forEach(growTextarea);
                 syncEditorPanelHeights();
                 if (window.innerWidth <= 900) {
-                    panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    panel.scrollIntoView({
+                        behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                        block: 'start'
+                    });
                 }
             }
         });
@@ -149,7 +152,10 @@
                 const target = document.querySelector(anchor.getAttribute('href'));
                 if (!target) return;
                 event.preventDefault();
-                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                target.scrollIntoView({
+                    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
+                    block: 'start'
+                });
                 if (!target.hasAttribute('tabindex')) target.setAttribute('tabindex', '-1');
                 target.focus({ preventScroll: true });
             });

@@ -1,0 +1,120 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1040" viewBox="0 0 1600 1040">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f8fafc"/>
+      <stop offset="1" stop-color="#eef2ff"/>
+    </linearGradient>
+    <filter id="shadow" x="0" y="0" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="7" flood-color="#0f172a" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <path d="M0,0 L0,6 L9,3 z" fill="#64748b"/>
+    </marker>
+    <style>
+      .title{font:700 34px 'Segoe UI',Arial,sans-serif;fill:#0f172a}
+      .subtitle{font:400 18px 'Segoe UI',Arial,sans-serif;fill:#475569}
+      .actor{font:600 19px 'Segoe UI',Arial,sans-serif;fill:#0f172a;text-anchor:middle}
+      .group{font:700 20px 'Segoe UI',Arial,sans-serif;fill:#3730a3;text-anchor:middle}
+      .usecase{font:600 17px 'Segoe UI',Arial,sans-serif;fill:#1e293b;text-anchor:middle}
+      .small{font:500 15px 'Segoe UI',Arial,sans-serif;fill:#475569;text-anchor:middle}
+      .line{stroke:#64748b;stroke-width:2;fill:none;marker-end:url(#arrow)}
+      .actorline{stroke:#334155;stroke-width:4;stroke-linecap:round;fill:none}
+    </style>
+  </defs>
+  <rect width="1600" height="1040" fill="url(#bg)"/>
+  <text x="800" y="54" class="title" text-anchor="middle">SƠ ĐỒ CA SỬ DỤNG TỔNG QUÁT</text>
+  <text x="800" y="84" class="subtitle" text-anchor="middle">Hệ thống học từ vựng tiếng Anh LTWNC English</text>
+
+  <rect x="245" y="112" width="1110" height="860" rx="28" fill="#ffffff" stroke="#c7d2fe" stroke-width="3" filter="url(#shadow)"/>
+  <text x="800" y="151" class="group">PHẠM VI HỆ THỐNG</text>
+
+  <g transform="translate(112 230)">
+    <circle cx="0" cy="0" r="25" fill="#dbeafe" stroke="#2563eb" stroke-width="4"/>
+    <path d="M0 25 L0 104 M0 49 L42 76 M0 49 L42 22 M0 104 L36 151 M0 104 L36 104" class="actorline"/>
+    <text x="8" y="190" class="actor">Khách truy cập</text>
+  </g>
+  <g transform="translate(112 518)">
+    <circle cx="0" cy="0" r="25" fill="#dcfce7" stroke="#16a34a" stroke-width="4"/>
+    <path d="M0 25 L0 104 M0 49 L42 76 M0 49 L42 22 M0 104 L36 151 M0 104 L36 104" class="actorline"/>
+    <text x="8" y="190" class="actor">Thành viên</text>
+  </g>
+  <g transform="translate(1488 278)">
+    <circle cx="0" cy="0" r="25" fill="#fee2e2" stroke="#dc2626" stroke-width="4"/>
+    <path d="M0 25 L0 104 M0 49 L-42 76 M0 49 L-42 22 M0 104 L-36 151 M0 104 L-36 104" class="actorline"/>
+    <text x="0" y="190" class="actor">Quản trị viên</text>
+  </g>
+  <g transform="translate(1488 690)">
+    <rect x="-38" y="-32" width="76" height="64" rx="12" fill="#fef3c7" stroke="#d97706" stroke-width="4"/>
+    <circle cx="-15" cy="-5" r="7" fill="#d97706"/>
+    <circle cx="15" cy="-5" r="7" fill="#d97706"/>
+    <path d="M-17 16 Q0 28 17 16" stroke="#d97706" stroke-width="4" fill="none"/>
+    <path d="M0 -52 L0 -32 M-10 -55 L10 -55" stroke="#d97706" stroke-width="4"/>
+    <text x="0" y="75" class="actor">Nhà cung cấp AI</text>
+  </g>
+
+  <rect x="300" y="185" width="310" height="285" rx="22" fill="#eff6ff" stroke="#93c5fd" stroke-width="2"/>
+  <text x="455" y="220" class="group">CHỨC NĂNG CÔNG KHAI</text>
+  <ellipse cx="455" cy="275" rx="118" ry="34" fill="#fff" stroke="#60a5fa" stroke-width="2"/>
+  <text x="455" y="281" class="usecase">Đăng ký, đăng nhập</text>
+  <ellipse cx="455" cy="355" rx="132" ry="38" fill="#fff" stroke="#60a5fa" stroke-width="2"/>
+  <text x="455" y="351" class="usecase">Duyệt thư viện công khai</text>
+  <text x="455" y="373" class="small">và xem bộ thẻ</text>
+  <ellipse cx="455" cy="430" rx="128" ry="34" fill="#fff" stroke="#60a5fa" stroke-width="2"/>
+  <text x="455" y="436" class="usecase">Xem hồ sơ, xếp hạng</text>
+
+  <rect x="650" y="185" width="360" height="720" rx="22" fill="#f0fdf4" stroke="#86efac" stroke-width="2"/>
+  <text x="830" y="220" class="group" fill="#166534">HỌC TẬP CÁ NHÂN</text>
+  <ellipse cx="830" cy="276" rx="144" ry="38" fill="#fff" stroke="#4ade80" stroke-width="2"/>
+  <text x="830" y="272" class="usecase">Quản lý bộ thẻ và thẻ từ</text>
+  <text x="830" y="294" class="small">tạo, sửa, nhập dữ liệu, sao chép</text>
+  <ellipse cx="830" cy="368" rx="144" ry="38" fill="#fff" stroke="#4ade80" stroke-width="2"/>
+  <text x="830" y="364" class="usecase">Học bằng flashcard</text>
+  <text x="830" y="386" class="small">đánh dấu đã thuộc, gắn sao</text>
+  <ellipse cx="830" cy="460" rx="144" ry="38" fill="#fff" stroke="#4ade80" stroke-width="2"/>
+  <text x="830" y="456" class="usecase">Làm bài kiểm tra</text>
+  <text x="830" y="478" class="small">nộp đáp án, xem kết quả, làm lại</text>
+  <ellipse cx="830" cy="552" rx="144" ry="38" fill="#fff" stroke="#4ade80" stroke-width="2"/>
+  <text x="830" y="548" class="usecase">Luyện nghe chép</text>
+  <text x="830" y="570" class="small">nghe phát âm và kiểm tra đáp án</text>
+  <ellipse cx="830" cy="644" rx="144" ry="38" fill="#fff" stroke="#4ade80" stroke-width="2"/>
+  <text x="830" y="640" class="usecase">Thực hiện English Mission</text>
+  <text x="830" y="662" class="small">hội thoại theo chủ đề với AI</text>
+  <ellipse cx="830" cy="736" rx="144" ry="38" fill="#fff" stroke="#4ade80" stroke-width="2"/>
+  <text x="830" y="732" class="usecase">Theo dõi tiến trình</text>
+  <text x="830" y="754" class="small">thành tích và lịch sử học</text>
+  <ellipse cx="830" cy="828" rx="144" ry="38" fill="#fff" stroke="#4ade80" stroke-width="2"/>
+  <text x="830" y="824" class="usecase">Quản lý hồ sơ cá nhân</text>
+  <text x="830" y="846" class="small">ảnh đại diện và quyền riêng tư</text>
+
+  <rect x="1050" y="185" width="250" height="570" rx="22" fill="#fff1f2" stroke="#fda4af" stroke-width="2"/>
+  <text x="1175" y="220" class="group" fill="#9f1239">QUẢN TRỊ</text>
+  <ellipse cx="1175" cy="278" rx="102" ry="38" fill="#fff" stroke="#fb7185" stroke-width="2"/>
+  <text x="1175" y="274" class="usecase">Theo dõi tổng quan</text>
+  <text x="1175" y="296" class="small">và tìm kiếm</text>
+  <ellipse cx="1175" cy="374" rx="102" ry="38" fill="#fff" stroke="#fb7185" stroke-width="2"/>
+  <text x="1175" y="370" class="usecase">Quản lý tài khoản</text>
+  <text x="1175" y="392" class="small">khóa và thu hồi phiên</text>
+  <ellipse cx="1175" cy="470" rx="102" ry="38" fill="#fff" stroke="#fb7185" stroke-width="2"/>
+  <text x="1175" y="466" class="usecase">Kiểm duyệt nội dung</text>
+  <text x="1175" y="488" class="small">xử lý báo cáo</text>
+  <ellipse cx="1175" cy="566" rx="102" ry="38" fill="#fff" stroke="#fb7185" stroke-width="2"/>
+  <text x="1175" y="562" class="usecase">Quản lý AI</text>
+  <text x="1175" y="584" class="small">cấu hình và kiểm tra</text>
+  <ellipse cx="1175" cy="662" rx="102" ry="38" fill="#fff" stroke="#fb7185" stroke-width="2"/>
+  <text x="1175" y="658" class="usecase">Tra cứu học tập</text>
+  <text x="1175" y="680" class="small">hội thoại và nhật ký</text>
+
+  <path d="M177 300 C230 300 250 292 300 292" class="line"/>
+  <path d="M177 375 C230 390 250 400 300 400" class="line"/>
+  <path d="M177 590 C380 590 480 540 650 540" class="line"/>
+  <path d="M177 650 C380 700 500 760 650 760" class="line"/>
+  <path d="M1420 365 C1375 365 1340 365 1300 365" class="line"/>
+  <path d="M1420 430 C1370 455 1340 475 1300 475" class="line"/>
+  <path d="M1420 520 C1370 555 1340 570 1300 570" class="line"/>
+  <path d="M1420 690 C1400 740 1370 775 1310 775 L1050 775 C1015 750 1000 700 1010 645" class="line"/>
+
+  <rect x="1050" y="790" width="250" height="115" rx="18" fill="#fffbeb" stroke="#fbbf24" stroke-width="2"/>
+  <text x="1175" y="826" class="usecase">Ghi nhận và bảo vệ dữ liệu</text>
+  <text x="1175" y="854" class="small">xác thực, phân quyền, giới hạn</text>
+  <text x="1175" y="877" class="small">tần suất, nhật ký quản trị</text>
+</svg>

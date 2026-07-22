@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1120" viewBox="0 0 1600 1120">
+  <defs>
+    <linearGradient id="bg4" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#ecfdf5"/></linearGradient>
+    <filter id="s4" x="0" y="0" width="140%" height="140%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#0f172a" flood-opacity="0.12"/></filter>
+    <marker id="a4" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto"><path d="M0,0 L0,6 L9,3 z" fill="#475569"/></marker>
+    <style>
+      .title{font:700 34px 'Segoe UI',Arial,sans-serif;fill:#0f172a;text-anchor:middle}
+      .text{font:600 17px 'Segoe UI',Arial,sans-serif;fill:#1e293b;text-anchor:middle}
+      .small{font:500 15px 'Segoe UI',Arial,sans-serif;fill:#475569;text-anchor:middle}
+      .label{font:700 16px 'Segoe UI',Arial,sans-serif;fill:#166534;text-anchor:middle}
+      .arrow{stroke:#475569;stroke-width:3;fill:none;marker-end:url(#a4)}
+    </style>
+  </defs>
+  <rect width="1600" height="1120" fill="url(#bg4)"/>
+  <text x="800" y="55" class="title">QUY TRÌNH HỌC TẬP TRÊN HỆ THỐNG</text>
+
+  <circle cx="800" cy="105" r="25" fill="#166534"/>
+  <path d="M800 130 L800 175" class="arrow"/>
+  <rect x="640" y="175" width="320" height="68" rx="20" fill="#fff" stroke="#22c55e" stroke-width="2" filter="url(#s4)"/>
+  <text x="800" y="207" class="text">Mở bộ thẻ có quyền truy cập</text><text x="800" y="229" class="small">bộ thẻ cá nhân hoặc bộ thẻ công khai</text>
+  <path d="M800 243 L800 285" class="arrow"/>
+  <rect x="640" y="285" width="320" height="68" rx="20" fill="#fff" stroke="#22c55e" stroke-width="2" filter="url(#s4)"/>
+  <text x="800" y="317" class="text">Đọc cài đặt và tiến trình</text><text x="800" y="339" class="small">áp dụng bộ lọc đã sao hoặc chưa thuộc</text>
+  <path d="M800 353 L800 400" class="arrow"/>
+  <polygon points="800,400 930,475 800,550 670,475" fill="#fefce8" stroke="#eab308" stroke-width="3" filter="url(#s4)"/>
+  <text x="800" y="468" class="text">Chọn chế độ học</text><text x="800" y="491" class="small">theo mục tiêu hiện tại</text>
+
+  <path d="M690 452 C570 410 360 410 255 475 L255 540" class="arrow"/>
+  <text x="425" y="405" class="label">FLASHCARD</text>
+  <rect x="105" y="540" width="300" height="78" rx="18" fill="#eff6ff" stroke="#60a5fa" stroke-width="2" filter="url(#s4)"/>
+  <text x="255" y="574" class="text">Hiển thị và lật thẻ</text><text x="255" y="597" class="small">đánh dấu đã thuộc hoặc gắn sao</text>
+  <path d="M255 618 L255 680" class="arrow"/>
+  <rect x="105" y="680" width="300" height="78" rx="18" fill="#eff6ff" stroke="#60a5fa" stroke-width="2"/>
+  <text x="255" y="714" class="text">Lưu UserProgress</text><text x="255" y="737" class="small">tiếp tục cho đến hết danh sách</text>
+
+  <path d="M740 530 C670 575 610 590 575 650" class="arrow"/>
+  <text x="600" y="563" class="label">QUIZ</text>
+  <rect x="445" y="650" width="300" height="78" rx="18" fill="#f5f3ff" stroke="#a78bfa" stroke-width="2" filter="url(#s4)"/>
+  <text x="595" y="684" class="text">Tạo hoặc tiếp tục phiên</text><text x="595" y="707" class="small">sinh câu hỏi và lựa chọn trả lời</text>
+  <path d="M595 728 L595 790" class="arrow"/>
+  <rect x="445" y="790" width="300" height="78" rx="18" fill="#f5f3ff" stroke="#a78bfa" stroke-width="2"/>
+  <text x="595" y="824" class="text">Chấm từng câu</text><text x="595" y="847" class="small">lưu đáp án, điểm và thời gian</text>
+
+  <path d="M860 530 C930 575 990 590 1025 650" class="arrow"/>
+  <text x="1000" y="563" class="label">NGHE CHÉP</text>
+  <rect x="875" y="650" width="300" height="78" rx="18" fill="#fff7ed" stroke="#fb923c" stroke-width="2" filter="url(#s4)"/>
+  <text x="1025" y="684" class="text">Phát âm nội dung</text><text x="1025" y="707" class="small">từ vựng hoặc câu ví dụ</text>
+  <path d="M1025 728 L1025 790" class="arrow"/>
+  <rect x="875" y="790" width="300" height="78" rx="18" fill="#fff7ed" stroke="#fb923c" stroke-width="2"/>
+  <text x="1025" y="824" class="text">Kiểm tra câu trả lời</text><text x="1025" y="847" class="small">lưu chi tiết đúng, sai của phiên</text>
+
+  <path d="M910 452 C1030 410 1240 410 1345 475 L1345 540" class="arrow"/>
+  <text x="1180" y="405" class="label">ENGLISH MISSION</text>
+  <rect x="1195" y="540" width="300" height="78" rx="18" fill="#fff1f2" stroke="#fb7185" stroke-width="2" filter="url(#s4)"/>
+  <text x="1345" y="574" class="text">Chọn chủ đề và từ mục tiêu</text><text x="1345" y="597" class="small">khởi tạo hội thoại với AI</text>
+  <path d="M1345 618 L1345 680" class="arrow"/>
+  <rect x="1195" y="680" width="300" height="78" rx="18" fill="#fff1f2" stroke="#fb7185" stroke-width="2"/>
+  <text x="1345" y="714" class="text">Trao đổi theo từng lượt</text><text x="1345" y="737" class="small">ghi nhận từ đã sử dụng và kết quả</text>
+
+  <path d="M255 758 C255 920 520 925 720 925" class="arrow"/>
+  <path d="M595 868 C595 900 650 925 720 925" class="arrow"/>
+  <path d="M1025 868 C1025 900 950 925 880 925" class="arrow"/>
+  <path d="M1345 758 C1345 920 1080 925 880 925" class="arrow"/>
+  <rect x="680" y="900" width="240" height="72" rx="20" fill="#dcfce7" stroke="#22c55e" stroke-width="3" filter="url(#s4)"/>
+  <text x="800" y="932" class="text">Hoàn thành phiên học</text><text x="800" y="955" class="small">tổng hợp kết quả và thời lượng</text>
+  <path d="M800 972 L800 1010" class="arrow"/>
+  <rect x="610" y="1010" width="380" height="68" rx="20" fill="#fff" stroke="#22c55e" stroke-width="2"/>
+  <text x="800" y="1040" class="text">Cập nhật thành tích và thống kê</text><text x="800" y="1063" class="small">hiển thị kết quả cho người học</text>
+  <path d="M990 1044 L1045 1044" class="arrow"/>
+  <circle cx="1073" cy="1044" r="28" fill="#fff" stroke="#166534" stroke-width="5"/><circle cx="1073" cy="1044" r="17" fill="#166534"/>
+</svg>

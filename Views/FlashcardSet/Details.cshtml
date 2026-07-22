@@ -7,7 +7,7 @@
 <link rel="stylesheet" href="~/css/set-management.css" asp-append-version="true" />
 
 <div class="set-management-shell">
-    <div class="set-detail-hero gsap-fade-up">
+    <div class="set-detail-hero">
         <h2>@Model.Title</h2>
         @if (!string.IsNullOrEmpty(Model.Description))
         {
@@ -97,7 +97,7 @@
 
     @if (Model.CanReport)
     {
-        <section class="set-report-panel gsap-fade-up" aria-labelledby="report-content-heading">
+        <section class="set-report-panel" aria-labelledby="report-content-heading">
             <div>
                 <h3 id="report-content-heading">Báo cáo bộ flashcard</h3>
                 <p>Chọn lý do cố định và thêm mô tả nếu cần.</p>
@@ -133,8 +133,8 @@
 
     @if (Model.Flashcards.Any())
     {
-        <div class="set-detail-list gsap-stagger">
-            <div class="set-detail-list-header gsap-fade-up">
+        <div class="set-detail-list">
+            <div class="set-detail-list-header">
                 <h3>Danh sách từ</h3>
                 @if (Model.IsOwner)
                 {
@@ -155,12 +155,12 @@
     }
     else
     {
-        <div class="set-empty-state gsap-fade-up">
+        <div class="set-empty-state">
             <div class="set-empty-state-icon"><i class="ph ph-note-pencil" aria-hidden="true"></i></div>
             <p class="set-empty-state-title">Bộ thẻ này chưa có từ nào.</p>
             @if (Model.IsOwner)
             {
-                <a href="/Set/@Model.Id/Edit" class="btn-primary-custom gsap-scale-in">Thêm từ đầu tiên</a>
+                <a href="/Set/@Model.Id/Edit" class="btn-primary-custom">Thêm từ đầu tiên</a>
             }
         </div>
     }

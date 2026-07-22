@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="980" viewBox="0 0 1600 980">
+  <defs>
+    <linearGradient id="bg2" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f8fafc"/><stop offset="1" stop-color="#f1f5f9"/></linearGradient>
+    <filter id="s2" x="0" y="0" width="140%" height="140%"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.12"/></filter>
+    <style>
+      .title{font:700 34px 'Segoe UI',Arial,sans-serif;fill:#0f172a;text-anchor:middle}
+      .root{font:700 24px 'Segoe UI',Arial,sans-serif;fill:#fff;text-anchor:middle}
+      .head{font:700 19px 'Segoe UI',Arial,sans-serif;fill:#fff;text-anchor:middle}
+      .item{font:500 16px 'Segoe UI',Arial,sans-serif;fill:#334155;text-anchor:middle}
+      .connector{stroke:#94a3b8;stroke-width:3;fill:none}
+    </style>
+  </defs>
+  <rect width="1600" height="980" fill="url(#bg2)"/>
+  <text x="800" y="55" class="title">SƠ ĐỒ PHÂN RÃ CHỨC NĂNG</text>
+  <rect x="565" y="92" width="470" height="76" rx="20" fill="#3730a3" filter="url(#s2)"/>
+  <text x="800" y="139" class="root">LTWNC ENGLISH</text>
+
+  <path d="M800 168 L800 218 M170 218 L1430 218 M170 218 L170 260 M485 218 L485 260 M800 218 L800 260 M1115 218 L1115 260 M1430 218 L1430 260" class="connector"/>
+
+  <g>
+    <rect x="45" y="260" width="250" height="62" rx="16" fill="#2563eb" filter="url(#s2)"/>
+    <text x="170" y="298" class="head">TRUY CẬP CÔNG KHAI</text>
+    <rect x="45" y="340" width="250" height="430" rx="18" fill="#eff6ff" stroke="#93c5fd" stroke-width="2"/>
+    <rect x="68" y="370" width="204" height="52" rx="12" fill="#fff"/><text x="170" y="402" class="item">Trang chủ và tìm kiếm</text>
+    <rect x="68" y="442" width="204" height="52" rx="12" fill="#fff"/><text x="170" y="474" class="item">Thư viện công khai</text>
+    <rect x="68" y="514" width="204" height="52" rx="12" fill="#fff"/><text x="170" y="546" class="item">Xem chi tiết bộ thẻ</text>
+    <rect x="68" y="586" width="204" height="52" rx="12" fill="#fff"/><text x="170" y="618" class="item">Hồ sơ công khai</text>
+    <rect x="68" y="658" width="204" height="52" rx="12" fill="#fff"/><text x="170" y="690" class="item">Bảng xếp hạng</text>
+  </g>
+
+  <g>
+    <rect x="360" y="260" width="250" height="62" rx="16" fill="#0f766e" filter="url(#s2)"/>
+    <text x="485" y="298" class="head">TÀI KHOẢN VÀ NỘI DUNG</text>
+    <rect x="360" y="340" width="250" height="502" rx="18" fill="#f0fdfa" stroke="#5eead4" stroke-width="2"/>
+    <rect x="383" y="370" width="204" height="52" rx="12" fill="#fff"/><text x="485" y="402" class="item">Đăng ký và đăng nhập</text>
+    <rect x="383" y="442" width="204" height="52" rx="12" fill="#fff"/><text x="485" y="474" class="item">Quản lý hồ sơ</text>
+    <rect x="383" y="514" width="204" height="52" rx="12" fill="#fff"/><text x="485" y="546" class="item">Quản lý bộ thẻ</text>
+    <rect x="383" y="586" width="204" height="52" rx="12" fill="#fff"/><text x="485" y="618" class="item">Quản lý thẻ từ</text>
+    <rect x="383" y="658" width="204" height="52" rx="12" fill="#fff"/><text x="485" y="690" class="item">Nhập CSV và XLSX</text>
+    <rect x="383" y="730" width="204" height="52" rx="12" fill="#fff"/><text x="485" y="762" class="item">Sao chép và báo cáo</text>
+  </g>
+
+  <g>
+    <rect x="675" y="260" width="250" height="62" rx="16" fill="#16a34a" filter="url(#s2)"/>
+    <text x="800" y="298" class="head">HỌC TẬP</text>
+    <rect x="675" y="340" width="250" height="574" rx="18" fill="#f0fdf4" stroke="#86efac" stroke-width="2"/>
+    <rect x="698" y="370" width="204" height="52" rx="12" fill="#fff"/><text x="800" y="402" class="item">Chọn bộ thẻ và bộ lọc</text>
+    <rect x="698" y="442" width="204" height="52" rx="12" fill="#fff"/><text x="800" y="474" class="item">Học flashcard</text>
+    <rect x="698" y="514" width="204" height="52" rx="12" fill="#fff"/><text x="800" y="546" class="item">Làm bài kiểm tra</text>
+    <rect x="698" y="586" width="204" height="52" rx="12" fill="#fff"/><text x="800" y="618" class="item">Luyện nghe chép</text>
+    <rect x="698" y="658" width="204" height="52" rx="12" fill="#fff"/><text x="800" y="690" class="item">English Mission</text>
+    <rect x="698" y="730" width="204" height="52" rx="12" fill="#fff"/><text x="800" y="762" class="item">Lưu phiên và tiến trình</text>
+    <rect x="698" y="802" width="204" height="52" rx="12" fill="#fff"/><text x="800" y="834" class="item">Thành tích học tập</text>
+  </g>
+
+  <g>
+    <rect x="990" y="260" width="250" height="62" rx="16" fill="#d97706" filter="url(#s2)"/>
+    <text x="1115" y="298" class="head">DỊCH VỤ AI</text>
+    <rect x="990" y="340" width="250" height="430" rx="18" fill="#fffbeb" stroke="#fcd34d" stroke-width="2"/>
+    <rect x="1013" y="370" width="204" height="52" rx="12" fill="#fff"/><text x="1115" y="402" class="item">Chọn chủ đề hội thoại</text>
+    <rect x="1013" y="442" width="204" height="52" rx="12" fill="#fff"/><text x="1115" y="474" class="item">Tạo lời thoại theo từ mục tiêu</text>
+    <rect x="1013" y="514" width="204" height="52" rx="12" fill="#fff"/><text x="1115" y="546" class="item">Đánh giá lượt trả lời</text>
+    <rect x="1013" y="586" width="204" height="52" rx="12" fill="#fff"/><text x="1115" y="618" class="item">Chuyển nhà cung cấp dự phòng</text>
+    <rect x="1013" y="658" width="204" height="52" rx="12" fill="#fff"/><text x="1115" y="690" class="item">Ghi nhận trạng thái vận hành</text>
+  </g>
+
+  <g>
+    <rect x="1305" y="260" width="250" height="62" rx="16" fill="#be123c" filter="url(#s2)"/>
+    <text x="1430" y="298" class="head">QUẢN TRỊ HỆ THỐNG</text>
+    <rect x="1305" y="340" width="250" height="574" rx="18" fill="#fff1f2" stroke="#fda4af" stroke-width="2"/>
+    <rect x="1328" y="370" width="204" height="52" rx="12" fill="#fff"/><text x="1430" y="402" class="item">Bảng điều khiển KPI</text>
+    <rect x="1328" y="442" width="204" height="52" rx="12" fill="#fff"/><text x="1430" y="474" class="item">Quản lý tài khoản</text>
+    <rect x="1328" y="514" width="204" height="52" rx="12" fill="#fff"/><text x="1430" y="546" class="item">Kiểm duyệt nội dung</text>
+    <rect x="1328" y="586" width="204" height="52" rx="12" fill="#fff"/><text x="1430" y="618" class="item">Xử lý báo cáo</text>
+    <rect x="1328" y="658" width="204" height="52" rx="12" fill="#fff"/><text x="1430" y="690" class="item">Quản lý nhà cung cấp AI</text>
+    <rect x="1328" y="730" width="204" height="52" rx="12" fill="#fff"/><text x="1430" y="762" class="item">Tra cứu dữ liệu học tập</text>
+    <rect x="1328" y="802" width="204" height="52" rx="12" fill="#fff"/><text x="1430" y="834" class="item">Nhật ký và xuất dữ liệu</text>
+  </g>
+</svg>
