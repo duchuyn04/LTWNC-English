@@ -32,7 +32,8 @@ public class StudyControllerIndexTests
         var strategies = new List<IStudyModeStrategy>
         {
             new FlashcardModeStrategy(queryService),
-            new DictationModeStrategy(queryService)
+            new DictationModeStrategy(queryService),
+            new QuizModeStrategy(queryService, new QuizQuestionFactory(context))
         };
         var resolver = new StudyModeStrategyResolver(strategies);
         return (strategies, resolver);
@@ -120,6 +121,10 @@ public class StudyControllerIndexTests
         Assert.Equal(1, model.SetId);
         Assert.Equal("Test Set", model.SetTitle);
         Assert.Equal(1, model.TotalCards);
+        StudyModeOptionViewModel quiz = Assert.Single(
+            model.Modes.Where(mode => mode.Mode == StudyMode.Quiz));
+        Assert.Equal("/Study/1/Quiz", quiz.ActionUrl);
+        Assert.Equal("Trắc nghiệm", quiz.Name);
     }
 
     [Fact]
