@@ -91,4 +91,23 @@ public class AuthLayoutMarkupTests
         Assert.Contains("href=\"/Account/Register\"", view);
         Assert.DoesNotContain("Quên mật khẩu", view);
     }
+
+    [Fact]
+    public void RegisterView_UsesAuthLayoutAndPreservesAllBindingsAndPasswordHint()
+    {
+        string view = Read("Views/Account/Register.cshtml");
+
+        Assert.Contains("Layout = \"_AuthLayout\"", view);
+        Assert.Contains("<form asp-action=\"Register\" method=\"post\"", view);
+        Assert.Contains("asp-validation-summary=\"ModelOnly\"", view);
+        Assert.Contains("class=\"auth-field-grid\"", view);
+        Assert.Contains("asp-for=\"Email\"", view);
+        Assert.Contains("asp-for=\"Username\"", view);
+        Assert.Contains("asp-for=\"Password\"", view);
+        Assert.Contains("asp-for=\"ConfirmPassword\"", view);
+        Assert.Equal(2, view.Split("data-password-toggle").Length - 1);
+        Assert.Contains("Password-hint Password-error", view);
+        Assert.Contains("tối thiểu 8 ký tự", view);
+        Assert.Contains("href=\"/Account/Login\"", view);
+    }
 }
