@@ -72,4 +72,23 @@ public class AuthLayoutMarkupTests
         Assert.InRange(new FileInfo(desktopWebp).Length, 1, 300 * 1024);
         Assert.InRange(new FileInfo(mobileWebp).Length, 1, 140 * 1024);
     }
+
+    [Fact]
+    public void LoginView_UsesAuthLayoutAndPreservesBindingValidationAndRememberMe()
+    {
+        string view = Read("Views/Account/Login.cshtml");
+
+        Assert.Contains("Layout = \"_AuthLayout\"", view);
+        Assert.Contains("<form asp-action=\"Login\" method=\"post\"", view);
+        Assert.Contains("asp-validation-summary=\"ModelOnly\"", view);
+        Assert.Contains("asp-for=\"Email\"", view);
+        Assert.Contains("asp-validation-for=\"Email\"", view);
+        Assert.Contains("asp-for=\"Password\"", view);
+        Assert.Contains("asp-validation-for=\"Password\"", view);
+        Assert.Contains("asp-for=\"RememberMe\"", view);
+        Assert.Contains("data-password-toggle", view);
+        Assert.Contains("aria-controls=\"Password\"", view);
+        Assert.Contains("href=\"/Account/Register\"", view);
+        Assert.DoesNotContain("Quên mật khẩu", view);
+    }
 }

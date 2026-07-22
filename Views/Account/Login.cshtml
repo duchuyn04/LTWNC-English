@@ -1,43 +1,56 @@
 @model LoginViewModel
 @{
+    Layout = "_AuthLayout";
     ViewData["Title"] = "Đăng nhập";
 }
 
-<div class="row justify-content-center gsap-fade-up">
-    <div class="col-md-6 col-lg-5">
-        <div class="card-custom gsap-scale-in">
-            <h1 class="h3 mb-1">Đăng nhập</h1>
-            <p class="auth-sub">Chào mừng bạn trở lại.</p>
+<section class="auth-form-card" aria-labelledby="login-title">
+    <div class="auth-progress" aria-hidden="true"><span></span><span></span><span></span></div>
+    <p class="auth-eyebrow">Phiên học của bạn</p>
+    <h1 id="login-title" class="auth-title">Sẵn sàng học tiếp?</h1>
+    <p class="auth-intro">Đăng nhập để mở lại bộ thẻ và tiếp tục tiến độ của bạn.</p>
 
-            <form asp-action="Login" method="post" class="mt-4">
-                <div asp-validation-summary="ModelOnly" class="mb-3"></div>
+    <form asp-action="Login" method="post" class="auth-form">
+        <div asp-validation-summary="ModelOnly" class="auth-validation-summary" role="alert"></div>
 
-                <div class="mb-3">
-                    <label asp-for="Email" class="form-label auth-label"></label>
-                    <input asp-for="Email" class="form-input-custom" placeholder="you@example.com" />
-                    <span asp-validation-for="Email"></span>
-                </div>
-
-                <div class="mb-3">
-                    <label asp-for="Password" class="form-label auth-label"></label>
-                    <input asp-for="Password" class="form-input-custom" placeholder="Mật khẩu" />
-                    <span asp-validation-for="Password"></span>
-                </div>
-
-                <div class="mb-4 form-check">
-                    <input asp-for="RememberMe" class="form-check-input" />
-                    <label asp-for="RememberMe" class="auth-label">Ghi nhớ đăng nhập</label>
-                </div>
-
-                <button type="submit" class="btn-primary-custom w-100">Đăng nhập</button>
-            </form>
-
-            <p class="mt-3 text-center auth-alt">
-                Chưa có tài khoản? <a href="/Account/Register">Đăng ký</a>
-            </p>
+        <div class="auth-field">
+            <label asp-for="Email" class="auth-label"></label>
+            <input asp-for="Email"
+                   class="auth-input"
+                   placeholder="you@example.com"
+                   autocomplete="email"
+                   aria-describedby="Email-error"
+                   autofocus />
+            <span asp-validation-for="Email" id="Email-error"></span>
         </div>
-    </div>
-</div>
+
+        <div class="auth-field">
+            <label asp-for="Password" class="auth-label"></label>
+            <span class="auth-password">
+                <input asp-for="Password"
+                       class="auth-input"
+                       placeholder="Mật khẩu của bạn"
+                       autocomplete="current-password"
+                       aria-describedby="Password-error" />
+                <button class="auth-password__toggle"
+                        type="button"
+                        data-password-toggle
+                        aria-controls="Password"
+                        aria-label="Hiện mật khẩu">Hiện</button>
+            </span>
+            <span asp-validation-for="Password" id="Password-error"></span>
+        </div>
+
+        <label class="auth-check">
+            <input asp-for="RememberMe" />
+            <span>Ghi nhớ đăng nhập trên thiết bị này</span>
+        </label>
+
+        <button type="submit" class="auth-submit">Đăng nhập <span aria-hidden="true">→</span></button>
+    </form>
+
+    <p class="auth-alt">Chưa có tài khoản? <a href="/Account/Register">Đăng ký miễn phí</a></p>
+</section>
 
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
