@@ -4,6 +4,15 @@
     ViewData["Title"] = Model.Id.HasValue ? "Chỉnh sửa bộ thẻ" : "Tạo bộ thẻ";
 }
 
+@{
+    var importErrorsJson = TempData["ImportErrors"] as string;
+    var importErrors = string.IsNullOrWhiteSpace(importErrorsJson)
+        ? Array.Empty<ltwnc.Models.ViewModels.FlashcardSet.FlashcardImportError>()
+        : System.Text.Json.JsonSerializer.Deserialize<
+            ltwnc.Models.ViewModels.FlashcardSet.FlashcardImportError[]>(importErrorsJson)
+            ?? Array.Empty<ltwnc.Models.ViewModels.FlashcardSet.FlashcardImportError>();
+}
+
 @section Styles {
     <link rel="stylesheet" href="~/css/unified-editor.css" />
 }
@@ -23,6 +32,38 @@
             <button id="btn-finish" type="button" class="btn btn-primary" disabled>Hoàn tất</button>
         </div>
     </div>
+
+    @if (TempData["ImportImportedCount"] is not null ||
+         TempData["ImportSkippedCount"] is not null)
+    {
+        <div class="import-result-banner" role="status">
+            <strong>Đã nhập @(TempData["ImportImportedCount"] ?? 0) thẻ.</strong>
+            <span>Bỏ qua @(TempData["ImportSkippedCount"] ?? 0) dòng.</span>
+            @if (importErrors.Length > 0)
+            {
+                <ul>
+                    @foreach (var importError in importErrors)
+                    {
+                        <li>
+                            @(importError.RowNumber > 0 ? $"Dòng {importError.RowNumber}: " : null)@importError.Reason
+                        </li>
+                    }
+                </ul>
+            }
+            @if (TempData["ImportErrorsOmittedCount"] is int omittedImportErrorCount &&
+                 omittedImportErrorCount > 0)
+            {
+                <span>Còn @omittedImportErrorCount lỗi khác không hiển thị.</span>
+            }
+        </div>
+    }
+
+    @if (TempData["Error"] is string importErrorMessage)
+    {
+        <div class="import-result-banner import-result-banner--error" role="alert">
+            @importErrorMessage
+        </div>
+    }
 
     @if (Model.IsQuarantined)
     {
@@ -117,22 +158,152 @@
     <button id="btn-add-card" type="button" class="btn btn-add-card">+ Thêm thẻ mới</button>
 </div>
 
-<div id="import-modal" class="modal" style="display:none;">
+<div id="import-modal"
+     class="modal"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="import-modal-title"
+     style="display:none;">
     <div class="modal-content">
-        <h3>Import nhanh</h3>
-        <p>Dán danh sách từ, mỗi dòng một thẻ. Dấu phân cách giữa thuật ngữ và định nghĩa:</p>
-        <select id="import-delimiter" class="form-select">
-            <option value="&#9;">Tab</option>
-            <option value=",">Dấu phẩy</option>
-            <option value="-">Dấu gạch ngang</option>
-        </select>
-        <textarea id="import-text" class="form-control" rows="10" placeholder="hello\txin chào"></textarea>
-        <label><input type="checkbox" id="import-replace" /> Ghi đè toàn bộ thẻ hiện có</label>
-        <div id="import-preview"></div>
-        <div class="modal-actions">
-            <button id="btn-import-cancel" type="button" class="btn btn-secondary">Hủy</button>
-            <button id="btn-import-confirm" type="button" class="btn btn-primary">Thêm</button>
+        <div class="import-modal-header">
+            <div>
+                <span class="import-eyebrow">Nhập dữ liệu</span>
+                <h3 id="import-modal-title">Thêm nhiều thẻ cùng lúc</h3>
+            </div>
+            <button id="btn-import-close"
+                    type="button"
+                    class="import-modal-close"
+                    aria-label="Đóng cửa sổ import">×</button>
         </div>
+
+        <div class="import-tabs" role="tablist" aria-label="Cách nhập thẻ">
+            <button id="import-tab-file"
+                    type="button"
+                    class="import-tab is-active"
+                    role="tab"
+                    aria-selected="true"
+                    aria-controls="import-panel-file">
+                <i class="ph ph-file-arrow-up" aria-hidden="true"></i>
+                Tải file
+            </button>
+            <button id="import-tab-paste"
+                    type="button"
+                    class="import-tab"
+                    role="tab"
+                    aria-selected="false"
+                    aria-controls="import-panel-paste">
+                <i class="ph ph-clipboard-text" aria-hidden="true"></i>
+                Dán nhanh
+            </button>
+        </div>
+
+        <form id="file-import-form"
+              action="@(Model.Id.HasValue ? Url.Action("Import", "FlashcardSet", new { id = Model.Id.Value }) : string.Empty)"
+              data-action-template="/Set/__SET_ID__/Import"
+              method="post"
+              enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+
+            <section id="import-panel-file"
+                     class="import-tab-panel"
+                     role="tabpanel"
+                     aria-labelledby="import-tab-file">
+                <label class="import-dropzone" for="import-file">
+                    <i class="ph ph-cloud-arrow-up" aria-hidden="true"></i>
+                    <strong>Chọn hoặc kéo file vào đây</strong>
+                    <span>CSV UTF-8 hoặc XLSX · tối đa 10 MB</span>
+                    <input id="import-file"
+                           type="file"
+                           name="file"
+                           accept=".csv,.xlsx" />
+                </label>
+                <div id="import-file-meta" class="import-file-meta" aria-live="polite"></div>
+
+                <div class="import-template-note">
+                    <p>
+                        File gồm 6 cột bắt buộc: Thuật ngữ, Định nghĩa, IPA,
+                        Loại từ, Ví dụ tiếng Anh và Nghĩa ví dụ tiếng Việt.
+                        Từ đồng nghĩa và URL ảnh là tùy chọn.
+                    </p>
+                    <a href="~/templates/flashcard-import-template.csv" download>
+                        <i class="ph ph-download-simple" aria-hidden="true"></i>
+                        Tải file CSV mẫu
+                    </a>
+                </div>
+
+                <button id="btn-file-preview"
+                        type="button"
+                        class="btn btn-secondary"
+                        disabled>
+                    Xem trước dữ liệu
+                </button>
+                <div id="file-import-preview"
+                     class="file-import-preview"
+                     aria-live="polite"></div>
+            </section>
+
+            <section id="import-panel-paste"
+                     class="import-tab-panel"
+                     role="tabpanel"
+                     aria-labelledby="import-tab-paste"
+                     hidden>
+                <p>Dán danh sách từ, mỗi dòng một thẻ rồi chọn dấu phân cách.</p>
+                <label for="import-delimiter">Dấu phân cách</label>
+                <select id="import-delimiter" class="form-select">
+                    <option value="&#9;">Tab</option>
+                    <option value=",">Dấu phẩy</option>
+                    <option value="-">Dấu gạch ngang</option>
+                </select>
+                <label for="import-text">Nội dung</label>
+                <textarea id="import-text"
+                          class="form-control"
+                          rows="10"
+                          placeholder="hello&#9;xin chào"></textarea>
+                <div id="import-preview" aria-live="polite"></div>
+            </section>
+
+            <fieldset class="import-mode-options">
+                <legend>Cách nhập vào bộ thẻ</legend>
+                <label>
+                    <input id="import-mode-append"
+                           type="radio"
+                           name="replaceAll"
+                           value="false"
+                           checked />
+                    <span>
+                        <strong>Thêm vào bộ thẻ</strong>
+                        <small>Giữ nguyên các thẻ hiện có</small>
+                    </span>
+                </label>
+                <label>
+                    <input id="import-mode-replace"
+                           type="radio"
+                           name="replaceAll"
+                           value="true" />
+                    <span>
+                        <strong>Ghi đè toàn bộ</strong>
+                        <small>Xóa thẻ và tiến độ học hiện tại</small>
+                    </span>
+                </label>
+            </fieldset>
+
+            <div id="import-modal-status" class="import-modal-status" aria-live="polite"></div>
+            <div class="modal-actions">
+                <button id="btn-import-cancel" type="button" class="btn btn-secondary">Hủy</button>
+                <button id="btn-file-import-confirm"
+                        type="button"
+                        class="btn btn-primary"
+                        disabled>
+                    Nhập từ file
+                </button>
+                <button id="btn-import-confirm"
+                        type="button"
+                        class="btn btn-primary"
+                        hidden>
+                    Thêm
+                </button>
+            </div>
+        </form>
     </div>
 </div>
 
