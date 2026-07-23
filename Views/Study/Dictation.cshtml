@@ -216,6 +216,9 @@
         let isAnswered = false;
         let lastCorrectAnswer = '';
         let isRetrying = false;
+        let isSubmitting = false;
+        let isCompleting = false;
+        let autoAdvanceTimer = null;
 
         const synth = window.speechSynthesis;
         const voiceSelect = document.getElementById('dictation-voice');
@@ -314,7 +317,7 @@
         }
 
         async function checkAnswer() {
-            if (cards.length === 0) return;
+            if (cards.length === 0 || isSubmitting || isCompleting) return;
 
             if (isRetrying) {
                 checkRetryAnswer();
@@ -333,6 +336,11 @@
         }
 
         async function submitCheck(value) {
+            if (isSubmitting || isCompleting) return;
+
+            isSubmitting = true;
+            checkBtn.disabled = true;
+            dontKnowBtn.disabled = true;
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
             const params = new URLSearchParams();
             params.append('__RequestVerificationToken', token);
@@ -351,15 +359,44 @@
                 });
 
                 if (!response.ok) {
-                    console.error('Lỗi kiểm tra đáp án', response.status);
+                    const error = await readErrorResponse(response);
+                    showRequestError(error || 'Không thể kiểm tra đáp án. Vui lòng thử lại.');
                     return;
                 }
 
                 const data = await response.json();
+                if (!data.success) {
+                    showRequestError(data.message || 'Không thể kiểm tra đáp án. Vui lòng thử lại.');
+                    return;
+                }
                 handleCheckResult(data);
             } catch (err) {
                 console.error('Lỗi mạng khi kiểm tra đáp án', err);
+                showRequestError('Mất kết nối khi kiểm tra đáp án. Vui lòng thử lại.');
+            } finally {
+                isSubmitting = false;
+                checkBtn.disabled = false;
+                dontKnowBtn.disabled = false;
             }
+        }
+
+        async function readErrorResponse(response) {
+            try {
+                const data = await response.json();
+                return data.message || '';
+            } catch {
+                return '';
+            }
+        }
+
+        function showRequestError(message) {
+            feedbackPanel.hidden = false;
+            feedbackPanel.className = 'dictation-feedback is-wrong';
+            document.getElementById('dictation-feedback-icon').innerHTML =
+                '<i class="ph ph-warning-circle" aria-hidden="true"></i>';
+            document.getElementById('dictation-feedback-answer').textContent = message;
+            document.getElementById('dictation-feedback-hint').textContent = '';
+            document.getElementById('dictation-feedback-comparison').hidden = true;
         }
 
         function handleCheckResult(data) {
@@ -404,7 +441,10 @@
 
             if (data.isCorrect && settings.DictationAutoAdvance) {
                 continueBtn.hidden = true;
-                setTimeout(nextCard, 1000);
+                autoAdvanceTimer = window.setTimeout(() => {
+                    autoAdvanceTimer = null;
+                    nextCard();
+                }, 1000);
             } else {
                 continueBtn.hidden = false;
                 if (!data.isCorrect && retryBtn) retryBtn.hidden = false;
@@ -414,6 +454,7 @@
         function startRetry() {
             if (!isAnswered) return;
 
+            clearAutoAdvance();
             isRetrying = true;
             answerInput.value = '';
             answerInput.readOnly = false;
@@ -423,7 +464,7 @@
             continueBtn.hidden = true;
             if (retryBtn) retryBtn.hidden = true;
             checkBtn.hidden = false;
-            dontKnowBtn.hidden = false;
+            dontKnowBtn.hidden = true;
 
             answerInput.focus();
         }
@@ -506,11 +547,14 @@
         }
 
         function markUnknown() {
-            if (cards.length === 0 || isAnswered) return;
+            if (cards.length === 0 || isAnswered || isRetrying || isSubmitting || isCompleting) return;
             submitCheck('');
         }
 
         function nextCard() {
+            if (isSubmitting || isCompleting) return;
+            clearAutoAdvance();
+
             if (currentIndex < cards.length - 1) {
                 currentIndex++;
                 resetCard();
@@ -521,6 +565,7 @@
         }
 
         function resetCard() {
+            clearAutoAdvance();
             isAnswered = false;
             isRetrying = false;
             answerInput.value = '';
@@ -534,6 +579,13 @@
             dontKnowBtn.hidden = false;
             answerInput.focus();
             updateProgress();
+        }
+
+        function clearAutoAdvance() {
+            if (autoAdvanceTimer !== null) {
+                window.clearTimeout(autoAdvanceTimer);
+                autoAdvanceTimer = null;
+            }
         }
 
         function updateProgress() {
@@ -550,6 +602,10 @@
         }
 
         async function completeSession() {
+            if (isCompleting || isSubmitting) return;
+            isCompleting = true;
+            continueBtn.disabled = true;
+            if (retryBtn) retryBtn.disabled = true;
             const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
             const params = new URLSearchParams();
             params.append('__RequestVerificationToken', token);
@@ -565,12 +621,23 @@
                     body: params
                 });
 
+                if (!response.ok) {
+                    const error = await readErrorResponse(response);
+                    showRequestError(error || 'Không thể hoàn thành phiên học. Vui lòng thử lại.');
+                    return;
+                }
+
                 const data = await response.json();
                 if (data.success && data.redirectUrl) {
                     window.location.href = data.redirectUrl;
                 }
             } catch (err) {
                 console.error('Lỗi khi hoàn thành phiên', err);
+                showRequestError('Mất kết nối khi hoàn thành phiên học. Vui lòng thử lại.');
+            } finally {
+                isCompleting = false;
+                continueBtn.disabled = false;
+                if (retryBtn) retryBtn.disabled = false;
             }
         }
 
@@ -663,6 +730,7 @@
                 playCurrentPrompt();
             } else if (e.key === 'Enter' && !e.shiftKey && document.activeElement === answerInput) {
                 e.preventDefault();
+                if (isSubmitting || isCompleting) return;
                 if (isRetrying) {
                     checkRetryAnswer();
                 } else if (isAnswered) {

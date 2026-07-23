@@ -17,7 +17,18 @@ public interface IDictationService
         string userId,
         int setId,
         DictationContentMode contentMode = DictationContentMode.Vocabulary,
-        int plannedItemCount = 0);
+        int plannedItemCount = 0,
+        IReadOnlyList<Flashcard>? cards = null);
+
+    Task<DictationRetryPlan> GetRetryPlanAsync(
+        int sourceSessionId,
+        int setId,
+        string userId);
+
+    Task<List<DictationHistoryItem>> GetHistoryAsync(
+        int setId,
+        string userId,
+        int limit = 100);
 
     Task<DictationCheckResult> CheckAnswerAsync(
         int sessionId,
@@ -29,5 +40,5 @@ public interface IDictationService
 
     Task<StudySession> CompleteSessionAsync(int sessionId, int setId, string userId);
 
-    Task<DictationResult> GetSessionResultAsync(int sessionId, string userId);
+    Task<DictationResult> GetSessionResultAsync(int sessionId, int setId, string userId);
 }

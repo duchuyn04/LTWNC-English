@@ -163,6 +163,7 @@ public class StudyControllerDictationTests
         var controller = CreateController(context, "user-1");
         var dictationResult = await controller.Dictation(1);
         var viewModel = Assert.IsType<DictationStudyViewModel>(Assert.IsType<ViewResult>(dictationResult).Model);
+        await controller.DictationCheck(1, viewModel.SessionId, 1, "hello");
 
         var result = await controller.DictationComplete(1, viewModel.SessionId);
 
@@ -170,6 +171,23 @@ public class StudyControllerDictationTests
         var element = JsonSerializer.SerializeToElement(jsonResult.Value);
         Assert.True(element.GetProperty("success").GetBoolean());
         Assert.Contains("DictationResult", element.GetProperty("redirectUrl").GetString());
+    }
+
+    [Fact]
+    public async Task DictationComplete_Post_BeforeAllAnswers_ReturnsConflict()
+    {
+        await using var context = CreateContext();
+        await SeedSetAndCardAsync(context);
+
+        var controller = CreateController(context, "user-1");
+        var dictationResult = await controller.Dictation(1);
+        var viewModel = Assert.IsType<DictationStudyViewModel>(
+            Assert.IsType<ViewResult>(dictationResult).Model);
+
+        var result = await controller.DictationComplete(1, viewModel.SessionId);
+
+        var conflict = Assert.IsType<ObjectResult>(result);
+        Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
     }
 
     [Fact]
@@ -191,6 +209,27 @@ public class StudyControllerDictationTests
         var model = Assert.IsType<DictationResultViewModel>(viewResult.Model);
         Assert.Equal(1, model.TotalCards);
         Assert.Equal(1, model.CorrectCount);
+    }
+
+    [Fact]
+    public async Task DictationHistory_Get_ReturnsWrongAnswerHistory()
+    {
+        await using var context = CreateContext();
+        await SeedSetAndCardAsync(context);
+
+        var controller = CreateController(context, "user-1");
+        var dictationResult = await controller.Dictation(1);
+        var studyModel = Assert.IsType<DictationStudyViewModel>(
+            Assert.IsType<ViewResult>(dictationResult).Model);
+        await controller.DictationCheck(1, studyModel.SessionId, 1, "wrong");
+        await controller.DictationComplete(1, studyModel.SessionId);
+
+        var result = await controller.DictationHistory(1);
+
+        var viewResult = Assert.IsType<ViewResult>(result);
+        var model = Assert.IsType<DictationHistoryViewModel>(viewResult.Model);
+        Assert.Single(model.Items);
+        Assert.Equal("hello", model.Items[0].CorrectAnswer);
     }
 
     [Fact]

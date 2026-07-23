@@ -149,7 +149,7 @@
         <nav class="result-actions" aria-label="Hành động tiếp theo">
             @if (wrongCount > 0)
             {
-                <a class="study-button is-red" href="/Study/@Model.SetId/Dictation">Ôn lại @wrongCount thẻ cần nhớ</a>
+                <a class="study-button is-red" href="/Study/@Model.SetId/Dictation?retrySessionId=@Model.SessionId">Ôn lại @wrongCount thẻ cần nhớ</a>
             }
             <a class="study-button" href="/Study/@Model.SetId/Quiz">Chuyển sang kiểm tra</a>
             <a class="study-button" href="/Study/@Model.SetId/Dictation">Học lại toàn bộ</a>

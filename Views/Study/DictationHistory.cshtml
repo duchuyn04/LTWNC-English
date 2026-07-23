@@ -1,0 +1,57 @@
+@model DictationHistoryViewModel
+@{
+    ViewData["Title"] = "Lịch sử câu nghe chép sai";
+}
+
+<link rel="stylesheet" href="~/css/flashcard.css" asp-append-version="true" />
+<link rel="stylesheet" href="~/css/dictation-result.css" asp-append-version="true" />
+
+<div class="result-shell">
+    <div class="result-container">
+        <header class="result-header">
+            <a class="study-button" href="/Study/@Model.SetId/Dictation">
+                <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                Quay lại nghe chép
+            </a>
+            <span class="badge badge-green">Lịch sử luyện tập</span>
+            <h1 class="result-title">Các câu cần luyện lại</h1>
+            <p class="result-subtitle">@Model.SetTitle · tối đa 100 câu gần nhất</p>
+        </header>
+
+        @if (Model.Items.Any())
+        {
+            <section class="result-table-card result-card" aria-label="Lịch sử câu nghe chép sai">
+                <table class="result-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Thời gian</th>
+                            <th scope="col">Bạn đã nhập</th>
+                            <th scope="col">Đáp án đúng</th>
+                            <th scope="col">Nghĩa</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (DictationHistoryItemViewModel item in Model.Items)
+                        {
+                            <tr>
+                                <td class="result-table-meta">@item.AnsweredAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="result-table-meta">@(string.IsNullOrWhiteSpace(item.AnsweredText) ? "Không có câu trả lời" : item.AnsweredText)</td>
+                                <td class="result-table-term">@item.CorrectAnswer</td>
+                                <td class="result-table-meta">@item.Definition</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </section>
+        }
+        else
+        {
+            <section class="result-table-card result-card">
+                <div class="result-empty">
+                    <i class="ph ph-check-circle" aria-hidden="true"></i>
+                    Chưa có câu nghe chép sai nào.
+                </div>
+            </section>
+        }
+    </div>
+</div>

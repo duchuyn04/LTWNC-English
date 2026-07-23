@@ -891,7 +891,7 @@ public class StudyController : Controller
     // GET màn Dictation: tạo session, map thẻ -> view model; empty -> hub
     [Authorize]
     [Route("/Study/{setId:int}/Dictation")]
-    public async Task<IActionResult> Dictation(int setId)
+    public async Task<IActionResult> Dictation(int setId, int? retrySessionId = null)
     {
         string? userId = _currentUser.UserId;
         if (userId == null)
@@ -906,13 +906,52 @@ public class StudyController : Controller
         }
 
         UserStudySettings settings = await _studyService.GetSettingsAsync(userId);
-        List<Flashcard> cards = await _dictationService.GetCardsForDictationAsync(
-            setId,
-            userId,
-            settings);
+        DictationContentMode contentMode = settings.DictationContentMode;
+        List<Flashcard> cards;
+
+        if (retrySessionId.HasValue)
+        {
+            try
+            {
+                DictationRetryPlan retryPlan = await _dictationService.GetRetryPlanAsync(
+                    retrySessionId.Value,
+                    setId,
+                    userId);
+                cards = retryPlan.Cards;
+                contentMode = retryPlan.ContentMode;
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return Forbid();
+            }
+            catch (InvalidOperationException exception)
+            {
+                TempData["Message"] = exception.Message;
+                return RedirectToAction(nameof(Index), new { setId });
+            }
+        }
+        else
+        {
+            cards = await _dictationService.GetCardsForDictationAsync(
+                setId,
+                userId,
+                settings);
+        }
 
         if (!cards.Any())
         {
+            if (retrySessionId.HasValue)
+            {
+                TempData["Message"] = "Không còn thẻ sai khả dụng để ôn lại.";
+                return RedirectToAction(
+                    nameof(DictationResult),
+                    new { setId, sessionId = retrySessionId.Value });
+            }
+
             string message;
 
             bool exampleMode = settings.DictationContentMode == DictationContentMode.ExampleSentence;
@@ -939,8 +978,9 @@ public class StudyController : Controller
         StudySession session = await _dictationService.CreateSessionAsync(
             userId,
             setId,
-            settings.DictationContentMode,
-            cards.Count);
+            contentMode,
+            cards.Count,
+            cards);
 
         List<DictationCardViewModel> cardViewModels = new List<DictationCardViewModel>();
         foreach (Flashcard card in cards)
@@ -976,12 +1016,15 @@ public class StudyController : Controller
             });
         }
 
+        StudySettingsViewModel settingsViewModel = StudySettingsMapper.ToViewModel(settings);
+        settingsViewModel.DictationContentMode = session.DictationContentMode;
+
         DictationStudyViewModel viewModel = new DictationStudyViewModel
         {
             SetId = setId,
             SetTitle = set.Title,
             SessionId = session.Id,
-            Settings = StudySettingsMapper.ToViewModel(settings),
+            Settings = settingsViewModel,
             ContentMode = session.DictationContentMode,
             Cards = cardViewModels
         };
@@ -1042,6 +1085,14 @@ public class StudyController : Controller
         {
             return Forbid();
         }
+        catch (InvalidOperationException exception)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new
+            {
+                success = false,
+                message = exception.Message
+            });
+        }
     }
 
     // POST AJAX đóng phiên + điểm; JSON redirectUrl màn result
@@ -1073,6 +1124,14 @@ public class StudyController : Controller
         {
             return Forbid();
         }
+        catch (InvalidOperationException exception)
+        {
+            return StatusCode(StatusCodes.Status409Conflict, new
+            {
+                success = false,
+                message = exception.Message
+            });
+        }
     }
 
     // GET tổng kết phiên nghe chép (owner set + owner session)
@@ -1094,7 +1153,10 @@ public class StudyController : Controller
 
         try
         {
-            DictationResult result = await _dictationService.GetSessionResultAsync(sessionId, userId);
+            DictationResult result = await _dictationService.GetSessionResultAsync(
+                sessionId,
+                setId,
+                userId);
 
             List<DictationResultCardViewModel> wrongCards = new List<DictationResultCardViewModel>();
             foreach (DictationResultCard card in result.WrongCards)
@@ -1127,6 +1189,53 @@ public class StudyController : Controller
         catch (KeyNotFoundException)
         {
             return NotFound();
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (InvalidOperationException exception)
+        {
+            TempData["Message"] = exception.Message;
+            return RedirectToAction(nameof(Dictation), new { setId });
+        }
+    }
+
+    [Authorize]
+    [Route("/Study/{setId:int}/History")]
+    public async Task<IActionResult> DictationHistory(int setId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, userId);
+        if (set == null)
+        {
+            return RedirectToAction("Details", "FlashcardSet", new { id = setId });
+        }
+
+        try
+        {
+            List<DictationHistoryItem> history = await _dictationService.GetHistoryAsync(
+                setId,
+                userId);
+            return View(new DictationHistoryViewModel
+            {
+                SetId = setId,
+                SetTitle = set.Title,
+                Items = history.Select(item => new DictationHistoryItemViewModel
+                {
+                    SessionId = item.SessionId,
+                    PromptText = item.PromptText,
+                    AnsweredText = item.AnsweredText,
+                    CorrectAnswer = item.CorrectAnswer,
+                    Definition = item.Definition,
+                    AnsweredAt = item.AnsweredAt
+                }).ToList()
+            });
         }
         catch (UnauthorizedAccessException)
         {

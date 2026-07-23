@@ -17,6 +17,7 @@ public class AppDbContext : DbContext
     public DbSet<UserProgress> UserProgresses => Set<UserProgress>();
     public DbSet<UserStudySettings> UserStudySettings => Set<UserStudySettings>();
     public DbSet<DictationSessionDetail> DictationSessionDetails => Set<DictationSessionDetail>();
+    public DbSet<DictationSessionQuestion> DictationSessionQuestions => Set<DictationSessionQuestion>();
     public DbSet<CardActionLog> CardActionLogs => Set<CardActionLog>();
     public DbSet<AppUser> AppUsers => Set<AppUser>();
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
@@ -118,6 +119,7 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => new { e.UserId, e.FlashcardSetId });
             entity.HasIndex(e => new { e.CompletedAt, e.UserId });
             entity.HasIndex(e => e.StartedAt);
+            entity.Property(e => e.CompletedAt).IsConcurrencyToken();
             entity.HasIndex(e => new { e.UserId, e.FlashcardSetId, e.Mode })
                 .IsUnique()
                 .HasFilter("[Mode] = 1 AND [Score] IS NULL AND [CompletedAt] IS NULL");
@@ -176,6 +178,7 @@ public class AppDbContext : DbContext
         {
             // Index để lấy nhanh các câu trả lời của một phiên
             entity.HasIndex(e => e.StudySessionId);
+            entity.HasIndex(e => new { e.StudySessionId, e.FlashcardId }).IsUnique();
 
             // Quan hệ: nhiều detail thuộc về 1 session
             // Cascade xóa: xóa phiên sẽ xóa luôn chi tiết
@@ -190,6 +193,17 @@ public class AppDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(e => e.FlashcardId)
                   .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<DictationSessionQuestion>(entity =>
+        {
+            entity.HasIndex(e => new { e.StudySessionId, e.OrderIndex }).IsUnique();
+            entity.HasIndex(e => new { e.StudySessionId, e.FlashcardId }).IsUnique();
+            entity.Property(e => e.IsCorrect).IsConcurrencyToken();
+            entity.HasOne(e => e.StudySession)
+                  .WithMany()
+                  .HasForeignKey(e => e.StudySessionId)
+                  .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<AiProvider>(entity =>
