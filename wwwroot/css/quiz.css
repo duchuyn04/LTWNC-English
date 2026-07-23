@@ -213,14 +213,19 @@
     display: flex;
     flex-direction: column;
     justify-content: center;
-    background: #292524;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: #3a3734;
     color: #ffffff;
     box-shadow: 0 24px 64px rgba(28, 25, 23, 0.18);
 }
 
+.quiz-active-session h2 {
+    color: #fffaf5;
+}
+
 .quiz-active-session p {
     margin: 0.25rem 0 0;
-    color: #d6d3d1;
+    color: #e7e1db;
 }
 
 .quiz-active-session .quiz-eyebrow {
