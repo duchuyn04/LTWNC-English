@@ -32,6 +32,8 @@ public class QuizViewTests
         Assert.Contains("data-quiz-preset", QuizSetupView);
         Assert.Contains("data-quiz-custom", QuizSetupView);
         Assert.Contains("data-quiz-submit-label", QuizSetupView);
+        Assert.Contains("data-quiz-replaces-active", QuizSetupView);
+        Assert.Contains("quiz-replace-warning", QuizSetupView);
         Assert.Contains("~/js/quiz-setup.js", QuizSetupView);
         Assert.Contains("Model.ActiveSessionId.HasValue", QuizSetupView);
         Assert.Contains("asp-action=\"Quiz\"", QuizSetupView);
@@ -49,6 +51,8 @@ public class QuizViewTests
         Assert.Contains("customInput.disabled = mode !== 'Custom'", QuizSetupScript);
         Assert.Contains("Bắt đầu không giới hạn", QuizSetupScript);
         Assert.Contains("submitLabel.disabled = true", QuizSetupScript);
+        Assert.Contains("window.confirm", QuizSetupScript);
+        Assert.Contains("event.preventDefault()", QuizSetupScript);
         Assert.Contains("prefers-reduced-motion", QuizStyles);
         Assert.Contains("quiz-setup-layout", QuizStyles);
         Assert.Contains("quiz-timing-card.is-selected", QuizStyles);
@@ -65,6 +69,7 @@ public class QuizViewTests
         Assert.Contains("data-answer-url", QuizView);
         Assert.Contains("for (int index = 0; index < Model.Choices.Count; index++)", QuizView);
         Assert.Contains("data-choice-index=\"@index\"", QuizView);
+        Assert.Contains("data-quiz-choice-text", QuizView);
         Assert.Contains("@Html.AntiForgeryToken()", QuizView);
         Assert.Contains("aria-live=\"polite\"", QuizView);
         Assert.Contains("if (Model.IsReviewOnly", QuizView);
@@ -88,6 +93,8 @@ public class QuizViewTests
         Assert.Contains("Model.DeadlineUtc", QuizView);
         Assert.Contains("QuizTimeout", QuizView);
         Assert.Contains("data-quiz-timer", QuizView);
+        Assert.Contains("aria-live=\"off\"", QuizView);
+        Assert.Contains("data-quiz-timer-announcement", QuizView);
         Assert.Contains("@Html.AntiForgeryToken()", QuizView);
         Assert.Contains("data-quiz-remaining-seconds=\"@Model.RemainingSeconds\"", QuizView);
     }
@@ -125,7 +132,7 @@ public class QuizViewTests
         Assert.Contains("disabled", QuizView);
         Assert.Contains("Model.PreviousQuestionId", QuizView);
         Assert.Contains("Model.NextQuestionId", QuizView);
-        Assert.Contains("Model.IsReviewOnly && Model.NextQuestionId.HasValue", QuizView);
+        Assert.Contains("Model.NextQuestionId != Model.CurrentPendingQuestionId", QuizView);
         Assert.Contains("Model.CurrentPendingQuestionId", QuizView);
         Assert.Contains("asp-route-questionId", QuizView);
         Assert.Contains("Quay lại câu đang làm", QuizView);
@@ -187,6 +194,9 @@ public class QuizViewTests
         Assert.Contains("Date.parse(root.dataset.quizDeadlineUtc)", QuizScript);
         Assert.Contains("deadlineUtc - Date.now()", QuizScript);
         Assert.Contains("window.setInterval(updateTimer", QuizScript);
+        Assert.Contains("window.setInterval(updateTimer, 1000)", QuizScript);
+        Assert.Contains("data-quiz-timer-announcement", QuizScript);
+        Assert.Contains("timerAnnouncement.textContent", QuizScript);
         Assert.Contains("timer.classList.toggle('is-warning'", QuizScript);
         Assert.Contains("let timeoutRequested = false", QuizScript);
         Assert.Contains("if (timeoutRequested) return;", QuizScript);
@@ -219,11 +229,31 @@ public class QuizViewTests
             QuizScript,
             "const result = await response\\.json\\(\\);[\\s\\S]*?nextLink\\.hidden = false;");
 
-        Assert.Contains("const correctChoiceText = correctButton.textContent.trim()", serverGrade);
+        Assert.Contains("querySelector('[data-quiz-choice-text]')", serverGrade);
         Assert.Contains(
             "correctButton.setAttribute('aria-label', `Đáp án đúng: ${correctChoiceText}`)",
             serverGrade);
         Assert.Contains(": `Chưa đúng. Đáp án đúng: ${correctChoiceText}.`;", serverGrade);
+    }
+
+    [Fact]
+    public void Quiz_progress_tracks_answered_questions_and_updates_after_grading()
+    {
+        Assert.Contains("data-quiz-progress", QuizView);
+        Assert.Contains("aria-valuenow=\"@Model.AnsweredCount\"", QuizView);
+        Assert.Contains("data-quiz-progress-count", QuizView);
+        Assert.Contains("data-quiz-progress-bar", QuizView);
+        Assert.Contains("updateAnsweredProgress()", QuizScript);
+        Assert.Contains("progress.setAttribute('aria-valuenow'", QuizScript);
+        Assert.DoesNotContain("(Model.CurrentNumber - 1)", QuizView);
+    }
+
+    [Fact]
+    public void Quiz_view_renders_redirect_feedback_as_an_accessible_status()
+    {
+        Assert.Contains("TempData[\"Message\"] is string message", QuizView);
+        Assert.Contains("class=\"quiz-alert\"", QuizView);
+        Assert.Contains(".quiz-alert", QuizStyles);
     }
 
     [Fact]

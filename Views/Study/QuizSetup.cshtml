@@ -25,7 +25,9 @@
 
                 <form asp-route="QuizStartPost"
                       asp-route-setId="@Model.SetId"
-                      method="post">
+                      method="post"
+                      data-quiz-replaces-active="@Model.ActiveSessionId.HasValue.ToString().ToLowerInvariant()"
+                      data-quiz-replace-message="Bắt đầu bài mới sẽ thay thế bài đang làm và không giữ các câu đã trả lời. Bạn vẫn muốn tiếp tục?">
                     @Html.AntiForgeryToken()
                     <input asp-for="TimingMode" type="hidden" data-quiz-mode-input />
                     <input asp-for="SelectedPresetMinutes" type="hidden" data-quiz-preset-input />
@@ -90,6 +92,13 @@
                         </div>
                         <span asp-validation-for="CustomMinutes"></span>
                     </fieldset>
+
+                    @if (Model.ActiveSessionId.HasValue)
+                    {
+                        <p class="quiz-replace-warning" role="note">
+                            Bắt đầu bài mới sẽ thay thế bài đang làm. Các câu đã trả lời trong bài hiện tại sẽ không được giữ lại.
+                        </p>
+                    }
 
                     <button type="submit"
                             class="quiz-action quiz-action-primary quiz-setup-submit"

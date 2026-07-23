@@ -9,7 +9,9 @@
 
 <div class="mission-topic-page">
     <header class="mission-topic-header">
-        <a class="mission-back" href="/Study/@Model.SetId"><i class="ph ph-arrow-left"></i></a>
+        <a class="mission-back" href="/Study/@Model.SetId" aria-label="Quay lại Study Hub">
+            <i class="ph ph-arrow-left" aria-hidden="true"></i>
+        </a>
         <div><span class="mission-eyebrow">English Mission</span><h1>Chọn tình huống để luyện tập</h1><p>Bộ thẻ: <strong>@Model.SetTitle</strong>. Hệ thống sẽ chọn tối đa 5 từ để đưa vào hội thoại.</p></div>
     </header>
 
@@ -24,7 +26,7 @@
             <form method="post" action="/Study/@Model.SetId/Mission/Start" class="mission-topic-card">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="topic" value="@topic.Id" />
-                <div class="mission-topic-icon"><i class="ph @(topic.Id switch { "airport" => "ph-airplane-tilt", "restaurant" => "ph-fork-knife", "hotel" => "ph-bed", "interview" => "ph-briefcase", _ => "ph-shopping-bag" })"></i></div>
+                <div class="mission-topic-icon" aria-hidden="true"><i class="ph @(topic.Id switch { "airport" => "ph-airplane-tilt", "restaurant" => "ph-fork-knife", "hotel" => "ph-bed", "interview" => "ph-briefcase", _ => "ph-shopping-bag" })"></i></div>
                 <div><h2>@topic.Name</h2><p>@topic.Description</p></div>
                 <button type="submit">Bắt đầu <i class="ph ph-arrow-right"></i></button>
             </form>

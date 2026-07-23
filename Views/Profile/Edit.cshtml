@@ -25,7 +25,7 @@
             </div>
         </div>
         <nav class="settings-nav" aria-label="Cài đặt profile">
-            <a href="#section-avatar" class="settings-nav-link active"><i class="ph ph-image-square"></i> Ảnh đại diện</a>
+            <a href="#section-avatar" class="settings-nav-link active" aria-current="location"><i class="ph ph-image-square"></i> Ảnh đại diện</a>
             <a href="#section-info" class="settings-nav-link"><i class="ph ph-user"></i> Thông tin</a>
             <a href="#section-privacy" class="settings-nav-link"><i class="ph ph-lock"></i> Quyền riêng tư</a>
             <a href="#section-password" class="settings-nav-link"><i class="ph ph-key"></i> Mật khẩu</a>
@@ -34,60 +34,69 @@
 
     <div class="settings-content">
         <header class="settings-heading">
+            <a class="settings-back-link" asp-route="PublicProfile" asp-route-username="@Model.Username">
+                <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                Về profile
+            </a>
             <h1>Chỉnh sửa profile</h1>
             <p>Quản lý thông tin hiển thị và quyền riêng tư của bạn.</p>
         </header>
 
         @if (TempData["Success"] is string success)
         {
-            <div class="settings-alert settings-alert-success"><i class="ph ph-check-circle"></i> @success</div>
+            <div class="settings-alert settings-alert-success" role="status" aria-live="polite">
+                <i class="ph ph-check-circle" aria-hidden="true"></i> @success
+            </div>
         }
         @if (TempData["Error"] is string error)
         {
-            <div class="settings-alert settings-alert-error"><i class="ph ph-warning-circle"></i> @error</div>
+            <div class="settings-alert settings-alert-error" role="alert">
+                <i class="ph ph-warning-circle" aria-hidden="true"></i> @error
+            </div>
         }
 
-        <section id="section-avatar" class="settings-card">
-            <h2>Ảnh đại diện</h2>
+        <section id="section-avatar" class="settings-card" aria-labelledby="section-avatar-title">
+            <h2 id="section-avatar-title">Ảnh đại diện</h2>
             <p class="settings-card-desc">Ảnh hiển thị trên trang profile công khai của bạn.</p>
-            <form asp-controller="Profile" asp-action="Avatar" method="post" enctype="multipart/form-data" class="settings-avatar-form">
+            <form asp-controller="Profile" asp-action="Avatar" method="post" enctype="multipart/form-data" class="settings-avatar-form" data-loading-form>
                 @Html.AntiForgeryToken()
                 <div class="avatar-cropper" data-avatar-cropper>
                     <canvas class="avatar-crop-canvas" data-avatar-canvas width="240" height="240" tabindex="0" aria-label="Khung crop ảnh đại diện"></canvas>
-                    <p class="avatar-crop-help">Kéo ảnh hoặc dùng các phím mũi tên để căn chỉnh, sau đó điều chỉnh zoom.</p>
+                    <p id="avatar-crop-help" class="avatar-crop-help">Kéo ảnh hoặc dùng các phím mũi tên để căn chỉnh, sau đó điều chỉnh zoom.</p>
                     <input type="range" min="1" max="3" step="0.01" value="1" data-avatar-zoom aria-label="Zoom ảnh đại diện" />
                 </div>
                 <div class="settings-avatar-controls">
-                    <input id="avatar" name="avatar" type="file" accept=".jpg,.jpeg,.png,.webp" class="settings-file-input" />
+                    <input id="avatar" name="avatar" type="file" accept=".jpg,.jpeg,.png,.webp" class="settings-file-input" aria-describedby="avatar-file-name avatar-file-help" />
                     <label class="settings-file-btn" for="avatar"><i class="ph ph-upload-simple" aria-hidden="true"></i> Chọn ảnh</label>
-                    <span class="settings-file-name" data-avatar-filename>Chưa chọn ảnh nào</span>
-                    <p class="settings-hint">JPG, PNG hoặc WebP.</p>
-                    <button class="settings-btn settings-btn-primary" type="submit">Lưu ảnh đại diện</button>
+                    <span id="avatar-file-name" class="settings-file-name" data-avatar-filename>Chưa chọn ảnh nào</span>
+                    <p id="avatar-file-help" class="settings-hint">JPG, PNG hoặc WebP, tối đa 5 MB.</p>
+                    <button class="settings-btn settings-btn-primary" type="submit" data-loading-text="Đang tải ảnh...">Lưu ảnh đại diện</button>
                 </div>
             </form>
         </section>
 
-        <form asp-action="Edit" method="post">
+        <form asp-action="Edit" method="post" data-loading-form>
             @Html.AntiForgeryToken()
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
 
-            <section id="section-info" class="settings-card">
-                <h2>Thông tin cá nhân</h2>
+            <section id="section-info" class="settings-card" aria-labelledby="section-info-title">
+                <h2 id="section-info-title">Thông tin cá nhân</h2>
                 <div class="settings-field">
                     <label asp-for="Username">Username</label>
-                    <input asp-for="Username" class="settings-input" />
-                    <small class="settings-hint">3-50 ký tự; dùng chữ không dấu, số, ., _ hoặc -.</small>
+                    <input asp-for="Username" class="settings-input" autocomplete="username" spellcheck="false" aria-describedby="username-help" />
+                    <small id="username-help" class="settings-hint">3-50 ký tự; dùng chữ không dấu, số, ., _ hoặc -.</small>
                     <span asp-validation-for="Username" class="text-danger"></span>
                 </div>
                 <div class="settings-field">
                     <label asp-for="Bio">Bio</label>
-                    <textarea asp-for="Bio" rows="4" class="settings-input"></textarea>
+                    <textarea asp-for="Bio" rows="4" maxlength="500" class="settings-input" aria-describedby="bio-help"></textarea>
+                    <small id="bio-help" class="settings-hint">Tối đa 500 ký tự. Nội dung này xuất hiện trên profile công khai.</small>
                     <span asp-validation-for="Bio" class="text-danger"></span>
                 </div>
             </section>
 
-            <section id="section-privacy" class="settings-card">
-                <h2>Quyền riêng tư</h2>
+            <section id="section-privacy" class="settings-card" aria-labelledby="section-privacy-title">
+                <h2 id="section-privacy-title">Quyền riêng tư</h2>
                 <p class="settings-card-desc">Kiểm soát những gì người khác nhìn thấy trên profile của bạn.</p>
                 <div class="settings-toggles">
                     <label class="settings-toggle-row">
@@ -126,29 +135,58 @@
                         <span class="settings-toggle"><input asp-for="ShowPublicSets" /><span class="settings-toggle-slider"></span></span>
                     </label>
                 </div>
-                <button class="settings-btn settings-btn-primary" type="submit">Lưu thay đổi</button>
+                <button class="settings-btn settings-btn-primary" type="submit" data-loading-text="Đang lưu...">Lưu thay đổi</button>
             </section>
         </form>
 
-        <section id="section-password" class="settings-card">
-            <h2>Đổi mật khẩu</h2>
-            <p class="settings-card-desc">Dùng mật khẩu mạnh, không trùng với các tài khoản khác.</p>
-            <form asp-controller="Profile" asp-action="ChangePassword" method="post">
+        <section id="section-password" class="settings-card" aria-labelledby="section-password-title">
+            <h2 id="section-password-title">Đổi mật khẩu</h2>
+            <p class="settings-card-desc">Mật khẩu phải có ít nhất 8 ký tự, gồm chữ hoa, chữ thường và chữ số.</p>
+            <form asp-controller="Profile" asp-action="ChangePassword" method="post" data-loading-form>
                 @Html.AntiForgeryToken()
-                <div asp-validation-summary="All" class="text-danger"></div>
+                <div asp-validation-summary="All" class="text-danger" role="alert"></div>
                 <div class="settings-field">
                     <label for="CurrentPassword">Mật khẩu hiện tại</label>
-                    <input id="CurrentPassword" name="CurrentPassword" type="password" required class="settings-input" />
+                    <div class="settings-password-input">
+                        <input id="CurrentPassword" name="CurrentPassword" type="password" required class="settings-input" autocomplete="current-password" aria-describedby="current-password-help current-password-error" />
+                        <button type="button" class="settings-password-toggle" data-password-toggle aria-controls="CurrentPassword" aria-pressed="false">Hiện</button>
+                    </div>
+                    <small id="current-password-help" class="settings-hint">Mật khẩu bạn đang dùng để đăng nhập.</small>
+                    <span id="current-password-error" class="text-danger field-validation-error">
+                        @if (ViewData.ModelState[nameof(ChangePasswordViewModel.CurrentPassword)]?.Errors is { Count: > 0 } currentPasswordErrors)
+                        {
+                            @string.Join(" ", currentPasswordErrors.Select(error => error.ErrorMessage))
+                        }
+                    </span>
                 </div>
                 <div class="settings-field">
                     <label for="NewPassword">Mật khẩu mới</label>
-                    <input id="NewPassword" name="NewPassword" type="password" required class="settings-input" />
+                    <div class="settings-password-input">
+                        <input id="NewPassword" name="NewPassword" type="password" required class="settings-input" autocomplete="new-password" aria-describedby="new-password-help new-password-error" />
+                        <button type="button" class="settings-password-toggle" data-password-toggle aria-controls="NewPassword" aria-pressed="false">Hiện</button>
+                    </div>
+                    <small id="new-password-help" class="settings-hint">Tránh dùng lại mật khẩu ở dịch vụ khác.</small>
+                    <span id="new-password-error" class="text-danger field-validation-error">
+                        @if (ViewData.ModelState[nameof(ChangePasswordViewModel.NewPassword)]?.Errors is { Count: > 0 } newPasswordErrors)
+                        {
+                            @string.Join(" ", newPasswordErrors.Select(error => error.ErrorMessage))
+                        }
+                    </span>
                 </div>
                 <div class="settings-field">
                     <label for="ConfirmPassword">Nhập lại mật khẩu mới</label>
-                    <input id="ConfirmPassword" name="ConfirmPassword" type="password" required class="settings-input" />
+                    <div class="settings-password-input">
+                        <input id="ConfirmPassword" name="ConfirmPassword" type="password" required class="settings-input" autocomplete="new-password" aria-describedby="confirm-password-error" />
+                        <button type="button" class="settings-password-toggle" data-password-toggle aria-controls="ConfirmPassword" aria-pressed="false">Hiện</button>
+                    </div>
+                    <span id="confirm-password-error" class="text-danger field-validation-error">
+                        @if (ViewData.ModelState[nameof(ChangePasswordViewModel.ConfirmPassword)]?.Errors is { Count: > 0 } confirmPasswordErrors)
+                        {
+                            @string.Join(" ", confirmPasswordErrors.Select(error => error.ErrorMessage))
+                        }
+                    </span>
                 </div>
-                <button class="settings-btn settings-btn-primary" type="submit">Đổi mật khẩu</button>
+                <button class="settings-btn settings-btn-primary" type="submit" data-loading-text="Đang đổi mật khẩu...">Đổi mật khẩu</button>
             </form>
         </section>
     </div>

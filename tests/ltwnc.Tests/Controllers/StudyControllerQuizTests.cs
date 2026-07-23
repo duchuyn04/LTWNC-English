@@ -213,6 +213,7 @@ public class StudyControllerQuizTests
         Assert.Equal(501, model.QuestionId);
         Assert.Equal(3, model.CurrentNumber);
         Assert.Equal(10, model.TotalQuestions);
+        Assert.Equal(2, model.AnsweredCount);
         Assert.Equal(1, model.CorrectCount);
         Assert.Equal(QuizQuestionDirection.TermToDefinition, model.Direction);
         Assert.Equal("hello", model.PromptText);
@@ -253,6 +254,7 @@ public class StudyControllerQuizTests
         QuizStudyViewModel model = Assert.IsType<QuizStudyViewModel>(
             Assert.IsType<ViewResult>(result).Model);
         Assert.True(model.IsReviewOnly);
+        Assert.Equal(2, model.AnsweredCount);
         Assert.Equal(0, model.SelectedChoiceIndex);
         Assert.Equal(2, model.CorrectChoiceIndex);
         Assert.False(model.IsCorrect);
@@ -518,6 +520,23 @@ public class StudyControllerQuizTests
         Assert.Equal("hello", wrong.PromptText);
         Assert.Equal("tạm biệt", wrong.SelectedAnswer);
         Assert.Equal("xin chào", wrong.CorrectAnswer);
+    }
+
+    [Fact]
+    public async Task QuizResult_incomplete_attempt_redirects_back_to_quiz_with_feedback()
+    {
+        const string message = "Phiên trắc nghiệm chưa hoàn thành.";
+        _quizService.Setup(service => service.GetResultAsync(7, 42, "user-1"))
+            .ThrowsAsync(new QuizConflictException(message));
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.QuizResult(7, 42);
+
+        RedirectToActionResult redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(StudyController.Quiz), redirect.ActionName);
+        Assert.Equal(7, redirect.RouteValues!["setId"]);
+        Assert.Equal(42, redirect.RouteValues["sessionId"]);
+        Assert.Equal(message, controller.TempData["Message"]);
     }
 
     [Fact]

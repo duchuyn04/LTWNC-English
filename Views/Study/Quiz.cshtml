@@ -51,15 +51,34 @@
                 <div class="quiz-timer"
                      data-quiz-timer
                      role="timer"
-                     aria-live="polite"
+                     aria-live="off"
                      aria-label="Thời gian còn lại">--:--</div>
+                <span class="visually-hidden"
+                      data-quiz-timer-announcement
+                      aria-live="polite"></span>
             }
         </header>
 
+        @if (TempData["Message"] is string message)
+        {
+            <div class="quiz-alert" role="status" aria-live="polite">@message</div>
+        }
+
         <div class="quiz-progress" aria-label="Tiến độ bài trắc nghiệm">
-            <span>Câu @Model.CurrentNumber / @Model.TotalQuestions</span>
-            <div class="quiz-progress-track" aria-hidden="true">
-                <span style="width: @((Model.CurrentNumber - 1) * 100 / Math.Max(Model.TotalQuestions, 1))%"></span>
+            <span>
+                Câu @Model.CurrentNumber / @Model.TotalQuestions
+                <span aria-hidden="true">·</span>
+                <span data-quiz-progress-count>Đã trả lời @Model.AnsweredCount / @Model.TotalQuestions</span>
+            </span>
+            <div class="quiz-progress-track"
+                 data-quiz-progress
+                 role="progressbar"
+                 aria-label="Số câu đã trả lời"
+                 aria-valuemin="0"
+                 aria-valuemax="@Model.TotalQuestions"
+                 aria-valuenow="@Model.AnsweredCount">
+                <span data-quiz-progress-bar
+                      style="width: @(Model.AnsweredCount * 100 / Math.Max(Model.TotalQuestions, 1))%"></span>
             </div>
         </div>
 
@@ -86,7 +105,7 @@
                             data-choice-index="@index"
                             disabled="@Model.IsReviewOnly">
                         <span class="quiz-choice-key" aria-hidden="true">@(index + 1)</span>
-                        <span>@Model.Choices[index]</span>
+                        <span data-quiz-choice-text>@Model.Choices[index]</span>
                         @if (Model.IsReviewOnly && index == Model.CorrectChoiceIndex)
                         {
                             <span class="visually-hidden">Đáp án đúng</span>
@@ -114,7 +133,9 @@
                     </a>
                 }
 
-                @if (Model.IsReviewOnly && Model.NextQuestionId.HasValue)
+                @if (Model.IsReviewOnly
+                    && Model.NextQuestionId.HasValue
+                    && Model.NextQuestionId != Model.CurrentPendingQuestionId)
                 {
                     <a class="quiz-next-question"
                        asp-action="Quiz"

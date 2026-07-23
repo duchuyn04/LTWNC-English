@@ -77,6 +77,7 @@ public sealed class EnglishMissionController : Controller
                 Turns = result.Turns
             });
         }
+        catch (KeyNotFoundException) { return NotFound(); }
         catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
@@ -112,6 +113,7 @@ public sealed class EnglishMissionController : Controller
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { success = false, error = exception.Message, retryable = true });
         }
         catch (ArgumentException exception) { return BadRequest(new { success = false, error = exception.Message }); }
+        catch (KeyNotFoundException) { return NotFound(); }
         catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
@@ -124,6 +126,12 @@ public sealed class EnglishMissionController : Controller
         {
             EnglishMissionStartResult result = await _missionService.GetAsync(userId, setId, sessionId, cancellationToken);
             FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, userId);
+            if (result.Mission.Status != "Completed")
+            {
+                TempData["MissionError"] = "Mission chưa hoàn thành. Hãy tiếp tục hội thoại để xem kết quả.";
+                return RedirectToAction(nameof(Chat), new { setId, sessionId });
+            }
+
             return View(new EnglishMissionChatViewModel
             {
                 SetId = setId,
@@ -133,6 +141,7 @@ public sealed class EnglishMissionController : Controller
                 Turns = result.Turns
             });
         }
+        catch (KeyNotFoundException) { return NotFound(); }
         catch (UnauthorizedAccessException) { return Forbid(); }
     }
 }

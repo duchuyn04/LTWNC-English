@@ -98,7 +98,12 @@ public class ProfileController : Controller
 
         if (!ModelState.IsValid)
         {
-            return View("Edit", model);
+            return View(
+                "Edit",
+                await RestoreEditDisplayContextAsync(
+                    _currentUser.UserId,
+                    model,
+                    cancellationToken));
         }
 
         ProfileOperationResult result = await _profileService.UpdateProfileAsync(
@@ -108,7 +113,12 @@ public class ProfileController : Controller
         if (!result.Succeeded)
         {
             AddErrors(result);
-            return View("Edit", model);
+            return View(
+                "Edit",
+                await RestoreEditDisplayContextAsync(
+                    _currentUser.UserId,
+                    model,
+                    cancellationToken));
         }
 
         AppUser? user = await _authService.FindByIdAsync(_currentUser.UserId);
@@ -196,5 +206,29 @@ public class ProfileController : Controller
         {
             ModelState.AddModelError(error.Field, error.Message);
         }
+    }
+
+    private async Task<ProfileEditViewModel> RestoreEditDisplayContextAsync(
+        string userId,
+        ProfileEditViewModel submittedModel,
+        CancellationToken cancellationToken)
+    {
+        ProfileEditViewModel currentModel = await _profileService.GetEditModelAsync(
+            userId,
+            cancellationToken);
+
+        return new ProfileEditViewModel
+        {
+            Username = submittedModel.Username,
+            Bio = submittedModel.Bio,
+            IsPublic = submittedModel.IsPublic,
+            ShowStats = submittedModel.ShowStats,
+            ShowBadges = submittedModel.ShowBadges,
+            ShowActivity = submittedModel.ShowActivity,
+            ShowPublicSets = submittedModel.ShowPublicSets,
+            Email = currentModel.Email,
+            AvatarPath = currentModel.AvatarPath,
+            AvatarInitial = currentModel.AvatarInitial
+        };
     }
 }

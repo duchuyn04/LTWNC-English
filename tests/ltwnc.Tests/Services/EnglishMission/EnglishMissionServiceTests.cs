@@ -5,6 +5,7 @@ using ltwnc.Services.EnglishMission;
 using ltwnc.Services.Study;
 using ltwnc.Services.StudyModes;
 using Microsoft.EntityFrameworkCore;
+using EnglishMissionEntity = ltwnc.Models.Entities.EnglishMission;
 
 namespace ltwnc.Tests.Services.EnglishMission;
 
@@ -146,6 +147,7 @@ public sealed class EnglishMissionServiceTests
         EnglishMissionRespondResult response = await service.RespondAsync("user", 1, started.Mission.StudySessionId, "turn-1", "I lost word1");
 
         Assert.Equal(3, started.TargetWords.Count);
+        Assert.Equal(3, started.Mission.StudySession!.PlannedItemCount);
         Assert.True(response.TargetWords.Single(word => word.Term == "word1").IsUsed);
         Assert.Equal("What color is it?", response.Turn.NpcText);
         Assert.Equal("Completed", response.Mission.Status);
@@ -155,6 +157,51 @@ public sealed class EnglishMissionServiceTests
             "user", 1, started.Mission.StudySessionId, "turn-1", "I lost word1");
         Assert.Equal(response.Turn.Id, retried.Turn.Id);
         Assert.Single(await context.EnglishMissionTurns.ToListAsync());
+    }
+
+    [Fact]
+    public async Task CompleteAsync_counts_goals_achieved_in_previous_turns()
+    {
+        await using AppDbContext context = CreateContext();
+        context.FlashcardSets.Add(new FlashcardSet
+        {
+            Id = 1,
+            UserId = "user",
+            Title = "Travel",
+            IsPublic = false
+        });
+        for (int i = 1; i <= 3; i++)
+        {
+            context.Flashcards.Add(new Flashcard
+            {
+                Id = i,
+                FlashcardSetId = 1,
+                FrontText = $"word{i}",
+                BackText = $"nghĩa {i}",
+                OrderIndex = i
+            });
+        }
+
+        await context.SaveChangesAsync();
+        EnglishMissionService service = CreateService(
+            context,
+            new QueueRouter(StartPayload, TurnPayload));
+        EnglishMissionStartResult started = await service.StartAsync("user", 1, "airport");
+
+        await service.RespondAsync(
+            "user",
+            1,
+            started.Mission.StudySessionId,
+            "turn-1",
+            "I lost word1");
+        await service.CompleteAsync("user", 1, started.Mission.StudySessionId);
+
+        EnglishMissionEntity mission = await context.EnglishMissions
+            .Include(item => item.StudySession)
+            .SingleAsync();
+        Assert.Equal("Completed", mission.Status);
+        Assert.Equal(76, mission.Score);
+        Assert.Equal(3, mission.StudySession!.PlannedItemCount);
     }
 
     // Tạo service với StudyService thật để test quyền truy cập tại đúng public service seam.

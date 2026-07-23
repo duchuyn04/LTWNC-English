@@ -55,6 +55,7 @@ public class QuizServiceTests
         Assert.Null(storedOldSession.Score);
         Assert.Equal(15 * 60, newSession.QuizTimeLimitSeconds);
         Assert.NotNull(newSession.QuizStartedAtUtc);
+        Assert.Equal(4, newSession.PlannedItemCount);
         Assert.NotEqual(oldSession.Id, newSession.Id);
     }
 
@@ -131,6 +132,7 @@ public class QuizServiceTests
             .OrderBy(question => question.OrderIndex)
             .ToListAsync();
         Assert.Equal(4, questions.Count);
+        Assert.Equal(questions.Count, session.PlannedItemCount);
         Assert.Equal(new[] { 0, 1, 2, 3 }, questions.Select(question => question.OrderIndex));
         Assert.All(questions, question => Assert.Equal(4, question.Choices.Count));
     }
@@ -1022,7 +1024,9 @@ public class QuizServiceTests
         await using var database = await QuizTestDatabase.CreateAsync();
         FlashcardSet set = await SeedQuestionPoolAsync(database.Context, cardCount: 8);
         var publisher = new RecordingStudyEventPublisher();
-        QuizService service = CreateService(database.Context, publisher);
+        var timeProvider = new FixedTimeProvider(new DateTimeOffset(
+            2026, 7, 19, 8, 0, 0, TimeSpan.Zero));
+        QuizService service = CreateService(database.Context, publisher, timeProvider);
         StudySession session = await service.StartOrResumeAsync(
             set.Id,
             set.UserId,
@@ -1042,6 +1046,7 @@ public class QuizServiceTests
                 set.Id, session.Id, question.Id, selectedChoice, set.UserId);
         }
 
+        timeProvider.Advance(TimeSpan.FromSeconds(93));
         QuizSessionQuestion lastQuestion = questions[^1];
         int lastWrongChoice = DifferentChoice(lastQuestion.CorrectChoiceIndex);
         QuizAnswerResult result = await service.AnswerAsync(
@@ -1055,6 +1060,8 @@ public class QuizServiceTests
         Assert.True(result.IsLastQuestion);
         Assert.Equal(result, repeated);
         Assert.Equal(13, storedSession.Score);
+        Assert.Equal(questions.Count, storedSession.PlannedItemCount);
+        Assert.Equal(93, storedSession.DurationSeconds);
         StudySessionCompletedEvent completion = Assert.Single(
             publisher.Events.OfType<StudySessionCompletedEvent>());
         Assert.Equal(StudyMode.Quiz, completion.Mode);
@@ -1373,6 +1380,7 @@ public class QuizServiceTests
             .ToListAsync();
         Assert.NotEqual(sourceSession.Id, retrySession.Id);
         Assert.Null(retrySession.Score);
+        Assert.Equal(retryQuestions.Count, retrySession.PlannedItemCount);
         Assert.Null(retrySession.QuizStartedAtUtc);
         Assert.Null(retrySession.QuizTimeLimitSeconds);
         Assert.Equal(wrongCardIds.Order(), retryQuestions.Select(question => question.FlashcardId).Order());
@@ -1508,6 +1516,7 @@ public class QuizServiceTests
         Assert.NotEqual(sourceSession.Id, restarted.Id);
         Assert.NotNull(storedSource.CompletedAt);
         Assert.Null(storedSource.Score);
+        Assert.Equal(restartedQuestions.Count, restarted.PlannedItemCount);
         Assert.Equal(expectedTimeLimitSeconds, restarted.QuizTimeLimitSeconds);
         if (expectedTimeLimitSeconds.HasValue)
         {

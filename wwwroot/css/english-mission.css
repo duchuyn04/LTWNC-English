@@ -9,3 +9,25 @@
 
 /* Avoid 100vw including the Windows scrollbar in the full-bleed breakout. */
 .mission-chat-page{margin-right:calc(50% - 50vw + .5rem);margin-left:calc(50% - 50vw + .5rem)}
+
+.mission-back,
+.mission-topic-card button,
+.mission-send,
+.mission-request-error button{min-height:44px}
+.mission-chat-alert{grid-column:1 / -1;margin:1rem 1.5rem 0}
+.mission-back{width:44px;height:44px}
+.mission-progress span{transition:width 240ms var(--ease-out)}
+.mission-composer-label{display:block;margin:0 0 .4rem;color:var(--ink-soft);font-size:.76rem;font-weight:700}
+.mission-play{min-height:44px;padding:.3rem .5rem}
+.mission-topic-card button:focus-visible,
+.mission-back:focus-visible,
+.mission-rail-brand:focus-visible,
+.mission-exit:focus-visible,
+.mission-play:focus-visible,
+.mission-send:focus-visible,
+.mission-request-error button:focus-visible{outline:3px solid var(--brass-deep);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){
+    .mission-progress span,
+    .mission-topic-card{transition:none}
+    .mission-send.is-loading i{animation:none}
+}

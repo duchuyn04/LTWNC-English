@@ -100,6 +100,7 @@ public class QuizService : IQuizService
                 UserId = userId,
                 Mode = StudyMode.Quiz,
                 CompletedAt = null,
+                StartedAt = now,
                 QuizStartedAtUtc = timeLimitMinutes.HasValue ? now : null,
                 QuizTimeLimitSeconds = timeLimitMinutes.HasValue
                     ? timeLimitMinutes.Value * 60
@@ -109,6 +110,7 @@ public class QuizService : IQuizService
                 setId,
                 userId,
                 sourceCards);
+            session.PlannedItemCount = questions.Count;
             foreach (QuizSessionQuestion question in questions)
             {
                 question.StudySession = session;
@@ -227,12 +229,14 @@ public class QuizService : IQuizService
                 FlashcardSetId = setId,
                 UserId = userId,
                 Mode = StudyMode.Quiz,
-                CompletedAt = null
+                CompletedAt = null,
+                StartedAt = GetUtcNow()
             };
             List<QuizSessionQuestion> questions = await _questionFactory.BuildQuestionsAsync(
                 setId,
                 userId,
                 sourceCards);
+            session.PlannedItemCount = questions.Count;
             foreach (QuizSessionQuestion question in questions)
             {
                 question.StudySession = session;
@@ -676,6 +680,9 @@ public class QuizService : IQuizService
                 correctCount * 100.0 / totalCount,
                 MidpointRounding.AwayFromZero);
         DateTime completedAt = completedAtUtc ?? GetUtcNow();
+        int durationSeconds = StudySessionTiming.CalculateDurationSeconds(
+            session.StartedAt,
+            completedAt);
         int affected = await _context.StudySessions
             .Where(row => row.Id == session.Id
                 && row.FlashcardSetId == session.FlashcardSetId
@@ -685,7 +692,9 @@ public class QuizService : IQuizService
                 && row.CompletedAt == null)
             .ExecuteUpdateAsync(updates => updates
                 .SetProperty(row => row.Score, score)
-                .SetProperty(row => row.CompletedAt, completedAt));
+                .SetProperty(row => row.CompletedAt, completedAt)
+                .SetProperty(row => row.PlannedItemCount, totalCount)
+                .SetProperty(row => row.DurationSeconds, durationSeconds));
         if (affected == 1)
         {
             return new StudySessionCompletedEvent(
@@ -1042,6 +1051,7 @@ public class QuizService : IQuizService
                 UserId = sourceSession.UserId,
                 Mode = StudyMode.Quiz,
                 CompletedAt = null,
+                StartedAt = now,
                 QuizStartedAtUtc = sourceSession.QuizTimeLimitSeconds.HasValue ? now : null,
                 QuizTimeLimitSeconds = sourceSession.QuizTimeLimitSeconds,
                 QuizRetrySourceSessionId = retryKind.HasValue ? sourceSession.Id : null,
@@ -1053,6 +1063,7 @@ public class QuizService : IQuizService
                     sourceSession.UserId,
                     sourceCards,
                     fixedDirections);
+            replacementSession.PlannedItemCount = replacementQuestions.Count;
             foreach (QuizSessionQuestion question in replacementQuestions)
             {
                 question.StudySession = replacementSession;

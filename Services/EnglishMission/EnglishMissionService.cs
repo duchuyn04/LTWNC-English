@@ -100,6 +100,7 @@ public sealed class EnglishMissionService : IEnglishMissionService
             UserId = userId,
             FlashcardSetId = setId,
             Mode = StudyMode.EnglishMission,
+            PlannedItemCount = cards.Count,
             StartedAt = _timeProvider.GetUtcNow().UtcDateTime
         };
         MissionEntity mission = new()
@@ -281,7 +282,20 @@ public sealed class EnglishMissionService : IEnglishMissionService
         if (mission.Status == "Completed") return;
         mission.Status = "Completed";
         mission.CompletedAt = _timeProvider.GetUtcNow().UtcDateTime;
-        mission.Score = CalculateScore(Parse<List<GoalPayload>>(mission.GoalsJson, "[]").Count, 0, mission.TargetWords.Count(word => word.IsUsed), mission.TurnCount);
+        List<GoalPayload> goals = Parse<List<GoalPayload>>(mission.GoalsJson, "[]");
+        HashSet<string> validGoalIds = goals
+            .Select(goal => goal.Id)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        int achievedGoals = mission.Turns
+            .SelectMany(turn => Parse<List<string>>(turn.AchievedGoalsJson, "[]"))
+            .Where(validGoalIds.Contains)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
+        mission.Score = CalculateScore(
+            goals.Count,
+            achievedGoals,
+            mission.TargetWords.Count(word => word.IsUsed),
+            mission.TurnCount);
         mission.StudySession!.CompletedAt = mission.CompletedAt;
         mission.StudySession.DurationSeconds = (int)Math.Clamp((mission.CompletedAt.Value - mission.StudySession.StartedAt).TotalSeconds, 0, 14400);
         mission.StudySession.Score = mission.Score;

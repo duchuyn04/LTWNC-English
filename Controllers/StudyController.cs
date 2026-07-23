@@ -506,6 +506,7 @@ public class StudyController : Controller
                 QuestionId = question.Id,
                 CurrentNumber = question.OrderIndex + 1,
                 TotalQuestions = state.TotalQuestions,
+                AnsweredCount = state.AnsweredCount,
                 CorrectCount = state.CorrectCount,
                 DeadlineUtc = state.DeadlineUtc,
                 RemainingSeconds = state.RemainingSeconds,
@@ -743,11 +744,8 @@ public class StudyController : Controller
         }
         catch (QuizConflictException exception)
         {
-            return StatusCode(StatusCodes.Status409Conflict, new
-            {
-                success = false,
-                message = exception.Message
-            });
+            TempData["Message"] = exception.Message;
+            return RedirectToAction(nameof(Quiz), new { setId, sessionId });
         }
     }
 

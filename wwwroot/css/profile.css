@@ -85,7 +85,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    min-height: 42px;
+    min-height: 44px;
     padding: 9px 18px;
     border: 1px solid var(--line-strong);
     border-radius: var(--radius-control);
@@ -109,6 +109,16 @@
 
 .profile-button:active {
     transform: scale(0.98);
+}
+
+.profile-button:focus-visible,
+.settings-nav-link:focus-visible,
+.settings-back-link:focus-visible,
+.settings-btn:focus-visible,
+.settings-file-btn:focus-visible,
+.settings-password-toggle:focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 3px;
 }
 
 .profile-button-dark {
@@ -241,6 +251,13 @@
     display: grid;
     align-content: start;
     gap: 20px;
+}
+
+.profile-empty-state {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+    line-height: 1.6;
 }
 
 .badge-list {
@@ -502,6 +519,7 @@
     display: flex;
     align-items: center;
     gap: 10px;
+    min-height: 44px;
     padding: 10px 12px;
     border: 1px solid transparent;
     border-radius: var(--radius-control);
@@ -548,6 +566,23 @@
 
 .settings-heading {
     padding: 4px 0 2px;
+}
+
+.settings-back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    min-height: 44px;
+    margin-bottom: 12px;
+    color: var(--muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-out);
+}
+
+.settings-back-link:hover {
+    color: var(--ink);
 }
 
 .settings-heading::before {
@@ -655,6 +690,10 @@
                 box-shadow var(--duration-fast) var(--ease-out);
 }
 
+.settings-input:focus-visible {
+    outline: none;
+}
+
 .settings-input::placeholder {
     color: var(--muted-light);
 }
@@ -681,7 +720,7 @@
     align-items: center;
     justify-content: center;
     gap: 8px;
-    min-height: 42px;
+    min-height: 44px;
     padding: 10px 20px;
     border: 1px solid transparent;
     border-radius: var(--radius-control);
@@ -691,6 +730,11 @@
     cursor: pointer;
     transition: background-color var(--duration-fast) var(--ease-out),
                 transform var(--duration-fast) var(--ease-out);
+}
+
+.settings-btn:disabled {
+    cursor: wait;
+    opacity: 0.65;
 }
 
 .settings-btn:active {
@@ -744,6 +788,7 @@
     display: inline-flex;
     align-items: center;
     gap: 8px;
+    min-height: 44px;
     padding: 9px 18px;
     border: 1px solid var(--line-strong);
     border-radius: var(--radius-control);
@@ -754,6 +799,36 @@
     cursor: pointer;
     transition: background-color var(--duration-fast) var(--ease-out),
                 border-color var(--duration-fast) var(--ease-out);
+}
+
+.settings-password-input {
+    position: relative;
+}
+
+.settings-password-input .settings-input {
+    padding-right: 72px;
+}
+
+.settings-password-toggle {
+    position: absolute;
+    top: 50%;
+    right: 4px;
+    min-width: 56px;
+    min-height: 44px;
+    padding: 6px 8px;
+    transform: translateY(-50%);
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--brass-deep);
+    font-family: var(--font-body);
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.settings-password-toggle:hover {
+    background: var(--sage-soft);
 }
 
 .settings-file-btn:hover {
@@ -969,6 +1044,8 @@
     .settings-input,
     .settings-btn,
     .settings-file-btn,
+    .settings-back-link,
+    .settings-password-toggle,
     .settings-toggle-slider,
     .settings-toggle-slider::before {
         transition: none;

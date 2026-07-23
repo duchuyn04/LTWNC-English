@@ -120,6 +120,13 @@ public class ProfileControllerTests
                 "user-1", It.IsAny<ProfileEditViewModel>(), default))
             .ReturnsAsync(ProfileOperationResult.Failure(
                 new ProfileFieldError(nameof(ProfileEditViewModel.Username), "Tên đăng nhập đã được sử dụng.")));
+        profileService.Setup(service => service.GetEditModelAsync("user-1", default))
+            .ReturnsAsync(new ProfileEditViewModel
+            {
+                Email = "learner@example.com",
+                AvatarPath = "/uploads/avatars/current.png",
+                AvatarInitial = "L"
+            });
         var currentUser = new Mock<ICurrentUser>();
         currentUser.SetupGet(user => user.UserId).Returns("user-1");
         ProfileController controller = CreateController(profileService, currentUser);
@@ -131,6 +138,39 @@ public class ProfileControllerTests
         Assert.Contains(controller.ModelState[nameof(ProfileEditViewModel.Username)]!.Errors,
             error => error.ErrorMessage == "Tên đăng nhập đã được sử dụng.");
         Assert.Equal("Edit", result.ViewName);
+        ProfileEditViewModel viewModel = Assert.IsType<ProfileEditViewModel>(result.Model);
+        Assert.Equal("learner@example.com", viewModel.Email);
+        Assert.Equal("/uploads/avatars/current.png", viewModel.AvatarPath);
+        Assert.Equal("L", viewModel.AvatarInitial);
+    }
+
+    [Fact]
+    public async Task EditPost_InvalidModelState_PreservesSidebarContext()
+    {
+        var profileService = new Mock<IProfileService>();
+        profileService.Setup(service => service.GetEditModelAsync("user-1", default))
+            .ReturnsAsync(new ProfileEditViewModel
+            {
+                Email = "learner@example.com",
+                AvatarPath = "/uploads/avatars/current.png",
+                AvatarInitial = "L"
+            });
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.SetupGet(user => user.UserId).Returns("user-1");
+        ProfileController controller = CreateController(profileService, currentUser);
+        controller.ModelState.AddModelError(nameof(ProfileEditViewModel.Username), "Username không hợp lệ.");
+
+        ViewResult result = Assert.IsType<ViewResult>(await controller.Edit(
+            new ProfileEditViewModel { Username = "bad value" },
+            default));
+
+        ProfileEditViewModel viewModel = Assert.IsType<ProfileEditViewModel>(result.Model);
+        Assert.Equal("learner@example.com", viewModel.Email);
+        Assert.Equal("/uploads/avatars/current.png", viewModel.AvatarPath);
+        profileService.Verify(service => service.UpdateProfileAsync(
+            It.IsAny<string>(),
+            It.IsAny<ProfileEditViewModel>(),
+            It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]

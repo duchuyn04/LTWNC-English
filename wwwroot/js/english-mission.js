@@ -11,6 +11,8 @@
     var retry = document.getElementById('mission-retry');
     var errorBox = document.getElementById('mission-error');
     var transcript = document.getElementById('mission-transcript');
+    var progress = page.querySelector('[data-mission-progress]');
+    var progressBar = page.querySelector('[data-mission-progress-bar]');
     var pendingText = '';
     var pendingTurnId = '';
     var busy = false;
@@ -30,13 +32,33 @@
         var npc = document.createElement('div');
         npc.className = 'mission-message mission-message-npc';
         var detail = '<small>' + escapeText(npcName) + '</small><p lang="en">' + escapeText(turn.npcText) + '</p>';
-        if (turn.feedbackVi) detail += '<span class="mission-message-note"><i class="ph ph-check-circle"></i> ' + escapeText(turn.feedbackVi) + '</span>';
+        detail += '<button class="mission-play" type="button" aria-label="Nghe lại câu của '
+            + escapeText(npcName)
+            + '"><i class="ph ph-speaker-high" aria-hidden="true"></i> Nghe lại</button>';
+        if (turn.feedbackVi) detail += '<span class="mission-message-note"><i class="ph ph-check-circle" aria-hidden="true"></i> ' + escapeText(turn.feedbackVi) + '</span>';
         if (turn.correctionEn) detail += '<div class="mission-correction"><strong>Tự nhiên hơn</strong><span lang="en">' + escapeText(turn.correctionEn) + '</span><small>' + escapeText(turn.correctionExplanationVi) + '</small></div>';
-        npc.innerHTML = '<span class="mission-avatar">AI</span><div>' + detail + '</div>';
+        npc.innerHTML = '<span class="mission-avatar" aria-hidden="true">AI</span><div>' + detail + '</div>';
         transcript.appendChild(npc);
+        configureSpeechButtons();
         npc.scrollIntoView({
             behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
             block: 'end'
+        });
+    }
+
+    function updateProgress(answered) {
+        if (!progress || !progressBar) return;
+        var total = Number(progress.getAttribute('aria-valuemax'));
+        if (!Number.isFinite(total)) return;
+        var value = Math.min(total, answered);
+        progress.setAttribute('aria-valuenow', String(value));
+        progressBar.style.width = (total > 0 ? value * 100 / total : 0) + '%';
+    }
+
+    function configureSpeechButtons() {
+        var supported = Boolean(window.speechSynthesis && window.SpeechSynthesisUtterance);
+        page.querySelectorAll('.mission-play').forEach(function (button) {
+            button.hidden = !supported;
         });
     }
 
@@ -56,7 +78,9 @@
         pendingText = value;
         if (!pendingTurnId) pendingTurnId = window.crypto && window.crypto.randomUUID ? window.crypto.randomUUID() : String(Date.now()) + '-' + Math.random().toString(16).slice(2);
         busy = true;
+        page.setAttribute('aria-busy', 'true');
         send.disabled = true;
+        input.disabled = true;
         send.classList.add('is-loading');
         errorBox.hidden = true;
 
@@ -75,7 +99,9 @@
             appendTurn(data.turn);
             updateWords(data.targetWords);
             var count = document.getElementById('mission-turn-count');
-            count.textContent = String(Number(count.textContent) + 1);
+            var nextCount = Number(count.textContent) + 1;
+            count.textContent = String(nextCount);
+            updateProgress(nextCount);
             input.value = '';
             pendingText = '';
             pendingTurnId = '';
@@ -86,7 +112,9 @@
             input.value = pendingText;
         } finally {
             busy = false;
+            page.setAttribute('aria-busy', 'false');
             send.disabled = false;
+            input.disabled = false;
             send.classList.remove('is-loading');
             input.focus();
         }
@@ -94,12 +122,13 @@
 
     send.addEventListener('click', submit);
     retry.addEventListener('click', submit);
+    configureSpeechButtons();
     input.addEventListener('keydown', function (event) {
         if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); submit(); }
     });
     page.addEventListener('click', function (event) {
         var button = event.target.closest('.mission-play');
-        if (!button || !window.speechSynthesis) return;
+        if (!button || !window.speechSynthesis || !window.SpeechSynthesisUtterance) return;
         var text = button.closest('.mission-message').querySelector('p').textContent;
         window.speechSynthesis.cancel();
         window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));

@@ -27,6 +27,21 @@ public class ProfileMarkupTests
         Assert.Contains("TempData[\"Error\"]", view);
         Assert.Contains("asp-validation-summary=\"All\"", view);
         Assert.Contains("tabindex=\"0\"", view);
+        Assert.Contains("data-loading-form", view);
+        Assert.Contains("data-password-toggle", view);
+        Assert.Contains("autocomplete=\"current-password\"", view);
+        Assert.Contains("autocomplete=\"new-password\"", view);
+        Assert.Contains("settings-back-link", view);
+    }
+
+    [Fact]
+    public void PublicProfileView_RendersHelpfulEmptyStates()
+    {
+        string view = File.ReadAllText(Path.Combine(Root, "Views", "Profile", "Public.cshtml"));
+
+        Assert.Contains("Chưa có hoạt động học tập nào để hiển thị.", view);
+        Assert.Contains("Chưa mở khóa huy hiệu nào.", view);
+        Assert.Contains("Chưa có bộ thẻ công khai nào.", view);
     }
 
     [Fact]
