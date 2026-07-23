@@ -23,6 +23,26 @@
     font-family: var(--font-body);
 }
 
+.editor-back-link {
+    display: inline-flex;
+    width: fit-content;
+    align-items: center;
+    gap: 0.45rem;
+    margin-bottom: 0.85rem;
+    color: var(--ue-muted);
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.editor-back-link i {
+    font-size: 1rem;
+}
+
+.editor-back-link:hover {
+    color: var(--ue-ink);
+}
+
 .editor-header {
     display: flex;
     align-items: flex-start;

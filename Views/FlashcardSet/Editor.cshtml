@@ -9,6 +9,11 @@
 }
 
 <div class="unified-editor" data-set-id="@Model.Id" data-is-new="@(Model.Id.HasValue ? "false" : "true")" data-description="@(Model.Description ?? "")" data-is-public="@Model.IsPublic.ToString().ToLowerInvariant()" data-is-quarantined="@Model.IsQuarantined.ToString().ToLowerInvariant()">
+    <a class="editor-back-link" href="/Set">
+        <i class="ph ph-arrow-left" aria-hidden="true"></i>
+        <span>Quay lại bộ thẻ</span>
+    </a>
+
     <div class="editor-header">
         <div>
             <h2>Danh sách từ</h2>
@@ -70,8 +75,12 @@
                     </button>
                     <span class="card-term">@card.FrontText</span>
                     <div class="card-actions">
-                        <button type="button" class="btn-move-up" aria-label="Move up">↑</button>
-                        <button type="button" class="btn-move-down" aria-label="Move down">↓</button>
+                        <button type="button" class="btn-move-up" aria-label="Đưa thẻ lên" title="Đưa thẻ lên">
+                            <i class="ph ph-caret-up" aria-hidden="true"></i>
+                        </button>
+                        <button type="button" class="btn-move-down" aria-label="Đưa thẻ xuống" title="Đưa thẻ xuống">
+                            <i class="ph ph-caret-down" aria-hidden="true"></i>
+                        </button>
                         <button type="button" class="btn-toggle" aria-label="Expand/collapse">▲</button>
                         <button type="button" class="btn-delete" aria-label="Delete">🗑</button>
                     </div>
@@ -129,7 +138,6 @@
                 class="btn btn-primary"
                 disabled>
             Hoàn tất
-            <i class="ph ph-arrow-right" aria-hidden="true"></i>
         </button>
     </div>
 </div>

@@ -347,8 +347,12 @@
                 <button type="button" class="btn-star" aria-label="Toggle star">☆</button>
                 <span class="card-term"></span>
                 <div class="card-actions">
-                    <button type="button" class="btn-move-up" aria-label="Move up">↑</button>
-                    <button type="button" class="btn-move-down" aria-label="Move down">↓</button>
+                    <button type="button" class="btn-move-up" aria-label="Đưa thẻ lên" title="Đưa thẻ lên">
+                        <i class="ph ph-caret-up" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="btn-move-down" aria-label="Đưa thẻ xuống" title="Đưa thẻ xuống">
+                        <i class="ph ph-caret-down" aria-hidden="true"></i>
+                    </button>
                     <button type="button" class="btn-toggle" aria-label="Expand/collapse">▲</button>
                     <button type="button" class="btn-delete" aria-label="Delete">🗑</button>
                 </div>
@@ -614,7 +618,7 @@
         const list = document.createElement('ul');
         valid.slice(0, 5).forEach(r => {
             const li = document.createElement('li');
-            li.textContent = `${r.frontText} → ${r.backText}`;
+            li.textContent = `${r.frontText} · ${r.backText}`;
             list.appendChild(li);
         });
         invalid.forEach(r => {
