@@ -18,6 +18,7 @@
     max-width: 960px;
     margin: 0 auto;
     padding: clamp(1rem, 3vw, 2rem);
+    padding-bottom: clamp(5.75rem, 10vw, 7rem);
     color: var(--ue-ink);
     font-family: var(--font-body);
 }
@@ -51,6 +52,79 @@
     justify-content: flex-end;
     gap: 0.65rem;
     flex-wrap: wrap;
+}
+
+.editor-quick-actions {
+    position: fixed;
+    right: 50%;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+    z-index: 900;
+    display: flex;
+    width: min(760px, calc(100vw - 2rem));
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.7rem 0.8rem 0.7rem 1rem;
+    border: 1px solid color-mix(in srgb, var(--ue-line) 82%, transparent);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--ue-surface) 95%, transparent);
+    box-shadow: 0 18px 54px rgba(31, 39, 30, 0.18);
+    backdrop-filter: blur(16px);
+    transform: translateX(50%);
+}
+
+.editor-quick-save-state {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 0.65rem;
+    color: var(--ue-muted);
+}
+
+.editor-quick-save-state > span:last-child {
+    display: grid;
+    min-width: 0;
+    gap: 0.05rem;
+}
+
+.editor-quick-save-state strong {
+    overflow: hidden;
+    color: var(--ue-ink);
+    font-size: 0.82rem;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.editor-quick-save-state small {
+    font-size: 0.7rem;
+}
+
+.editor-quick-save-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: var(--ue-success);
+    box-shadow: 0 0 0 4px var(--ue-success-bg);
+}
+
+.editor-quick-actions[data-state="saving"] .editor-quick-save-dot,
+.editor-quick-actions[data-state="pending"] .editor-quick-save-dot {
+    background: var(--ue-accent);
+    box-shadow: 0 0 0 4px var(--ue-accent-soft);
+}
+
+.editor-quick-actions[data-state="error"] .editor-quick-save-dot {
+    background: var(--ue-error);
+    box-shadow: 0 0 0 4px var(--ue-error-bg);
+}
+
+.editor-quick-actions .btn {
+    display: inline-flex;
+    min-width: 142px;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
 }
 
 .unified-editor .btn,
@@ -555,6 +629,16 @@
 }
 
 @media (max-width: 767px) {
+    .editor-quick-actions {
+        width: calc(100vw - 1rem);
+        gap: 0.65rem;
+        padding: 0.6rem;
+    }
+
+    .editor-quick-actions .btn {
+        min-width: 118px;
+    }
+
     .editor-header {
         flex-direction: column;
     }
@@ -602,6 +686,18 @@
 @media (max-width: 480px) {
     .unified-editor {
         padding-inline: 0;
+    }
+
+    .editor-quick-actions {
+        bottom: max(0.5rem, env(safe-area-inset-bottom));
+    }
+
+    .editor-quick-save-state small {
+        display: none;
+    }
+
+    .editor-quick-actions .btn {
+        min-width: 112px;
     }
 
     .header-actions .btn {

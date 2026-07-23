@@ -26,6 +26,10 @@
     const saveStatus = document.getElementById('save-status');
     const cardCountLabel = document.getElementById('card-count');
     const btnFinish = document.getElementById('btn-finish');
+    const quickActions = document.querySelector('.editor-quick-actions');
+    const quickSaveLabel = document.getElementById('editor-quick-save-label');
+    const quickCardCount = document.getElementById('editor-quick-card-count');
+    const btnFinishSticky = document.getElementById('btn-finish-sticky');
     const btnAdd = document.getElementById('btn-add-card');
 
     let pendingSaves = new Map(); // cardId -> timeoutId
@@ -49,6 +53,7 @@
             card.querySelector('.card-number').textContent = index + 1;
         });
         cardCountLabel.textContent = cards.length;
+        if (quickCardCount) quickCardCount.textContent = cards.length;
     }
 
     async function persistOrder() {
@@ -117,6 +122,8 @@
     function setSaveStatus(message, type) {
         saveStatus.textContent = message;
         saveStatus.className = 'save-status ' + (type || '');
+        if (quickSaveLabel) quickSaveLabel.textContent = message || 'Đã tự động lưu';
+        if (quickActions) quickActions.dataset.state = type || 'saved';
     }
 
     function markCardDirty(card) {
@@ -487,8 +494,14 @@
         });
     }
 
+    function syncFinishButtons() {
+        const disabled = !setTitleInput.value.trim();
+        btnFinish.disabled = disabled;
+        if (btnFinishSticky) btnFinishSticky.disabled = disabled;
+    }
+
     setTitleInput.addEventListener('input', () => {
-        btnFinish.disabled = !setTitleInput.value.trim();
+        syncFinishButtons();
         markTitleDirty();
     });
     setTitleInput.addEventListener('blur', async () => {
@@ -504,9 +517,12 @@
         card.querySelector('.input-front').focus();
     });
 
-    btnFinish.addEventListener('click', () => {
+    function finishEditor() {
         window.location.href = '/Set';
-    });
+    }
+
+    btnFinish.addEventListener('click', finishEditor);
+    btnFinishSticky?.addEventListener('click', finishEditor);
 
     const btnImport = document.getElementById('btn-import');
     const importModal = document.getElementById('import-modal');
@@ -640,7 +656,7 @@
 
     container.querySelectorAll('.flashcard-card').forEach(bindCardEvents);
     updateCardNumbering();
-    btnFinish.disabled = !setTitleInput.value.trim();
+    syncFinishButtons();
 
     window.addEventListener('beforeunload', (e) => {
         if (dirtyCards.size > 0 || isTitleDirty) {

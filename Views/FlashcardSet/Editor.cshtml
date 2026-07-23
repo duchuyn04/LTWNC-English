@@ -115,6 +115,23 @@
     </div>
 
     <button id="btn-add-card" type="button" class="btn btn-add-card">+ Thêm thẻ mới</button>
+
+    <div class="editor-quick-actions" aria-label="Thao tác nhanh">
+        <div class="editor-quick-save-state">
+            <span class="editor-quick-save-dot" aria-hidden="true"></span>
+            <span>
+                <strong id="editor-quick-save-label">Đã tự động lưu</strong>
+                <small><span id="editor-quick-card-count">@Model.Cards.Count</span> thẻ trong bộ</small>
+            </span>
+        </div>
+        <button id="btn-finish-sticky"
+                type="button"
+                class="btn btn-primary"
+                disabled>
+            Hoàn tất
+            <i class="ph ph-arrow-right" aria-hidden="true"></i>
+        </button>
+    </div>
 </div>
 
 <div id="import-modal" class="modal" style="display:none;">
