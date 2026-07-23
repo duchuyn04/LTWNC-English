@@ -52,7 +52,7 @@ public class FlashcardSetImportControllerTests
     {
         var (controller, import) = Create("owner");
         var file = File();
-        import.Setup(x => x.ImportAsync(4, "owner", file, It.IsAny<CancellationToken>()))
+        import.Setup(x => x.ImportAsync(4, "owner", file, false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new FlashcardImportResult { ImportedCount = 2, SkippedCount = 1 });
 
         var result = await controller.Import(4, file);
@@ -65,10 +65,71 @@ public class FlashcardSetImportControllerTests
     }
 
     [Fact]
+    public async Task PreviewImport_ReturnsCappedJson()
+    {
+        var (controller, import) = Create("owner");
+        IFormFile file = File();
+        FlashcardImportRow[] rows = Enumerable.Range(1, 8)
+            .Select(row => new FlashcardImportRow
+            {
+                RowNumber = row + 1,
+                FrontText = $"term {row}",
+                BackText = $"definition {row}"
+            })
+            .ToArray();
+        FlashcardImportError[] errors = Enumerable.Range(1, 105)
+            .Select(row => new FlashcardImportError
+            {
+                RowNumber = row,
+                Reason = $"error {row}"
+            })
+            .ToArray();
+        import.Setup(x => x.PreviewAsync(
+                4,
+                "owner",
+                file,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FlashcardImportPreview
+            {
+                Rows = rows,
+                Errors = errors
+            });
+
+        var result = Assert.IsType<JsonResult>(
+            await controller.PreviewImport(4, file));
+        string json = JsonSerializer.Serialize(result.Value);
+
+        Assert.Contains("\"validCount\":8", json);
+        Assert.Contains("\"skippedCount\":105", json);
+        Assert.Contains("\"errorsOmittedCount\":5", json);
+        Assert.Equal(5, JsonDocument.Parse(json).RootElement.GetProperty("rows").GetArrayLength());
+        Assert.Equal(100, JsonDocument.Parse(json).RootElement.GetProperty("errors").GetArrayLength());
+        import.VerifyAll();
+    }
+
+    [Fact]
+    public async Task Import_ForwardsReplaceMode()
+    {
+        var (controller, import) = Create("owner");
+        IFormFile file = File();
+        import.Setup(x => x.ImportAsync(
+                4,
+                "owner",
+                file,
+                true,
+                It.IsAny<CancellationToken>()))
+            .ReturnsAsync(new FlashcardImportResult { ImportedCount = 2 });
+
+        await controller.Import(4, file, replaceAll: true);
+
+        import.VerifyAll();
+    }
+
+    [Fact]
     public async Task Import_FileException_SetsErrorAndRedirects()
     {
         var (controller, import) = Create("owner");
-        import.Setup(x => x.ImportAsync(4, "owner", It.IsAny<IFormFile>(), It.IsAny<CancellationToken>()))
+        import.Setup(x => x.ImportAsync(4, "owner", It.IsAny<IFormFile>(), false, It.IsAny<CancellationToken>()))
             .ThrowsAsync(new FlashcardImportException("bad file"));
 
         var result = await controller.Import(4, File());
@@ -81,7 +142,7 @@ public class FlashcardSetImportControllerTests
     public async Task Import_ResultErrors_AreSerializedForView()
     {
         var (controller, import) = Create("owner");
-        import.Setup(x => x.ImportAsync(4, "owner", It.IsAny<IFormFile>(), It.IsAny<CancellationToken>()))
+        import.Setup(x => x.ImportAsync(4, "owner", It.IsAny<IFormFile>(), false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new FlashcardImportResult
             {
                 ImportedCount = 1,
@@ -103,7 +164,7 @@ public class FlashcardSetImportControllerTests
         FlashcardImportError[] errors = Enumerable.Range(1, 105)
             .Select(row => new FlashcardImportError { RowNumber = row, Reason = $"error {row}" })
             .ToArray();
-        import.Setup(x => x.ImportAsync(4, "owner", It.IsAny<IFormFile>(), It.IsAny<CancellationToken>()))
+        import.Setup(x => x.ImportAsync(4, "owner", It.IsAny<IFormFile>(), false, It.IsAny<CancellationToken>()))
             .ReturnsAsync(new FlashcardImportResult
             {
                 SkippedCount = errors.Length,
@@ -126,5 +187,21 @@ public class FlashcardSetImportControllerTests
         var method = typeof(FlashcardSetController).GetMethod(nameof(FlashcardSetController.Import));
         Assert.NotNull(method);
         Assert.NotNull(method!.GetCustomAttributes(typeof(ValidateAntiForgeryTokenAttribute), inherit: true).SingleOrDefault());
+    }
+
+    [Fact]
+    public void PreviewImport_HasAntiforgeryAndUploadRateLimit()
+    {
+        var method = typeof(FlashcardSetController)
+            .GetMethod(nameof(FlashcardSetController.PreviewImport));
+
+        Assert.NotNull(method);
+        Assert.NotNull(method!
+            .GetCustomAttributes(typeof(ValidateAntiForgeryTokenAttribute), inherit: true)
+            .SingleOrDefault());
+        var rateLimit = Assert.Single(method
+            .GetCustomAttributes(typeof(Microsoft.AspNetCore.RateLimiting.EnableRateLimitingAttribute), inherit: true)
+            .Cast<Microsoft.AspNetCore.RateLimiting.EnableRateLimitingAttribute>());
+        Assert.Equal("uploads", rateLimit.PolicyName);
     }
 }

@@ -332,10 +332,54 @@ public class FlashcardSetController : Controller
 
     // POST nhập nhiều thẻ từ CSV/XLSX, luôn redirect về Edit để tránh gửi lại form.
     [HttpPost]
+    [Route("/Set/{id}/Import/Preview")]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("uploads")]
+    public async Task<IActionResult> PreviewImport(int id, IFormFile? file)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        try
+        {
+            FlashcardImportPreview preview = await _importService.PreviewAsync(
+                id,
+                userId,
+                file!,
+                HttpContext.RequestAborted);
+
+            return Json(new
+            {
+                validCount = preview.ValidCount,
+                skippedCount = preview.SkippedCount,
+                rows = preview.Rows.Take(5),
+                errors = preview.Errors.Take(MaxDisplayedImportErrors),
+                errorsOmittedCount = Math.Max(
+                    0,
+                    preview.Errors.Count - MaxDisplayedImportErrors)
+            });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (FlashcardImportException exception)
+        {
+            return BadRequest(new { error = exception.Message });
+        }
+    }
+
+    [HttpPost]
     [Route("/Set/{id}/Import")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("uploads")]
-    public async Task<IActionResult> Import(int id, IFormFile? file)
+    public async Task<IActionResult> Import(
+        int id,
+        IFormFile? file,
+        bool replaceAll = false)
     {
         string? userId = _currentUser.UserId;
         if (userId == null)
@@ -349,6 +393,7 @@ public class FlashcardSetController : Controller
                 id,
                 userId,
                 file!,
+                replaceAll,
                 HttpContext.RequestAborted);
 
             TempData["ImportImportedCount"] = result.ImportedCount;
