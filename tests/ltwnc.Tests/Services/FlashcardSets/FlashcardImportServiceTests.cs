@@ -2,6 +2,7 @@ using System.Text;
 using ClosedXML.Excel;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
+using ltwnc.Models.ViewModels.FlashcardSet;
 using ltwnc.Services.FlashcardSets;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
@@ -47,6 +48,36 @@ public class FlashcardImportServiceTests : IDisposable
         Assert.Equal(1, result.SkippedCount);
         Assert.Equal(3, result.Errors.Single().RowNumber);
         Assert.Equal(new[] { 7, 8 }, await _context.Flashcards.Where(c => c.FlashcardSetId == _setId).OrderBy(c => c.OrderIndex).Select(c => c.OrderIndex).ToArrayAsync());
+    }
+
+    [Fact]
+    public async Task Preview_returns_rows_and_errors_without_mutating_database()
+    {
+        var csv = Headers + "\nrun,chạy,/r/,verb,Run!,Chạy!\ninvalid,,/i/,noun,Example,Meaning\n";
+
+        FlashcardImportPreview preview =
+            await _service.PreviewAsync(_setId, "owner", FormFile(csv, "cards.csv"));
+
+        Assert.Equal(1, preview.ValidCount);
+        Assert.Equal(1, preview.SkippedCount);
+        Assert.Equal("run", preview.Rows.Single().FrontText);
+        Assert.Equal(3, preview.Errors.Single().RowNumber);
+        Assert.Equal(
+            1,
+            await _context.Flashcards.CountAsync(card => card.FlashcardSetId == _setId));
+    }
+
+    [Fact]
+    public async Task Preview_rejects_non_owner_without_mutating_database()
+    {
+        var csv = Headers + "\nrun,chạy,/r/,verb,Run!,Chạy!\n";
+
+        await Assert.ThrowsAsync<UnauthorizedAccessException>(() =>
+            _service.PreviewAsync(_setId, "other", FormFile(csv, "cards.csv")));
+
+        Assert.Equal(
+            1,
+            await _context.Flashcards.CountAsync(card => card.FlashcardSetId == _setId));
     }
 
     [Fact]
