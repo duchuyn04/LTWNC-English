@@ -133,11 +133,12 @@ body {
 .set-title {
     overflow: hidden;
     margin: 0;
+    padding-block: 0.05em 0.12em;
     color: var(--fc-ink);
     font-size: clamp(1.8rem, 4vw, 3rem);
     font-weight: 800;
     letter-spacing: -0.045em;
-    line-height: 1.05;
+    line-height: 1.1;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -389,8 +390,10 @@ body {
     position: relative;
     height: clamp(360px, 52vh, 520px);
     border-radius: var(--fc-radius);
+    transform: rotateY(0deg);
     transform-style: preserve-3d;
-    transition: transform 300ms var(--ease-out);
+    transition: transform 460ms var(--ease-out);
+    will-change: transform;
 }
 
 .flashcard-core.flipped {
@@ -406,9 +409,17 @@ body {
     padding: clamp(1.25rem, 3vw, 2rem);
     border: 1px solid var(--fc-line);
     border-radius: inherit;
+    -webkit-backface-visibility: hidden;
     backface-visibility: hidden;
     overflow: hidden;
     background: var(--fc-paper);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /* A short, user-triggered flip still communicates the face change. */
+    .flashcard-core {
+        transition-duration: 140ms !important;
+    }
 }
 
 .card-back {
