@@ -1,13 +1,27 @@
 @model FlashcardStudyViewModel
+@inject IWebHostEnvironment HostEnvironment
 @{
     ViewData["Title"] = "Học flashcard";
     ViewData["HideLayoutChrome"] = true;
 
     var dictationMode = Model.Modes.FirstOrDefault(mode => mode.Mode == StudyMode.Dictation);
     var missionMode = Model.Modes.FirstOrDefault(mode => mode.Mode == StudyMode.EnglishMission);
+
+    var isStudyModePrototype = HostEnvironment.IsDevelopment();
+    var requestedVariant = Context.Request.Query["variant"].ToString().ToUpperInvariant();
+    var prototypeVariant = requestedVariant is "A" or "B" or "C"
+        ? requestedVariant
+        : "A";
+    var prototypePartial = $"Prototypes/_StudyModeVariant{prototypeVariant}";
 }
 
 <link rel="stylesheet" href="~/css/flashcard.css" asp-append-version="true" />
+@if (isStudyModePrototype)
+{
+    <link rel="stylesheet"
+          href="~/css/flashcard-study-mode-prototype.css"
+          asp-append-version="true" />
+}
 
 <div class="study-shell">
     @Html.AntiForgeryToken()
@@ -53,44 +67,64 @@
             </div>
         }
 
-        <div class="study-mode-row">
-            <nav class="study-mode-tabs" aria-label="Chế độ học">
-                <a class="study-mode-tab is-active" href="/Study/@Model.SetId/Flashcard" aria-current="page">
-                    <i class="ph ph-cards" aria-hidden="true"></i>
-                    <span>Flashcard</span>
-                </a>
-
-                @if (dictationMode?.IsAvailable == true)
-                {
-                    <a class="study-mode-tab" href="@dictationMode.ActionUrl">
-                        <i class="ph ph-headphones" aria-hidden="true"></i>
-                        <span>Nghe chép</span>
+        @if (isStudyModePrototype)
+        {
+            <div class="study-mode-prototype"
+                 data-study-mode-prototype
+                 data-variant="@prototypeVariant">
+                @await Html.PartialAsync(prototypePartial, Model)
+                @await Html.PartialAsync(
+                    "Prototypes/_StudyModePrototypeSwitcher",
+                    prototypeVariant)
+            </div>
+        }
+        else
+        {
+            <div class="study-mode-row">
+                <nav class="study-mode-tabs" aria-label="Chế độ học">
+                    <a class="study-mode-tab is-active"
+                       href="/Study/@Model.SetId/Flashcard"
+                       aria-current="page">
+                        <i class="ph ph-cards" aria-hidden="true"></i>
+                        <span>Flashcard</span>
                     </a>
-                }
-                else
-                {
-                    <span class="study-mode-tab is-disabled" aria-disabled="true" title="@(dictationMode?.UnavailableReason ?? "Chế độ chưa khả dụng")">
-                        <i class="ph ph-headphones" aria-hidden="true"></i>
-                        <span>Nghe chép</span>
-                    </span>
-                }
 
-                @if (missionMode?.IsAvailable == true)
-                {
-                    <a class="study-mode-tab" href="@missionMode.ActionUrl">
-                        <i class="ph ph-chats-circle" aria-hidden="true"></i>
-                        <span>English Mission</span>
-                    </a>
-                }
-                else
-                {
-                    <span class="study-mode-tab is-disabled" aria-disabled="true" title="@(missionMode?.UnavailableReason ?? "Chế độ chưa khả dụng")">
-                        <i class="ph ph-chats-circle" aria-hidden="true"></i>
-                        <span>English Mission</span>
-                    </span>
-                }
-            </nav>
-        </div>
+                    @if (dictationMode?.IsAvailable == true)
+                    {
+                        <a class="study-mode-tab" href="@dictationMode.ActionUrl">
+                            <i class="ph ph-headphones" aria-hidden="true"></i>
+                            <span>Nghe chép</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="study-mode-tab is-disabled"
+                              aria-disabled="true"
+                              title="@(dictationMode?.UnavailableReason ?? "Chế độ chưa khả dụng")">
+                            <i class="ph ph-headphones" aria-hidden="true"></i>
+                            <span>Nghe chép</span>
+                        </span>
+                    }
+
+                    @if (missionMode?.IsAvailable == true)
+                    {
+                        <a class="study-mode-tab" href="@missionMode.ActionUrl">
+                            <i class="ph ph-chats-circle" aria-hidden="true"></i>
+                            <span>English Mission</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <span class="study-mode-tab is-disabled"
+                              aria-disabled="true"
+                              title="@(missionMode?.UnavailableReason ?? "Chế độ chưa khả dụng")">
+                            <i class="ph ph-chats-circle" aria-hidden="true"></i>
+                            <span>English Mission</span>
+                        </span>
+                    }
+                </nav>
+            </div>
+        }
 
         <div class="study-focus-column">
             <div class="progress-strip">
@@ -304,6 +338,12 @@
 </div>
 
 @section Scripts {
+    @if (isStudyModePrototype)
+    {
+        <script src="~/js/flashcard-study-mode-prototype.js"
+                asp-append-version="true"></script>
+    }
+
     <script>
         let flashcards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Flashcards.Select(c => new
         {
