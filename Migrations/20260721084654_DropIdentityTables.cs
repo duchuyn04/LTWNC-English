@@ -11,49 +11,59 @@ namespace ltwnc.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_FlashcardSets_AspNetUsers_UserId",
-                table: "FlashcardSets");
+            // Giữ nguyên id và password hash để tài khoản Identity cũ tiếp tục đăng nhập được.
+            migrationBuilder.Sql(
+                """
+                INSERT INTO [AppUsers] (
+                    [Id], [Email], [NormalizedEmail], [UserName], [NormalizedUserName],
+                    [PasswordHash], [SecurityStamp], [ConcurrencyStamp], [LockoutEnd],
+                    [AccessFailedCount], [IsAdmin])
+                SELECT
+                    [user].[Id],
+                    COALESCE(NULLIF([user].[Email], N''), CONCAT([user].[Id], N'@legacy.local')),
+                    COALESCE(NULLIF([user].[NormalizedEmail], N''), UPPER(COALESCE(NULLIF([user].[Email], N''), CONCAT([user].[Id], N'@legacy.local')))),
+                    COALESCE(NULLIF([user].[UserName], N''), [user].[Id]),
+                    COALESCE(NULLIF([user].[NormalizedUserName], N''), UPPER(COALESCE(NULLIF([user].[UserName], N''), [user].[Id]))),
+                    COALESCE([user].[PasswordHash], N''),
+                    COALESCE(NULLIF([user].[SecurityStamp], N''), CONVERT(nvarchar(36), NEWID())),
+                    COALESCE(NULLIF([user].[ConcurrencyStamp], N''), CONVERT(nvarchar(36), NEWID())),
+                    [user].[LockoutEnd],
+                    [user].[AccessFailedCount],
+                    CASE WHEN EXISTS (
+                        SELECT 1
+                        FROM [AspNetUserRoles] AS [userRole]
+                        INNER JOIN [AspNetRoles] AS [role] ON [role].[Id] = [userRole].[RoleId]
+                        WHERE [userRole].[UserId] = [user].[Id]
+                          AND [role].[NormalizedName] = N'ADMIN'
+                    ) THEN CAST(1 AS bit) ELSE CAST(0 AS bit) END
+                FROM [AspNetUsers] AS [user]
+                WHERE NOT EXISTS (
+                    SELECT 1 FROM [AppUsers] AS [appUser] WHERE [appUser].[Id] = [user].[Id]
+                );
+                """);
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_StudySessions_AspNetUsers_UserId",
-                table: "StudySessions");
+            // Một số database đã mất các FK này từ migration auth cũ, nên chỉ xóa khi còn tồn tại.
+            migrationBuilder.Sql(
+                """
+                IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE [name] = N'FK_FlashcardSets_AspNetUsers_UserId')
+                    ALTER TABLE [FlashcardSets] DROP CONSTRAINT [FK_FlashcardSets_AspNetUsers_UserId];
+                IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE [name] = N'FK_StudySessions_AspNetUsers_UserId')
+                    ALTER TABLE [StudySessions] DROP CONSTRAINT [FK_StudySessions_AspNetUsers_UserId];
+                IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE [name] = N'FK_UserProgresses_AspNetUsers_UserId')
+                    ALTER TABLE [UserProgresses] DROP CONSTRAINT [FK_UserProgresses_AspNetUsers_UserId];
+                IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE [name] = N'FK_UserStudySettings_AspNetUsers_UserId')
+                    ALTER TABLE [UserStudySettings] DROP CONSTRAINT [FK_UserStudySettings_AspNetUsers_UserId];
+                IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE [name] = N'FK_UserProfiles_AspNetUsers_UserId')
+                    ALTER TABLE [UserProfiles] DROP CONSTRAINT [FK_UserProfiles_AspNetUsers_UserId];
 
-            migrationBuilder.DropForeignKey(
-                name: "FK_UserProgresses_AspNetUsers_UserId",
-                table: "UserProgresses");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_UserStudySettings_AspNetUsers_UserId",
-                table: "UserStudySettings");
-
-            // Reset dữ liệu hồ sơ auth cũ để FK mới không trỏ tới AppUsers chưa có tài khoản.
-            migrationBuilder.Sql("DELETE FROM [UserProfiles];");
-
-            migrationBuilder.DropForeignKey(
-                name: "FK_UserProfiles_AspNetUsers_UserId",
-                table: "UserProfiles");
-
-            migrationBuilder.DropTable(
-                name: "AspNetRoleClaims");
-
-            migrationBuilder.DropTable(
-                name: "AspNetUserClaims");
-
-            migrationBuilder.DropTable(
-                name: "AspNetUserLogins");
-
-            migrationBuilder.DropTable(
-                name: "AspNetUserRoles");
-
-            migrationBuilder.DropTable(
-                name: "AspNetUserTokens");
-
-            migrationBuilder.DropTable(
-                name: "AspNetRoles");
-
-            migrationBuilder.DropTable(
-                name: "AspNetUsers");
+                DROP TABLE IF EXISTS [AspNetRoleClaims];
+                DROP TABLE IF EXISTS [AspNetUserClaims];
+                DROP TABLE IF EXISTS [AspNetUserLogins];
+                DROP TABLE IF EXISTS [AspNetUserRoles];
+                DROP TABLE IF EXISTS [AspNetUserTokens];
+                DROP TABLE IF EXISTS [AspNetRoles];
+                DROP TABLE IF EXISTS [AspNetUsers];
+                """);
 
             migrationBuilder.AddForeignKey(
                 name: "FK_UserProfiles_AppUsers_UserId",
@@ -67,9 +77,11 @@ namespace ltwnc.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropForeignKey(
-                name: "FK_UserProfiles_AppUsers_UserId",
-                table: "UserProfiles");
+            migrationBuilder.Sql(
+                """
+                IF EXISTS (SELECT 1 FROM sys.foreign_keys WHERE [name] = N'FK_UserProfiles_AppUsers_UserId')
+                    ALTER TABLE [UserProfiles] DROP CONSTRAINT [FK_UserProfiles_AppUsers_UserId];
+                """);
 
             migrationBuilder.CreateTable(
                 name: "AspNetRoles",
