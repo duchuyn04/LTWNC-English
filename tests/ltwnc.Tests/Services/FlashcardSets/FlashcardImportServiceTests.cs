@@ -4,6 +4,7 @@ using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.FlashcardSet;
 using ltwnc.Services.FlashcardSets;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
@@ -20,7 +21,16 @@ public class FlashcardImportServiceTests : IDisposable
     {
         var options = new DbContextOptionsBuilder<AppDbContext>().UseInMemoryDatabase(Guid.NewGuid().ToString()).Options;
         _context = new AppDbContext(options);
-        _service = new FlashcardImportService(_context, new FlashcardFileParserResolver(new CsvFlashcardFileParser(), new XlsxFlashcardFileParser()));
+        var setService = new FlashcardSetService(
+            _context,
+            Mock.Of<IWebHostEnvironment>(
+                environment => environment.WebRootPath == Path.GetTempPath()));
+        _service = new FlashcardImportService(
+            _context,
+            new FlashcardFileParserResolver(
+                new CsvFlashcardFileParser(),
+                new XlsxFlashcardFileParser()),
+            setService);
         var set = new FlashcardSet { Title = "Set", UserId = "owner" };
         _context.FlashcardSets.Add(set);
         _context.SaveChanges();
@@ -116,6 +126,52 @@ public class FlashcardImportServiceTests : IDisposable
         var result = await _service.ImportAsync(_setId, "owner", new FormFile(stream, 0, stream.Length, "file", "cards.xlsx"));
         Assert.Equal(1, result.ImportedCount);
         Assert.Equal("xlsx", (await _context.Flashcards.SingleAsync(c => c.FrontText == "xlsx")).FrontText);
+    }
+
+    [Fact]
+    public async Task Replace_import_removes_old_cards_and_progress_then_keeps_all_file_fields()
+    {
+        Flashcard oldCard = await _context.Flashcards
+            .SingleAsync(card => card.FlashcardSetId == _setId);
+        _context.UserProgresses.Add(new UserProgress
+        {
+            UserId = "owner",
+            FlashcardId = oldCard.Id
+        });
+        await _context.SaveChangesAsync();
+        var csv = Headers + "\nrun,chạy,/r/,verb,Run!,Chạy!,jog,https://example.com/run.png\n";
+
+        FlashcardImportResult result = await _service.ImportAsync(
+            _setId,
+            "owner",
+            FormFile(csv, "cards.csv"),
+            replaceAll: true);
+
+        Assert.Equal(1, result.ImportedCount);
+        Assert.Empty(await _context.UserProgresses.ToListAsync());
+        Flashcard card = await _context.Flashcards.SingleAsync();
+        Assert.Equal("run", card.FrontText);
+        Assert.Equal("/r/", card.Pronunciation);
+        Assert.Equal("verb", card.PartOfSpeech);
+        Assert.Equal("Run!", card.ExampleSentence);
+        Assert.Equal("Chạy!", card.ExampleMeaning);
+        Assert.Equal("jog", card.Synonyms);
+        Assert.Equal("https://example.com/run.png", card.ImageUrl);
+    }
+
+    [Fact]
+    public async Task Replace_import_with_no_valid_rows_keeps_existing_cards()
+    {
+        var csv = Headers + "\ninvalid,,/i/,noun,Example,Meaning\n";
+
+        FlashcardImportResult result = await _service.ImportAsync(
+            _setId,
+            "owner",
+            FormFile(csv, "cards.csv"),
+            replaceAll: true);
+
+        Assert.Equal(0, result.ImportedCount);
+        Assert.Equal("existing", (await _context.Flashcards.SingleAsync()).FrontText);
     }
 
     [Fact]

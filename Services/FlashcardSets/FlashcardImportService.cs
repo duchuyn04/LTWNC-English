@@ -11,13 +11,16 @@ public sealed class FlashcardImportService : IFlashcardImportService
     private const long MaxUploadBytes = 10 * 1024 * 1024;
     private readonly AppDbContext _context;
     private readonly FlashcardFileParserResolver _resolver;
+    private readonly IFlashcardSetService _setService;
 
     public FlashcardImportService(
         AppDbContext context,
-        FlashcardFileParserResolver resolver)
+        FlashcardFileParserResolver resolver,
+        IFlashcardSetService setService)
     {
         _context = context;
         _resolver = resolver;
+        _setService = setService;
     }
 
     public async Task<FlashcardImportPreview> PreviewAsync(
@@ -52,8 +55,22 @@ public sealed class FlashcardImportService : IFlashcardImportService
         IFormFile file,
         CancellationToken cancellationToken = default)
     {
+        return await ImportAsync(
+            setId,
+            userId,
+            file,
+            replaceAll: false,
+            cancellationToken);
+    }
+
+    public async Task<FlashcardImportResult> ImportAsync(
+        int setId,
+        string userId,
+        IFormFile file,
+        bool replaceAll,
+        CancellationToken cancellationToken = default)
+    {
         FlashcardSet? set = await _context.FlashcardSets
-            .Include(item => item.Flashcards)
             .FirstOrDefaultAsync(item => item.Id == setId, cancellationToken);
         if (set is null || set.UserId != userId)
         {
@@ -72,14 +89,9 @@ public sealed class FlashcardImportService : IFlashcardImportService
             };
         }
 
-        int nextOrder = set.Flashcards.Count == 0
-            ? 0
-            : set.Flashcards.Max(card => card.OrderIndex) + 1;
-        foreach (FlashcardImportRow row in parsed.Rows)
-        {
-            set.Flashcards.Add(new Flashcard
+        IReadOnlyList<BatchImportCardItem> items = parsed.Rows
+            .Select(row => new BatchImportCardItem
             {
-                FlashcardSetId = set.Id,
                 FrontText = row.FrontText,
                 BackText = row.BackText,
                 Pronunciation = row.Pronunciation,
@@ -88,16 +100,17 @@ public sealed class FlashcardImportService : IFlashcardImportService
                 ExampleMeaning = row.ExampleMeaning,
                 Synonyms = row.Synonyms,
                 ImageUrl = row.ImageUrl,
-                UploadedImagePath = null,
-                IsStarred = false,
-                OrderIndex = nextOrder++
-            });
-        }
+                IsStarred = false
+            })
+            .ToArray();
 
-        if (parsed.Rows.Count > 0)
+        if (items.Count > 0)
         {
-            set.UpdatedAt = DateTime.UtcNow;
-            await _context.SaveChangesAsync(cancellationToken);
+            await _setService.BatchImportCardsAsync(
+                setId,
+                items,
+                replaceAll,
+                userId);
         }
 
         return new FlashcardImportResult

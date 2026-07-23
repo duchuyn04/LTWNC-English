@@ -16,4 +16,11 @@ public interface IFlashcardImportService
         string userId,
         IFormFile file,
         CancellationToken cancellationToken = default);
+
+    Task<FlashcardImportResult> ImportAsync(
+        int setId,
+        string userId,
+        IFormFile file,
+        bool replaceAll,
+        CancellationToken cancellationToken = default);
 }
