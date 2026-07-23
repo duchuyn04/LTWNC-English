@@ -508,6 +508,7 @@
         window.location.href = '/Set';
     });
 
+    if (false) {
     const btnImport = document.getElementById('btn-import');
     const importModal = document.getElementById('import-modal');
     const importText = document.getElementById('import-text');
@@ -636,6 +637,337 @@
             setSaveStatus('Lỗi import', 'error');
             console.error('Batch import failed:', err);
         }
+    });
+
+    }
+
+    const btnImport = document.getElementById('btn-import');
+    const importModal = document.getElementById('import-modal');
+    const importFile = document.getElementById('import-file');
+    const importFileMeta = document.getElementById('import-file-meta');
+    const fileImportForm = document.getElementById('file-import-form');
+    const fileImportPreview = document.getElementById('file-import-preview');
+    const btnFilePreview = document.getElementById('btn-file-preview');
+    const btnFileImportConfirm = document.getElementById('btn-file-import-confirm');
+    const btnImportConfirm = document.getElementById('btn-import-confirm');
+    const btnImportCancel = document.getElementById('btn-import-cancel');
+    const btnImportClose = document.getElementById('btn-import-close');
+    const importTabFile = document.getElementById('import-tab-file');
+    const importTabPaste = document.getElementById('import-tab-paste');
+    const importPanelFile = document.getElementById('import-panel-file');
+    const importPanelPaste = document.getElementById('import-panel-paste');
+    const importText = document.getElementById('import-text');
+    const importDelimiter = document.getElementById('import-delimiter');
+    const importPreview = document.getElementById('import-preview');
+    const importModalStatus = document.getElementById('import-modal-status');
+    const importModeInputs = Array.from(
+        document.querySelectorAll('input[name="replaceAll"]'));
+
+    let activeImportTab = 'file';
+    let filePreviewValid = false;
+    let lastImportTrigger = null;
+
+    function setImportStatus(message, isError = false) {
+        importModalStatus.textContent = message || '';
+        importModalStatus.classList.toggle('is-error', isError);
+    }
+
+    function activateImportTab(tab) {
+        activeImportTab = tab;
+        const fileActive = tab === 'file';
+        importTabFile.classList.toggle('is-active', fileActive);
+        importTabPaste.classList.toggle('is-active', !fileActive);
+        importTabFile.setAttribute('aria-selected', String(fileActive));
+        importTabPaste.setAttribute('aria-selected', String(!fileActive));
+        importPanelFile.hidden = !fileActive;
+        importPanelPaste.hidden = fileActive;
+        btnFileImportConfirm.hidden = !fileActive;
+        btnImportConfirm.hidden = fileActive;
+        if (!fileActive) {
+            renderPastePreview(parseImportText(importText.value, importDelimiter.value));
+        }
+    }
+
+    function resetFilePreview() {
+        filePreviewValid = false;
+        fileImportPreview.replaceChildren();
+        btnFileImportConfirm.disabled = true;
+        setImportStatus('');
+    }
+
+    function resetImportModal() {
+        resetFilePreview();
+        importFile.value = '';
+        importFileMeta.textContent = '';
+        importText.value = '';
+        importPreview.replaceChildren();
+        importModeInputs[0].checked = true;
+        activateImportTab('file');
+    }
+
+    function openImportModal() {
+        resetImportModal();
+        importModal.style.display = 'flex';
+        document.body.classList.add('modal-open');
+        btnImportClose.focus();
+    }
+
+    function closeImportModal() {
+        importModal.style.display = 'none';
+        document.body.classList.remove('modal-open');
+        resetImportModal();
+        lastImportTrigger?.focus();
+    }
+
+    async function openImportAfterSavingIfNeeded() {
+        lastImportTrigger = document.activeElement;
+        if (isNewSet()) {
+            const shouldSave = window.confirm(
+                'Bộ thẻ chưa được lưu. Bạn có muốn lưu bộ thẻ trước khi nhập file không?');
+            if (!shouldSave) return;
+            const createdId = await ensureSetCreated();
+            if (!createdId) return;
+        }
+        openImportModal();
+    }
+
+    function renderFilePreview(result) {
+        fileImportPreview.replaceChildren();
+
+        const summary = document.createElement('div');
+        summary.className = 'import-preview-summary';
+        const validLabel = document.createElement('span');
+        validLabel.textContent = `Hợp lệ: ${result.validCount}`;
+        const skippedLabel = document.createElement('span');
+        skippedLabel.textContent = `Lỗi: ${result.skippedCount}`;
+        summary.append(validLabel, skippedLabel);
+        fileImportPreview.appendChild(summary);
+
+        if (result.rows?.length) {
+            const tableWrap = document.createElement('div');
+            tableWrap.className = 'import-preview-table-wrap';
+            const table = document.createElement('table');
+            table.className = 'import-preview-table';
+            const headers = [
+                'Dòng', 'Thuật ngữ', 'Định nghĩa', 'IPA',
+                'Loại từ', 'Ví dụ tiếng Anh', 'Nghĩa ví dụ tiếng Việt'
+            ];
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            headers.forEach(header => {
+                const cell = document.createElement('th');
+                cell.textContent = header;
+                headerRow.appendChild(cell);
+            });
+            thead.appendChild(headerRow);
+            const tbody = document.createElement('tbody');
+            result.rows.forEach(row => {
+                const previewRow = document.createElement('tr');
+                [
+                    row.rowNumber,
+                    row.frontText,
+                    row.backText,
+                    row.pronunciation,
+                    row.partOfSpeech,
+                    row.exampleSentence,
+                    row.exampleMeaning
+                ].forEach(value => {
+                    const cell = document.createElement('td');
+                    cell.textContent = value ?? '';
+                    previewRow.appendChild(cell);
+                });
+                tbody.appendChild(previewRow);
+            });
+            table.append(thead, tbody);
+            tableWrap.appendChild(table);
+            fileImportPreview.appendChild(tableWrap);
+        }
+
+        if (result.errors?.length) {
+            const errorList = document.createElement('ul');
+            errorList.className = 'import-error-list';
+            result.errors.forEach(error => {
+                const item = document.createElement('li');
+                item.textContent = error.rowNumber > 0
+                    ? `Dòng ${error.rowNumber}: ${error.reason}`
+                    : error.reason;
+                errorList.appendChild(item);
+            });
+            if (result.errorsOmittedCount > 0) {
+                const omitted = document.createElement('li');
+                omitted.textContent =
+                    `Còn ${result.errorsOmittedCount} lỗi khác không hiển thị.`;
+                errorList.appendChild(omitted);
+            }
+            fileImportPreview.appendChild(errorList);
+        }
+    }
+
+    async function previewImportFile() {
+        const file = importFile.files?.[0];
+        const setId = getSetId();
+        if (!file || !setId) return;
+
+        btnFilePreview.disabled = true;
+        setImportStatus('Đang kiểm tra file...');
+        const formData = new FormData(fileImportForm);
+        try {
+            const response = await fetch(`/Set/${setId}/Import/Preview`, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'RequestVerificationToken': antiforgeryToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin'
+            });
+            const result = await response.json().catch(() => ({}));
+            if (!response.ok) {
+                throw new Error(result.error || 'Không thể xem trước file.');
+            }
+            renderFilePreview(result);
+            filePreviewValid = Number(result.validCount) > 0;
+            btnFileImportConfirm.disabled = !filePreviewValid;
+            setImportStatus(filePreviewValid
+                ? 'File đã sẵn sàng để nhập.'
+                : 'File chưa có dòng hợp lệ.');
+        } catch (error) {
+            resetFilePreview();
+            setImportStatus(error.message || 'Không thể xem trước file.', true);
+        } finally {
+            btnFilePreview.disabled = !importFile.files?.length;
+        }
+    }
+
+    function parseImportText(text, delimiter) {
+        return text.split('\n')
+            .map(line => line.trim())
+            .filter(line => line.length > 0)
+            .map(line => {
+                const parts = line.split(delimiter);
+                return {
+                    frontText: parts[0]?.trim() ?? '',
+                    backText: parts[1]?.trim() ?? ''
+                };
+            });
+    }
+
+    function renderPastePreview(rows) {
+        const valid = rows.filter(row => row.frontText && row.backText);
+        const invalid = rows.filter(row => !row.frontText || !row.backText);
+        importPreview.replaceChildren();
+        const summary = document.createElement('p');
+        summary.textContent = `Hợp lệ: ${valid.length}, lỗi: ${invalid.length}`;
+        importPreview.appendChild(summary);
+        const list = document.createElement('ul');
+        valid.slice(0, 5).forEach(row => {
+            const item = document.createElement('li');
+            item.textContent = `${row.frontText} → ${row.backText}`;
+            list.appendChild(item);
+        });
+        invalid.forEach(row => {
+            const item = document.createElement('li');
+            item.className = 'error';
+            item.textContent = `Lỗi: "${row.frontText}" / "${row.backText}"`;
+            list.appendChild(item);
+        });
+        importPreview.appendChild(list);
+        btnImportConfirm.disabled = valid.length === 0;
+    }
+
+    async function submitPasteImport() {
+        const rows = parseImportText(importText.value, importDelimiter.value)
+            .filter(row => row.frontText && row.backText);
+        if (!rows.length) return;
+        const currentSetId = getSetId();
+        if (!currentSetId) return;
+
+        const replaceAll = document.getElementById('import-mode-replace').checked;
+        if (replaceAll && !window.confirm(
+            'Toàn bộ thẻ và tiến độ học hiện tại sẽ bị xóa. Bạn có chắc muốn ghi đè không?')) {
+            return;
+        }
+
+        const existingCards = Array.from(container.querySelectorAll('.flashcard-card'));
+        const payload = {
+            setId: currentSetId,
+            cards: rows.map(row => ({
+                setId: currentSetId,
+                frontText: row.frontText,
+                backText: row.backText,
+                isStarred: false
+            })),
+            replaceAll
+        };
+        setSaveStatus('Đang import...', 'saving');
+        try {
+            const response = await apiFetch('/api/flashcards/flashcards/batch', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!response.ok) throw new Error('Import thất bại.');
+            const created = await response.json();
+            if (replaceAll) {
+                existingCards.forEach(card => card.remove());
+            }
+            created.forEach(cardData => {
+                const card = createEmptyCard();
+                card.dataset.id = cardData.id;
+                card.querySelector('.input-front').value = cardData.frontText;
+                card.querySelector('.input-back').value = cardData.backText;
+                card.querySelector('.card-term').textContent = cardData.frontText;
+                container.appendChild(card);
+            });
+            updateCardNumbering();
+            setSaveStatus('Đã import', 'saved');
+            closeImportModal();
+        } catch (error) {
+            setImportStatus(error.message || 'Import thất bại.', true);
+            setSaveStatus('Lỗi import', 'error');
+        }
+    }
+
+    btnImport.addEventListener('click', openImportAfterSavingIfNeeded);
+    btnImportClose.addEventListener('click', closeImportModal);
+    btnImportCancel.addEventListener('click', closeImportModal);
+    importTabFile.addEventListener('click', () => activateImportTab('file'));
+    importTabPaste.addEventListener('click', () => activateImportTab('paste'));
+    btnFilePreview.addEventListener('click', previewImportFile);
+    btnFileImportConfirm.addEventListener('click', () => {
+        if (!filePreviewValid) return;
+        const replaceAll = document.getElementById('import-mode-replace').checked;
+        if (replaceAll && !window.confirm(
+            'Toàn bộ thẻ và tiến độ học hiện tại sẽ bị xóa. Bạn có chắc muốn ghi đè không?')) {
+            return;
+        }
+        fileImportForm.action =
+            `/Set/${getSetId()}/Import`;
+        fileImportForm.submit();
+    });
+    btnImportConfirm.addEventListener('click', submitPasteImport);
+    importFile.addEventListener('change', () => {
+        resetFilePreview();
+        const file = importFile.files?.[0];
+        importFileMeta.textContent = file
+            ? `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`
+            : '';
+        btnFilePreview.disabled = !file;
+    });
+    importModeInputs.forEach(input => {
+        input.addEventListener('change', resetFilePreview);
+    });
+    [importText, importDelimiter].forEach(element => {
+        element.addEventListener('input', () =>
+            renderPastePreview(parseImportText(importText.value, importDelimiter.value)));
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && importModal.style.display !== 'none') {
+            closeImportModal();
+        }
+    });
+    importModal.addEventListener('click', event => {
+        if (event.target === importModal) closeImportModal();
     });
 
     container.querySelectorAll('.flashcard-card').forEach(bindCardEvents);
