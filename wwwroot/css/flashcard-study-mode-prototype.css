@@ -63,7 +63,7 @@
 
 .prototype-variant-b {
     position: fixed;
-    top: clamp(11rem, 25vh, 16rem);
+    top: clamp(18rem, 34vh, 21rem);
     left: max(1rem, calc(50vw - 590px));
     display: grid;
     width: 172px;
