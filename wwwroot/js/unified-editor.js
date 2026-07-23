@@ -258,13 +258,14 @@
         const data = getCardData(card);
         const errors = validateCard(data);
         if (errors.length > 0) {
-            showCardErrors(card, errors);
-            return;
+            // Blur/debounce saves stay quiet for incomplete cards. The full
+            // validation summary is shown only when the user finishes editing.
+            return false;
         }
         clearCardErrors(card);
 
         const currentSetId = await ensureSetCreated();
-        if (!currentSetId) return;
+        if (!currentSetId) return false;
 
         data.setId = currentSetId;
         card.dataset.setId = currentSetId;
@@ -297,10 +298,12 @@
             setSaveStatus('Đã lưu', 'saved');
             dirtyCards.delete(originalId);
             dirtyCards.delete(card.dataset.id);
+            return true;
         } catch (err) {
             setSaveStatus('Lỗi lưu', 'error');
             card.classList.add('card-error');
             console.error(err);
+            return false;
         }
     }
 
@@ -517,7 +520,59 @@
         card.querySelector('.input-front').focus();
     });
 
-    function finishEditor() {
+    function validateAllCards() {
+        let firstInvalidCard = null;
+
+        container.querySelectorAll('.flashcard-card').forEach(card => {
+            const data = getCardData(card);
+            const errors = validateCard(data);
+
+            if (errors.length > 0) {
+                showCardErrors(card, errors);
+                firstInvalidCard ??= card;
+            } else {
+                clearCardErrors(card);
+            }
+        });
+
+        if (!firstInvalidCard) return true;
+
+        const firstFrontInput = firstInvalidCard.querySelector('.input-front');
+        const firstBackInput = firstInvalidCard.querySelector('.input-back');
+        const focusTarget = firstFrontInput?.value.trim()
+            ? firstBackInput
+            : firstFrontInput;
+
+        firstInvalidCard.classList.add('expanded');
+        firstInvalidCard.classList.remove('collapsed');
+        firstInvalidCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        focusTarget?.focus();
+        setSaveStatus('Bổ sung thuật ngữ và định nghĩa trước khi hoàn tất', 'error');
+        return false;
+    }
+
+    let isFinishing = false;
+    async function finishEditor() {
+        if (isFinishing || !validateAllCards()) return;
+        isFinishing = true;
+        btnFinish.disabled = true;
+        if (btnFinishSticky) btnFinishSticky.disabled = true;
+
+        const cards = Array.from(container.querySelectorAll('.flashcard-card'));
+        await Promise.all(cards.map(card => saveCard(card)));
+
+        if (isTitleDirty) {
+            await saveSetMetadata();
+        }
+
+        const hasCardSaveErrors = cards.some(card => card.classList.contains('card-error'));
+        if (hasCardSaveErrors || isTitleDirty) {
+            isFinishing = false;
+            syncFinishButtons();
+            setSaveStatus('Chưa thể hoàn tất. Kiểm tra lại trạng thái lưu.', 'error');
+            return;
+        }
+
         window.location.href = '/Set';
     }
 
