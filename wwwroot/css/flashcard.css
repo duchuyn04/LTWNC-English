@@ -236,6 +236,89 @@ body {
     opacity: 0.58;
 }
 
+/* Production mode navigation: active Flashcard plus visible unlock reasons. */
+.study-mode-navigation {
+    display: grid;
+    gap: 0.55rem;
+    min-width: 0;
+}
+
+.study-mode-navigation-label {
+    color: var(--fc-accent);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.study-mode-navigation-bar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.55rem;
+    padding: 0.45rem;
+    border: 1px solid var(--fc-line);
+    border-radius: 18px;
+    background: color-mix(in srgb, var(--fc-paper) 90%, transparent);
+}
+
+.study-mode-navigation-item {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.55rem;
+    min-height: 60px;
+    padding: 0.65rem 0.75rem;
+    border-radius: 13px;
+    color: var(--fc-muted);
+    text-decoration: none;
+    transition: background-color var(--duration-fast) ease,
+                color var(--duration-fast) ease;
+}
+
+.study-mode-navigation-item > i:first-child {
+    font-size: 1.1rem;
+}
+
+.study-mode-navigation-item:hover:not(.is-disabled),
+.study-mode-navigation-item.is-active {
+    background: var(--fc-ink);
+    color: var(--fc-paper);
+}
+
+.study-mode-navigation-copy {
+    display: grid;
+    min-width: 0;
+    gap: 0.1rem;
+}
+
+.study-mode-navigation-copy strong {
+    color: inherit;
+    font-size: 0.82rem;
+    line-height: 1.15;
+}
+
+.study-mode-navigation-copy small {
+    overflow: hidden;
+    color: var(--fc-muted);
+    font-size: 0.68rem;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+}
+
+.study-mode-navigation-item.is-active small {
+    color: color-mix(in srgb, var(--fc-paper) 72%, transparent);
+}
+
+.study-mode-navigation-item.is-disabled {
+    cursor: not-allowed;
+    opacity: 0.58;
+}
+
+.study-mode-navigation-item.is-disabled > i:last-child {
+    color: var(--fc-muted-light);
+    font-size: 0.9rem;
+}
+
 .study-focus-column {
     display: grid;
     width: min(100%, 760px);
@@ -1258,6 +1341,19 @@ body {
         display: grid;
         width: 100%;
         grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .study-mode-navigation-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .study-mode-navigation-item {
+        min-height: 54px;
+        padding-inline: 0.6rem;
+    }
+
+    .study-mode-navigation-copy small {
+        font-size: 0.64rem;
     }
 
     .study-mode-tab {

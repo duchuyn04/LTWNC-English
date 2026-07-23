@@ -107,7 +107,7 @@ public class StudyControllerIndexTests
 
     [Fact]
     // Index trả về view với StudyModeSelectorViewModel chứa thông tin bộ thẻ
-    public async Task Index_ReturnsViewWithStudyModeSelectorViewModel()
+    public async Task Index_RedirectsToFlashcard()
     {
         await using var context = CreateContext();
         await SeedSetAndCardAsync(context);
@@ -115,11 +115,10 @@ public class StudyControllerIndexTests
         var controller = CreateController(context, "user-1");
         var result = await controller.Index(1);
 
-        var viewResult = Assert.IsType<ViewResult>(result);
-        var model = Assert.IsType<StudyModeSelectorViewModel>(viewResult.Model);
-        Assert.Equal(1, model.SetId);
-        Assert.Equal("Test Set", model.SetTitle);
-        Assert.Equal(1, model.TotalCards);
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Flashcard", redirect.ActionName);
+        Assert.Null(redirect.ControllerName);
+        Assert.Equal(1, redirect.RouteValues?["setId"]);
     }
 
     [Fact]
@@ -144,8 +143,12 @@ public class StudyControllerIndexTests
         await SeedSetAndCardAsync(context);
 
         var controller = CreateController(context, "user-1");
-        await controller.Index(1, starredOnly: true, unlearnedOnly: false);
+        var result = await controller.Index(1, starredOnly: true, unlearnedOnly: false);
 
+        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal("Flashcard", redirect.ActionName);
+        Assert.Equal(true, redirect.RouteValues?["starredOnly"]);
+        Assert.Equal(false, redirect.RouteValues?["unlearnedOnly"]);
         var settings = await context.UserStudySettings.FirstAsync(s => s.UserId == "user-1");
         Assert.True(settings.StarredOnly);
         Assert.False(settings.UnlearnedOnly);
@@ -159,8 +162,9 @@ public class StudyControllerIndexTests
         await SeedSetAndCardAsync(context);
 
         var controller = CreateController(context, userId: null);
-        await controller.Index(1, starredOnly: true, unlearnedOnly: false);
+        var result = await controller.Index(1, starredOnly: true, unlearnedOnly: false);
 
+        Assert.IsType<RedirectToActionResult>(result);
         Assert.Empty(context.UserStudySettings);
     }
 

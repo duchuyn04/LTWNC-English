@@ -9,10 +9,9 @@
     };
 }
 
-<aside class="prototype-variant prototype-variant-b"
-       aria-label="Prototype B: thanh chế độ dọc">
-    <div class="prototype-section-label">B · Mode rail</div>
-    <nav class="prototype-mode-rail" aria-label="Chế độ học">
+<section class="study-mode-navigation" aria-label="Chế độ học">
+    <div class="study-mode-navigation-label">Chọn cách học</div>
+    <nav class="study-mode-navigation-bar">
         @foreach (var modeKey in modeOrder)
         {
             var mode = Model.Modes.FirstOrDefault(item => item.Mode == modeKey);
@@ -22,15 +21,15 @@
             }
 
             var isActive = mode.Mode == StudyMode.Flashcard;
-            var itemClass = $"prototype-rail-item{(isActive ? " is-active" : "")}{(!mode.IsAvailable ? " is-disabled" : "")}";
+            var itemClass = $"study-mode-navigation-item{(isActive ? " is-active" : "")}{(!mode.IsAvailable ? " is-disabled" : "")}";
 
             if (isActive)
             {
                 <span class="@itemClass" aria-current="page">
                     <i class="ph @mode.IconClass" aria-hidden="true"></i>
-                    <span>
+                    <span class="study-mode-navigation-copy">
                         <strong>@mode.Name</strong>
-                        <small>Đang học</small>
+                        <small>Lật thẻ và ghi nhớ</small>
                     </span>
                 </span>
             }
@@ -38,9 +37,9 @@
             {
                 <a class="@itemClass" href="@mode.ActionUrl">
                     <i class="ph @mode.IconClass" aria-hidden="true"></i>
-                    <span>
+                    <span class="study-mode-navigation-copy">
                         <strong>@mode.Name</strong>
-                        <small>@mode.CardCount thẻ</small>
+                        <small>@mode.Description</small>
                     </span>
                 </a>
             }
@@ -48,14 +47,15 @@
             {
                 <span class="@itemClass"
                       aria-disabled="true"
-                      title="@mode.UnavailableReason">
+                      title="@(mode.UnavailableReason ?? "Chế độ chưa khả dụng")">
                     <i class="ph @mode.IconClass" aria-hidden="true"></i>
-                    <span>
+                    <span class="study-mode-navigation-copy">
                         <strong>@mode.Name</strong>
-                        <small>@(mode.UnavailableReason ?? "Chưa khả dụng")</small>
+                        <small>@(mode.UnavailableReason ?? "Chế độ chưa khả dụng")</small>
                     </span>
+                    <i class="ph ph-lock-key" aria-hidden="true"></i>
                 </span>
             }
         }
     </nav>
-</aside>
+</section>

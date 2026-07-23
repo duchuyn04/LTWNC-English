@@ -54,7 +54,7 @@
                 <a href="/Set/@Model.Id/Edit" class="btn-secondary-custom">
                     <i class="ph ph-pencil"></i> Quản lý
                 </a>
-                <a href="/Study/@Model.Id" class="btn-primary-custom">
+                <a href="/Study/@Model.Id/Flashcard" class="btn-primary-custom">
                     <i class="ph ph-play-circle"></i> Bắt đầu học
                 </a>
             }
@@ -62,7 +62,7 @@
             {
                 if (Model.ExistingCopyId.HasValue)
                 {
-                    <a href="/Study/@Model.ExistingCopyId" class="btn-primary-custom">
+                    <a href="/Study/@Model.ExistingCopyId/Flashcard" class="btn-primary-custom">
                         <i class="ph ph-play-circle"></i> Mở bộ đã sao chép
                     </a>
                 }

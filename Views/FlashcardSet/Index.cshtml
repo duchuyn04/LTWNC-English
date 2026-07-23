@@ -47,7 +47,7 @@
                             <div class="set-card-progress-bar" style="width: @item.MasteryPercent%;"></div>
                         </div>
                         <div class="set-card-actions">
-                            <a href="/Study/@item.Id" class="btn-sm-primary"><i class="ph ph-book-open"></i> Học</a>
+                            <a href="/Study/@item.Id/Flashcard" class="btn-sm-primary"><i class="ph ph-book-open"></i> Học</a>
                             <a href="/Set/@item.Id/Edit" class="btn-sm-secondary">Quản lý</a>
                             <form asp-action="Delete" asp-route-id="@item.Id" method="post" class="d-inline" onsubmit="return confirm('Xóa bộ thẻ này?');">
                                 @Html.AntiForgeryToken()
