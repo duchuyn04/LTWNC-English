@@ -63,7 +63,7 @@ This is the recommended starting point because it is familiar, compact, and does
 - A fixed, high-contrast bar appears at the bottom center in Development only.
 - Left and right controls cycle through A, B, and C with wraparound.
 - The current variant key and name are visible.
-- `ArrowLeft` and `ArrowRight` cycle variants unless focus is inside an input, textarea, select, button, link, or editable element.
+- `ArrowLeft` and `ArrowRight` cycle variants only while focus is inside the prototype switcher. Outside the switcher, the existing Flashcard keyboard shortcuts continue to change cards.
 - Switching updates the URL search parameter so a variant remains shareable and stable on reload.
 
 ## Navigation behavior represented by the prototype
