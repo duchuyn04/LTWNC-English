@@ -107,6 +107,9 @@ public interface IAiProviderAdapter
 {
     string AdapterType { get; }
 
+    // Kiểm tra cấu hình riêng của loại provider trước khi lưu hoặc kết nối.
+    void ValidateConfiguration(AiProvider provider);
+
     // Lấy danh sách model mà provider hiện tại hỗ trợ.
     Task<IReadOnlyList<string>> GetModelsAsync(AiProvider provider, string? apiKey, CancellationToken cancellationToken);
 

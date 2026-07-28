@@ -181,6 +181,32 @@ public sealed class OpenAiCompatibleAdapterTests
                 cancellation.Token));
     }
 
+    [Fact]
+    public async Task GetModelsAsync_NormalizesOpenAiModelResponse()
+    {
+        var handler = new StubHttpMessageHandler((request, _) =>
+        {
+            Assert.Equal(HttpMethod.Get, request.Method);
+            Assert.Equal("https://example.test/v1/models", request.RequestUri?.ToString());
+            Assert.Null(request.Headers.Authorization);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    "{\"data\":[{\"id\":\"model-z\"},{\"id\":\"\"},{\"id\":\"model-a\"},{\"id\":\"model-z\"},{}]}",
+                    Encoding.UTF8,
+                    "application/json")
+            });
+        });
+        IAiProviderAdapter adapter = CreateAdapter(handler);
+
+        IReadOnlyList<string> models = await adapter.GetModelsAsync(
+            Provider(),
+            null,
+            CancellationToken.None);
+
+        Assert.Equal(["model-a", "model-z"], models);
+    }
+
     private static IAiProviderAdapter CreateAdapter(HttpMessageHandler handler)
     {
         IConfiguration configuration = new ConfigurationBuilder()

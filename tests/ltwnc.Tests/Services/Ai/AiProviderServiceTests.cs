@@ -101,6 +101,91 @@ public sealed class AiProviderServiceTests
     }
 
     [Fact]
+    public async Task Save_RejectsMissingModelThroughAdapterValidation()
+    {
+        var handler = new RecordingHandler("{}");
+        await using AppDbContext context = CreateContext();
+        AiProviderService service = CreateService(context, handler, allowPrivateNetworks: true);
+
+        AiProviderOperationResult result = await service.SaveAsync(null, new AiProviderInput
+        {
+            Name = "Missing model",
+            BaseUrl = "https://example.test/v1",
+            ModelId = " ",
+            Reason = "Xác nhận model bắt buộc"
+        }, Actor());
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Model ID là bắt buộc.", result.Message);
+    }
+
+    [Theory]
+    [InlineData(4)]
+    [InlineData(301)]
+    public async Task Save_RejectsTimeoutOutsideSupportedRangeThroughAdapterValidation(int timeoutSeconds)
+    {
+        var handler = new RecordingHandler("{}");
+        await using AppDbContext context = CreateContext();
+        AiProviderService service = CreateService(context, handler, allowPrivateNetworks: true);
+
+        AiProviderOperationResult result = await service.SaveAsync(null, new AiProviderInput
+        {
+            Name = "Invalid timeout",
+            BaseUrl = "https://example.test/v1",
+            ModelId = "model-a",
+            TimeoutSeconds = timeoutSeconds,
+            Reason = "Xác nhận giới hạn timeout"
+        }, Actor());
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Timeout phải từ 5 đến 300 giây.", result.Message);
+    }
+
+    [Fact]
+    public async Task Save_UsesSelectedAdapterToValidateConfiguration()
+    {
+        await using AppDbContext context = CreateContext();
+        var adapter = new RejectingValidationAdapter();
+        IConfiguration configuration = CreateConfiguration(allowPrivateNetworks: true);
+        AiProviderService service = CreateService(context, [adapter], configuration);
+
+        AiProviderOperationResult result = await service.SaveAsync(null, new AiProviderInput
+        {
+            Name = "Custom",
+            AdapterType = adapter.AdapterType,
+            BaseUrl = "https://example.test/v1",
+            ModelId = "custom-model",
+            Reason = "Xác nhận adapter tự kiểm tra cấu hình"
+        }, Actor());
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Cấu hình bị adapter từ chối.", result.Message);
+        Assert.True(adapter.ValidateWasCalled);
+        Assert.Empty(context.AiProviders);
+    }
+
+    [Fact]
+    public async Task Save_RejectsUnregisteredAdapterType()
+    {
+        var handler = new RecordingHandler("{}");
+        await using AppDbContext context = CreateContext();
+        AiProviderService service = CreateService(context, handler, allowPrivateNetworks: true);
+
+        AiProviderOperationResult result = await service.SaveAsync(null, new AiProviderInput
+        {
+            Name = "Unknown",
+            AdapterType = "MissingAdapter",
+            BaseUrl = "https://example.test/v1",
+            ModelId = "model-a",
+            Reason = "Xác nhận adapter phải được đăng ký"
+        }, Actor());
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("Adapter MissingAdapter chưa được đăng ký.", result.Message);
+        Assert.Empty(context.AiProviders);
+    }
+
+    [Fact]
     public async Task Save_WritesAuditWithoutPlainApiKey()
     {
         var handler = new RecordingHandler("{}");
@@ -369,24 +454,62 @@ public sealed class AiProviderServiceTests
         var directory = new DirectoryInfo(Path.Combine(Path.GetTempPath(), "ltwnc-provider-tests", Guid.NewGuid().ToString()));
         directory.Create();
         IDataProtectionProvider protection = DataProtectionProvider.Create(directory);
-        IConfiguration configuration = new ConfigurationBuilder()
+        IConfiguration configuration = CreateConfiguration(allowPrivateNetworks);
+        var client = new OpenAiCompatibleApiClient(new FakeHttpClientFactory(handler), configuration);
+        return CreateService(context, [new OpenAiCompatibleAdapter(client)], configuration, protection);
+    }
+
+    private static AiProviderService CreateService(
+        AppDbContext context,
+        IEnumerable<IAiProviderAdapter> adapters,
+        IConfiguration configuration,
+        IDataProtectionProvider? protection = null)
+    {
+        protection ??= DataProtectionProvider.Create(
+            new DirectoryInfo(Path.Combine(Path.GetTempPath(), "ltwnc-provider-tests", Guid.NewGuid().ToString())));
+        return new AiProviderService(
+            context,
+            protection,
+            adapters,
+            new AdminAuditService(context, TimeProvider.System),
+            configuration);
+    }
+
+    private static IConfiguration CreateConfiguration(bool allowPrivateNetworks)
+    {
+        return new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["AiProviders:AllowPrivateNetworks"] = allowPrivateNetworks.ToString()
             })
             .Build();
-        var client = new OpenAiCompatibleApiClient(new FakeHttpClientFactory(handler), configuration);
-        var auditService = new AdminAuditService(context, TimeProvider.System);
-        return new AiProviderService(
-            context,
-            protection,
-            [new OpenAiCompatibleAdapter(client)],
-            auditService,
-            configuration);
     }
 
     private static AppDbContext CreateContext() => new(new DbContextOptionsBuilder<AppDbContext>()
         .UseInMemoryDatabase(Guid.NewGuid().ToString()).Options);
+
+    private sealed class RejectingValidationAdapter : IAiProviderAdapter
+    {
+        public string AdapterType => "Rejecting";
+        public bool ValidateWasCalled { get; private set; }
+
+        public void ValidateConfiguration(AiProvider provider)
+        {
+            ValidateWasCalled = true;
+            throw new AiProviderConfigurationException("Cấu hình bị adapter từ chối.");
+        }
+
+        public Task<IReadOnlyList<string>> GetModelsAsync(
+            AiProvider provider,
+            string? apiKey,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public Task<string> CompleteAsync(
+            AiProvider provider,
+            string? apiKey,
+            AiCompletionRequest request,
+            CancellationToken cancellationToken) => throw new NotSupportedException();
+    }
 
     private sealed class FakeHttpClientFactory(HttpMessageHandler handler) : IHttpClientFactory
     {

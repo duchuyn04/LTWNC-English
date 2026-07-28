@@ -13,6 +13,18 @@ public sealed record OpenAiChatRequest(
     [property: JsonPropertyName("max_tokens")] int MaxTokens,
     [property: JsonPropertyName("temperature")] decimal Temperature);
 
+public sealed class OpenAiModelListResponse
+{
+    [JsonPropertyName("data")]
+    public List<OpenAiModel>? Data { get; init; }
+}
+
+public sealed class OpenAiModel
+{
+    [JsonPropertyName("id")]
+    public string? Id { get; init; }
+}
+
 public sealed class OpenAiChatResponse
 {
     [JsonPropertyName("choices")]

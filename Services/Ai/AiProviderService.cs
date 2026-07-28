@@ -20,7 +20,6 @@ public class AiProviderService : IAiProviderService
     private readonly IAdminAuditService _auditService;
     private readonly IConfiguration _configuration;
     private readonly TimeProvider _timeProvider;
-    private readonly bool _allowPrivateNetworks;
 
     public AiProviderService(
         AppDbContext context,
@@ -42,8 +41,6 @@ public class AiProviderService : IAiProviderService
         _configuration = configuration;
         // 6. Lưu dependency `_timeProvider` để các phương thức khác sử dụng.
         _timeProvider = timeProvider ?? TimeProvider.System;
-        // 7. Lưu dependency `_allowPrivateNetworks` để các phương thức khác sử dụng.
-        _allowPrivateNetworks = configuration.GetValue<bool>("AiProviders:AllowPrivateNetworks");
     }
 
     // Lấy danh sách provider cho trang Admin, ưu tiên hiển thị provider chính trước.
@@ -685,35 +682,24 @@ public class AiProviderService : IAiProviderService
             return "Adapter là bắt buộc.";
         }
 
-        // Tái sử dụng bảo vệ SSRF: chặn http cho host ngoài và chặn dải mạng nội bộ.
-        // 5. Thực hiện khối nghiệp vụ và chuyển lỗi sang nhánh xử lý tương ứng.
+        var provider = new AiProvider
+        {
+            Name = input.Name,
+            AdapterType = input.AdapterType,
+            BaseUrl = input.BaseUrl,
+            ModelId = input.ModelId,
+            TimeoutSeconds = input.TimeoutSeconds
+        };
+
         try
         {
-            // 6. Cập nhật `_` bằng giá trị mới.
-            _ = OpenAiCompatibleApiClient.BuildEndpoint(input.BaseUrl, "models", _allowPrivateNetworks);
+            GetAdapter(input.AdapterType).ValidateConfiguration(provider);
+            return null;
         }
-        catch (ArgumentException exception)
+        catch (AiProviderConfigurationException exception)
         {
-            // 7. Trả `exception.Message` cho nơi gọi.
             return exception.Message;
         }
-
-        // 8. Kiểm tra `string.IsNullOrWhiteSpace(input.ModelId)` để chọn nhánh xử lý phù hợp.
-        if (string.IsNullOrWhiteSpace(input.ModelId))
-        {
-            // 9. Trả `"Model ID là bắt buộc."` cho nơi gọi.
-            return "Model ID là bắt buộc.";
-        }
-
-        // 10. Kiểm tra `input.TimeoutSeconds is < 5 or > 300` để chọn nhánh xử lý phù hợp.
-        if (input.TimeoutSeconds is < 5 or > 300)
-        {
-            // 11. Trả `"Timeout phải từ 5 đến 300 giây."` cho nơi gọi.
-            return "Timeout phải từ 5 đến 300 giây.";
-        }
-
-        // 12. Trả `null` cho nơi gọi.
-        return null;
     }
 
     // Dựng payload audit đã lọc; metadata chỉ chứa thông tin cấu hình công khai,
@@ -752,15 +738,17 @@ public class AiProviderService : IAiProviderService
     // Tìm adapter đã đăng ký trong DI theo loại provider.
     private IAiProviderAdapter GetAdapter(AiProvider provider)
     {
-        // 1. Kiểm tra `_adapters.TryGetValue(provider.AdapterType, out IAiProviderAdapter?...` để chọn nhánh xử lý phù hợp.
-        if (_adapters.TryGetValue(provider.AdapterType, out IAiProviderAdapter? adapter))
+        return GetAdapter(provider.AdapterType);
+    }
+
+    private IAiProviderAdapter GetAdapter(string adapterType)
+    {
+        if (_adapters.TryGetValue(adapterType, out IAiProviderAdapter? adapter))
         {
-            // 2. Trả `adapter` cho nơi gọi.
             return adapter;
         }
 
-        // 3. Dừng xử lý và phát sinh lỗi `new AiProviderConfigurationException($"Adapter {provider.AdapterTyp...`.
-        throw new AiProviderConfigurationException($"Adapter {provider.AdapterType} chưa được đăng ký.");
+        throw new AiProviderConfigurationException($"Adapter {adapterType} chưa được đăng ký.");
     }
 
     // Đọc cửa sổ tính lỗi từ cấu hình hệ thống; giá trị sai sẽ quay về 5 phút.

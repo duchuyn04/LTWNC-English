@@ -18,7 +18,12 @@ public sealed class OpenAiCompatibleApiClient
         _allowPrivateNetworks = configuration.GetValue<bool>("AiProviders:AllowPrivateNetworks");
     }
 
-    public async Task<IReadOnlyList<string>> GetModelsAsync(
+    public void ValidateConfiguration(AiProvider provider)
+    {
+        _ = CreateEndpoint(provider, "models");
+    }
+
+    public async Task<OpenAiModelListResponse> GetModelsAsync(
         AiProvider provider,
         string? apiKey,
         CancellationToken cancellationToken)
@@ -32,28 +37,9 @@ public sealed class OpenAiCompatibleApiClient
 
         try
         {
-            using JsonDocument document = JsonDocument.Parse(
+            OpenAiModelListResponse? result = JsonSerializer.Deserialize<OpenAiModelListResponse>(
                 await response.Content.ReadAsStringAsync(cancellationToken));
-            if (!document.RootElement.TryGetProperty("data", out JsonElement data)
-                || data.ValueKind != JsonValueKind.Array)
-            {
-                throw InvalidResponse(provider);
-            }
-
-            var modelIds = new List<string>();
-            foreach (JsonElement item in data.EnumerateArray())
-            {
-                if (item.TryGetProperty("id", out JsonElement id)
-                    && !string.IsNullOrWhiteSpace(id.GetString()))
-                {
-                    modelIds.Add(id.GetString()!);
-                }
-            }
-
-            return modelIds
-                .Distinct(StringComparer.Ordinal)
-                .OrderBy(id => id, StringComparer.Ordinal)
-                .ToList();
+            return result ?? throw InvalidResponse(provider);
         }
         catch (JsonException exception)
         {

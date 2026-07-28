@@ -183,6 +183,10 @@ public sealed class AiCompletionRouterTests : IDisposable
         public HashSet<string> DelayUntilCancelledFor { get; } = new(StringComparer.Ordinal);
         public Func<AiProvider, Task>? OnCallAsync { get; set; }
 
+        public void ValidateConfiguration(AiProvider provider)
+        {
+        }
+
         // Test router không dùng danh sách model.
         public Task<IReadOnlyList<string>> GetModelsAsync(
             AiProvider provider,
