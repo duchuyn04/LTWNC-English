@@ -16,7 +16,7 @@ public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
     {
         try
         {
-            _client.ValidateConfiguration(connection);
+            _client.ValidateConfiguration(ToClientConfiguration(connection));
         }
         catch (OpenAiClientException exception)
         {
@@ -42,7 +42,7 @@ public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
         try
         {
             OpenAiModelListResponse response = await _client.GetModelsAsync(
-                connection,
+                ToClientConfiguration(connection),
                 apiKey,
                 cancellationToken);
             if (response.Data == null)
@@ -83,7 +83,7 @@ public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
         try
         {
             OpenAiChatResponse response = await _client.CompleteAsync(
-                connection,
+                ToClientConfiguration(connection),
                 apiKey,
                 openAiRequest,
                 cancellationToken);
@@ -100,6 +100,15 @@ public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
         {
             throw ToApplicationException(exception);
         }
+    }
+
+    // Chuyển Target configuration sang cấu hình riêng của Adaptee, không mang theo API key.
+    private static OpenAiClientConfiguration ToClientConfiguration(AiProviderConnection connection)
+    {
+        return new OpenAiClientConfiguration(
+            connection.Name,
+            connection.BaseUrl,
+            connection.TimeoutSeconds);
     }
 
     private static Exception ToApplicationException(OpenAiClientException exception)

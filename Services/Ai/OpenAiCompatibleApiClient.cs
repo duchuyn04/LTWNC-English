@@ -17,68 +17,68 @@ public sealed class OpenAiCompatibleApiClient
         _allowPrivateNetworks = configuration.GetValue<bool>("AiProviders:AllowPrivateNetworks");
     }
 
-    public void ValidateConfiguration(AiProviderConnection connection)
+    internal void ValidateConfiguration(OpenAiClientConfiguration configuration)
     {
-        _ = CreateEndpoint(connection, "models");
+        _ = CreateEndpoint(configuration, "models");
     }
 
-    public async Task<OpenAiModelListResponse> GetModelsAsync(
-        AiProviderConnection connection,
+    internal async Task<OpenAiModelListResponse> GetModelsAsync(
+        OpenAiClientConfiguration configuration,
         string? apiKey,
         CancellationToken cancellationToken)
     {
-        Uri endpoint = CreateEndpoint(connection, "models");
+        Uri endpoint = CreateEndpoint(configuration, "models");
         await ValidateResolvedHostAsync(endpoint, cancellationToken);
         using HttpRequestMessage request = new(HttpMethod.Get, endpoint);
         AddAuthorization(request, apiKey);
-        using HttpResponseMessage response = await SendAsync(connection, request, cancellationToken);
-        EnsureSuccess(connection, response);
+        using HttpResponseMessage response = await SendAsync(configuration, request, cancellationToken);
+        EnsureSuccess(configuration, response);
 
         try
         {
             OpenAiModelListResponse? result = JsonSerializer.Deserialize<OpenAiModelListResponse>(
                 await response.Content.ReadAsStringAsync(cancellationToken));
-            return result ?? throw InvalidResponse(connection);
+            return result ?? throw InvalidResponse(configuration);
         }
         catch (JsonException exception)
         {
-            throw InvalidResponse(connection, exception);
+            throw InvalidResponse(configuration, exception);
         }
     }
 
-    public async Task<OpenAiChatResponse> CompleteAsync(
-        AiProviderConnection connection,
+    internal async Task<OpenAiChatResponse> CompleteAsync(
+        OpenAiClientConfiguration configuration,
         string? apiKey,
         OpenAiChatRequest completion,
         CancellationToken cancellationToken)
     {
-        Uri endpoint = CreateEndpoint(connection, "chat/completions");
+        Uri endpoint = CreateEndpoint(configuration, "chat/completions");
         await ValidateResolvedHostAsync(endpoint, cancellationToken);
         using HttpRequestMessage request = new(HttpMethod.Post, endpoint)
         {
             Content = JsonContent.Create(completion)
         };
         AddAuthorization(request, apiKey);
-        using HttpResponseMessage response = await SendAsync(connection, request, cancellationToken);
-        EnsureSuccess(connection, response);
+        using HttpResponseMessage response = await SendAsync(configuration, request, cancellationToken);
+        EnsureSuccess(configuration, response);
 
         try
         {
             OpenAiChatResponse? result = JsonSerializer.Deserialize<OpenAiChatResponse>(
                 await response.Content.ReadAsStringAsync(cancellationToken));
-            return result ?? throw InvalidResponse(connection);
+            return result ?? throw InvalidResponse(configuration);
         }
         catch (JsonException exception)
         {
-            throw InvalidResponse(connection, exception);
+            throw InvalidResponse(configuration, exception);
         }
     }
 
-    private Uri CreateEndpoint(AiProviderConnection connection, string relativePath)
+    private Uri CreateEndpoint(OpenAiClientConfiguration configuration, string relativePath)
     {
         try
         {
-            return BuildEndpoint(connection.BaseUrl, relativePath, _allowPrivateNetworks);
+            return BuildEndpoint(configuration.BaseUrl, relativePath, _allowPrivateNetworks);
         }
         catch (ArgumentException exception)
         {
@@ -90,13 +90,13 @@ public sealed class OpenAiCompatibleApiClient
     }
 
     private async Task<HttpResponseMessage> SendAsync(
-        AiProviderConnection connection,
+        OpenAiClientConfiguration configuration,
         HttpRequestMessage request,
         CancellationToken cancellationToken)
     {
         HttpClient client = _httpClientFactory.CreateClient("AiProvider");
         using CancellationTokenSource timeout = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(connection.TimeoutSeconds, 5, 300)));
+        timeout.CancelAfter(TimeSpan.FromSeconds(Math.Clamp(configuration.TimeoutSeconds, 5, 300)));
 
         try
         {
@@ -106,19 +106,19 @@ public sealed class OpenAiCompatibleApiClient
         {
             throw new OpenAiClientException(
                 OpenAiClientFailureKind.Unavailable,
-                $"{connection.Name} đã hết thời gian chờ.",
+                $"{configuration.Name} đã hết thời gian chờ.",
                 exception);
         }
         catch (HttpRequestException exception)
         {
             throw new OpenAiClientException(
                 OpenAiClientFailureKind.Unavailable,
-                $"Không thể kết nối {connection.Name}.",
+                $"Không thể kết nối {configuration.Name}.",
                 exception);
         }
     }
 
-    private static void EnsureSuccess(AiProviderConnection connection, HttpResponseMessage response)
+    private static void EnsureSuccess(OpenAiClientConfiguration configuration, HttpResponseMessage response)
     {
         if (response.IsSuccessStatusCode)
         {
@@ -134,7 +134,7 @@ public sealed class OpenAiCompatibleApiClient
 
         throw new OpenAiClientException(
             failureKind,
-            $"{connection.Name} trả HTTP {(int)response.StatusCode}.");
+            $"{configuration.Name} trả HTTP {(int)response.StatusCode}.");
     }
 
     internal static Uri BuildEndpoint(
@@ -230,12 +230,12 @@ public sealed class OpenAiCompatibleApiClient
     }
 
     private static OpenAiClientException InvalidResponse(
-        AiProviderConnection connection,
+        OpenAiClientConfiguration configuration,
         Exception? innerException = null)
     {
         return new OpenAiClientException(
             OpenAiClientFailureKind.Unavailable,
-            $"{connection.Name} trả response không đúng chuẩn OpenAI.",
+            $"{configuration.Name} trả response không đúng chuẩn OpenAI.",
             innerException);
     }
 }

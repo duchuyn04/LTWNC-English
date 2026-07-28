@@ -22,7 +22,7 @@ public sealed class OpenAiCompatibleAdapterTests
 
         AiProviderUnavailableException exception = await Assert.ThrowsAsync<AiProviderUnavailableException>(() =>
             adapter.CompleteAsync(
-                Provider(),
+                Connection(),
                 "api-secret",
                 new AiCompletionRequest("system-secret", "user-secret", 32),
                 CancellationToken.None));
@@ -52,7 +52,7 @@ public sealed class OpenAiCompatibleAdapterTests
         IAiProviderAdapter adapter = CreateAdapter(handler);
 
         string result = await adapter.CompleteAsync(
-            Provider(),
+            Connection(),
             "api-secret",
             new AiCompletionRequest("system-instruction", "learner-message", 321),
             CancellationToken.None);
@@ -88,7 +88,7 @@ public sealed class OpenAiCompatibleAdapterTests
         AiProviderConfigurationException exception =
             await Assert.ThrowsAsync<AiProviderConfigurationException>(() =>
                 adapter.CompleteAsync(
-                    Provider(),
+                    Connection(),
                     "api-secret",
                     new AiCompletionRequest("system-secret", "user-secret"),
                     CancellationToken.None));
@@ -113,7 +113,7 @@ public sealed class OpenAiCompatibleAdapterTests
         AiProviderUnavailableException exception =
             await Assert.ThrowsAsync<AiProviderUnavailableException>(() =>
                 adapter.CompleteAsync(
-                    Provider(),
+                    Connection(),
                     null,
                     new AiCompletionRequest("system", "user"),
                     CancellationToken.None));
@@ -132,7 +132,7 @@ public sealed class OpenAiCompatibleAdapterTests
         AiProviderUnavailableException exception =
             await Assert.ThrowsAsync<AiProviderUnavailableException>(() =>
                 adapter.CompleteAsync(
-                    Provider(),
+                    Connection(),
                     null,
                     new AiCompletionRequest("system", "user"),
                     CancellationToken.None));
@@ -151,7 +151,7 @@ public sealed class OpenAiCompatibleAdapterTests
         AiProviderUnavailableException exception =
             await Assert.ThrowsAsync<AiProviderUnavailableException>(() =>
                 adapter.CompleteAsync(
-                    Provider(),
+                    Connection(),
                     null,
                     new AiCompletionRequest("system", "user"),
                     CancellationToken.None));
@@ -174,7 +174,7 @@ public sealed class OpenAiCompatibleAdapterTests
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() =>
             adapter.CompleteAsync(
-                Provider(),
+                Connection(),
                 null,
                 new AiCompletionRequest("system", "user"),
                 cancellation.Token));
@@ -199,7 +199,7 @@ public sealed class OpenAiCompatibleAdapterTests
         IAiProviderAdapter adapter = CreateAdapter(handler);
 
         IReadOnlyList<string> models = await adapter.GetModelsAsync(
-            Provider(),
+            Connection(),
             null,
             CancellationToken.None);
 
@@ -218,7 +218,7 @@ public sealed class OpenAiCompatibleAdapterTests
         return new OpenAiCompatibleAdapter(client);
     }
 
-    private static AiProviderConnection Provider()
+    private static AiProviderConnection Connection()
     {
         return new AiProviderConnection(
             "Provider Test",

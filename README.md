@@ -87,7 +87,16 @@ Project dùng một số mẫu GoF, không phải "có đủ cho đẹp báo cá
 
 **Vấn đề:** Gọi AI provider bên ngoài qua HTTP. Nếu service học/service mission biết chi tiết HTTP, đổi provider là sửa khắp nơi.
 
-**Cách làm:** `IAiProviderAdapter` là interface chung. `OpenAiCompatibleAdapter` chuyển call domain thành HTTP cụ thể qua `OpenAiCompatibleClient`. Router (`AiCompletionRouter`) chỉ biết interface, không biết chi tiết HTTP. Fallback theo `Priority`, thử provider tiếp theo khi timeout hoặc 5xx.
+**Cách làm:** Router và dịch vụ quản trị chỉ gọi Target `IAiProviderAdapter`. `OpenAiCompatibleAdapter` chuyển request, response và lỗi giữa contract ứng dụng với contract OpenAI-compatible. Chỉ `OpenAiCompatibleApiClient` gửi HTTP.
+
+```mermaid
+flowchart LR
+    Client["Client<br/>AiCompletionRouter<br/>AiProviderService"] --> Target["Target<br/>IAiProviderAdapter<br/>AiProviderConnection"]
+    Target --> Adapter["Adapter<br/>OpenAiCompatibleAdapter"]
+    Adapter --> Adaptee["Adaptee<br/>OpenAiCompatibleApiClient"]
+```
+
+`AiProviderConnection` chỉ mang tên, base URL, model và timeout. API key được giải mã ngay trước lời gọi Adapter rồi truyền bằng tham số riêng; khóa không nằm trong record, debug output hoặc operation log. Router fallback theo provider chính và `Priority` khi gặp lỗi có thể thử lại.
 
 ### 📦 Application service interfaces
 
