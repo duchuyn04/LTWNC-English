@@ -12,17 +12,21 @@ public class AchievementStudyObserver : IStudyEventObserver
     // Inject unlock service
     public AchievementStudyObserver(IAchievementUnlockService unlockService)
     {
+        // 1. Lưu dependency `_unlockService` để các phương thức khác sử dụng.
         _unlockService = unlockService;
     }
 
     // User rỗng thì bỏ; còn lại SyncEligibleAsync theo UserId trên sự kiện
     public async Task OnStudyEventAsync(StudyEvent studyEvent, CancellationToken cancellationToken = default)
     {
+        // 1. Kiểm tra `string.IsNullOrWhiteSpace(studyEvent.UserId)` để chọn nhánh xử lý phù hợp.
         if (string.IsNullOrWhiteSpace(studyEvent.UserId))
         {
+            // 2. Kết thúc phương thức sau khi hoàn tất xử lý.
             return;
         }
 
+        // 3. Gọi `SyncEligibleAsync` để thực hiện bước nghiệp vụ này.
         await _unlockService.SyncEligibleAsync(studyEvent.UserId, cancellationToken);
     }
 }

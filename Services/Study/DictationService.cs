@@ -119,9 +119,13 @@ public class DictationService : IDictationService
         IStudyEventPublisher studyEvents,
         TimeProvider? timeProvider = null)
     {
+        // 1. Lưu dependency `_context` để các phương thức khác sử dụng.
         _context = context;
+        // 2. Lưu dependency `_strategyResolver` để các phương thức khác sử dụng.
         _strategyResolver = strategyResolver;
+        // 3. Lưu dependency `_studyEvents` để các phương thức khác sử dụng.
         _studyEvents = studyEvents;
+        // 4. Lưu dependency `_timeProvider` để các phương thức khác sử dụng.
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
@@ -133,44 +137,59 @@ public class DictationService : IDictationService
         string userId,
         UserStudySettings settings)
     {
+        // 1. Gọi `Resolve` và lưu kết quả vào `strategy`.
         IStudyModeStrategy strategy = _strategyResolver.Resolve(StudyMode.Dictation);
+        // 2. Gọi `GetCardsAsync` và lưu kết quả vào `cards`.
         List<Flashcard> cards = await strategy.GetCardsAsync(setId, settings, userId);
 
         // Xáo trộn nếu user bật DictationShuffle
+        // 3. Kiểm tra `settings.DictationShuffle` để chọn nhánh xử lý phù hợp.
         if (settings.DictationShuffle)
         {
+            // 4. Cập nhật `cards` bằng giá trị mới.
             cards = Shuffle(cards);
         }
 
+        // 5. Trả `cards` cho nơi gọi.
         return cards;
     }
 
     // Kiểm tra bộ thẻ có bất kỳ thẻ nào có câu ví dụ không (bỏ qua bộ lọc)
     public async Task<bool> AnyCardHasExampleSentenceAsync(int setId)
     {
+        // 1. Gọi `AnyAsync` và lưu kết quả vào `hasExample`.
         bool hasExample = await _context.Flashcards.AnyAsync(flashcard =>
             flashcard.FlashcardSetId == setId
             && flashcard.ExampleSentence.Trim() != "");
 
+        // 2. Trả `hasExample` cho nơi gọi.
         return hasExample;
     }
 
     // Xáo trộn danh sách bằng thuật toán Fisher-Yates
     private static List<T> Shuffle<T>(List<T> list)
     {
+        // 1. Khởi tạo `random` với dữ liệu ban đầu cần thiết.
         Random random = new Random();
+        // 2. Khởi tạo `result` với dữ liệu ban đầu cần thiết.
         List<T> result = new List<T>(list);
 
+        // 3. Lặp qua phạm vi dữ liệu cần xử lý.
         for (int i = result.Count - 1; i > 0; i--)
         {
+            // 4. Gọi `Next` và lưu kết quả vào `j`.
             int j = random.Next(i + 1);
 
             // Đổi chỗ hai phần tử
+            // 5. Tính giá trị và lưu vào `temp` để dùng ở bước tiếp theo.
             T temp = result[i];
+            // 6. Cập nhật `result[i]` bằng giá trị mới.
             result[i] = result[j];
+            // 7. Cập nhật `result[j]` bằng giá trị mới.
             result[j] = temp;
         }
 
+        // 8. Trả `result` cho nơi gọi.
         return result;
     }
 
@@ -182,7 +201,9 @@ public class DictationService : IDictationService
         int plannedItemCount = 0,
         IReadOnlyList<Flashcard>? cards = null)
     {
+        // 1. Tính giá trị và lưu vào `itemCount` để dùng ở bước tiếp theo.
         int itemCount = cards?.Count ?? Math.Max(0, plannedItemCount);
+        // 2. Khởi tạo `session` với dữ liệu ban đầu cần thiết.
         StudySession session = new StudySession
         {
             UserId = userId,
@@ -193,17 +214,23 @@ public class DictationService : IDictationService
             StartedAt = _timeProvider.GetUtcNow().UtcDateTime
         };
 
+        // 3. Gọi `AddAsync` để thực hiện bước nghiệp vụ này.
         await _context.StudySessions.AddAsync(session);
 
+        // 4. Kiểm tra `cards != null` để chọn nhánh xử lý phù hợp.
         if (cards != null)
         {
+            // 5. Lặp qua phạm vi dữ liệu cần xử lý.
             for (int index = 0; index < cards.Count; index++)
             {
+                // 6. Tính giá trị và lưu vào `card` để dùng ở bước tiếp theo.
                 Flashcard card = cards[index];
+                // 7. Tính giá trị và lưu vào `promptText` để dùng ở bước tiếp theo.
                 string promptText = contentMode == DictationContentMode.ExampleSentence
                     ? card.ExampleSentence
                     : card.FrontText;
 
+                // 8. Gọi `AddAsync` để thực hiện bước nghiệp vụ này.
                 await _context.DictationSessionQuestions.AddAsync(new DictationSessionQuestion
                 {
                     StudySession = session,
@@ -221,7 +248,9 @@ public class DictationService : IDictationService
             }
         }
 
+        // 9. Gọi `SaveChangesAsync` để thực hiện bước nghiệp vụ này.
         await _context.SaveChangesAsync();
+        // 10. Trả `session` cho nơi gọi.
         return session;
     }
 
@@ -230,12 +259,14 @@ public class DictationService : IDictationService
         int setId,
         string userId)
     {
+        // 1. Gọi `GetOwnedDictationSessionAsync` và lưu kết quả vào `session`.
         StudySession session = await GetOwnedDictationSessionAsync(
             sourceSessionId,
             setId,
             userId,
             requireCompleted: true);
 
+        // 2. Gọi `ToListAsync` và lưu kết quả vào `cardIds`.
         List<int> cardIds = await _context.DictationSessionQuestions
             .AsNoTracking()
             .Where(question =>
@@ -245,8 +276,10 @@ public class DictationService : IDictationService
             .Select(question => question.FlashcardId)
             .ToListAsync();
 
+        // 3. Kiểm tra `cardIds.Count == 0` để chọn nhánh xử lý phù hợp.
         if (cardIds.Count == 0)
         {
+            // 4. Cập nhật `cardIds` bằng giá trị mới.
             cardIds = await _context.DictationSessionDetails
                 .AsNoTracking()
                 .Where(detail =>
@@ -258,17 +291,20 @@ public class DictationService : IDictationService
                 .ToListAsync();
         }
 
+        // 5. Gọi `ToDictionaryAsync` và lưu kết quả vào `cardsById`.
         Dictionary<int, Flashcard> cardsById = await _context.Flashcards
             .Where(card =>
                 card.FlashcardSetId == setId
                 && cardIds.Contains(card.Id))
             .ToDictionaryAsync(card => card.Id);
 
+        // 6. Gọi `ToList` và lưu kết quả vào `cards`.
         List<Flashcard> cards = cardIds
             .Where(cardsById.ContainsKey)
             .Select(cardId => cardsById[cardId])
             .ToList();
 
+        // 7. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new DictationRetryPlan
         {
             ContentMode = session.DictationContentMode,
@@ -281,15 +317,20 @@ public class DictationService : IDictationService
         string userId,
         int limit = 100)
     {
+        // 1. Gọi `AnyAsync` và lưu kết quả vào `ownsSet`.
         bool ownsSet = await _context.FlashcardSets
             .AsNoTracking()
             .AnyAsync(set => set.Id == setId && set.UserId == userId);
+        // 2. Kiểm tra `!ownsSet` để chọn nhánh xử lý phù hợp.
         if (!ownsSet)
         {
+            // 3. Dừng xử lý và phát sinh lỗi `new UnauthorizedAccessException("Không có quyền xem lịch sử bộ thẻ ...`.
             throw new UnauthorizedAccessException("Không có quyền xem lịch sử bộ thẻ này.");
         }
 
+        // 4. Gọi `Clamp` và lưu kết quả vào `safeLimit`.
         int safeLimit = Math.Clamp(limit, 1, 500);
+        // 5. Gọi `ToListAsync` và lưu kết quả vào `snapshotItems`.
         List<DictationHistoryItem> snapshotItems = await _context.DictationSessionQuestions
             .AsNoTracking()
             .Where(question =>
@@ -312,11 +353,14 @@ public class DictationService : IDictationService
             })
             .ToListAsync();
 
+        // 6. Kiểm tra `snapshotItems.Count >= safeLimit` để chọn nhánh xử lý phù hợp.
         if (snapshotItems.Count >= safeLimit)
         {
+            // 7. Trả `snapshotItems` cho nơi gọi.
             return snapshotItems;
         }
 
+        // 8. Gọi `ToListAsync` và lưu kết quả vào `legacyItems`.
         List<DictationHistoryItem> legacyItems = await _context.DictationSessionDetails
             .AsNoTracking()
             .Where(detail =>
@@ -347,6 +391,7 @@ public class DictationService : IDictationService
             })
             .ToListAsync();
 
+        // 9. Trả kết quả từ `ToList` cho nơi gọi.
         return snapshotItems
             .Concat(legacyItems)
             .OrderByDescending(item => item.AnsweredAt)
@@ -363,60 +408,83 @@ public class DictationService : IDictationService
         string userId,
         bool acceptSynonyms)
     {
+        // 1. Gọi `GetOwnedDictationSessionAsync` và lưu kết quả vào `session`.
         StudySession session = await GetOwnedDictationSessionAsync(
             sessionId,
             setId,
             userId,
             requireCompleted: false);
+        // 2. Kiểm tra `session.CompletedAt.HasValue` để chọn nhánh xử lý phù hợp.
         if (session.CompletedAt.HasValue)
         {
+            // 3. Dừng xử lý và phát sinh lỗi `new InvalidOperationException("Phiên nghe chép đã hoàn thành.")`.
             throw new InvalidOperationException("Phiên nghe chép đã hoàn thành.");
         }
 
+        // 4. Gọi `SingleOrDefaultAsync` và lưu kết quả vào `question`.
         DictationSessionQuestion? question = await _context.DictationSessionQuestions
             .SingleOrDefaultAsync(row =>
                 row.StudySessionId == sessionId
                 && row.FlashcardId == cardId);
+        // 5. Kiểm tra `question == null` để chọn nhánh xử lý phù hợp.
         if (question == null)
         {
+            // 6. Dừng xử lý và phát sinh lỗi `new KeyNotFoundException("Thẻ không thuộc phiên nghe chép này.")`.
             throw new KeyNotFoundException("Thẻ không thuộc phiên nghe chép này.");
         }
 
+        // 7. Kiểm tra `question.IsCorrect.HasValue` để chọn nhánh xử lý phù hợp.
         if (question.IsCorrect.HasValue)
         {
+            // 8. Trả kết quả từ `BuildCheckResult` cho nơi gọi.
             return BuildCheckResult(session, question);
         }
 
+        // 9. Khởi tạo `acceptedAnswers` với dữ liệu ban đầu cần thiết.
         List<string> acceptedAnswers = new List<string> { question.CorrectAnswer };
+        // 10. Tính giá trị và lưu vào `canAcceptSynonyms` để dùng ở bước tiếp theo.
         bool canAcceptSynonyms =
             session.DictationContentMode == DictationContentMode.Vocabulary
             && acceptSynonyms
             && !string.IsNullOrWhiteSpace(question.Synonyms);
 
+        // 11. Kiểm tra `canAcceptSynonyms` để chọn nhánh xử lý phù hợp.
         if (canAcceptSynonyms)
         {
+            // 12. Duyệt từng `part` trong `question.Synonyms!.Split( new[] { ',', ';' }, StringSplitOptions.Re...` để xử lý lần lượt.
             foreach (string part in question.Synonyms!.Split(
                 new[] { ',', ';' },
                 StringSplitOptions.RemoveEmptyEntries))
             {
+                // 13. Gọi `Trim` và lưu kết quả vào `synonym`.
                 string synonym = part.Trim();
+                // 14. Kiểm tra `!string.IsNullOrWhiteSpace(synonym)` để chọn nhánh xử lý phù hợp.
                 if (!string.IsNullOrWhiteSpace(synonym))
                 {
+                    // 15. Gọi `Add` để thực hiện bước nghiệp vụ này.
                     acceptedAnswers.Add(synonym);
                 }
             }
         }
 
+        // 16. Gọi `NormalizeAnswer` và lưu kết quả vào `normalizedInput`.
         string normalizedInput = NormalizeAnswer(answeredText);
+        // 17. Gọi `Any` và lưu kết quả vào `isCorrect`.
         bool isCorrect = acceptedAnswers.Any(answer =>
             NormalizeAnswer(answer) == normalizedInput);
+        // 18. Tính giá trị và lưu vào `answeredAt` để dùng ở bước tiếp theo.
         DateTime answeredAt = _timeProvider.GetUtcNow().UtcDateTime;
 
+        // 19. Cập nhật `question.AnsweredText` bằng giá trị mới.
         question.AnsweredText = answeredText ?? string.Empty;
+        // 20. Cập nhật `question.IsCorrect` bằng giá trị mới.
         question.IsCorrect = isCorrect;
+        // 21. Cập nhật `question.AnsweredAt` bằng giá trị mới.
         question.AnsweredAt = answeredAt;
 
+        // 22. Gọi `UpdateUserProgressAsync` để thực hiện bước nghiệp vụ này.
         await UpdateUserProgressAsync(userId, cardId, isCorrect);
+        // 23. Gọi `AddAsync` để thực hiện bước nghiệp vụ này.
         await _context.DictationSessionDetails.AddAsync(new DictationSessionDetail
         {
             StudySessionId = sessionId,
@@ -426,38 +494,49 @@ public class DictationService : IDictationService
             CreatedAt = answeredAt
         });
 
+        // 24. Thực hiện khối nghiệp vụ và chuyển lỗi sang nhánh xử lý tương ứng.
         try
         {
             // Một SaveChanges giữ progress, snapshot câu trả lời và detail trong cùng transaction.
+            // 25. Gọi `SaveChangesAsync` để thực hiện bước nghiệp vụ này.
             await _context.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)
         {
+            // 26. Gọi `Clear` để thực hiện bước nghiệp vụ này.
             _context.ChangeTracker.Clear();
+            // 27. Gọi `SingleAsync` và lưu kết quả vào `savedQuestion`.
             DictationSessionQuestion savedQuestion = await _context.DictationSessionQuestions
                 .AsNoTracking()
                 .SingleAsync(row =>
                     row.StudySessionId == sessionId
                     && row.FlashcardId == cardId);
+            // 28. Trả kết quả từ `BuildCheckResult` cho nơi gọi.
             return BuildCheckResult(session, savedQuestion);
         }
         catch (DbUpdateException)
         {
+            // 29. Gọi `Clear` để thực hiện bước nghiệp vụ này.
             _context.ChangeTracker.Clear();
+            // 30. Gọi `SingleOrDefaultAsync` và lưu kết quả vào `savedQuestion`.
             DictationSessionQuestion? savedQuestion = await _context.DictationSessionQuestions
                 .AsNoTracking()
                 .SingleOrDefaultAsync(row =>
                     row.StudySessionId == sessionId
                     && row.FlashcardId == cardId
                     && row.IsCorrect.HasValue);
+            // 31. Kiểm tra `savedQuestion != null` để chọn nhánh xử lý phù hợp.
             if (savedQuestion != null)
             {
+                // 32. Trả kết quả từ `BuildCheckResult` cho nơi gọi.
                 return BuildCheckResult(session, savedQuestion);
             }
 
+            // 33. Phát sinh lại lỗi hiện tại để tầng gọi xử lý.
             throw;
         }
 
+        // 34. Gọi `PublishAsync` để thực hiện bước nghiệp vụ này.
         await _studyEvents.PublishAsync(new DictationAnswerCheckedEvent(
             UserId: userId,
             OccurredAtUtc: answeredAt,
@@ -466,6 +545,7 @@ public class DictationService : IDictationService
             FlashcardId: cardId,
             IsCorrect: isCorrect));
 
+        // 35. Trả kết quả từ `BuildCheckResult` cho nơi gọi.
         return BuildCheckResult(session, question);
     }
 
@@ -473,9 +553,12 @@ public class DictationService : IDictationService
         StudySession session,
         DictationSessionQuestion question)
     {
+        // 1. Tính giá trị và lưu vào `isCorrect` để dùng ở bước tiếp theo.
         bool isCorrect = question.IsCorrect == true;
+        // 2. Tính giá trị và lưu vào `answeredText` để dùng ở bước tiếp theo.
         string answeredText = question.AnsweredText ?? string.Empty;
 
+        // 3. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new DictationCheckResult
         {
             IsCorrect = isCorrect,
@@ -495,19 +578,26 @@ public class DictationService : IDictationService
     // Chuẩn hóa chuỗi đáp án để so sánh
     private static string NormalizeAnswer(string? input)
     {
+        // 1. Kiểm tra `string.IsNullOrWhiteSpace(input)` để chọn nhánh xử lý phù hợp.
         if (string.IsNullOrWhiteSpace(input))
         {
+            // 2. Trả `string.Empty` cho nơi gọi.
             return string.Empty;
         }
 
+        // 3. Gọi `TokenizeWords` và lưu kết quả vào `tokens`.
         List<WordToken> tokens = TokenizeWords(input);
+        // 4. Khởi tạo `normalizedWords` với dữ liệu ban đầu cần thiết.
         List<string> normalizedWords = new List<string>();
 
+        // 5. Duyệt từng `token` trong `tokens` để xử lý lần lượt.
         foreach (WordToken token in tokens)
         {
+            // 6. Gọi `Add` để thực hiện bước nghiệp vụ này.
             normalizedWords.Add(token.Normalized);
         }
 
+        // 7. Trả kết quả từ `Join` cho nơi gọi.
         return string.Join(" ", normalizedWords);
     }
 
@@ -516,28 +606,38 @@ public class DictationService : IDictationService
 
     private static List<WordToken> TokenizeWords(string? input)
     {
+        // 1. Kiểm tra `string.IsNullOrWhiteSpace(input)` để chọn nhánh xử lý phù hợp.
         if (string.IsNullOrWhiteSpace(input))
         {
+            // 2. Tạo và trả đối tượng kết quả cho nơi gọi.
             return new List<WordToken>();
         }
 
+        // 3. Gọi `Split` và lưu kết quả vào `parts`.
         string[] parts = input.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+        // 4. Khởi tạo `tokens` với dữ liệu ban đầu cần thiết.
         List<WordToken> tokens = new List<WordToken>();
 
+        // 5. Duyệt từng `part` trong `parts` để xử lý lần lượt.
         foreach (string part in parts)
         {
+            // 6. Gọi `NormalizeWord` và lưu kết quả vào `normalized`.
             string normalized = NormalizeWord(part);
+            // 7. Kiểm tra `normalized.Length > 0` để chọn nhánh xử lý phù hợp.
             if (normalized.Length > 0)
             {
+                // 8. Gọi `Add` để thực hiện bước nghiệp vụ này.
                 tokens.Add(new WordToken(part, normalized));
             }
         }
 
+        // 9. Trả `tokens` cho nơi gọi.
         return tokens;
     }
 
     private static string NormalizeWord(string word)
     {
+        // 1. Trả kết quả từ `Replace` cho nơi gọi.
         return word
             .ToLowerInvariant()
             .Replace(",", "")
@@ -551,66 +651,95 @@ public class DictationService : IDictationService
         string? answeredText,
         string correctAnswer)
     {
+        // 1. Gọi `TokenizeWords` và lưu kết quả vào `answeredTokens`.
         List<WordToken> answeredTokens = TokenizeWords(answeredText);
+        // 2. Gọi `TokenizeWords` và lưu kết quả vào `correctTokens`.
         List<WordToken> correctTokens = TokenizeWords(correctAnswer);
 
         // Ma trận khoảng cách chỉnh sửa (Levenshtein theo từ).
         // O(n*m) phù hợp với câu ngắn; chỉ cân nhắc lại nếu nghe chép cả đoạn dài.
+        // 3. Tính giá trị và lưu vào `answeredCount` để dùng ở bước tiếp theo.
         int answeredCount = answeredTokens.Count;
+        // 4. Tính giá trị và lưu vào `correctCount` để dùng ở bước tiếp theo.
         int correctCount = correctTokens.Count;
+        // 5. Khởi tạo `distance` với dữ liệu ban đầu cần thiết.
         int[,] distance = new int[answeredCount + 1, correctCount + 1];
 
+        // 6. Lặp qua phạm vi dữ liệu cần xử lý.
         for (int i = 0; i <= answeredCount; i++)
         {
+            // 7. Cập nhật `distance[i, 0]` bằng giá trị mới.
             distance[i, 0] = i;
         }
 
+        // 8. Lặp qua phạm vi dữ liệu cần xử lý.
         for (int j = 0; j <= correctCount; j++)
         {
+            // 9. Cập nhật `distance[0, j]` bằng giá trị mới.
             distance[0, j] = j;
         }
 
+        // 10. Lặp qua phạm vi dữ liệu cần xử lý.
         for (int i = 1; i <= answeredCount; i++)
         {
+            // 11. Lặp qua phạm vi dữ liệu cần xử lý.
             for (int j = 1; j <= correctCount; j++)
             {
+                // 12. Tính giá trị và lưu vào `substitutionCost` để dùng ở bước tiếp theo.
                 int substitutionCost = 1;
+                // 13. Kiểm tra `answeredTokens[i - 1].Normalized == correctTokens[j - 1].Normalized` để chọn nhánh xử lý phù hợp.
                 if (answeredTokens[i - 1].Normalized == correctTokens[j - 1].Normalized)
                 {
+                    // 14. Cập nhật `substitutionCost` bằng giá trị mới.
                     substitutionCost = 0;
                 }
 
+                // 15. Tính giá trị và lưu vào `substitution` để dùng ở bước tiếp theo.
                 int substitution = distance[i - 1, j - 1] + substitutionCost;
+                // 16. Tính giá trị và lưu vào `deletion` để dùng ở bước tiếp theo.
                 int deletion = distance[i - 1, j] + 1;
+                // 17. Tính giá trị và lưu vào `insertion` để dùng ở bước tiếp theo.
                 int insertion = distance[i, j - 1] + 1;
 
+                // 18. Cập nhật `distance[i, j]` bằng giá trị mới.
                 distance[i, j] = Math.Min(substitution, Math.Min(deletion, insertion));
             }
         }
 
         // Truy vết ngược từ góc dưới-phải để dựng danh sách so sánh từ
+        // 19. Khởi tạo `result` với dữ liệu ban đầu cần thiết.
         List<DictationWordComparison> result = new List<DictationWordComparison>();
+        // 20. Tính giá trị và lưu vào `answeredIndex` để dùng ở bước tiếp theo.
         int answeredIndex = answeredCount;
+        // 21. Tính giá trị và lưu vào `correctIndex` để dùng ở bước tiếp theo.
         int correctIndex = correctCount;
 
+        // 22. Tiếp tục lặp khi `answeredIndex > 0 || correctIndex > 0` còn đúng.
         while (answeredIndex > 0 || correctIndex > 0)
         {
+            // 23. Kiểm tra `answeredIndex > 0 && correctIndex > 0` để chọn nhánh xử lý phù hợp.
             if (answeredIndex > 0 && correctIndex > 0)
             {
+                // 24. Tính giá trị và lưu vào `wordsMatch` để dùng ở bước tiếp theo.
                 bool wordsMatch =
                     answeredTokens[answeredIndex - 1].Normalized
                     == correctTokens[correctIndex - 1].Normalized;
 
+                // 25. Tính giá trị và lưu vào `substitutionCost` để dùng ở bước tiếp theo.
                 int substitutionCost = wordsMatch ? 0 : 1;
+                // 26. Tính giá trị và lưu vào `substitutionDistance` để dùng ở bước tiếp theo.
                 int substitutionDistance =
                     distance[answeredIndex - 1, correctIndex - 1] + substitutionCost;
 
+                // 27. Kiểm tra `distance[answeredIndex, correctIndex] == substitutionDistance` để chọn nhánh xử lý phù hợp.
                 if (distance[answeredIndex, correctIndex] == substitutionDistance)
                 {
+                    // 28. Tính giá trị và lưu vào `status` để dùng ở bước tiếp theo.
                     DictationWordStatus status = wordsMatch
                         ? DictationWordStatus.Correct
                         : DictationWordStatus.Incorrect;
 
+                    // 29. Gọi `Add` để thực hiện bước nghiệp vụ này.
                     result.Add(new DictationWordComparison
                     {
                         Status = status,
@@ -618,166 +747,220 @@ public class DictationService : IDictationService
                         CorrectWord = correctTokens[correctIndex - 1].Original
                     });
 
+                    // 30. Cập nhật bộ đếm hoặc trạng thái `answeredIndex`.
                     answeredIndex--;
+                    // 31. Cập nhật bộ đếm hoặc trạng thái `correctIndex`.
                     correctIndex--;
+                    // 32. Bỏ qua phần còn lại và chuyển sang lần lặp tiếp theo.
                     continue;
                 }
             }
 
+            // 33. Tính giá trị và lưu vào `isExtraWord` để dùng ở bước tiếp theo.
             bool isExtraWord =
                 answeredIndex > 0
                 && distance[answeredIndex, correctIndex]
                     == distance[answeredIndex - 1, correctIndex] + 1;
 
+            // 34. Kiểm tra `isExtraWord` để chọn nhánh xử lý phù hợp.
             if (isExtraWord)
             {
+                // 35. Gọi `Add` để thực hiện bước nghiệp vụ này.
                 result.Add(new DictationWordComparison
                 {
                     Status = DictationWordStatus.Extra,
                     AnsweredWord = answeredTokens[answeredIndex - 1].Original
                 });
+                // 36. Cập nhật bộ đếm hoặc trạng thái `answeredIndex`.
                 answeredIndex--;
             }
             else
             {
+                // 37. Gọi `Add` để thực hiện bước nghiệp vụ này.
                 result.Add(new DictationWordComparison
                 {
                     Status = DictationWordStatus.Missing,
                     CorrectWord = correctTokens[correctIndex - 1].Original
                 });
+                // 38. Cập nhật bộ đếm hoặc trạng thái `correctIndex`.
                 correctIndex--;
             }
         }
 
+        // 39. Gọi `Reverse` để thực hiện bước nghiệp vụ này.
         result.Reverse();
+        // 40. Trả `result` cho nơi gọi.
         return result;
     }
 
     // Tạo gợi ý khi trả lời sai: IPA và nghĩa
     private static string? BuildHint(string? pronunciation, string? definition)
     {
+        // 1. Khởi tạo `parts` với dữ liệu ban đầu cần thiết.
         List<string> parts = new List<string>();
 
+        // 2. Kiểm tra `!string.IsNullOrWhiteSpace(pronunciation)` để chọn nhánh xử lý phù hợp.
         if (!string.IsNullOrWhiteSpace(pronunciation))
         {
+            // 3. Gọi `Add` để thực hiện bước nghiệp vụ này.
             parts.Add($"IPA: {pronunciation}");
         }
 
+        // 4. Kiểm tra `!string.IsNullOrWhiteSpace(definition)` để chọn nhánh xử lý phù hợp.
         if (!string.IsNullOrWhiteSpace(definition))
         {
+            // 5. Gọi `Add` để thực hiện bước nghiệp vụ này.
             parts.Add($"Nghĩa: {definition}");
         }
 
+        // 6. Kiểm tra `parts.Count == 0` để chọn nhánh xử lý phù hợp.
         if (parts.Count == 0)
         {
+            // 7. Trả `null` cho nơi gọi.
             return null;
         }
 
+        // 8. Trả kết quả từ `Join` cho nơi gọi.
         return string.Join(" | ", parts);
     }
 
     // Cập nhật UserProgress sau mỗi câu trả lời
     private async Task UpdateUserProgressAsync(string userId, int flashcardId, bool isCorrect)
     {
+        // 1. Gọi `FirstOrDefaultAsync` và lưu kết quả vào `progress`.
         UserProgress? progress = await _context.UserProgresses
             .FirstOrDefaultAsync(row => row.UserId == userId && row.FlashcardId == flashcardId);
 
+        // 2. Kiểm tra `progress == null` để chọn nhánh xử lý phù hợp.
         if (progress == null)
         {
+            // 3. Cập nhật `progress` bằng giá trị mới.
             progress = new UserProgress
             {
                 UserId = userId,
                 FlashcardId = flashcardId
             };
+            // 4. Gọi `AddAsync` để thực hiện bước nghiệp vụ này.
             await _context.UserProgresses.AddAsync(progress);
         }
 
+        // 5. Cập nhật `progress.IsLearned` bằng giá trị mới.
         progress.IsLearned = isCorrect;
 
+        // 6. Kiểm tra `isCorrect` để chọn nhánh xử lý phù hợp.
         if (isCorrect)
         {
+            // 7. Cập nhật `progress.Status` bằng giá trị mới.
             progress.Status = UserProgressStatus.Mastered;
+            // 8. Cập nhật bộ đếm hoặc trạng thái `progress.CorrectCount`.
             progress.CorrectCount++;
         }
         else
         {
+            // 9. Cập nhật `progress.Status` bằng giá trị mới.
             progress.Status = UserProgressStatus.Learning;
+            // 10. Cập nhật bộ đếm hoặc trạng thái `progress.WrongCount`.
             progress.WrongCount++;
         }
 
+        // 11. Cập nhật `progress.LastReviewed` bằng giá trị mới.
         progress.LastReviewed = _timeProvider.GetUtcNow().UtcDateTime;
     }
 
     // Đóng phiên học và lưu điểm
     public async Task<StudySession> CompleteSessionAsync(int sessionId, int setId, string userId)
     {
+        // 1. Gọi `GetOwnedDictationSessionAsync` và lưu kết quả vào `session`.
         StudySession session = await GetOwnedDictationSessionAsync(
             sessionId,
             setId,
             userId,
             requireCompleted: false);
 
+        // 2. Kiểm tra `session.CompletedAt.HasValue` để chọn nhánh xử lý phù hợp.
         if (session.CompletedAt.HasValue)
         {
+            // 3. Trả `session` cho nơi gọi.
             return session;
         }
 
+        // 4. Gọi `ToListAsync` và lưu kết quả vào `questions`.
         List<DictationSessionQuestion> questions = await _context.DictationSessionQuestions
             .AsNoTracking()
             .Where(question => question.StudySessionId == sessionId)
             .OrderBy(question => question.OrderIndex)
             .ToListAsync();
 
+        // 5. Khai báo `denominator` để lưu dữ liệu dùng ở các bước sau.
         int denominator;
+        // 6. Khai báo `correctCount` để lưu dữ liệu dùng ở các bước sau.
         int correctCount;
+        // 7. Kiểm tra `questions.Count > 0` để chọn nhánh xử lý phù hợp.
         if (questions.Count > 0)
         {
+            // 8. Kiểm tra `questions.Any(question => !question.IsCorrect.HasValue)` để chọn nhánh xử lý phù hợp.
             if (questions.Any(question => !question.IsCorrect.HasValue))
             {
+                // 9. Dừng xử lý và phát sinh lỗi `new InvalidOperationException( "Bạn cần hoàn thành tất cả câu hỏi t...`.
                 throw new InvalidOperationException(
                     "Bạn cần hoàn thành tất cả câu hỏi trước khi kết thúc phiên.");
             }
 
+            // 10. Cập nhật `denominator` bằng giá trị mới.
             denominator = questions.Count;
+            // 11. Cập nhật `correctCount` bằng giá trị mới.
             correctCount = questions.Count(question => question.IsCorrect == true);
         }
         else
         {
             // Tương thích các session cũ được tạo trước khi có snapshot câu hỏi.
+            // 12. Gọi `ToListAsync` và lưu kết quả vào `details`.
             List<DictationSessionDetail> details = await _context.DictationSessionDetails
                 .AsNoTracking()
                 .Where(detail => detail.StudySessionId == sessionId)
                 .OrderBy(detail => detail.Id)
                 .ToListAsync();
+            // 13. Gọi `Count` và lưu kết quả vào `answeredCount`.
             int answeredCount = details
                 .Select(detail => detail.FlashcardId)
                 .Distinct()
                 .Count();
+            // 14. Cập nhật `denominator` bằng giá trị mới.
             denominator = session.PlannedItemCount > 0
                 ? session.PlannedItemCount
                 : answeredCount;
+            // 15. Cập nhật `correctCount` bằng giá trị mới.
             correctCount = details
                 .GroupBy(detail => detail.FlashcardId)
                 .Count(group => group.First().IsCorrect);
         }
 
+        // 16. Tính giá trị và lưu vào `score` để dùng ở bước tiếp theo.
         int score = denominator == 0
             ? 0
             : (int)Math.Round(correctCount * 100d / denominator, MidpointRounding.AwayFromZero);
+        // 17. Cập nhật `session.Score` bằng giá trị mới.
         session.Score = Math.Clamp(score, 0, 100);
+        // 18. Tính giá trị và lưu vào `completedAt` để dùng ở bước tiếp theo.
         DateTime completedAt = _timeProvider.GetUtcNow().UtcDateTime;
+        // 19. Cập nhật `session.DurationSeconds` bằng giá trị mới.
         session.DurationSeconds = StudySessionTiming.CalculateDurationSeconds(
             session.StartedAt,
             completedAt);
+        // 20. Cập nhật `session.CompletedAt` bằng giá trị mới.
         session.CompletedAt = completedAt;
 
+        // 21. Thực hiện khối nghiệp vụ và chuyển lỗi sang nhánh xử lý tương ứng.
         try
         {
+            // 22. Gọi `SaveChangesAsync` để thực hiện bước nghiệp vụ này.
             await _context.SaveChangesAsync();
         }
         catch (DbUpdateConcurrencyException)
         {
+            // 23. Gọi `Clear` để thực hiện bước nghiệp vụ này.
             _context.ChangeTracker.Clear();
+            // 24. Trả kết quả từ `GetOwnedDictationSessionAsync` cho nơi gọi.
             return await GetOwnedDictationSessionAsync(
                 sessionId,
                 setId,
@@ -786,6 +969,7 @@ public class DictationService : IDictationService
         }
 
         // Báo buổi nghe chép đã xong; có thể mở huy hiệu Dictation / điểm 100
+        // 25. Gọi `PublishAsync` để thực hiện bước nghiệp vụ này.
         await _studyEvents.PublishAsync(new StudySessionCompletedEvent(
             UserId: session.UserId,
             OccurredAtUtc: completedAt,
@@ -794,6 +978,7 @@ public class DictationService : IDictationService
             Mode: StudyMode.Dictation,
             Score: session.Score));
 
+        // 26. Trả `session` cho nơi gọi.
         return session;
     }
 
@@ -803,27 +988,37 @@ public class DictationService : IDictationService
         int setId,
         string userId)
     {
+        // 1. Gọi `GetOwnedDictationSessionAsync` và lưu kết quả vào `session`.
         StudySession session = await GetOwnedDictationSessionAsync(
             sessionId,
             setId,
             userId,
             requireCompleted: true);
 
+        // 2. Gọi `ToListAsync` và lưu kết quả vào `questions`.
         List<DictationSessionQuestion> questions = await _context.DictationSessionQuestions
             .AsNoTracking()
             .Where(question => question.StudySessionId == sessionId)
             .OrderBy(question => question.OrderIndex)
             .ToListAsync();
 
+        // 3. Khởi tạo `wrongCards` với dữ liệu ban đầu cần thiết.
         List<DictationResultCard> wrongCards = new List<DictationResultCard>();
+        // 4. Khai báo `totalCards` để lưu dữ liệu dùng ở các bước sau.
         int totalCards;
+        // 5. Khai báo `correctCount` để lưu dữ liệu dùng ở các bước sau.
         int correctCount;
+        // 6. Kiểm tra `questions.Count > 0` để chọn nhánh xử lý phù hợp.
         if (questions.Count > 0)
         {
+            // 7. Cập nhật `totalCards` bằng giá trị mới.
             totalCards = questions.Count;
+            // 8. Cập nhật `correctCount` bằng giá trị mới.
             correctCount = questions.Count(question => question.IsCorrect == true);
+            // 9. Duyệt từng `question` trong `questions.Where(row => row.IsCorrect == false)` để xử lý lần lượt.
             foreach (DictationSessionQuestion question in questions.Where(row => row.IsCorrect == false))
             {
+                // 10. Gọi `Add` để thực hiện bước nghiệp vụ này.
                 wrongCards.Add(new DictationResultCard
                 {
                     Id = question.FlashcardId,
@@ -837,23 +1032,30 @@ public class DictationService : IDictationService
         }
         else
         {
+            // 11. Gọi `ToListAsync` và lưu kết quả vào `details`.
             List<DictationSessionDetail> details = await _context.DictationSessionDetails
                 .AsNoTracking()
                 .Where(detail => detail.StudySessionId == sessionId)
                 .Include(detail => detail.Flashcard)
                 .OrderBy(detail => detail.Id)
                 .ToListAsync();
+            // 12. Gọi `ToList` và lưu kết quả vào `distinctDetails`.
             List<DictationSessionDetail> distinctDetails = details
                 .GroupBy(detail => detail.FlashcardId)
                 .Select(group => group.First())
                 .ToList();
 
+            // 13. Cập nhật `totalCards` bằng giá trị mới.
             totalCards = distinctDetails.Count;
+            // 14. Cập nhật `correctCount` bằng giá trị mới.
             correctCount = distinctDetails.Count(detail => detail.IsCorrect);
+            // 15. Duyệt từng `detail` trong `distinctDetails.Where(row => !row.IsCorrect)` để xử lý lần lượt.
             foreach (DictationSessionDetail detail in distinctDetails.Where(row => !row.IsCorrect))
             {
+                // 16. Kiểm tra `detail.Flashcard != null` để chọn nhánh xử lý phù hợp.
                 if (detail.Flashcard != null)
                 {
+                    // 17. Gọi `Add` để thực hiện bước nghiệp vụ này.
                     wrongCards.Add(new DictationResultCard
                     {
                         Id = detail.Flashcard.Id,
@@ -867,6 +1069,7 @@ public class DictationService : IDictationService
             }
         }
 
+        // 18. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new DictationResult
         {
             SessionId = sessionId,
@@ -884,28 +1087,38 @@ public class DictationService : IDictationService
         string userId,
         bool requireCompleted)
     {
+        // 1. Gọi `FirstOrDefaultAsync` và lưu kết quả vào `session`.
         StudySession? session = await _context.StudySessions
             .FirstOrDefaultAsync(row => row.Id == sessionId);
+        // 2. Kiểm tra `session == null` để chọn nhánh xử lý phù hợp.
         if (session == null)
         {
+            // 3. Dừng xử lý và phát sinh lỗi `new KeyNotFoundException("Phiên học không tồn tại.")`.
             throw new KeyNotFoundException("Phiên học không tồn tại.");
         }
 
+        // 4. Kiểm tra `session.UserId != userId` để chọn nhánh xử lý phù hợp.
         if (session.UserId != userId)
         {
+            // 5. Dừng xử lý và phát sinh lỗi `new UnauthorizedAccessException("Không có quyền truy cập phiên học ...`.
             throw new UnauthorizedAccessException("Không có quyền truy cập phiên học này.");
         }
 
+        // 6. Kiểm tra `session.FlashcardSetId != setId || session.Mode != StudyMode.Dictation` để chọn nhánh xử lý phù hợp.
         if (session.FlashcardSetId != setId || session.Mode != StudyMode.Dictation)
         {
+            // 7. Dừng xử lý và phát sinh lỗi `new UnauthorizedAccessException("Phiên nghe chép không thuộc bộ thẻ...`.
             throw new UnauthorizedAccessException("Phiên nghe chép không thuộc bộ thẻ này.");
         }
 
+        // 8. Kiểm tra `requireCompleted && !session.CompletedAt.HasValue` để chọn nhánh xử lý phù hợp.
         if (requireCompleted && !session.CompletedAt.HasValue)
         {
+            // 9. Dừng xử lý và phát sinh lỗi `new InvalidOperationException("Phiên nghe chép chưa hoàn thành.")`.
             throw new InvalidOperationException("Phiên nghe chép chưa hoàn thành.");
         }
 
+        // 10. Trả `session` cho nơi gọi.
         return session;
     }
 }

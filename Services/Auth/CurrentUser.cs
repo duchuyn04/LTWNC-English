@@ -10,6 +10,7 @@ public class CurrentUser : ICurrentUser
 
     public CurrentUser(IHttpContextAccessor httpContextAccessor)
     {
+        // 1. Lưu dependency `_httpContextAccessor` để các phương thức khác sử dụng.
         _httpContextAccessor = httpContextAccessor;
     }
 

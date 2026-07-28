@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Areas.Admin.Controllers;
 
+// Tìm kiếm nhanh nhiều loại dữ liệu quản trị từ một ô tìm kiếm chung.
 [Area("Admin")]
 [Route("Admin/Search")]
 public sealed class SearchController : Controller

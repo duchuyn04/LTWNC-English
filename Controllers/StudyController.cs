@@ -9,23 +9,23 @@ using ltwnc.Models.Entities;
 
 namespace ltwnc.Controllers;
 
-// Học: Study Hub, Flashcard, Dictation, settings. Class [Authorize]; vài GET AllowAnonymous.
+// Điều phối các chế độ học Flashcard, Quiz, Dictation cùng thiết lập và lịch sử học.
 [Authorize]
 public class StudyController : Controller
 {
-    // Settings, progress, hub, mark learned, complete flashcard session
+    // Xử lý thiết lập, tiến độ và phiên học Flashcard.
     private readonly IStudyService _studyService;
 
-    // Lấy thẻ / chấm / complete / result dictation
+    // Lấy thẻ, chấm đáp án và tổng kết phiên nghe chép.
     private readonly IDictationService _dictationService;
 
-    // Tạo phiên / lấy câu hỏi / chấm / kết quả quiz
+    // Tạo phiên, lấy câu hỏi, chấm đáp án và tổng kết Quiz.
     private readonly IQuizService _quizService;
 
-    // Kiểm tra owner set, toggle star
+    // Kiểm tra quyền sở hữu bộ thẻ và đổi trạng thái đánh sao.
     private readonly IFlashcardSetService _setService;
 
-    // User hiện tại từ cookie claims
+    // Đọc thông tin người dùng hiện tại từ cookie đăng nhập.
     private readonly ICurrentUser _currentUser;
 
     public StudyController(
@@ -35,6 +35,7 @@ public class StudyController : Controller
         IFlashcardSetService setService,
         ICurrentUser currentUser)
     {
+        // 1. Lưu các service để những action học tập sử dụng.
         _studyService = studyService;
         _dictationService = dictationService;
         _quizService = quizService;
@@ -50,6 +51,9 @@ public class StudyController : Controller
         bool? starredOnly = null,
         bool? unlearnedOnly = null)
     {
+        // 1. Kiểm tra người dùng có quyền học bộ thẻ hay không.
+        // 2. Lưu bộ lọc được truyền trên đường dẫn nếu người dùng đã đăng nhập.
+        // 3. Chuyển sang màn Flashcard với các bộ lọc tương ứng.
         string? userId = _currentUser.UserId;
 
         FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, userId!);
@@ -80,6 +84,10 @@ public class StudyController : Controller
         bool? starredOnly = null,
         bool? unlearnedOnly = null)
     {
+        // 1. Kết hợp bộ lọc trên URL với thiết lập đã lưu của người dùng.
+        // 2. Tải bộ thẻ, danh sách thẻ phù hợp và tiến độ từng thẻ.
+        // 3. Tự bỏ bộ lọc nếu không còn thẻ phù hợp.
+        // 4. Tạo phiên học, dựng ViewModel và hiển thị màn Flashcard.
         string? userId = _currentUser.UserId;
 
         UserStudySettings settings = await _studyService.GetSettingsAsync(userId);
@@ -174,6 +182,9 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> MarkLearned(int setId, int cardId, bool learned)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Cập nhật trạng thái đã biết hoặc chưa biết của thẻ.
+        // 3. Trả JSON cho AJAX hoặc chuyển lại màn Flashcard.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -212,6 +223,9 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Complete(int setId, int sessionId)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Đánh dấu phiên Flashcard đã hoàn thành.
+        // 3. Trả đường dẫn tiếp theo cho AJAX hoặc chuyển hướng form thường.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -255,6 +269,9 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleStar(int setId, int cardId)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Đổi trạng thái đánh sao của thẻ.
+        // 3. Trả JSON hoặc mã lỗi HTTP phù hợp.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -285,7 +302,8 @@ public class StudyController : Controller
     [Route("/Study/Settings")]
     public IActionResult Settings()
     {
-        // GET route này giữ contract routing cũ khi đường dẫn bị gọi nhầm: quay về trang chi tiết set #0.
+        // 1. Giữ tương thích với route GET cũ bằng cách chuyển về trang chi tiết bộ thẻ.
+        // Route này không lưu thiết lập vì việc lưu chỉ được thực hiện bằng POST.
         return RedirectToAction("Details", "FlashcardSet", new { id = 0 });
     }
 
@@ -295,6 +313,9 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> SaveSettings([FromForm] StudySettingsViewModel settings)
     {
+        // 1. Kiểm tra đăng nhập và dữ liệu thiết lập.
+        // 2. Chuyển ViewModel sang entity rồi lưu qua service.
+        // 3. Trả thiết lập đã lưu hoặc lỗi JSON cho giao diện.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -330,6 +351,9 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ClearFilters(int setId)
     {
+        // 1. Lấy thiết lập của người dùng hiện tại nếu đã đăng nhập.
+        // 2. Tắt bộ lọc chỉ thẻ đánh sao và chỉ thẻ chưa học.
+        // 3. Lưu thiết lập rồi quay về trang học.
         string? userId = _currentUser.UserId;
         if (userId != null)
         {
@@ -346,6 +370,9 @@ public class StudyController : Controller
     [Route("/Study/{setId}/Quiz")]
     public async Task<IActionResult> QuizStart(int setId)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Lấy thông tin thiết lập Quiz và phiên đang hoạt động.
+        // 3. Hiển thị form chọn thời gian hoặc trả lỗi quyền phù hợp.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -379,6 +406,10 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> QuizStart(int setId, QuizSetupViewModel input)
     {
+        // 1. Kiểm tra đăng nhập và lựa chọn thời gian làm Quiz.
+        // 2. Hiển thị lại form nếu dữ liệu thời gian không hợp lệ.
+        // 3. Tạo phiên Quiz mới rồi chuyển tới câu hỏi đầu tiên.
+        // 4. Chuyển các lỗi nghiệp vụ thành phản hồi phù hợp.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -457,6 +488,9 @@ public class StudyController : Controller
         string userId,
         QuizSetupViewModel input)
     {
+        // 1. Tải lại tiêu đề bộ thẻ và phiên Quiz đang hoạt động.
+        // 2. Gắn dữ liệu hiển thị vào input mà người dùng vừa gửi.
+        // 3. Render form hoặc trả lỗi quyền, không tìm thấy.
         try
         {
             QuizSetupState state = await _quizService.GetSetupAsync(setId, userId);
@@ -479,6 +513,10 @@ public class StudyController : Controller
     [Route("/Study/{setId}/Quiz/{sessionId:int}")]
     public async Task<IActionResult> Quiz(int setId, int sessionId, int? questionId = null)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Lấy câu hỏi hiện tại hoặc câu hỏi cần xem lại.
+        // 3. Chuyển sang kết quả nếu phiên đã hoàn thành.
+        // 4. Dựng ViewModel câu hỏi và xử lý các trạng thái hết hạn, xung đột.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -555,6 +593,10 @@ public class StudyController : Controller
         int? questionId,
         int? selectedChoiceIndex)
     {
+        // 1. Kiểm tra id câu hỏi, đáp án và phiên đăng nhập.
+        // 2. Gửi đáp án tới service để chấm và cập nhật tiến độ.
+        // 3. Trả kết quả cùng đường dẫn câu tiếp theo.
+        // 4. Trả HTTP 409 cho phiên cũ, hết giờ hoặc xung đột.
         if (!ModelState.IsValid || questionId is null || selectedChoiceIndex is null)
         {
             return BadRequest();
@@ -633,6 +675,10 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> QuizTimeout(int setId, int sessionId)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Yêu cầu service hoàn tất phiên đã hết giờ.
+        // 3. Trả JSON hoặc chuyển tới trang kết quả.
+        // 4. Xử lý riêng phiên cũ, chưa hết giờ và xung đột.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -702,6 +748,10 @@ public class StudyController : Controller
     [Route("/Study/{setId}/Quiz/Result/{sessionId:int}")]
     public async Task<IActionResult> QuizResult(int setId, int sessionId)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Lấy điểm, tổng số câu và các câu trả lời sai.
+        // 3. Ánh xạ dữ liệu sang ViewModel kết quả.
+        // 4. Xử lý các lỗi dữ liệu, quyền và trạng thái phiên.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -754,6 +804,9 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RetryWrong(int setId, int sessionId)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Tạo phiên mới chỉ gồm các câu trả lời sai.
+        // 3. Chuyển tới phiên mới hoặc trả lỗi phù hợp.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -797,6 +850,9 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> QuizRestart(int setId, int sessionId)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Khởi động lại Quiz dựa trên phiên hiện tại.
+        // 3. Chuyển tới phiên mới hoặc xử lý phiên hết hạn, đã cũ, xung đột.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -848,6 +904,9 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> RetryAll(int setId, int sessionId)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Tạo phiên mới để làm lại toàn bộ câu hỏi.
+        // 3. Chuyển tới phiên mới hoặc trả lỗi phù hợp.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -891,6 +950,10 @@ public class StudyController : Controller
     [Route("/Study/{setId:int}/Dictation")]
     public async Task<IActionResult> Dictation(int setId, int? retrySessionId = null)
     {
+        // 1. Kiểm tra đăng nhập và quyền sở hữu bộ thẻ.
+        // 2. Lấy thẻ theo thiết lập hiện tại hoặc kế hoạch ôn lại câu sai.
+        // 3. Xử lý trường hợp không có thẻ phù hợp.
+        // 4. Tạo phiên, ánh xạ thẻ và hiển thị màn nghe chép.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -1040,6 +1103,10 @@ public class StudyController : Controller
         int cardId,
         string answeredText)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Lấy thiết lập và chấm câu trả lời của thẻ hiện tại.
+        // 3. Chuyển kết quả so sánh từng từ thành JSON cho giao diện.
+        // 4. Trả lỗi phù hợp nếu phiên hoặc quyền không hợp lệ.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -1099,6 +1166,9 @@ public class StudyController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DictationComplete(int setId, int sessionId)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Đóng phiên nghe chép và tính kết quả.
+        // 3. Trả đường dẫn trang tổng kết hoặc lỗi phù hợp.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -1137,6 +1207,10 @@ public class StudyController : Controller
     [Route("/Study/{setId:int}/Dictation/Result/{sessionId:int}")]
     public async Task<IActionResult> DictationResult(int setId, int sessionId)
     {
+        // 1. Kiểm tra đăng nhập và quyền sở hữu bộ thẻ.
+        // 2. Lấy kết quả phiên cùng danh sách thẻ trả lời sai.
+        // 3. Ánh xạ sang ViewModel và hiển thị trang tổng kết.
+        // 4. Trả lỗi hoặc quay lại nghe chép nếu trạng thái phiên không hợp lệ.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -1203,6 +1277,9 @@ public class StudyController : Controller
     [Route("/Study/{setId:int}/History")]
     public async Task<IActionResult> DictationHistory(int setId)
     {
+        // 1. Kiểm tra đăng nhập và quyền sở hữu bộ thẻ.
+        // 2. Lấy lịch sử từng câu đã trả lời trong các phiên nghe chép.
+        // 3. Ánh xạ dữ liệu và hiển thị trang lịch sử.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -1244,6 +1321,7 @@ public class StudyController : Controller
     // Header X-Requested-With = XMLHttpRequest (fetch/jQuery)
     private bool IsAjaxRequest()
     {
+        // 1. Kiểm tra header chuẩn mà JavaScript gửi để nhận biết yêu cầu AJAX.
         return Request.Headers["X-Requested-With"] == "XMLHttpRequest";
     }
 
@@ -1251,6 +1329,8 @@ public class StudyController : Controller
         int setId,
         QuizSessionAbandonedException exception)
     {
+        // 1. Nếu có phiên đang hoạt động, chuyển tới phiên đó.
+        // 2. Nếu không có, chuyển về màn bắt đầu Quiz.
         return exception.ActiveSessionId is int activeSessionId
             ? RedirectToAction(nameof(Quiz), new { setId, sessionId = activeSessionId })
             : RedirectToAction(nameof(QuizStart), new { setId });
@@ -1260,6 +1340,8 @@ public class StudyController : Controller
         int setId,
         QuizSessionAbandonedException exception)
     {
+        // 1. Tạo URL phiên đang hoạt động nếu có.
+        // 2. Nếu không có phiên, tạo URL màn bắt đầu Quiz.
         return exception.ActiveSessionId is int activeSessionId
             ? Url.Action(nameof(Quiz), new { setId, sessionId = activeSessionId })
             : Url.Action(nameof(QuizStart), new { setId });

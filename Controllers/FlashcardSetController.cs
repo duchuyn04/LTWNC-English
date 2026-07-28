@@ -12,36 +12,42 @@ using System.Text.Json;
 
 namespace ltwnc.Controllers;
 
-// CRUD bộ thẻ / thẻ, copy public set. Hầu hết action cần login; Details cho khách.
+// Quản lý bộ thẻ và từng thẻ: tạo, xem, sửa, xóa, nhập tệp, sao chép và báo cáo nội dung.
 [Authorize]
 public class FlashcardSetController : Controller
 {
+    // Chỉ đưa tối đa 100 lỗi nhập tệp ra giao diện để tránh phản hồi quá lớn.
     private const int MaxDisplayedImportErrors = 100;
 
-    // Nghiệp vụ set + card + copy
+    // Service xử lý bộ thẻ, từng thẻ và thao tác sao chép.
     private readonly IFlashcardSetService _setService;
 
-    // User hiện tại từ cookie claims
+    // Đọc người dùng hiện tại, xử lý tệp nhập và tiếp nhận báo cáo nội dung.
     private readonly ICurrentUser _currentUser;
     private readonly IFlashcardImportService _importService;
     private readonly IContentReportService _contentReportService;
 
+    // Nhận các service cần dùng qua dependency injection.
     public FlashcardSetController(
         IFlashcardSetService setService,
         ICurrentUser currentUser,
         IFlashcardImportService importService,
         IContentReportService contentReportService)
     {
+        // 1. Lưu các service để những action quản lý bộ thẻ sử dụng.
         _setService = setService;
         _currentUser = currentUser;
         _importService = importService;
         _contentReportService = contentReportService;
     }
 
-    // GET /Set: thư viện cá nhân kèm progress
+    // Hiển thị thư viện bộ thẻ cá nhân kèm tiến độ học.
     [Route("/Set")]
     public async Task<IActionResult> Index()
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Lấy các bộ thẻ cá nhân kèm tiến độ học.
+        // 3. Hiển thị danh sách trong thư viện cá nhân.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -53,17 +59,21 @@ public class FlashcardSetController : Controller
         return View(sets);
     }
 
-    // GET form tạo bộ thẻ (redirect sang unified editor)
+    // Chuyển đường dẫn tạo cũ sang trình chỉnh sửa thống nhất.
     [Route("/Set/Create")]
     public IActionResult Create()
     {
+        // 1. Chuyển route tạo cũ sang trình chỉnh sửa thống nhất.
         return RedirectToAction("Editor");
     }
 
-    // GET unified editor: tạo mới hoặc chỉnh sửa bộ thẻ
+    // Mở trình chỉnh sửa để tạo mới hoặc cập nhật một bộ thẻ đã có.
     [Route("/flashcardset/editor/{id?}")]
     public async Task<IActionResult> Editor(int? id)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Nếu có id, tải bộ thẻ và ánh xạ từng thẻ vào ViewModel.
+        // 3. Nếu tạo mới, thêm sẵn một thẻ trống rồi hiển thị trình chỉnh sửa.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -108,19 +118,22 @@ public class FlashcardSetController : Controller
         }
         else
         {
-            // New set starts with one empty card
+            // Bộ thẻ mới bắt đầu bằng một thẻ trống để người dùng nhập ngay.
             model.Cards.Add(new CardViewModel());
         }
 
         return View(model);
     }
 
-    // POST tạo set, redirect Edit để thêm thẻ
+    // Tạo bộ thẻ từ form cũ rồi chuyển sang trang sửa để thêm nội dung.
     [HttpPost]
     [Route("/Set/Create")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(CreateSetViewModel model)
     {
+        // 1. Kiểm tra dữ liệu form và phiên đăng nhập.
+        // 2. Yêu cầu service tạo bộ thẻ mới.
+        // 3. Chuyển sang trang sửa hoặc hiển thị lỗi tiêu đề.
         if (!ModelState.IsValid)
         {
             return View(model);
@@ -150,11 +163,14 @@ public class FlashcardSetController : Controller
         }
     }
 
-    // GET /Set/{id}: public hoặc owner; map SetDetailViewModel + ExistingCopyId
+    // Hiển thị bộ thẻ công khai hoặc bộ thẻ của chính người dùng, kèm trạng thái bản sao.
     [Route("/Set/{id}")]
     [AllowAnonymous]
     public async Task<IActionResult> Details(int id)
     {
+        // 1. Lấy bộ thẻ mà khách hoặc người dùng hiện tại được phép xem.
+        // 2. Kiểm tra trạng thái bản sao và báo cáo nội dung của người đang xem.
+        // 3. Tạo ViewModel chi tiết rồi hiển thị trang.
         string? userId = _currentUser.UserId;
 
         FlashcardSet? set = await _setService.GetAccessibleSetWithCardsAsync(id, userId);
@@ -163,7 +179,7 @@ public class FlashcardSetController : Controller
             return NotFound();
         }
 
-        // User khác owner: xem đã copy set này chưa (nút "Vào bản sao")
+        // Nếu đang xem bộ thẻ của người khác, kiểm tra người dùng đã sao chép bộ này chưa.
         int? existingCopyId = null;
         if (userId != null && userId != set.UserId)
         {
@@ -200,7 +216,7 @@ public class FlashcardSetController : Controller
         return View(model);
     }
 
-    // POST gửi báo cáo nội dung cho bộ công khai, dùng antiforgery và chỉ nhận lý do cố định.
+    // Gửi báo cáo cho bộ thẻ công khai; form được bảo vệ bằng antiforgery và lý do hợp lệ.
     [HttpPost]
     [Route("/Set/{id}/Report")]
     [ValidateAntiForgeryToken]
@@ -209,6 +225,9 @@ public class FlashcardSetController : Controller
         ContentReportInputModel input,
         CancellationToken cancellationToken = default)
     {
+        // 1. Kiểm tra đăng nhập và dữ liệu báo cáo.
+        // 2. Gửi báo cáo tới service cùng lý do, mô tả.
+        // 3. Trả 404 hoặc lưu thông báo thành công/thất bại trước khi chuyển hướng.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -244,12 +263,15 @@ public class FlashcardSetController : Controller
         return RedirectToAction(nameof(Details), new { id });
     }
 
-    // POST copy public set vào thư viện; về Study hub của bản sao
+    // Sao chép bộ thẻ công khai vào thư viện cá nhân rồi mở trang học của bản sao.
     [HttpPost]
     [Route("/Set/{id}/Copy")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Copy(int id)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Sao chép bộ thẻ công khai vào thư viện cá nhân.
+        // 3. Mở trang học của bản sao hoặc trả lỗi quyền phù hợp.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -272,19 +294,23 @@ public class FlashcardSetController : Controller
         }
     }
 
-    // GET Edit: redirect sang unified editor
+    // Chuyển đường dẫn chỉnh sửa cũ sang trình chỉnh sửa thống nhất.
     [Route("/Set/{id}/Edit")]
     public IActionResult Edit(int id)
     {
+        // 1. Giữ route cũ nhưng chuyển sang trình chỉnh sửa thống nhất với đúng id.
         return RedirectToAction("Editor", new { id });
     }
 
-    // POST cập nhật title/description/public
+    // Cập nhật tiêu đề, mô tả và trạng thái công khai của bộ thẻ.
     [HttpPost]
     [Route("/Set/{id}/Edit")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(int id, EditSetPageViewModel model)
     {
+        // 1. Kiểm tra đăng nhập và dữ liệu form.
+        // 2. Cập nhật thông tin bộ thẻ qua service.
+        // 3. Dựng lại trang khi có lỗi hoặc chuyển hướng khi lưu thành công.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -330,13 +356,16 @@ public class FlashcardSetController : Controller
         }
     }
 
-    // POST nhập nhiều thẻ từ CSV/XLSX, luôn redirect về Edit để tránh gửi lại form.
+    // Nhập nhiều thẻ từ CSV/XLSX rồi chuyển hướng để tránh gửi lại form khi tải lại trang.
     [HttpPost]
     [Route("/Set/{id}/Import")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("uploads")]
     public async Task<IActionResult> Import(int id, IFormFile? file)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Nhập các dòng hợp lệ từ tệp vào bộ thẻ.
+        // 3. Lưu số lượng và tối đa 100 lỗi vào TempData rồi chuyển về trang sửa.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -374,12 +403,123 @@ public class FlashcardSetController : Controller
         }
     }
 
-    // POST xóa cả bộ thẻ, về /Set
+    // Đọc CSV/XLSX từ trình chỉnh sửa và trả JSON để cập nhật danh sách thẻ tại chỗ.
+    [HttpPost]
+    [Route("/Set/{id}/ImportFile")]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("uploads")]
+    public async Task<IActionResult> ImportFile(int id, IFormFile? file, bool replaceAll = false)
+    {
+        // 1. Kiểm tra đăng nhập rồi đọc dữ liệu CSV/XLSX.
+        // 2. Kiểm tra lỗi tệp, giới hạn lỗi hiển thị và chuyển các dòng hợp lệ thành input.
+        // 3. Lưu thẻ hàng loạt và trả JSON cho trình chỉnh sửa.
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        try
+        {
+            FlashcardFileParseResult parsed = await _importService.ParseAsync(
+                file!,
+                HttpContext.RequestAborted);
+
+            FlashcardImportError[] displayedErrors = parsed.Errors
+                .Take(MaxDisplayedImportErrors)
+                .ToArray();
+            int omittedErrorCount = Math.Max(0, parsed.Errors.Count - displayedErrors.Length);
+
+            if (!string.IsNullOrWhiteSpace(parsed.FileError))
+            {
+                return BadRequest(new
+                {
+                    message = parsed.FileError,
+                    skippedCount = parsed.Errors.Count,
+                    errors = displayedErrors,
+                    omittedErrorCount
+                });
+            }
+
+            if (parsed.Rows.Count == 0)
+            {
+                return BadRequest(new
+                {
+                    message = "Không có thẻ hợp lệ nào trong tệp.",
+                    skippedCount = parsed.Errors.Count,
+                    errors = displayedErrors,
+                    omittedErrorCount
+                });
+            }
+
+            List<BatchImportCardItem> items = parsed.Rows
+                .Select(row => new BatchImportCardItem
+                {
+                    FrontText = row.FrontText,
+                    BackText = row.BackText,
+                    Pronunciation = row.Pronunciation,
+                    PartOfSpeech = row.PartOfSpeech,
+                    ExampleSentence = row.ExampleSentence,
+                    ExampleMeaning = row.ExampleMeaning,
+                    Synonyms = row.Synonyms,
+                    ImageUrl = row.ImageUrl,
+                    IsStarred = false
+                })
+                .ToList();
+
+            List<Flashcard> created = await _setService.BatchImportCardsAsync(
+                id,
+                items,
+                replaceAll,
+                userId);
+
+            return Ok(new
+            {
+                importedCount = created.Count,
+                skippedCount = parsed.Errors.Count,
+                errors = displayedErrors,
+                omittedErrorCount,
+                cards = created.Select(card => new CardResponse
+                {
+                    Id = card.Id,
+                    SetId = card.FlashcardSetId,
+                    FrontText = card.FrontText,
+                    BackText = card.BackText,
+                    Pronunciation = card.Pronunciation,
+                    PartOfSpeech = card.PartOfSpeech,
+                    ExampleSentence = card.ExampleSentence,
+                    ExampleMeaning = card.ExampleMeaning,
+                    Synonyms = card.Synonyms,
+                    ImageUrl = card.ImageUrl,
+                    UploadedImagePath = card.UploadedImagePath,
+                    IsStarred = card.IsStarred,
+                    OrderIndex = card.OrderIndex
+                }).ToList()
+            });
+        }
+        catch (FlashcardImportException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { message = exception.Message });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+    }
+
+    // Xóa toàn bộ bộ thẻ rồi quay về thư viện cá nhân.
     [HttpPost]
     [Route("/Set/{id}/Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Yêu cầu service xóa bộ thẻ thuộc sở hữu của người dùng.
+        // 3. Quay về thư viện hoặc trả lỗi cấm truy cập.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -397,13 +537,16 @@ public class FlashcardSetController : Controller
         }
     }
 
-    // POST thêm thẻ vào set; validation lỗi -> TempData Error
+    // Thêm một thẻ; lỗi dữ liệu được lưu vào TempData để hiển thị sau chuyển hướng.
     [HttpPost]
     [Route("/Set/{setId}/Cards/Create")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("uploads")]
     public async Task<IActionResult> AddCard(int setId, AddCardInputModel input)
     {
+        // 1. Kiểm tra đăng nhập và dữ liệu thẻ.
+        // 2. Gửi nội dung cùng tệp ảnh tới service để tạo thẻ.
+        // 3. Quay về trang sửa và hiển thị lỗi nếu thao tác thất bại.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -444,12 +587,15 @@ public class FlashcardSetController : Controller
         }
     }
 
-    // POST AJAX toggle sao thẻ trong trình chỉnh sửa (owner)
+    // Đổi trạng thái đánh sao của thẻ và trả JSON cho trình chỉnh sửa.
     [HttpPost]
     [Route("/Set/{setId}/Cards/{cardId}/ToggleStar")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> ToggleStar(int setId, int cardId)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Đổi trạng thái đánh sao của thẻ qua service.
+        // 3. Trả trạng thái mới dưới dạng JSON hoặc mã lỗi phù hợp.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -471,13 +617,16 @@ public class FlashcardSetController : Controller
         }
     }
 
-    // POST sửa thẻ; removeUploadedImage xóa path ảnh upload nếu user bật
+    // Cập nhật thẻ; có thể xóa ảnh đã tải lên nếu người dùng chọn tùy chọn tương ứng.
     [HttpPost]
     [Route("/Cards/{id}/Edit")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("uploads")]
     public async Task<IActionResult> EditCard(int id, EditCardInputModel input)
     {
+        // 1. Kiểm tra đăng nhập và dữ liệu chỉnh sửa.
+        // 2. Cập nhật nội dung, ảnh và trạng thái đánh sao qua service.
+        // 3. Quay về đúng bộ thẻ hoặc trả lỗi tương ứng.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -523,12 +672,15 @@ public class FlashcardSetController : Controller
         }
     }
 
-    // POST xóa một thẻ, redirect Edit set
+    // Xóa một thẻ rồi quay về trang sửa bộ thẻ chứa nó.
     [HttpPost]
     [Route("/Cards/{id}/Delete")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> DeleteCard(int id)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Xóa thẻ và nhận lại id bộ thẻ chứa nó.
+        // 3. Quay về trang sửa hoặc trả lỗi tương ứng.
         string? userId = _currentUser.UserId;
         if (userId == null)
         {
@@ -550,11 +702,15 @@ public class FlashcardSetController : Controller
         }
     }
 
+    // Dựng lại dữ liệu trang sửa khi form không hợp lệ hoặc service trả lỗi.
     private async Task<EditSetPageViewModel?> BuildEditPageViewModelAsync(
         int setId,
         string userId,
         EditSetViewModel? postedSet = null)
     {
+        // 1. Tải bộ thẻ cùng danh sách thẻ theo quyền sở hữu.
+        // 2. Ưu tiên dữ liệu người dùng vừa nhập để không làm mất nội dung form.
+        // 3. Trả ViewModel hoàn chỉnh hoặc null nếu không tìm thấy bộ thẻ.
         FlashcardSet? set = await _setService.GetSetWithCardsAsync(setId, userId);
         if (set == null)
         {
@@ -572,8 +728,12 @@ public class FlashcardSetController : Controller
         return pageModel;
     }
 
+    // Lấy lỗi kiểm tra dữ liệu đầu tiên để hiển thị thông báo ngắn gọn.
     private string FirstModelStateError()
     {
+        // 1. Gom lỗi từ mọi trường trên form.
+        // 2. Lấy thông báo có nội dung đầu tiên.
+        // 3. Dùng thông báo mặc định nếu không tìm thấy lỗi cụ thể.
         return ModelState.Values
             .SelectMany(entry => entry.Errors)
             .Select(error => error.ErrorMessage)

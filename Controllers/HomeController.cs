@@ -9,21 +9,25 @@ using ltwnc.Models.ViewModels.Home;
 
 namespace ltwnc.Controllers;
 
-// Trang chủ công khai và trang lỗi.
+// Hiển thị trang chủ công khai, trang quyền riêng tư và các trang báo lỗi.
 public class HomeController : Controller
 {
-    // Lấy / tìm bộ thẻ public
+    // Service lấy và tìm kiếm các bộ thẻ công khai.
     private readonly IFlashcardSetService _setService;
 
-    // Inject service bộ thẻ
+    // Nhận service bộ thẻ qua dependency injection.
     public HomeController(IFlashcardSetService setService)
     {
+        // 1. Lưu service bộ thẻ để trang chủ sử dụng.
         _setService = setService;
     }
 
-    // GET /: hiển thị trang chủ cho cả khách và user đã đăng nhập.
+    // Hiển thị trang chủ cho cả khách và người đã đăng nhập, có hỗ trợ tìm kiếm.
     public async Task<IActionResult> Index(string? q)
     {
+        // 1. Kiểm tra có từ khóa tìm kiếm hay không.
+        // 2. Lấy bộ thẻ công khai phù hợp và ánh xạ sang ViewModel.
+        // 3. Hiển thị trang chủ cùng danh sách kết quả.
         HomeViewModel model = new HomeViewModel();
         List<FlashcardSet> publicSets;
 
@@ -35,7 +39,7 @@ public class HomeController : Controller
         }
         else
         {
-            // Không có q: vài bộ public mới nhất
+            // Không có từ khóa: lấy các bộ thẻ công khai mới nhất.
             publicSets = await _setService.GetPublicSetsAsync();
         }
 
@@ -51,16 +55,21 @@ public class HomeController : Controller
         return View(model);
     }
 
-    // GET Privacy
+    // Hiển thị trang chính sách quyền riêng tư.
     public IActionResult Privacy()
     {
+        // 1. Hiển thị view chứa chính sách quyền riêng tư.
         return View();
     }
 
+    // Chọn trang 403 hoặc 404 dựa trên mã lỗi ban đầu của request.
     [HttpGet]
     [AllowAnonymous]
     public IActionResult StatusCodePage()
     {
+        // 1. Đọc mã lỗi gốc trước khi request được chuyển tới action này.
+        // 2. Hiển thị trang 403 nếu bị cấm truy cập.
+        // 3. Các trường hợp còn lại hiển thị trang 404.
         int originalStatusCode = HttpContext.Features
             .Get<IStatusCodeReExecuteFeature>()?
             .OriginalStatusCode ?? StatusCodes.Status404NotFound;
@@ -75,10 +84,13 @@ public class HomeController : Controller
         return View("NotFound");
     }
 
-    // GET Error: không cache, gắn RequestId để debug
+    // Hiển thị lỗi hệ thống, tắt cache và kèm mã request để hỗ trợ truy vết.
     [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
     public IActionResult Error()
     {
+        // 1. Lấy mã Activity hiện tại hoặc mã truy vết của request.
+        // 2. Gắn mã này vào ViewModel để hỗ trợ tìm lỗi trong log.
+        // 3. Hiển thị trang lỗi hệ thống.
         ErrorViewModel model = new ErrorViewModel
         {
             RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier

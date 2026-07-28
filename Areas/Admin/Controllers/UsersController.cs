@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Areas.Admin.Controllers;
 
+// Quản lý trạng thái tài khoản: xem, khóa, mở khóa và thu hồi phiên đăng nhập.
 [Area("Admin")]
 [Route("Admin/Users")]
 public sealed class UsersController : Controller

@@ -33,9 +33,13 @@ public sealed class AdminExportService : IAdminExportService
         IAdminAuditService auditService,
         TimeProvider timeProvider)
     {
+        // 1. Lưu dependency `_context` để các phương thức khác sử dụng.
         _context = context;
+        // 2. Lưu dependency `_kpiService` để các phương thức khác sử dụng.
         _kpiService = kpiService;
+        // 3. Lưu dependency `_auditService` để các phương thức khác sử dụng.
         _auditService = auditService;
+        // 4. Lưu dependency `_timeProvider` để các phương thức khác sử dụng.
         _timeProvider = timeProvider;
     }
 
@@ -45,9 +49,12 @@ public sealed class AdminExportService : IAdminExportService
         AdminExportActor actor,
         CancellationToken cancellationToken = default)
     {
+        // 1. Gọi `GetSnapshotAsync` và lưu kết quả vào `snapshot`.
         AdminDashboardSnapshot snapshot = await _kpiService.GetSnapshotAsync(days, cancellationToken);
+        // 2. Gọi `ToViewModel` và lưu kết quả vào `viewModel`.
         AdminDashboardViewModel viewModel = AdminDashboardKpiService.ToViewModel(snapshot);
 
+        // 3. Gọi `ToList` và lưu kết quả vào `rows`.
         List<IReadOnlyList<string?>> rows = viewModel.Kpis
             .Select(kpi => (IReadOnlyList<string?>)
             [
@@ -59,10 +66,12 @@ public sealed class AdminExportService : IAdminExportService
             ])
             .ToList();
 
+        // 4. Gọi `Write` và lưu kết quả vào `content`.
         byte[] content = SafeCsvWriter.Write(
             ["Metric", "Value", "Detail", "Comparison", "Tone"],
             rows);
 
+        // 5. Gọi `RecordExportAuditAsync` để thực hiện bước nghiệp vụ này.
         await RecordExportAuditAsync(
             actor,
             KpiExportType,
@@ -70,7 +79,9 @@ public sealed class AdminExportService : IAdminExportService
             rows.Count,
             cancellationToken);
 
+        // 6. Tính giá trị và lưu vào `fileName` để dùng ở bước tiếp theo.
         string fileName = $"admin-kpi-{viewModel.Days}-days-{FormatDateStamp()}.csv";
+        // 7. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new AdminCsvExport(fileName, content, rows.Count);
     }
 
@@ -80,20 +91,25 @@ public sealed class AdminExportService : IAdminExportService
         AdminExportActor actor,
         CancellationToken cancellationToken = default)
     {
+        // 1. Tính giá trị và lưu vào `nowUtc` để dùng ở bước tiếp theo.
         DateTime nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+        // 2. Gọi `AddMonths` và lưu kết quả vào `cutoffUtc`.
         DateTime cutoffUtc = nowUtc.AddMonths(-AuditExportRetentionMonths);
+        // 3. Gọi `ApplyAuditFilters` và lưu kết quả vào `logs`.
         IQueryable<AdminAuditLog> logs = ApplyAuditFilters(
             _context.AdminAuditLogs.AsNoTracking(),
             query,
             cutoffUtc,
             nowUtc);
 
+        // 4. Gọi `ToListAsync` và lưu kết quả vào `items`.
         List<AdminAuditLog> items = await logs
             .OrderByDescending(log => log.OccurredAtUtc)
             .ThenByDescending(log => log.Id)
             .Take(AuditExportMaxRows)
             .ToListAsync(cancellationToken);
 
+        // 5. Gọi `ToList` và lưu kết quả vào `rows`.
         List<IReadOnlyList<string?>> rows = items
             .Select(log => (IReadOnlyList<string?>)
             [
@@ -105,10 +121,12 @@ public sealed class AdminExportService : IAdminExportService
             ])
             .ToList();
 
+        // 6. Gọi `Write` và lưu kết quả vào `content`.
         byte[] content = SafeCsvWriter.Write(
             ["OccurredAtVietnam", "Actor", "Action", "Target", "Outcome"],
             rows);
 
+        // 7. Gọi `RecordExportAuditAsync` để thực hiện bước nghiệp vụ này.
         await RecordExportAuditAsync(
             actor,
             AuditExportType,
@@ -116,7 +134,9 @@ public sealed class AdminExportService : IAdminExportService
             rows.Count,
             cancellationToken);
 
+        // 8. Tính giá trị và lưu vào `fileName` để dùng ở bước tiếp theo.
         string fileName = $"admin-audit-logs-{FormatDateStamp()}.csv";
+        // 9. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new AdminCsvExport(fileName, content, rows.Count);
     }
 
@@ -127,23 +147,33 @@ public sealed class AdminExportService : IAdminExportService
         DateTime cutoffUtc,
         DateTime nowUtc)
     {
+        // 1. Cập nhật `logs` bằng giá trị mới.
         logs = logs.Where(log => log.OccurredAtUtc >= cutoffUtc && log.OccurredAtUtc <= nowUtc);
 
+        // 2. Kiểm tra `!string.IsNullOrWhiteSpace(query.Action)` để chọn nhánh xử lý phù hợp.
         if (!string.IsNullOrWhiteSpace(query.Action))
         {
+            // 3. Gọi `Trim` và lưu kết quả vào `action`.
             string action = query.Action.Trim();
+            // 4. Cập nhật `logs` bằng giá trị mới.
             logs = logs.Where(log => log.Action == action);
         }
 
+        // 5. Kiểm tra `!string.IsNullOrWhiteSpace(query.Outcome)` để chọn nhánh xử lý phù hợp.
         if (!string.IsNullOrWhiteSpace(query.Outcome))
         {
+            // 6. Gọi `Trim` và lưu kết quả vào `outcome`.
             string outcome = query.Outcome.Trim();
+            // 7. Cập nhật `logs` bằng giá trị mới.
             logs = logs.Where(log => log.Outcome == outcome);
         }
 
+        // 8. Kiểm tra `!string.IsNullOrWhiteSpace(query.Search)` để chọn nhánh xử lý phù hợp.
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
+            // 9. Gọi `Trim` và lưu kết quả vào `term`.
             string term = query.Search.Trim();
+            // 10. Cập nhật `logs` bằng giá trị mới.
             logs = logs.Where(log =>
                 log.ActorDisplay.Contains(term)
                 || log.ActorUserId.Contains(term)
@@ -151,6 +181,7 @@ public sealed class AdminExportService : IAdminExportService
                 || (log.TargetId != null && log.TargetId.Contains(term)));
         }
 
+        // 11. Trả `logs` cho nơi gọi.
         return logs;
     }
 
@@ -162,6 +193,7 @@ public sealed class AdminExportService : IAdminExportService
         int rowCount,
         CancellationToken cancellationToken)
     {
+        // 1. Gọi `RecordAsync` để thực hiện bước nghiệp vụ này.
         await _auditService.RecordAsync(new AdminAuditEntry(
             actor.UserId,
             actor.DisplayName,
@@ -185,50 +217,65 @@ public sealed class AdminExportService : IAdminExportService
         DateTime cutoffUtc,
         DateTime nowUtc)
     {
+        // 1. Khởi tạo `parts` với dữ liệu ban đầu cần thiết.
         List<string> parts =
         [
             $"fromUtc={cutoffUtc:O}",
             $"toUtc={nowUtc:O}"
         ];
 
+        // 2. Kiểm tra `!string.IsNullOrWhiteSpace(query.Search)` để chọn nhánh xử lý phù hợp.
         if (!string.IsNullOrWhiteSpace(query.Search))
         {
+            // 3. Gọi `Add` để thực hiện bước nghiệp vụ này.
             parts.Add($"search={query.Search.Trim()}");
         }
 
+        // 4. Kiểm tra `!string.IsNullOrWhiteSpace(query.Action)` để chọn nhánh xử lý phù hợp.
         if (!string.IsNullOrWhiteSpace(query.Action))
         {
+            // 5. Gọi `Add` để thực hiện bước nghiệp vụ này.
             parts.Add($"action={query.Action.Trim()}");
         }
 
+        // 6. Kiểm tra `!string.IsNullOrWhiteSpace(query.Outcome)` để chọn nhánh xử lý phù hợp.
         if (!string.IsNullOrWhiteSpace(query.Outcome))
         {
+            // 7. Gọi `Add` để thực hiện bước nghiệp vụ này.
             parts.Add($"outcome={query.Outcome.Trim()}");
         }
 
+        // 8. Gọi `Add` để thực hiện bước nghiệp vụ này.
         parts.Add($"maxRows={AuditExportMaxRows}");
+        // 9. Trả kết quả từ `Join` cho nơi gọi.
         return string.Join(";", parts);
     }
 
     // Dựng target audit gọn giống UI nhưng không mở rộng metadata riêng tư.
     private static string BuildTarget(AdminAuditLog log)
     {
+        // 1. Kiểm tra `log.TargetType == null` để chọn nhánh xử lý phù hợp.
         if (log.TargetType == null)
         {
+            // 2. Trả `string.Empty` cho nơi gọi.
             return string.Empty;
         }
 
+        // 3. Kiểm tra `log.TargetId == null` để chọn nhánh xử lý phù hợp.
         if (log.TargetId == null)
         {
+            // 4. Trả `log.TargetType` cho nơi gọi.
             return log.TargetType;
         }
 
+        // 5. Trả `$"{log.TargetType} #{log.TargetId}"` cho nơi gọi.
         return $"{log.TargetType} #{log.TargetId}";
     }
 
     // Tạo dấu ngày UTC cho tên file ổn định trong test và vận hành.
     private string FormatDateStamp()
     {
+        // 1. Trả kết quả từ `ToString` cho nơi gọi.
         return _timeProvider.GetUtcNow().UtcDateTime.ToString("yyyyMMdd-HHmmss");
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Areas.Admin.Controllers;
 
+// Xử lý hàng đợi báo cáo nội dung: xem, bác bỏ hoặc cách ly bộ flashcard vi phạm.
 [Area("Admin")]
 [Route("Admin/ContentReports")]
 public sealed class ContentReportsController : Controller

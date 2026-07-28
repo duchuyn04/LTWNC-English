@@ -22,19 +22,26 @@ public sealed class AchievementProgressSnapshot
     // Map enum metric -> số đếm tương ứng (so với Target trong catalog)
     public int GetValue(AchievementMetricKind kind)
     {
+        // 1. Phân nhánh xử lý theo giá trị `kind`.
         switch (kind)
         {
             case AchievementMetricKind.CardsMastered:
+                // 2. Trả `CardsMastered` cho nơi gọi.
                 return CardsMastered;
             case AchievementMetricKind.FlashcardSessions:
+                // 3. Trả `FlashcardSessions` cho nơi gọi.
                 return FlashcardSessions;
             case AchievementMetricKind.DictationSessions:
+                // 4. Trả `DictationSessions` cho nơi gọi.
                 return DictationSessions;
             case AchievementMetricKind.DictationCorrectAnswers:
+                // 5. Trả `DictationCorrectAnswers` cho nơi gọi.
                 return DictationCorrectAnswers;
             case AchievementMetricKind.DictationPerfectSessions:
+                // 6. Trả `DictationPerfectSessions` cho nơi gọi.
                 return DictationPerfectSessions;
             default:
+                // 7. Trả `0` cho nơi gọi.
                 return 0;
         }
     }

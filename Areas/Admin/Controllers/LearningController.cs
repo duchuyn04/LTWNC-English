@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace ltwnc.Areas.Admin.Controllers;
 
 // Hồ sơ học tập ở chế độ CHỈ ĐỌC: không có bất kỳ action POST nào.
-// Admin không thể sửa điểm, sửa tiến độ hoặc xóa lịch sử phiên học của ngườ học.
+// Admin không thể sửa điểm, sửa tiến độ hoặc xóa lịch sử phiên học của người học.
 [Area("Admin")]
 [Route("Admin/Learning")]
 public sealed class LearningController : Controller
@@ -58,7 +58,7 @@ public sealed class LearningController : Controller
         return View(model);
     }
 
-    // Chi tiết một phiên học cấp ngườ học.
+    // Hiển thị chi tiết một phiên học của người học.
     // Không có lý do hỗ trợ/điều tra thì chỉ hiển thị cổng nhập lý do;
     // có lý do thì service ghi audit thành công trước rồi mới trả dữ liệu.
     [HttpGet("{id:int}")]
@@ -104,7 +104,7 @@ public sealed class LearningController : Controller
         return View(model);
     }
 
-    // Dựng ngữ cảnh truy cập nhạy cảm từ ngườ đang đăng nhập và lý do đã nhập.
+    // Dựng ngữ cảnh truy cập nhạy cảm từ người đang đăng nhập và lý do đã nhập.
     private AdminStudyRecordAccessCommand BuildAccessCommand(string reason)
     {
         string actorUserId =

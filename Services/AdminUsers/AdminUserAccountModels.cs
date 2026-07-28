@@ -27,11 +27,13 @@ public sealed record AdminUserAccountPage(
     {
         get
         {
+            // 1. Khi không có tài khoản, vẫn trả một trang để giao diện hiển thị ổn định.
             if (TotalCount == 0)
             {
                 return 1;
             }
 
+            // 2. Chia tổng số tài khoản cho kích thước trang và làm tròn lên.
             return (int)Math.Ceiling(TotalCount / (double)PageSize);
         }
     }
@@ -65,6 +67,7 @@ public sealed class AdminUserOperationResult
     // Tạo kết quả thành công với thông báo tiếng Việt cho giao diện.
     public static AdminUserOperationResult Success(string message)
     {
+        // 1. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new AdminUserOperationResult
         {
             Succeeded = true,
@@ -75,6 +78,7 @@ public sealed class AdminUserOperationResult
     // Tạo kết quả thất bại với lý do cụ thể để hiển thị và kiểm thử.
     public static AdminUserOperationResult Failure(string message)
     {
+        // 1. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new AdminUserOperationResult
         {
             Succeeded = false,

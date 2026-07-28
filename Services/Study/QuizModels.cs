@@ -4,7 +4,10 @@ namespace ltwnc.Services.Study;
 
 public sealed class QuizUnavailableException : InvalidOperationException
 {
-    public QuizUnavailableException(string message) : base(message) { }
+    public QuizUnavailableException(string message) : base(message)
+    {
+        // 1. Chuyển thông báo không thể tạo Quiz cho lớp Exception cơ sở.
+    }
 }
 
 public sealed record QuizPoolAvailability(
@@ -48,7 +51,10 @@ public sealed record QuizAnswerResult(
 
 public sealed class QuizConflictException : InvalidOperationException
 {
-    public QuizConflictException(string message) : base(message) { }
+    public QuizConflictException(string message) : base(message)
+    {
+        // 1. Chuyển thông báo xung đột phiên Quiz cho lớp Exception cơ sở.
+    }
 }
 
 public sealed class QuizSessionAbandonedException : InvalidOperationException
@@ -56,6 +62,7 @@ public sealed class QuizSessionAbandonedException : InvalidOperationException
     public QuizSessionAbandonedException(int? activeSessionId)
         : base("Phiên trắc nghiệm này đã được thay thế.")
     {
+        // 1. Lưu dependency `ActiveSessionId` để các phương thức khác sử dụng.
         ActiveSessionId = activeSessionId;
     }
 
@@ -67,6 +74,7 @@ public sealed class QuizNotExpiredException : InvalidOperationException
     public QuizNotExpiredException(int remainingSeconds)
         : base("Phiên trắc nghiệm chưa hết thời gian.")
     {
+        // 1. Lưu dependency `RemainingSeconds` để các phương thức khác sử dụng.
         RemainingSeconds = remainingSeconds;
     }
 
@@ -75,7 +83,10 @@ public sealed class QuizNotExpiredException : InvalidOperationException
 
 public sealed class QuizExpiredException : InvalidOperationException
 {
-    public QuizExpiredException() : base("Phiên trắc nghiệm đã hết thời gian.") { }
+    public QuizExpiredException() : base("Phiên trắc nghiệm đã hết thời gian.")
+    {
+        // 1. Khởi tạo lỗi hết thời gian bằng thông báo cố định từ lớp cơ sở.
+    }
 }
 
 public sealed class QuizSessionResult

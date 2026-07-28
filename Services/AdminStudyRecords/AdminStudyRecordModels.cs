@@ -43,11 +43,13 @@ public sealed record AdminStudySessionPage(
     {
         get
         {
+            // 1. Khi không có phiên học, vẫn trả một trang để giao diện hiển thị ổn định.
             if (TotalCount == 0)
             {
                 return 1;
             }
 
+            // 2. Chia tổng số phiên cho kích thước trang và làm tròn lên.
             return (int)Math.Ceiling(TotalCount / (double)PageSize);
         }
     }

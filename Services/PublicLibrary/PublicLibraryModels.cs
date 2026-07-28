@@ -7,12 +7,16 @@ public static class PublicLibrarySort
     public const string Recent = "recent";
     public const string Cards = "cards";
 
-    public static string Normalize(string? value) => value?.Trim().ToLowerInvariant() switch
+    public static string Normalize(string? value)
+    {
+        // 1. Trả `value?.Trim().ToLowerInvariant() switch { Recent => Recent, Cards =...` cho nơi gọi.
+        return value?.Trim().ToLowerInvariant() switch
     {
         Recent => Recent,
         Cards => Cards,
         _ => Popular
     };
+    }
 }
 
 public sealed record PublicLibraryQuery(string? Search, string? Sort, int Page = 1);

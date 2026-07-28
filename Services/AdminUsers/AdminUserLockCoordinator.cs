@@ -9,7 +9,9 @@ public sealed class AdminUserLockCoordinator
     public async ValueTask<IAsyncDisposable> EnterAsync(
         CancellationToken cancellationToken = default)
     {
+        // 1. Gọi `WaitAsync` để thực hiện bước nghiệp vụ này.
         await _semaphore.WaitAsync(cancellationToken);
+        // 2. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new LockLease(_semaphore);
     }
 
@@ -20,18 +22,23 @@ public sealed class AdminUserLockCoordinator
         // Giữ semaphore đang sở hữu để giải phóng đúng một lần.
         public LockLease(SemaphoreSlim semaphore)
         {
+            // 1. Lưu dependency `_semaphore` để các phương thức khác sử dụng.
             _semaphore = semaphore;
         }
 
         // Giải phóng lượt xử lý và bỏ tham chiếu để lần gọi lặp không tăng semaphore quá mức.
         public ValueTask DisposeAsync()
         {
+            // 1. Gọi `Exchange` và lưu kết quả vào `semaphore`.
             SemaphoreSlim? semaphore = Interlocked.Exchange(ref _semaphore, null);
+            // 2. Kiểm tra `semaphore != null` để chọn nhánh xử lý phù hợp.
             if (semaphore != null)
             {
+                // 3. Gọi `Release` để thực hiện bước nghiệp vụ này.
                 semaphore.Release();
             }
 
+            // 4. Trả `ValueTask.CompletedTask` cho nơi gọi.
             return ValueTask.CompletedTask;
         }
     }

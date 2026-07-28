@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Areas.Admin.Controllers;
 
+// Tra cứu và xuất lịch sử thao tác quản trị để phục vụ kiểm tra, truy vết.
 [Area("Admin")]
 [Route("Admin/AuditLogs")]
 public sealed class AuditLogsController : Controller

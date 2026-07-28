@@ -12,7 +12,9 @@ public sealed class LeaderboardService : ILeaderboardService
 
     public LeaderboardService(AppDbContext db, TimeProvider? timeProvider = null)
     {
+        // 1. Lưu dependency `_db` để các phương thức khác sử dụng.
         _db = db;
+        // 2. Lưu dependency `_timeProvider` để các phương thức khác sử dụng.
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
@@ -21,9 +23,12 @@ public sealed class LeaderboardService : ILeaderboardService
         string? viewerUserId,
         CancellationToken cancellationToken = default)
     {
+        // 1. Tính giá trị và lưu vào `normalizedPeriod` để dùng ở bước tiếp theo.
         int normalizedPeriod = periodDays == 30 ? 30 : 7;
+        // 2. Gọi `AddDays` và lưu kết quả vào `cutoff`.
         DateTime cutoff = _timeProvider.GetUtcNow().UtcDateTime.AddDays(-normalizedPeriod);
 
+        // 3. Gọi `ToListAsync` và lưu kết quả vào `grouped`.
         var grouped = await (
             from session in _db.StudySessions.AsNoTracking()
             join profile in _db.UserProfiles.AsNoTracking()
@@ -54,6 +59,7 @@ public sealed class LeaderboardService : ILeaderboardService
             })
             .ToListAsync(cancellationToken);
 
+        // 4. Gọi `ToList` và lưu kết quả vào `ranked`.
         List<LeaderboardEntryViewModel> ranked = grouped
             .OrderByDescending(row => row.TotalSeconds)
             .ThenByDescending(row => row.SessionCount)
@@ -73,9 +79,11 @@ public sealed class LeaderboardService : ILeaderboardService
             })
             .ToList();
 
+        // 5. Gọi `FirstOrDefault` và lưu kết quả vào `viewerEntry`.
         LeaderboardEntryViewModel? viewerEntry = ranked
             .FirstOrDefault(entry => entry.IsViewer);
 
+        // 6. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new LeaderboardPageViewModel
         {
             PeriodDays = normalizedPeriod,
@@ -86,6 +94,7 @@ public sealed class LeaderboardService : ILeaderboardService
 
     private static string AvatarInitial(string username)
     {
+        // 1. Trả `string.IsNullOrWhiteSpace(username) ? "?" : username.Trim()[0].ToSt...` cho nơi gọi.
         return string.IsNullOrWhiteSpace(username)
             ? "?"
             : username.Trim()[0].ToString().ToUpperInvariant();

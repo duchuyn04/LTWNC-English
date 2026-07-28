@@ -13,6 +13,7 @@ public class FlashcardModeStrategy : IStudyModeStrategy
     // Inject query service dùng chung
     public FlashcardModeStrategy(IStudyCardQueryService queryService)
     {
+        // 1. Lưu dependency `_queryService` để các phương thức khác sử dụng.
         _queryService = queryService;
     }
 
@@ -25,12 +26,15 @@ public class FlashcardModeStrategy : IStudyModeStrategy
         UserStudySettings settings,
         string? userId)
     {
+        // 1. Gọi `CreateFilteredQuery` và lưu kết quả vào `query`.
         IQueryable<Flashcard> query = _queryService.CreateFilteredQuery(setId, settings, userId);
 
+        // 2. Gọi `ToListAsync` và lưu kết quả vào `cards`.
         List<Flashcard> cards = await query
             .OrderBy(flashcard => flashcard.OrderIndex)
             .ToListAsync();
 
+        // 3. Trả `cards` cho nơi gọi.
         return cards;
     }
 
@@ -40,10 +44,14 @@ public class FlashcardModeStrategy : IStudyModeStrategy
         IReadOnlyList<Flashcard> cards,
         UserStudySettings settings)
     {
+        // 1. Tính giá trị và lưu vào `isAvailable` để dùng ở bước tiếp theo.
         bool isAvailable = cards.Count > 0;
+        // 2. Tính giá trị và lưu vào `cardCount` để dùng ở bước tiếp theo.
         int cardCount = cards.Count;
+        // 3. Tính giá trị và lưu vào `estimatedSeconds` để dùng ở bước tiếp theo.
         int estimatedSeconds = cardCount * 15;
 
+        // 4. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new StudyModeOptionViewModel
         {
             Mode = StudyMode.Flashcard,

@@ -27,6 +27,7 @@ public interface IStudyModeStrategy
         UserStudySettings settings,
         string? userId)
     {
+        // 1. Trả kết quả từ `FromResult` cho nơi gọi.
         return Task.FromResult(BuildOption(setId, cards, settings));
     }
 }

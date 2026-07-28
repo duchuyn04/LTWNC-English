@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Areas.Admin.Controllers;
 
+// Hiển thị tổng quan vận hành, cung cấp dữ liệu cập nhật và xuất KPI ra CSV.
 [Area("Admin")]
 public sealed class DashboardController : Controller
 {

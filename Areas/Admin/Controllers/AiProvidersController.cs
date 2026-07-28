@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Areas.Admin.Controllers;
 
+// Quản lý cấu hình nhà cung cấp AI: xem, thêm, sửa, bật/tắt, đặt mặc định và kiểm tra kết nối.
 [Area("Admin")]
 [Authorize(Policy = AdminAreaPolicy.Name)]
 [Route("Admin/AiProviders")]

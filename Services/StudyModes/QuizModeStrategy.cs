@@ -17,7 +17,9 @@ public class QuizModeStrategy : IStudyModeStrategy
         IStudyCardQueryService queryService,
         QuizQuestionFactory questionFactory)
     {
+        // 1. Lưu dependency `_queryService` để các phương thức khác sử dụng.
         _queryService = queryService;
+        // 2. Lưu dependency `_questionFactory` để các phương thức khác sử dụng.
         _questionFactory = questionFactory;
     }
 
@@ -28,6 +30,7 @@ public class QuizModeStrategy : IStudyModeStrategy
         UserStudySettings settings,
         string? userId)
     {
+        // 1. Trả kết quả từ `ToListAsync` cho nơi gọi.
         return await _queryService.CreateFilteredQuery(setId, settings, userId)
             .OrderBy(card => card.OrderIndex)
             .ToListAsync();
@@ -38,8 +41,10 @@ public class QuizModeStrategy : IStudyModeStrategy
         IReadOnlyList<Flashcard> cards,
         UserStudySettings settings)
     {
+        // 1. Tính giá trị và lưu vào `isAvailable` để dùng ở bước tiếp theo.
         bool isAvailable = cards.Count > 0;
 
+        // 2. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new StudyModeOptionViewModel
         {
             Mode = StudyMode.Quiz,
@@ -60,15 +65,22 @@ public class QuizModeStrategy : IStudyModeStrategy
         UserStudySettings settings,
         string? userId)
     {
+        // 1. Gọi `BuildOption` và lưu kết quả vào `option`.
         StudyModeOptionViewModel option = BuildOption(setId, cards, settings);
+        // 2. Kiểm tra `!option.IsAvailable || string.IsNullOrWhiteSpace(userId)` để chọn nhánh xử lý phù hợp.
         if (!option.IsAvailable || string.IsNullOrWhiteSpace(userId))
         {
+            // 3. Trả `option` cho nơi gọi.
             return option;
         }
 
+        // 4. Gọi `GetAvailabilityAsync` và lưu kết quả vào `availability`.
         QuizPoolAvailability availability = await _questionFactory.GetAvailabilityAsync(setId, userId);
+        // 5. Cập nhật `option.IsAvailable` bằng giá trị mới.
         option.IsAvailable = availability.IsAvailable;
+        // 6. Cập nhật `option.UnavailableReason` bằng giá trị mới.
         option.UnavailableReason = availability.UnavailableReason;
+        // 7. Trả `option` cho nơi gọi.
         return option;
     }
 }

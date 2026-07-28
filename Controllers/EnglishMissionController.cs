@@ -10,26 +10,34 @@ using ltwnc.Services.FlashcardSets;
 
 namespace ltwnc.Controllers;
 
+// Điều phối nhiệm vụ hội thoại tiếng Anh sử dụng AI cho bộ thẻ của người dùng.
 [Authorize]
 public sealed class EnglishMissionController : Controller
 {
+    // Các service xử lý nhiệm vụ, kiểm tra quyền sở hữu bộ thẻ và đọc người dùng hiện tại.
     private readonly IEnglishMissionService _missionService;
     private readonly IFlashcardSetService _setService;
     private readonly ICurrentUser _currentUser;
 
+    // Nhận các service cần dùng qua dependency injection.
     public EnglishMissionController(
         IEnglishMissionService missionService,
         IFlashcardSetService setService,
         ICurrentUser currentUser)
     {
+        // 1. Lưu các service để những action nhiệm vụ sử dụng.
         _missionService = missionService;
         _setService = setService;
         _currentUser = currentUser;
     }
 
+    // Hiển thị danh sách chủ đề để người dùng chọn trước khi bắt đầu hội thoại.
     [HttpGet("/Study/{setId}/Mission")]
     public async Task<IActionResult> SelectTopic(int setId)
     {
+        // 1. Kiểm tra người dùng đã đăng nhập.
+        // 2. Xác nhận bộ thẻ thuộc sở hữu của người dùng.
+        // 3. Lấy danh sách chủ đề và hiển thị trang lựa chọn.
         string? userId = _currentUser.UserId;
         if (userId == null) return Challenge();
         FlashcardSet? set = await _setService.GetOwnedSetAsync(setId, userId);
@@ -37,11 +45,15 @@ public sealed class EnglishMissionController : Controller
         return View(new EnglishMissionTopicViewModel { SetId = setId, SetTitle = set.Title, Topics = _missionService.GetTopics() });
     }
 
+    // Tạo nhiệm vụ mới; lỗi cấu hình AI được đưa về trang chọn chủ đề.
     [HttpPost("/Study/{setId}/Mission/Start")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("ai")]
     public async Task<IActionResult> Start(int setId, string topic, CancellationToken cancellationToken)
     {
+        // 1. Kiểm tra phiên đăng nhập.
+        // 2. Tạo nhiệm vụ AI theo bộ thẻ và chủ đề đã chọn.
+        // 3. Chuyển tới màn chat hoặc đưa lỗi về trang chọn chủ đề.
         string? userId = _currentUser.UserId;
         if (userId == null) return Unauthorized();
         try
@@ -58,9 +70,13 @@ public sealed class EnglishMissionController : Controller
         catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
+    // Hiển thị nội dung hội thoại hiện tại hoặc chuyển sang kết quả nếu đã hoàn thành.
     [HttpGet("/Study/{setId}/Mission/{sessionId:int}")]
     public async Task<IActionResult> Chat(int setId, int sessionId, CancellationToken cancellationToken)
     {
+        // 1. Kiểm tra phiên đăng nhập.
+        // 2. Lấy nhiệm vụ, bộ thẻ và lịch sử hội thoại.
+        // 3. Hiển thị chat hoặc chuyển sang kết quả nếu nhiệm vụ đã hoàn thành.
         string? userId = _currentUser.UserId;
         if (userId == null) return Challenge();
         try
@@ -81,11 +97,15 @@ public sealed class EnglishMissionController : Controller
         catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
+    // Gửi câu trả lời tới AI và trả JSON để giao diện cập nhật hội thoại tại chỗ.
     [HttpPost("/Study/{setId}/Mission/{sessionId:int}/Respond")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("ai")]
     public async Task<IActionResult> Respond(int setId, int sessionId, [FromForm] string clientTurnId, [FromForm] string userText, CancellationToken cancellationToken)
     {
+        // 1. Kiểm tra người gửi đã đăng nhập.
+        // 2. Gửi câu trả lời tới service để AI phản hồi và chấm điểm.
+        // 3. Trả JSON cho giao diện hoặc mã lỗi HTTP phù hợp.
         string? userId = _currentUser.UserId;
         if (userId == null) return Unauthorized();
         try
@@ -117,9 +137,13 @@ public sealed class EnglishMissionController : Controller
         catch (UnauthorizedAccessException) { return Forbid(); }
     }
 
+    // Hiển thị điểm và toàn bộ lượt hội thoại khi nhiệm vụ đã hoàn thành.
     [HttpGet("/Study/{setId}/Mission/{sessionId:int}/Result")]
     public async Task<IActionResult> Result(int setId, int sessionId, CancellationToken cancellationToken)
     {
+        // 1. Kiểm tra phiên đăng nhập.
+        // 2. Lấy dữ liệu nhiệm vụ và xác nhận trạng thái đã hoàn thành.
+        // 3. Hiển thị kết quả hoặc chuyển người dùng quay lại chat.
         string? userId = _currentUser.UserId;
         if (userId == null) return Challenge();
         try

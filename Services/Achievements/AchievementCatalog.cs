@@ -172,5 +172,8 @@ public static class AchievementCatalog
 
     // Tìm định nghĩa theo mã; trả null nếu không có trong danh mục
     public static Definition? Find(string code)
-        => All.FirstOrDefault(item => item.Code == code);
+    {
+        // 1. Trả kết quả từ `FirstOrDefault` cho nơi gọi.
+        return All.FirstOrDefault(item => item.Code == code);
+    }
 }

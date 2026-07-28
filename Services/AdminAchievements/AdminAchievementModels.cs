@@ -62,12 +62,14 @@ public sealed record AdminAchievementSyncResult(
     // Tạo kết quả thành công với thông báo tiếng Việt.
     public static AdminAchievementSyncResult Success(string message, int changedCount)
     {
+        // 1. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new AdminAchievementSyncResult(true, message, changedCount, 0);
     }
 
     // Tạo kết quả thất bại với thông báo tiếng Việt.
     public static AdminAchievementSyncResult Failure(string message, int failedCount = 1)
     {
+        // 1. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new AdminAchievementSyncResult(false, message, 0, failedCount);
     }
 }
@@ -86,8 +88,10 @@ public sealed record AdminAchievementBatchSyncResult(
         int changedCount,
         int failedCount)
     {
+        // 1. Kiểm tra `failedCount > 0` để chọn nhánh xử lý phù hợp.
         if (failedCount > 0)
         {
+            // 2. Tạo và trả đối tượng kết quả cho nơi gọi.
             return new AdminAchievementBatchSyncResult(
                 false,
                 $"Đã đồng bộ {processedUsers:N0} người dùng, thêm {changedCount:N0} thành tích và có {failedCount:N0} lỗi cần kiểm tra.",
@@ -96,6 +100,7 @@ public sealed record AdminAchievementBatchSyncResult(
                 failedCount);
         }
 
+        // 3. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new AdminAchievementBatchSyncResult(
             true,
             $"Đã đồng bộ {processedUsers:N0} người dùng và thêm {changedCount:N0} thành tích còn thiếu.",
@@ -107,6 +112,7 @@ public sealed record AdminAchievementBatchSyncResult(
     // Tạo kết quả thất bại trước khi bắt đầu đồng bộ.
     public static AdminAchievementBatchSyncResult Failure(string message)
     {
+        // 1. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new AdminAchievementBatchSyncResult(false, message, 0, 0, 1);
     }
 }

@@ -2,6 +2,7 @@ using ltwnc.Models.Entities;
 
 namespace ltwnc.Services.AdminEnglishMissions;
 
+// Điều kiện tìm kiếm, lọc, sắp xếp và phân trang nhiệm vụ tiếng Anh.
 public sealed record AdminEnglishMissionQuery(
     string? Search = null,
     string? Topic = null,
@@ -11,12 +12,14 @@ public sealed record AdminEnglishMissionQuery(
     int Page = 1,
     int PageSize = AdminEnglishMissionService.DefaultPageSize);
 
+// Một trang kết quả nhiệm vụ tiếng Anh trả về khu vực quản trị.
 public sealed record AdminEnglishMissionPage(
     IReadOnlyList<AdminEnglishMissionRow> Items,
     int TotalCount,
     int Page,
     int PageSize);
 
+// Dữ liệu tóm tắt một nhiệm vụ dùng trên màn hình danh sách.
 public sealed record AdminEnglishMissionRow(
     int MissionId,
     int StudySessionId,
@@ -35,6 +38,7 @@ public sealed record AdminEnglishMissionRow(
     bool ConversationAvailable,
     bool HasRetentionHold);
 
+// Thông tin Admin và lý do cần thiết để mở hội thoại nhạy cảm.
 public sealed record AdminEnglishMissionAccessCommand(
     int MissionId,
     string ActorUserId,
@@ -44,6 +48,7 @@ public sealed record AdminEnglishMissionAccessCommand(
     string Reason,
     string? CorrelationId = null);
 
+// Kết quả kiểm tra quyền truy cập trước khi trả nội dung hội thoại.
 public sealed class AdminEnglishMissionConversationResult
 {
     public bool Found { get; init; }
@@ -52,6 +57,7 @@ public sealed class AdminEnglishMissionConversationResult
     public AdminEnglishMissionConversation? Conversation { get; init; }
 }
 
+// Toàn bộ dữ liệu hội thoại đã được phép hiển thị cho Admin.
 public sealed record AdminEnglishMissionConversation(
     int MissionId,
     int StudySessionId,
@@ -76,6 +82,7 @@ public sealed record AdminEnglishMissionConversation(
     IReadOnlyList<AdminEnglishMissionTargetWordRow> TargetWords,
     IReadOnlyList<AdminEnglishMissionTurnRow> Turns);
 
+// Trạng thái sử dụng của một từ mục tiêu trong nhiệm vụ.
 public sealed record AdminEnglishMissionTargetWordRow(
     string Term,
     string Definition,
@@ -83,6 +90,7 @@ public sealed record AdminEnglishMissionTargetWordRow(
     bool IsUsed,
     int? FirstUsedTurn);
 
+// Nội dung và phản hồi chấm điểm của một lượt hội thoại.
 public sealed record AdminEnglishMissionTurnRow(
     int TurnNumber,
     string UserText,
@@ -94,6 +102,7 @@ public sealed record AdminEnglishMissionTurnRow(
     string AchievedGoalsDisplay,
     DateTime CreatedAtUtc);
 
+// Kết quả dọn nội dung hội thoại đã hết thời hạn lưu giữ.
 public sealed record AdminEnglishMissionCleanupResult(
     int ScannedCount,
     int ClearedCount);

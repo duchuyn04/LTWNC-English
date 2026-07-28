@@ -17,12 +17,18 @@ public sealed record ContentReportSubmitResult(
     long? ReportId = null)
 {
     // Tạo kết quả thành công để controller chỉ lo redirect và thông báo UI.
-    public static ContentReportSubmitResult Success(long reportId) =>
-        new(true, "Đã gửi báo cáo nội dung. Cảm ơn bạn đã giúp giữ thư viện an toàn.", ContentReportSubmitFailure.None, reportId);
+    public static ContentReportSubmitResult Success(long reportId)
+    {
+        // 1. Tạo và trả đối tượng kết quả cho nơi gọi.
+        return new(true, "Đã gửi báo cáo nội dung. Cảm ơn bạn đã giúp giữ thư viện an toàn.", ContentReportSubmitFailure.None, reportId);
+    }
 
     // Tạo kết quả bị từ chối với lý do nghiệp vụ rõ ràng.
-    public static ContentReportSubmitResult Rejected(string message, ContentReportSubmitFailure failure) =>
-        new(false, message, failure);
+    public static ContentReportSubmitResult Rejected(string message, ContentReportSubmitFailure failure)
+    {
+        // 1. Tạo và trả đối tượng kết quả cho nơi gọi.
+        return new(false, message, failure);
+    }
 }
 
 public enum ContentReportSubmitFailure
@@ -70,11 +76,13 @@ public sealed record AdminContentReportPage(
     {
         get
         {
+            // 1. Khi không có dữ liệu, vẫn trả một trang để giao diện hiển thị ổn định.
             if (TotalCount == 0)
             {
                 return 1;
             }
 
+            // 2. Chia tổng số dòng cho kích thước trang và làm tròn lên.
             return (int)Math.Ceiling(TotalCount / (double)PageSize);
         }
     }
@@ -89,8 +97,16 @@ public sealed record DismissContentReportCommand(
 public sealed record ContentReportOperationResult(bool Succeeded, string Message)
 {
     // Kết quả thành công dùng chung cho các thao tác xử lý báo cáo.
-    public static ContentReportOperationResult Success(string message) => new(true, message);
+    public static ContentReportOperationResult Success(string message)
+    {
+        // 1. Tạo và trả đối tượng kết quả cho nơi gọi.
+        return new(true, message);
+    }
 
     // Kết quả thất bại không ném exception để controller có thể hiển thị thông báo tiếng Việt.
-    public static ContentReportOperationResult Failure(string message) => new(false, message);
+    public static ContentReportOperationResult Failure(string message)
+    {
+        // 1. Tạo và trả đối tượng kết quả cho nơi gọi.
+        return new(false, message);
+    }
 }

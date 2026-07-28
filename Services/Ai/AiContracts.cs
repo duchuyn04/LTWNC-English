@@ -21,13 +21,19 @@ public sealed record AiProviderHealthSnapshot(
 public sealed class AiProviderUnavailableException : Exception
 {
     // Tạo lỗi chung khi router không còn provider phù hợp để phục vụ người học.
-    public AiProviderUnavailableException(string message) : base(message) { }
+    public AiProviderUnavailableException(string message) : base(message)
+    {
+        // 1. Chuyển thông báo lỗi cho lớp Exception cơ sở; không cần xử lý bổ sung.
+    }
 }
 
 public sealed class AiProviderConfigurationException : Exception
 {
     // Tạo lỗi cấu hình provider để service và router có thể phân loại fallback.
-    public AiProviderConfigurationException(string message) : base(message) { }
+    public AiProviderConfigurationException(string message) : base(message)
+    {
+        // 1. Chuyển thông báo lỗi cấu hình cho lớp Exception cơ sở.
+    }
 }
 
 // Dữ liệu form khi tạo mới hoặc cập nhật một nhà cung cấp AI.
@@ -68,6 +74,7 @@ public sealed class AiProviderOperationResult
     // Tạo kết quả thành công kèm thông báo tiếng Việt cho giao diện.
     public static AiProviderOperationResult Success(string message)
     {
+        // 1. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new AiProviderOperationResult
         {
             Succeeded = true,
@@ -78,6 +85,7 @@ public sealed class AiProviderOperationResult
     // Tạo kết quả thất bại kèm lý do cụ thể để hiển thị và kiểm thử.
     public static AiProviderOperationResult Failure(string message)
     {
+        // 1. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new AiProviderOperationResult
         {
             Succeeded = false,

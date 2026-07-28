@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Areas.Admin.Controllers;
 
+// Tra cứu nhiệm vụ tiếng Anh và mở hội thoại khi Admin cung cấp đủ lý do.
 [Area("Admin")]
 [Route("Admin/EnglishMissions")]
 public sealed class EnglishMissionsController : Controller
