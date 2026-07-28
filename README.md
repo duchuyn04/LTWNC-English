@@ -98,6 +98,21 @@ flowchart LR
 
 `AiProviderConnection` chỉ mang tên, base URL, model và timeout. API key được giải mã ngay trước lời gọi Adapter rồi truyền bằng tham số riêng; khóa không nằm trong record, debug output hoặc operation log. Router fallback theo provider chính và `Priority` khi gặp lỗi có thể thử lại.
 
+### 🛡️ Protection Proxy
+
+**Vấn đề:** Route xuất CSV đã có Admin policy, nhưng service export vẫn có thể được gọi từ code nội bộ với actor audit không khớp người dùng hiện tại.
+
+**Cách làm:** Controller tiếp tục gọi Subject `IAdminExportService`. DI đưa lời gọi qua `AdminExportProtectionProxy`, dùng chính `AdminAreaPolicy` để kiểm tra quyền và dựng lại actor từ claims trước khi ủy quyền cho `AdminExportService`. Real Subject vẫn chịu trách nhiệm tạo CSV và ghi audit thành công.
+
+```mermaid
+flowchart LR
+    Client["Client<br/>DashboardController<br/>AuditLogsController"] --> Subject["Subject<br/>IAdminExportService"]
+    Subject --> Proxy["Protection Proxy<br/>AdminExportProtectionProxy"]
+    Proxy --> RealSubject["Real Subject<br/>AdminExportService"]
+```
+
+MVC policy vẫn là lớp bảo vệ HTTP để giữ nguyên phản hồi 401/403. Proxy là lớp defense-in-depth tại service seam; caller không đạt policy hoặc khai actor khác danh tính hiện tại sẽ bị từ chối trước khi tạo CSV.
+
 ### 📦 Application service interfaces
 
 Các application service (`FlashcardSetService`, `StudyService`, `DictationService`...) đều có contract `I*` tương ứng. Controllers inject interface, `Program.cs` đăng ký `AddScoped<IService, Service>()`. Mục đích: thay implementation hoặc bọc decorator mà không sửa call site.

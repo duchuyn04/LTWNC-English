@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
@@ -121,7 +122,12 @@ builder.Services.Configure<CookieAuthenticationOptions>(
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<ltwnc.Services.Audit.IAdminAuditService, ltwnc.Services.Audit.AdminAuditService>();
 builder.Services.AddScoped<IAdminDashboardKpiService, AdminDashboardKpiService>();
-builder.Services.AddScoped<IAdminExportService, AdminExportService>();
+builder.Services.AddScoped<AdminExportService>();
+builder.Services.AddScoped<IAdminExportService>(services =>
+    new AdminExportProtectionProxy(
+        services.GetRequiredService<AdminExportService>(),
+        services.GetRequiredService<IAuthorizationService>(),
+        services.GetRequiredService<IHttpContextAccessor>()));
 builder.Services.AddScoped<IAdminAuditRetentionService, AdminAuditRetentionService>();
 builder.Services.AddSingleton<AdminAchievementSyncCoordinator>();
 builder.Services.AddScoped<IAdminAchievementService, AdminAchievementService>();
