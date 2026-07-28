@@ -23,7 +23,7 @@
     /* Z-index scale */
     --admin-z-skip: 1100;
 
-    min-width: 360px;
+    min-width: 0;
     max-width: 100%;
     overflow-x: clip;
     background: var(--paper);
@@ -152,7 +152,47 @@
 
 .admin-navigation {
     display: grid;
+    gap: 0.75rem;
+}
+
+.admin-navigation-group {
+    display: grid;
     gap: 0.125rem;
+}
+
+.admin-navigation-label,
+.admin-navigation-disclosure summary {
+    margin: 0 0.75rem 0.35rem;
+    color: var(--muted-light);
+    font-size: 0.6875rem;
+    font-weight: 600;
+}
+
+.admin-navigation-disclosure summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 2rem;
+    cursor: pointer;
+    list-style: none;
+}
+
+.admin-navigation-disclosure summary::-webkit-details-marker {
+    display: none;
+}
+
+.admin-navigation-disclosure summary i {
+    font-size: 0.875rem;
+    transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-navigation-disclosure[open] summary i {
+    transform: rotate(180deg);
+}
+
+.admin-navigation-disclosure summary:hover,
+.admin-navigation-disclosure summary:focus-visible {
+    color: var(--surface);
 }
 
 .admin-navigation a,
@@ -160,7 +200,7 @@
     display: flex;
     gap: 0.75rem;
     align-items: center;
-    min-height: 2.625rem;
+    min-height: 2.75rem;
     padding: 0.55rem 0.75rem;
     border-radius: var(--radius-control);
     color: var(--line-strong);
@@ -361,8 +401,8 @@
     display: inline-grid;
     place-items: center;
     flex: 0 0 auto;
-    width: 2rem;
-    height: 2rem;
+    width: 2.75rem;
+    height: 2.75rem;
     border: 0;
     border-radius: var(--admin-radius-inner);
     background: var(--ink);
@@ -545,7 +585,7 @@
 
 .admin-range-filter button {
     min-width: 4.5rem;
-    min-height: 2.25rem;
+    min-height: 2.75rem;
     border: 0;
     border-radius: var(--admin-radius-inner);
     background: transparent;
@@ -712,7 +752,7 @@
 
 .admin-alert-panel {
     display: grid;
-    grid-template-columns: minmax(10rem, 0.35fr) minmax(0, 1fr);
+    grid-template-columns: 12rem minmax(0, 1fr);
     gap: 1rem;
     padding: 1.25rem 1.5rem;
     border: 1px solid var(--line);
@@ -784,7 +824,7 @@
 .admin-live-alert a {
     display: inline-flex;
     align-items: center;
-    min-height: 2.25rem;
+    min-height: 2.75rem;
     padding: 0.35rem 0.75rem;
     border-radius: var(--admin-radius-inner);
     background: var(--ink);
@@ -819,6 +859,10 @@
 
 .admin-live-alert--success > i {
     color: var(--success);
+}
+
+.admin-live-alert--neutral {
+    border-left-color: var(--line-strong);
 }
 
 /* ---------- KPI methodology & foundation ---------- */
@@ -1052,7 +1096,7 @@
     display: inline-flex;
     align-items: center;
     gap: 0.4rem;
-    min-height: 2.5rem;
+    min-height: 2.75rem;
     padding: 0.5rem 1rem;
     border: 0;
     border-radius: var(--radius-control);
@@ -1203,6 +1247,56 @@
 
 .admin-table strong {
     font-weight: 600;
+}
+
+.admin-content-table td {
+    vertical-align: middle;
+}
+
+.admin-content-table-title {
+    min-width: 12rem;
+}
+
+.admin-content-table td:nth-child(2) {
+    max-width: 14rem;
+    overflow-wrap: anywhere;
+}
+
+.admin-content-table-action {
+    white-space: nowrap;
+}
+
+.admin-row-action {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 2.75rem;
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.admin-row-action:hover,
+.admin-row-action:focus {
+    color: var(--brass-deep);
+}
+
+.admin-report-count {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.75rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--admin-radius-inner);
+    background: var(--admin-warning-bg);
+    color: var(--admin-warning-text);
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.admin-muted-value {
+    color: var(--muted-light);
 }
 
 /* Bảng có form inline (báo cáo nội dung) cần canh trên */
@@ -1640,6 +1734,81 @@
     .admin-global-search {
         min-height: 2.75rem;
     }
+
+    .admin-content-table-wrapper {
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+    }
+
+    .admin-content-table,
+    .admin-content-table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .admin-content-table thead {
+        display: none;
+    }
+
+    .admin-content-table tbody {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .admin-content-table tbody tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem 1rem;
+        padding: 1rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-control);
+        background: var(--surface);
+    }
+
+    .admin-content-table tbody tr:hover {
+        background: var(--surface);
+    }
+
+    .admin-content-table td,
+    .admin-content-table td:nth-child(2) {
+        display: grid;
+        gap: 0.25rem;
+        max-width: none;
+        padding: 0;
+        border: 0;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .admin-content-table td::before {
+        content: attr(data-label);
+        color: var(--muted);
+        font-size: 0.6875rem;
+        font-weight: 600;
+    }
+
+    .admin-content-table-title,
+    .admin-content-table td:nth-child(2),
+    .admin-content-table td:nth-child(7),
+    .admin-content-table-action {
+        grid-column: 1 / -1;
+    }
+
+    .admin-content-table-title::before,
+    .admin-content-table-action::before {
+        display: none;
+    }
+
+    .admin-content-table-action {
+        padding-top: 0.25rem !important;
+        border-top: 1px solid var(--line) !important;
+    }
+
+    .admin-row-action {
+        justify-content: space-between;
+        width: 100%;
+    }
 }
 
 @media (max-width: 40rem) {
@@ -1661,6 +1830,42 @@
 @media (max-width: 30rem) {
     .admin-kpi-grid {
         grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .admin-kpi-card {
+        grid-template-columns: 2.5rem minmax(0, 1fr);
+        gap: 0.5rem 0.75rem;
+        padding: 1rem;
+    }
+
+    .admin-kpi-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.25rem;
+    }
+
+    .admin-kpi-content h2 {
+        margin-bottom: 0.2rem;
+    }
+
+    .admin-kpi-content strong {
+        font-size: 1.75rem;
+    }
+
+    .admin-kpi-content p {
+        margin-top: 0.3rem;
+    }
+
+    .admin-kpi-content span {
+        margin-top: 0.4rem;
+    }
+
+    .admin-kpi-action {
+        grid-column: 1 / -1;
+        min-height: 2.75rem;
+        margin-top: 0;
+        padding-top: 0.4rem;
     }
 
     .admin-learner-link span {

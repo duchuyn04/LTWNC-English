@@ -10,6 +10,8 @@ public sealed class AdminContentIndexViewModel
     public string? Search { get; init; }
     public string? Status { get; init; }
     public string? Visibility { get; init; }
+    public string? Reports { get; init; }
+    public string? Sort { get; init; }
     public int Page { get; init; }
     public int PageSize { get; init; }
     public int TotalCount { get; init; }
@@ -136,6 +138,8 @@ public static class AdminContentModerationViewModelMapper
             Search = query.Search,
             Status = query.Status,
             Visibility = query.Visibility,
+            Reports = query.Reports,
+            Sort = query.Sort,
             Page = page.Page,
             PageSize = page.PageSize,
             TotalCount = page.TotalCount

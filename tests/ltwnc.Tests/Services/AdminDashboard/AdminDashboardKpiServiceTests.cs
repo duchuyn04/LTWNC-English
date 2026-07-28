@@ -169,6 +169,28 @@ public sealed class AdminDashboardKpiServiceTests : IDisposable
         Assert.Contains("achievement-resync-failed", alertCodes);
     }
 
+    // Tỷ lệ hoàn thành giảm từ 10 điểm phần trăm trở lên phải xuất hiện trong việc cần xử lý.
+    [Fact]
+    public async Task GetLiveSnapshotAsync_WarnsWhenCompletionRateDropsSharply()
+    {
+        FlashcardSet set = await SeedSetAsync("owner-completion-alert");
+        _context.StudySessions.AddRange(
+            Session("previous-one", set.Id, new DateTime(2026, 7, 10, 8, 0, 0, DateTimeKind.Utc), completed: true),
+            Session("previous-two", set.Id, new DateTime(2026, 7, 10, 9, 0, 0, DateTimeKind.Utc), completed: true),
+            Session("current-one", set.Id, new DateTime(2026, 7, 18, 8, 0, 0, DateTimeKind.Utc), completed: true),
+            Session("current-two", set.Id, new DateTime(2026, 7, 18, 9, 0, 0, DateTimeKind.Utc), completed: false));
+        await _context.SaveChangesAsync();
+
+        AdminDashboardLiveSnapshot snapshot = await _sut.GetLiveSnapshotAsync(7);
+        AdminDashboardAlert alert = Assert.Single(
+            snapshot.Alerts,
+            item => item.Code == "completion-rate-drop");
+
+        Assert.Equal("warning", alert.Tone);
+        Assert.Equal("/Admin/Learning", alert.Href);
+        Assert.Contains("50", alert.Detail);
+    }
+
     // Canh bao suy ra tu trang thai moi nhat nen tu mat khi nguyen nhan da het.
     [Fact]
     public async Task GetLiveSnapshotAsync_RemovesAlertsWhenCurrentStateRecovers()
@@ -256,17 +278,17 @@ public sealed class AdminDashboardKpiServiceTests : IDisposable
         AdminDashboardViewModel viewModel = AdminDashboardKpiService.ToViewModel(snapshot);
 
         Assert.Equal(
-            ["Đang hoạt động", "Mới đăng ký", "Phiên học", "Hoàn thành", "Nhiệm vụ", "Lỗi AI"],
+            ["Người dùng hoạt động", "Mới đăng ký", "Phiên bắt đầu", "Hoàn thành", "Hội thoại AI", "Lỗi AI trong kỳ"],
             viewModel.Kpis.Select(card => card.Label));
         Assert.Equal(
-            ["Xem người dùng", "Xem người dùng", "Xem phiên học", "Xem phiên học", "Xem nhiệm vụ", "Kiểm tra AI"],
+            ["Xem người dùng", "Xem người dùng", "Xem phiên học", "Xem phiên học", "Xem hội thoại", "Kiểm tra AI"],
             viewModel.Kpis.Select(card => card.ActionLabel));
         Assert.Equal(
             ["/Admin/Users", "/Admin/Users", "/Admin/Learning", "/Admin/Learning", "/Admin/EnglishMissions", "/Admin/AiProviders"],
             viewModel.Kpis.Select(card => card.ActionHref));
         Assert.All(viewModel.Kpis, card => Assert.Equal(string.Empty, card.Comparison));
         Assert.Equal("—", viewModel.Kpis[3].Value);
-        Assert.Equal("Chưa đủ dữ liệu", viewModel.Kpis[3].Detail);
+        Assert.Equal("Chưa đủ dữ liệu để tính", viewModel.Kpis[3].Detail);
         Assert.Equal("—", viewModel.Kpis[5].Value);
         Assert.Equal("Chưa đủ dữ liệu", viewModel.Kpis[5].Detail);
     }

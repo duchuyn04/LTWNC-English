@@ -61,7 +61,7 @@ public sealed class AdminExportTests
         byte[] preamble = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true).GetPreamble();
         Assert.True(bytes.Take(preamble.Length).SequenceEqual(preamble));
         Assert.Contains("\"Metric\",\"Value\",\"Detail\",\"Comparison\",\"Tone\"", csv);
-        Assert.Contains("\"Phiên học\",\"1\"", csv);
+        Assert.Contains("\"Phiên bắt đầu\",\"1\"", csv);
         await AssertExportAuditAsync(factory, AdminAuditActions.AdminExportsCreate, "kpi", "days=7", "6");
     }
 

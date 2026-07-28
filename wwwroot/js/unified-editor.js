@@ -153,7 +153,7 @@
             exampleSentence: card.querySelector('.input-example-sentence').value,
             exampleMeaning: card.querySelector('.input-example-meaning').value,
             synonyms: card.querySelector('.input-synonyms').value,
-            imageUrl: null,
+            imageUrl: card.dataset.imageUrl || null,
             isStarred: card.dataset.starred === 'true'
         };
     }
@@ -340,6 +340,7 @@
         div.className = 'flashcard-card expanded';
         div.dataset.id = tempId;
         div.dataset.starred = 'false';
+        div.dataset.imageUrl = '';
         div.innerHTML = `
             <div class="card-header">
                 <span class="card-drag-handle" aria-label="Drag to reorder">⋮⋮</span>
@@ -585,131 +586,298 @@
 
     const btnImport = document.getElementById('btn-import');
     const importModal = document.getElementById('import-modal');
-    const importText = document.getElementById('import-text');
-    const importDelimiter = document.getElementById('import-delimiter');
+    const importFile = document.getElementById('import-file');
+    const importDropzone = importModal.querySelector('.import-file-dropzone');
+    const importFileSelection = document.getElementById('import-file-selection');
+    const importFileName = document.getElementById('import-file-name');
     const importReplace = document.getElementById('import-replace');
-    const importPreview = document.getElementById('import-preview');
+    const importFeedback = document.getElementById('import-feedback');
     const btnImportCancel = document.getElementById('btn-import-cancel');
     const btnImportConfirm = document.getElementById('btn-import-confirm');
+    const maxImportBytes = 10 * 1024 * 1024;
+    const allowedImportExtensions = ['.csv', '.xlsx'];
+    let selectedImportFile = null;
+    let importCardToReveal = null;
+    let importIsBusy = false;
 
-    function parseImportText(text, delimiter) {
-        return text.split('\n')
-            .map(line => line.trim())
-            .filter(line => line.length > 0)
-            .map(line => {
-                const parts = line.split(delimiter);
-                return {
-                    frontText: parts[0]?.trim() ?? '',
-                    backText: parts[1]?.trim() ?? ''
-                };
-            });
+    function formatFileSize(bytes) {
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${Math.ceil(bytes / 1024)} KB`;
+        return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
 
-    function renderPreview(rows) {
-        const valid = rows.filter(r => r.frontText && r.backText);
-        const invalid = rows.filter(r => !r.frontText || !r.backText);
+    function importFileValidationError(file) {
+        if (!file) return 'Vui lòng chọn file cần nhập.';
+        const fileName = file.name.toLowerCase();
+        if (!allowedImportExtensions.some(extension => fileName.endsWith(extension))) {
+            return 'Chỉ hỗ trợ file CSV hoặc XLSX.';
+        }
+        if (file.size === 0) return 'File đang trống.';
+        if (file.size > maxImportBytes) return 'File không được vượt quá 10 MB.';
+        return '';
+    }
 
-        // Dựng bằng DOM/textContent — nội dung paste từ ngưới dùng, tránh XSS qua innerHTML.
-        importPreview.innerHTML = '';
+    function showImportFeedback(message, type, errors, omittedErrorCount) {
+        importFeedback.replaceChildren();
+        importFeedback.className = `import-feedback is-${type || 'error'}`;
+        importFeedback.hidden = false;
+
         const summary = document.createElement('p');
-        summary.textContent = `Hợp lệ: ${valid.length}, lỗi: ${invalid.length}`;
-        importPreview.appendChild(summary);
+        summary.textContent = message;
+        importFeedback.appendChild(summary);
 
-        const list = document.createElement('ul');
-        valid.slice(0, 5).forEach(r => {
-            const li = document.createElement('li');
-            li.textContent = `${r.frontText} · ${r.backText}`;
-            list.appendChild(li);
-        });
-        invalid.forEach(r => {
-            const li = document.createElement('li');
-            li.className = 'error';
-            li.textContent = `Lỗi: "${r.frontText}" / "${r.backText}"`;
-            list.appendChild(li);
-        });
-        importPreview.appendChild(list);
+        if (Array.isArray(errors) && errors.length > 0) {
+            const list = document.createElement('ul');
+            errors.forEach(error => {
+                const item = document.createElement('li');
+                const rowNumber = error.rowNumber ?? error.RowNumber;
+                const reason = error.reason ?? error.Reason ?? 'Dữ liệu không hợp lệ.';
+                item.textContent = rowNumber > 0 ? `Dòng ${rowNumber}: ${reason}` : reason;
+                list.appendChild(item);
+            });
+            if (omittedErrorCount > 0) {
+                const omitted = document.createElement('li');
+                omitted.textContent = `Còn ${omittedErrorCount} lỗi khác không hiển thị.`;
+                list.appendChild(omitted);
+            }
+            importFeedback.appendChild(list);
+        }
+    }
+
+    function clearImportFeedback() {
+        importFeedback.replaceChildren();
+        importFeedback.className = 'import-feedback';
+        importFeedback.hidden = true;
+    }
+
+    function setImportBusy(isBusy) {
+        importIsBusy = isBusy;
+        importFile.disabled = isBusy;
+        importReplace.disabled = isBusy;
+        btnImportCancel.disabled = isBusy;
+        btnImportConfirm.disabled = isBusy || !selectedImportFile;
+        btnImportConfirm.textContent = isBusy ? 'Đang nhập…' : 'Nhập file';
+    }
+
+    function selectImportFile(file) {
+        selectedImportFile = null;
+        importFileSelection.hidden = !file;
+        importFileName.textContent = file ? `${file.name} · ${formatFileSize(file.size)}` : '';
+
+        const validationError = importFileValidationError(file);
+        if (validationError) {
+            btnImportConfirm.disabled = true;
+            showImportFeedback(validationError, 'error');
+            return;
+        }
+
+        selectedImportFile = file;
+        clearImportFeedback();
+        btnImportConfirm.disabled = false;
+    }
+
+    function resetImportDialog() {
+        selectedImportFile = null;
+        importCardToReveal = null;
+        importFile.value = '';
+        importFileSelection.hidden = true;
+        importFileName.textContent = '';
+        importReplace.checked = false;
+        btnImportCancel.textContent = 'Hủy';
+        clearImportFeedback();
+        setImportBusy(false);
+    }
+
+    function closeImportDialog() {
+        if (importIsBusy) return;
+        importModal.style.display = 'none';
+        importDropzone.classList.remove('is-dragging');
+        btnImport.focus();
+
+        if (importCardToReveal) {
+            const card = importCardToReveal;
+            importCardToReveal = null;
+            requestAnimationFrame(() => card.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+        }
+    }
+
+    function removeEditorCard(card) {
+        const id = card.dataset.id;
+        if (pendingSaves.has(id)) {
+            clearTimeout(pendingSaves.get(id));
+            pendingSaves.delete(id);
+        }
+        dirtyCards.delete(id);
+        card.remove();
+    }
+
+    function isPristineLocalCard(card) {
+        return card.dataset.id.startsWith('new-')
+            && Array.from(card.querySelectorAll('input, textarea'))
+                .every(input => !input.value.trim());
+    }
+
+    function appendImportedCard(data) {
+        const card = createEmptyCard();
+        card.dataset.id = String(data.id);
+        card.dataset.order = String(data.orderIndex ?? '');
+        card.dataset.starred = data.isStarred ? 'true' : 'false';
+        card.dataset.imageUrl = data.imageUrl || '';
+        card.querySelector('.input-front').value = data.frontText || '';
+        card.querySelector('.input-back').value = data.backText || '';
+        card.querySelector('.input-pronunciation').value = data.pronunciation || '';
+        card.querySelector('.input-part-of-speech').value = data.partOfSpeech || '';
+        card.querySelector('.input-example-sentence').value = data.exampleSentence || '';
+        card.querySelector('.input-example-meaning').value = data.exampleMeaning || '';
+        card.querySelector('.input-synonyms').value = data.synonyms || '';
+        card.querySelector('.card-term').textContent = data.frontText || '';
+        card.querySelector('.btn-star').textContent = data.isStarred ? '★' : '☆';
+        card.classList.remove('expanded');
+        card.classList.add('collapsed');
+        card.querySelector('.btn-toggle').textContent = '▼';
+        container.appendChild(card);
+        return card;
+    }
+
+    async function readImportResponse(response) {
+        const responseText = await response.text();
+        if (!responseText) return {};
+        try {
+            return JSON.parse(responseText);
+        } catch {
+            return { message: responseText };
+        }
     }
 
     btnImport.addEventListener('click', () => {
+        resetImportDialog();
         importModal.style.display = 'flex';
-        importText.value = '';
-        importPreview.innerHTML = '';
+        requestAnimationFrame(() => importFile.focus());
     });
 
-    btnImportCancel.addEventListener('click', () => {
-        importModal.style.display = 'none';
+    btnImportCancel.addEventListener('click', closeImportDialog);
+
+    importFile.addEventListener('change', () => {
+        selectImportFile(importFile.files?.[0] || null);
     });
 
-    [importText, importDelimiter].forEach(el => {
-        el.addEventListener('input', () => {
-            const rows = parseImportText(importText.value, importDelimiter.value);
-            renderPreview(rows);
+    ['dragenter', 'dragover'].forEach(eventName => {
+        importDropzone.addEventListener(eventName, event => {
+            event.preventDefault();
+            if (!importIsBusy) importDropzone.classList.add('is-dragging');
         });
     });
 
+    ['dragleave', 'dragend'].forEach(eventName => {
+        importDropzone.addEventListener(eventName, () => {
+            importDropzone.classList.remove('is-dragging');
+        });
+    });
+
+    importDropzone.addEventListener('drop', event => {
+        event.preventDefault();
+        importDropzone.classList.remove('is-dragging');
+        if (!importIsBusy) selectImportFile(event.dataTransfer?.files?.[0] || null);
+    });
+
+    importModal.addEventListener('click', event => {
+        if (event.target === importModal) closeImportDialog();
+    });
+
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && importModal.style.display !== 'none') {
+            closeImportDialog();
+        }
+    });
+
     btnImportConfirm.addEventListener('click', async () => {
-        const rows = parseImportText(importText.value, importDelimiter.value)
-            .filter(r => r.frontText && r.backText);
-        if (rows.length === 0) return;
+        const validationError = importFileValidationError(selectedImportFile);
+        if (validationError) {
+            showImportFeedback(validationError, 'error');
+            return;
+        }
 
         const currentSetId = getSetId() || await ensureSetCreated();
-        if (!currentSetId) return;
+        if (!currentSetId) {
+            showImportFeedback('Hãy nhập tên bộ từ trước khi tải file lên.', 'error');
+            return;
+        }
 
         const replaceAll = importReplace.checked;
         const existingCards = Array.from(container.querySelectorAll('.flashcard-card'));
+        if (replaceAll) {
+            const cardsBeingSaved = existingCards
+                .filter(card => dirtyCards.has(card.dataset.id) || card.savePromise)
+                .map(card => saveCard(card));
+            await Promise.all(cardsBeingSaved);
+        }
 
-        const payload = {
-            setId: currentSetId,
-            cards: rows.map(r => ({
-                setId: currentSetId,
-                frontText: r.frontText,
-                backText: r.backText,
-                isStarred: false
-            })),
-            replaceAll
-        };
+        const formData = new FormData();
+        formData.append('file', selectedImportFile, selectedImportFile.name);
+        formData.append('replaceAll', replaceAll.toString());
 
-        setSaveStatus('Đang import...', 'saving');
+        setImportBusy(true);
+        setSaveStatus('Đang nhập file...', 'saving');
         try {
-            const response = await apiFetch('/api/flashcards/flashcards/batch', {
+            const response = await apiFetch(`/Set/${currentSetId}/ImportFile`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
+                headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                body: formData
+            });
+            const result = await readImportResponse(response);
+
+            if (!response.ok) {
+                showImportFeedback(
+                    result.message || 'Không thể nhập file. Vui lòng thử lại.',
+                    'error',
+                    result.errors,
+                    result.omittedErrorCount);
+                setSaveStatus('Lỗi nhập file', 'error');
+                return;
+            }
+
+            if (replaceAll) {
+                existingCards.forEach(removeEditorCard);
+            } else {
+                existingCards.filter(isPristineLocalCard).forEach(removeEditorCard);
+            }
+
+            const createdCards = Array.isArray(result.cards) ? result.cards : [];
+            let firstImportedCard = null;
+            createdCards.forEach(data => {
+                const importedCard = appendImportedCard(data);
+                firstImportedCard ??= importedCard;
             });
 
-            if (response.ok) {
-                const created = await response.json();
+            updateCardNumbering();
+            syncFinishButtons();
+            selectedImportFile = null;
+            importFile.value = '';
+            importFileSelection.hidden = true;
+            importFileName.textContent = '';
+            importCardToReveal = firstImportedCard;
 
-                if (replaceAll) {
-                    existingCards.forEach(c => {
-                        if (pendingSaves.has(c.dataset.id)) {
-                            clearTimeout(pendingSaves.get(c.dataset.id));
-                            pendingSaves.delete(c.dataset.id);
-                        }
-                        dirtyCards.delete(c.dataset.id);
-                        c.remove();
-                    });
-                }
+            const importedCount = result.importedCount ?? createdCards.length;
+            const skippedCount = result.skippedCount ?? 0;
+            setSaveStatus(`Đã nhập ${importedCount} thẻ`, 'saved');
 
-                created.forEach(c => {
-                    const card = createEmptyCard();
-                    card.dataset.id = c.id;
-                    card.querySelector('.input-front').value = c.frontText;
-                    card.querySelector('.input-back').value = c.backText;
-                    card.querySelector('.card-term').textContent = c.frontText;
-                    container.appendChild(card);
-                });
-                updateCardNumbering();
-                setSaveStatus('Đã import', 'saved');
-                importModal.style.display = 'none';
+            if (skippedCount > 0) {
+                btnImportCancel.textContent = 'Đóng';
+                showImportFeedback(
+                    `Đã nhập ${importedCount} thẻ. Có ${skippedCount} dòng bị bỏ qua.`,
+                    'warning',
+                    result.errors,
+                    result.omittedErrorCount);
             } else {
-                const errorText = await response.text().catch(() => 'Import thất bại');
-                setSaveStatus('Lỗi import: ' + errorText, 'error');
-                console.error('Batch import failed:', errorText);
+                setImportBusy(false);
+                closeImportDialog();
             }
         } catch (err) {
-            setSaveStatus('Lỗi import', 'error');
-            console.error('Batch import failed:', err);
+            showImportFeedback('Mất kết nối khi tải file. Vui lòng thử lại.', 'error');
+            setSaveStatus('Lỗi nhập file', 'error');
+            console.error('File import failed:', err);
+        } finally {
+            setImportBusy(false);
         }
     });
 

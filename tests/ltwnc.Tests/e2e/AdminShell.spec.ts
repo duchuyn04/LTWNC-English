@@ -58,6 +58,19 @@ test.describe('Admin shell and shared controls', () => {
                 .toBeLessThanOrEqual(width);
         }
     });
+
+    test('content inventory uses compact rows on desktop and cards on mobile', async ({ page }) => {
+        const adminCss = fs.readFileSync(cssPath, 'utf8');
+        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.setContent(contentTableHarness(adminCss));
+        expect((await page.locator('.admin-content-table tbody tr').first().boundingBox())?.height)
+            .toBeLessThan(80);
+
+        await page.setViewportSize({ width: 375, height: 800 });
+        expect(await page.locator('.admin-content-table tbody tr').first().evaluate(element =>
+            getComputedStyle(element).display)).toBe('grid');
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+    });
 });
 
 function shellHarness(adminCss: string) {
@@ -82,6 +95,34 @@ function shellHarness(adminCss: string) {
                     <main class="admin-main"><div class="admin-kpi-grid">${'<article class="admin-kpi-card"><div class="admin-kpi-content"><h2>Chỉ số</h2><strong>12</strong></div></article>'.repeat(6)}</div></main>
                 </div>
             </div>
+        </body>`;
+}
+
+function contentTableHarness(adminCss: string) {
+    const row = `
+        <tr>
+            <td class="admin-content-table-title" data-label="Bộ thẻ"><a class="admin-text-link">Tiếng Anh ở quán cà phê</a><small class="admin-muted-line">#12</small></td>
+            <td data-label="Chủ sở hữu">learner@example.com</td>
+            <td data-label="Hiển thị">Công khai</td>
+            <td data-label="Trạng thái"><span class="admin-status admin-status--success">Đang hoạt động</span></td>
+            <td data-label="Số thẻ">5</td>
+            <td data-label="Báo cáo"><span class="admin-muted-value">0</span></td>
+            <td data-label="Cập nhật">24/07/2026</td>
+            <td class="admin-content-table-action" data-label="Thao tác"><a class="admin-row-action">Xem chi tiết</a></td>
+        </tr>`;
+    return `
+        <style>${baseTokens()}${adminCss}</style>
+        <body class="admin-body">
+            <main class="admin-main">
+                <section class="admin-panel">
+                    <div class="admin-table-wrapper admin-content-table-wrapper">
+                        <table class="admin-table admin-content-table">
+                            <thead><tr><th>Bộ thẻ</th><th>Chủ sở hữu</th><th>Hiển thị</th><th>Trạng thái</th><th>Số thẻ</th><th>Báo cáo</th><th>Cập nhật</th><th>Thao tác</th></tr></thead>
+                            <tbody>${row.repeat(2)}</tbody>
+                        </table>
+                    </div>
+                </section>
+            </main>
         </body>`;
 }
 

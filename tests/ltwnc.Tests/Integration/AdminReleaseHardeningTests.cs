@@ -68,7 +68,7 @@ public sealed class AdminReleaseHardeningTests
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
-    // CSS Admin phải giữ được màn hình 360px, focus rõ và tôn trọng tùy chọn giảm chuyển động.
+    // CSS Admin phải không ép tràn ngang ở màn hình hẹp, focus rõ và tôn trọng tùy chọn giảm chuyển động.
     [Fact]
     public void AdminStyles_DefineMobileFloorFocusRingAndReducedMotion()
     {
@@ -78,7 +78,7 @@ public sealed class AdminReleaseHardeningTests
             "css",
             "admin-dashboard.css"));
 
-        Assert.Contains("min-width: 360px", css);
+        Assert.Contains("min-width: 0", css);
         Assert.Contains(":focus-visible", css);
         Assert.Contains("outline:", css);
         Assert.Contains("@media (prefers-reduced-motion: reduce)", css);

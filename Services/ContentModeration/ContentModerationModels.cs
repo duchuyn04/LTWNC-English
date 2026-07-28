@@ -7,6 +7,8 @@ public sealed record AdminContentSetQuery(
     string? Search = null,
     string? Status = null,
     string? Visibility = null,
+    string? Reports = null,
+    string? Sort = null,
     int Page = ContentModerationService.DefaultPage,
     int PageSize = ContentModerationService.DefaultPageSize);
 

@@ -117,6 +117,36 @@ public sealed class AdminContentModerationTests
         Assert.DoesNotContain("Ghi chú nội bộ tuyệt mật.", editorHtml);
     }
 
+    // Danh sách chỉ để tra cứu; form kiểm duyệt nằm ở trang chi tiết để bảng luôn gọn.
+    [Fact]
+    public async Task Admin_ContentList_FiltersPendingReportsWithoutInlineModerationForms()
+    {
+        using var factory = new AdminWebApplicationFactory();
+        const string adminEmail = "content-admin-list@example.com";
+        const string ownerEmail = "content-owner-list@example.com";
+        const string reporterEmail = "content-reporter-list@example.com";
+        await factory.SeedUserAsync("content_admin_list", adminEmail, isAdmin: true);
+        await factory.SeedUserAsync("content_owner_list", ownerEmail);
+        await factory.SeedUserAsync("content_reporter_list", reporterEmail);
+        int reportedSetId = await SeedSetAsync(factory, ownerEmail, true, "Reported set for compact list");
+        await SeedSetAsync(factory, ownerEmail, true, "Unreported set excluded from list");
+        await SeedReportAsync(factory, reportedSetId, reporterEmail);
+
+        using HttpClient client = CreateClient(factory);
+        await AdminWebApplicationFactory.SignInAsync(client, adminEmail);
+        HttpResponseMessage response = await client.GetAsync(
+            "/Admin/Content?reports=pending&sort=reports");
+        string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("Reported set for compact list", html);
+        Assert.DoesNotContain("Unreported set excluded from list", html);
+        Assert.Contains("Xem chi tiết", html);
+        Assert.Contains("1 đang chờ", html);
+        Assert.DoesNotContain("admin-inline-action-form", html);
+        Assert.DoesNotContain("<textarea", html);
+    }
+
     // Admin mở chi tiết bộ riêng tư phải nhập lý do; có lý do thì audit rồi mới trả nội dung thẻ.
     [Fact]
     public async Task Admin_PrivateSetDetails_RequiresReasonAndWritesAudit()

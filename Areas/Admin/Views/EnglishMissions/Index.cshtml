@@ -14,7 +14,7 @@
 
     <form method="get" action="/Admin/EnglishMissions" class="admin-filter-form">
         <div class="admin-filter-field">
-            <label for="search">Tìm kiếm summary</label>
+            <label for="search">Tìm kiếm</label>
             <input type="search" id="search" name="search" value="@Model.Search"
                    placeholder="Tiêu đề, chủ đề hoặc bộ thẻ" maxlength="200" />
         </div>
@@ -66,7 +66,7 @@
 
     @if (Model.Items.Count == 0)
     {
-        <p class="admin-empty">Không có Nhiệm vụ tiếng Anh nào khớp bộ lọc hiện tại.</p>
+        <p class="admin-empty">Không tìm thấy hội thoại phù hợp.</p>
     }
     else
     {
@@ -109,7 +109,7 @@
                             </td>
                             <td>
                                 <a class="admin-text-link" href="/Admin/EnglishMissions/@item.MissionId">
-                                    <i class="ph ph-lock-key" aria-hidden="true"></i> Mở theo vụ việc
+                                    <i class="ph ph-lock-key" aria-hidden="true"></i> Xem hội thoại
                                 </a>
                             </td>
                         </tr>

@@ -14,7 +14,7 @@
         <div>
             <span class="eyebrow">Quản trị hệ thống</span>
             <h1>Nhà cung cấp AI</h1>
-            <p>Cấu hình điểm cuối, mô hình, thứ tự dự phòng và trạng thái sức khỏe vận hành. Khóa bí mật chỉ được nhập mới hoặc thay thế.</p>
+            <p>Quản lý kết nối AI, mô hình đang dùng và thứ tự dự phòng. Khóa API không được hiển thị lại sau khi lưu.</p>
         </div>
         <a class="provider-primary" href="/Admin/AiProviders/Create">
             <i class="ph ph-plus" aria-hidden="true"></i> Thêm nhà cung cấp
@@ -95,7 +95,7 @@
                         <span><i class="ph ph-warning-circle" aria-hidden="true"></i> @provider.ConsecutiveFailureCount lần kiểm tra lỗi liên tiếp</span>
                     </div>
                     <small class="provider-check @healthClass">
-                        @healthText - @provider.HealthSampleSize yêu cầu trong cửa sổ vận hành
+                        @healthText · @provider.HealthSampleSize yêu cầu gần đây
                     </small>
                     @if (provider.LastCheckedAt.HasValue)
                     {

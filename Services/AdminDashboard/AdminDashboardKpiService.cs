@@ -23,6 +23,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
     private const int MinimumAiSampleSize = 20;
     private const int DefaultAiHealthWindowMinutes = 5;
     private const decimal DefaultAiErrorRateThresholdPercent = 10m;
+    private const decimal CompletionDropAlertThresholdPoints = 10m;
     private const int DefaultAiUnstableFailureThreshold = 3;
     private const int OverdueContentReportHours = 24;
     private const int EnglishMissionModeValue = 5;
@@ -108,7 +109,9 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
         IReadOnlyList<AdminDashboardAlert> alerts = BuildAlerts(
             aiStatus,
             contentReports,
-            hasAchievementFailure);
+            hasAchievementFailure,
+            snapshot.CurrentMetrics,
+            snapshot.PreviousMetrics);
 
         // 7. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new AdminDashboardLiveSnapshot(
@@ -142,7 +145,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
                     "ph-users-three",
                     "Xem người dùng",
                     "/Admin/Users",
-                    "Có phiên học hoặc ôn thẻ trong khoảng"),
+                    "Đã học ít nhất một lần"),
                 CountCard(
                     "Mới đăng ký",
                     snapshot.CurrentMetrics.NewRegistrations,
@@ -150,7 +153,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
                     "ph-user-plus",
                     "Xem người dùng",
                     "/Admin/Users",
-                    "Hồ sơ được tạo trong khoảng"),
+                    "Tài khoản mới"),
                 CountCard(
                     "Phiên bắt đầu",
                     snapshot.CurrentMetrics.StudySessions,
@@ -158,7 +161,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
                     "ph-graduation-cap",
                     "Xem phiên học",
                     "/Admin/Learning",
-                    "Tổng phiên bắt đầu trong khoảng"),
+                    "Lượt mở phiên học"),
                 PercentCard(
                     "Hoàn thành",
                     snapshot.CurrentMetrics.CompletionRatePercent,
@@ -168,13 +171,13 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
                     "Xem phiên học",
                     "/Admin/Learning"),
                 CountCard(
-                    "English Mission",
+                    "Hội thoại AI",
                     snapshot.CurrentMetrics.EnglishMissions,
                     snapshot.PreviousMetrics.EnglishMissions,
                     "ph-chats-circle",
-                    "Xem nhiệm vụ",
+                    "Xem hội thoại",
                     "/Admin/EnglishMissions",
-                    "Phiên English Mission bắt đầu trong khoảng"),
+                    "Lượt bắt đầu hội thoại"),
                 AiErrorCard(
                     snapshot.CurrentMetrics.AiErrorRatePercent,
                     snapshot.PreviousMetrics.AiErrorRatePercent,
@@ -443,7 +446,9 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
     private static IReadOnlyList<AdminDashboardAlert> BuildAlerts(
         AdminDashboardAiStatus aiStatus,
         AdminDashboardContentReportStatus contentReports,
-        bool hasAchievementFailure)
+        bool hasAchievementFailure,
+        PeriodMetricSet currentMetrics,
+        PeriodMetricSet previousMetrics)
     {
         // 1. Khởi tạo `alerts` với dữ liệu ban đầu cần thiết.
         List<AdminDashboardAlert> alerts = new();
@@ -454,9 +459,9 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
             alerts.Add(new AdminDashboardAlert(
                 "ai-primary-unstable",
                 "danger",
-                "Nhà cung cấp AI chính không ổn định",
-                "Nhà cung cấp chính chưa sẵn sàng hoặc đã lỗi kiểm tra trạng thái liên tiếp.",
-                "Kiểm tra nhà cung cấp",
+                "Kết nối AI chính cần kiểm tra",
+                "Kết nối chính đang tắt, chưa được kiểm tra hoặc đã thất bại nhiều lần.",
+                "Kiểm tra kết nối",
                 "/Admin/AiProviders"));
         }
 
@@ -469,9 +474,9 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
             alerts.Add(new AdminDashboardAlert(
                 "ai-error-rate",
                 "danger",
-                "Tỷ lệ lỗi AI vượt ngưỡng",
+                "AI đang có nhiều lỗi",
                 detail,
-                "Mở nhà cung cấp AI",
+                "Xem cấu hình AI",
                 "/Admin/AiProviders"));
         }
 
@@ -490,10 +495,28 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
                 "/Admin/ContentReports?sort=oldest"));
         }
 
-        // 10. Kiểm tra `hasAchievementFailure` để chọn nhánh xử lý phù hợp.
+        // 10. Cảnh báo khi tỷ lệ hoàn thành giảm mạnh và cả hai kỳ đều đủ dữ liệu.
+        if (currentMetrics.CompletionRatePercent.HasValue
+            && previousMetrics.CompletionRatePercent.HasValue)
+        {
+            decimal completionDrop = previousMetrics.CompletionRatePercent.Value
+                - currentMetrics.CompletionRatePercent.Value;
+            if (completionDrop >= CompletionDropAlertThresholdPoints)
+            {
+                alerts.Add(new AdminDashboardAlert(
+                    "completion-rate-drop",
+                    "warning",
+                    "Tỷ lệ hoàn thành giảm mạnh",
+                    $"Giảm {completionDrop:0.#} điểm % so với kỳ trước.",
+                    "Xem phiên học",
+                    "/Admin/Learning"));
+            }
+        }
+
+        // 11. Kiểm tra `hasAchievementFailure` để chọn nhánh xử lý phù hợp.
         if (hasAchievementFailure)
         {
-            // 11. Gọi `Add` để thực hiện bước nghiệp vụ này.
+            // 12. Gọi `Add` để thực hiện bước nghiệp vụ này.
             alerts.Add(new AdminDashboardAlert(
                 "achievement-resync-failed",
                 "warning",
@@ -503,7 +526,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
                 "/Admin/Achievements"));
         }
 
-        // 12. Trả `alerts` cho nơi gọi.
+        // 13. Trả `alerts` cho nơi gọi.
         return alerts;
     }
 
@@ -747,7 +770,7 @@ public sealed class AdminDashboardKpiService : IAdminDashboardKpiService
         // 13. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new AdminDashboardKpiCardViewModel
         {
-            Label = "Lỗi AI",
+            Label = "Lỗi AI trong kỳ",
             Value = value,
             Detail = detail,
             Comparison = FormatPercentComparison(delta, previous, previousInsufficient),

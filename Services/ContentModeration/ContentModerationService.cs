@@ -10,7 +10,7 @@ namespace ltwnc.Services.ContentModeration;
 public sealed class ContentModerationService : IContentModerationService
 {
     public const int DefaultPage = 1;
-    public const int DefaultPageSize = 25;
+    public const int DefaultPageSize = 10;
     public const int MaxPageSize = 100;
 
     private const int MaxPublicReasonLength = 500;
@@ -52,12 +52,14 @@ public sealed class ContentModerationService : IContentModerationService
         sets = ApplyStatusFilter(sets, query.Status);
         // 6. Cập nhật `sets` bằng giá trị mới.
         sets = ApplyVisibilityFilter(sets, query.Visibility);
-        // 7. Cập nhật `sets` bằng giá trị mới.
-        sets = sets.OrderByDescending(set => set.UpdatedAt).ThenByDescending(set => set.Id);
+        // 7. Chỉ giữ các bộ đang có báo cáo khi Admin chọn bộ lọc này.
+        sets = ApplyReportFilter(sets, query.Reports);
+        // 8. Sắp xếp theo lựa chọn của Admin.
+        sets = ApplySort(sets, query.Sort);
 
-        // 8. Gọi `CountAsync` và lưu kết quả vào `totalCount`.
+        // 9. Gọi `CountAsync` và lưu kết quả vào `totalCount`.
         int totalCount = await sets.CountAsync(cancellationToken);
-        // 9. Gọi `ToListAsync` và lưu kết quả vào `rows`.
+        // 10. Gọi `ToListAsync` và lưu kết quả vào `rows`.
         List<AdminContentSetRow> rows = await sets
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
@@ -80,7 +82,7 @@ public sealed class ContentModerationService : IContentModerationService
                 set.ModerationVersion))
             .ToListAsync(cancellationToken);
 
-        // 10. Tạo và trả đối tượng kết quả cho nơi gọi.
+        // 11. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new AdminContentSetPage(rows, totalCount, page, pageSize);
     }
 
@@ -554,6 +556,48 @@ public sealed class ContentModerationService : IContentModerationService
 
         // 6. Trả `sets` cho nơi gọi.
         return sets;
+    }
+
+    // Lọc các bộ đang có ít nhất một báo cáo chờ xử lý.
+    private IQueryable<FlashcardSet> ApplyReportFilter(
+        IQueryable<FlashcardSet> sets,
+        string? reports)
+    {
+        if (NormalizeToken(reports) != "pending")
+        {
+            return sets;
+        }
+
+        return sets.Where(set => _context.ContentReports.Any(report =>
+            report.FlashcardSetId == set.Id
+            && report.Status == ContentReportStatus.Pending));
+    }
+
+    // Sắp xếp danh sách theo tín hiệu Admin cần xem trước.
+    private IQueryable<FlashcardSet> ApplySort(
+        IQueryable<FlashcardSet> sets,
+        string? sort)
+    {
+        string normalizedSort = NormalizeToken(sort);
+        if (normalizedSort == "reports")
+        {
+            return sets
+                .OrderByDescending(set => _context.ContentReports.Count(report =>
+                    report.FlashcardSetId == set.Id
+                    && report.Status == ContentReportStatus.Pending))
+                .ThenByDescending(set => set.UpdatedAt)
+                .ThenByDescending(set => set.Id);
+        }
+
+        if (normalizedSort == "cards")
+        {
+            return sets
+                .OrderByDescending(set => set.Flashcards.Count)
+                .ThenByDescending(set => set.UpdatedAt)
+                .ThenByDescending(set => set.Id);
+        }
+
+        return sets.OrderByDescending(set => set.UpdatedAt).ThenByDescending(set => set.Id);
     }
 
     // Phát hiện bộ đã cách ly hoặc form cũ trước khi ghi thay đổi.

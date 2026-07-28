@@ -39,6 +39,19 @@ public class FlashcardImportServiceTests : IDisposable
     }
 
     [Fact]
+    public async Task ParseAsync_ValidCsv_ReturnsRowsWithoutMutatingASet()
+    {
+        var parsed = await _service.ParseAsync(
+            FormFile(
+                Headers + "\nrun,chạy,/r/,verb,Run!,Chạy!\n",
+                "cards.csv"));
+
+        Assert.Single(parsed.Rows);
+        Assert.Equal("run", parsed.Rows[0].FrontText);
+        Assert.Equal(1, await _context.Flashcards.CountAsync(c => c.FlashcardSetId == _setId));
+    }
+
+    [Fact]
     public async Task Mixed_rows_import_valid_cards_and_report_original_row()
     {
         var csv = Headers + "\nrun,cháº¡y,/r/,verb,Run!,Cháº¡y!\ninvalid,,/i/,noun,Example,Meaning\n";

@@ -25,11 +25,20 @@ test.describe('Unified Flashcard Editor', () => {
         await expect(page.locator('.flashcard-card:first-child')).toHaveClass(/expanded/);
     });
 
-    test('imports cards from pasted text', async ({ page }) => {
+    test('imports cards from a CSV file', async ({ page }) => {
         await page.fill('#set-title', 'Import Test');
         await page.click('#btn-import');
-        await page.fill('#import-text', 'apple\tquả táo\nbanana\tquả chuối');
+        await page.setInputFiles('#import-file', {
+            name: 'cards.csv',
+            mimeType: 'text/csv',
+            buffer: Buffer.from(
+                'Thuật ngữ,ĐỊNH NGHĨA,IPA,LOẠI TỪ,VÍ DỤ TIẾNG ANH,NGHĨA VÍ DỤ TIẾNG VIỆT\n' +
+                'apple,quả táo,/ˈæp.əl/,noun,I ate an apple.,Tôi đã ăn một quả táo.\n' +
+                'banana,quả chuối,/bəˈnɑː.nə/,noun,The banana is ripe.,Quả chuối đã chín.\n',
+                'utf8'
+            )
+        });
         await page.click('#btn-import-confirm');
-        await expect(page.locator('.flashcard-card')).toHaveCount(3); // 1 empty + 2 imported
+        await expect(page.locator('.flashcard-card')).toHaveCount(2);
     });
 });

@@ -4,20 +4,14 @@
     ViewData["Heading"] = "Hồ sơ học tập";
 }
 
-@*
-    Cổng lý do: dữ liệu phiên học cấp ngườ học là dữ liệu nhạy cảm.
-    Admin phải nhập lý do hỗ trợ/điều tra; hệ thống ghi Bản ghi kiểm toán
-    truy cập nhạy cảm trước khi trả bất kỳ dữ liệu nào.
-*@
 <section class="admin-panel" aria-labelledby="reason-gate-heading">
     <div class="admin-panel-header">
-        <h2 id="reason-gate-heading">Xem hồ sơ học tập cấp ngườ học</h2>
+        <h2 id="reason-gate-heading">Xem hồ sơ học tập</h2>
     </div>
 
     <p>
-        Phiên học <strong>#@Model.SessionId</strong> chứa dữ liệu học tập của một ngườ học cụ thể.
-        Vui lòng nhập lý do hỗ trợ hoặc điều tra. Lần xem này sẽ được ghi vào
-        Bản ghi kiểm toán quản trị cùng lý do bạn cung cấp.
+        Phiên <strong>#@Model.SessionId</strong> có dữ liệu của một người học.
+        Nhập lý do truy cập để hệ thống lưu vào nhật ký quản trị.
     </p>
 
     @if (!string.IsNullOrEmpty(Model.ErrorMessage))
@@ -31,7 +25,7 @@
             <label for="reason">Lý do xem hồ sơ <span aria-hidden="true">*</span></label>
             <input type="text" id="reason" name="reason" value="@Model.Reason"
                    required maxlength="500"
-                   placeholder="Ví dụ: Hỗ trợ vụ việc #123 - học viên báo mất điểm" />
+                   placeholder="Ví dụ: Hỗ trợ yêu cầu #123, người học báo mất điểm" />
         </div>
         <button type="submit" class="admin-filter-submit">
             <i class="ph ph-eye" aria-hidden="true"></i> Xác nhận và xem hồ sơ
@@ -40,7 +34,7 @@
 
     <p>
         <a class="admin-text-link" href="/Admin/Learning">
-            <i class="ph ph-arrow-left" aria-hidden="true"></i> Quay lại danh sách phiên học
+            <i class="ph ph-arrow-left" aria-hidden="true"></i> Quay lại hồ sơ học tập
         </a>
     </p>
 </section>

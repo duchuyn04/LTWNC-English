@@ -9,6 +9,8 @@
 }
 
 <div class="unified-editor" data-set-id="@Model.Id" data-is-new="@(Model.Id.HasValue ? "false" : "true")" data-description="@(Model.Description ?? "")" data-is-public="@Model.IsPublic.ToString().ToLowerInvariant()" data-is-quarantined="@Model.IsQuarantined.ToString().ToLowerInvariant()">
+    @Html.AntiForgeryToken()
+
     <a class="editor-back-link" href="/Set">
         <i class="ph ph-arrow-left" aria-hidden="true"></i>
         <span>Quay lại bộ thẻ</span>
@@ -66,6 +68,7 @@
             <div class="flashcard-card @(i == 0 ? "expanded" : "collapsed")"
                  data-id="@(Model.Id.HasValue ? card.Id.ToString() : "new-" + Guid.NewGuid())"
                  data-order="@card.OrderIndex"
+                 data-image-url="@card.ImageUrl"
                  data-starred="@card.IsStarred.ToString().ToLowerInvariant()">
                 <div class="card-header">
                     <span class="card-drag-handle" aria-label="Drag to reorder">⋮⋮</span>
@@ -142,21 +145,57 @@
     </div>
 </div>
 
-<div id="import-modal" class="modal" style="display:none;">
-    <div class="modal-content">
-        <h3>Import nhanh</h3>
-        <p>Dán danh sách từ, mỗi dòng một thẻ. Dấu phân cách giữa thuật ngữ và định nghĩa:</p>
-        <select id="import-delimiter" class="form-select">
-            <option value="&#9;">Tab</option>
-            <option value=",">Dấu phẩy</option>
-            <option value="-">Dấu gạch ngang</option>
-        </select>
-        <textarea id="import-text" class="form-control" rows="10" placeholder="hello\txin chào"></textarea>
-        <label><input type="checkbox" id="import-replace" /> Ghi đè toàn bộ thẻ hiện có</label>
-        <div id="import-preview"></div>
+<div id="import-modal"
+     class="modal"
+     role="dialog"
+     aria-modal="true"
+     aria-labelledby="import-modal-title"
+     style="display:none;">
+    <div class="modal-content" tabindex="-1">
+        <h3 id="import-modal-title">Nhập thẻ từ file</h3>
+        <p>Chọn file CSV hoặc XLSX, hệ thống sẽ kiểm tra và thêm các thẻ hợp lệ vào bộ từ.</p>
+
+        <div class="import-file-picker">
+            <input id="import-file"
+                   class="import-file-input"
+                   type="file"
+                   name="file"
+                   accept=".csv,.xlsx,text/csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                   aria-describedby="import-file-help" />
+            <label class="import-file-dropzone" for="import-file">
+                <span class="import-file-icon" aria-hidden="true">
+                    <i class="ph ph-upload-simple"></i>
+                </span>
+                <span>
+                    <strong>Chọn file hoặc kéo thả vào đây</strong>
+                    <small id="import-file-help">CSV, XLSX · tối đa 10 MB</small>
+                </span>
+            </label>
+            <div id="import-file-selection" class="import-file-selection" hidden>
+                <i class="ph ph-file-text" aria-hidden="true"></i>
+                <span id="import-file-name"></span>
+            </div>
+        </div>
+
+        <details class="import-format-help">
+            <summary>File cần có những cột nào?</summary>
+            <p><strong>Bắt buộc:</strong> Thuật ngữ, Định nghĩa, IPA, Loại từ, Ví dụ tiếng Anh, Nghĩa ví dụ tiếng Việt.</p>
+            <p><strong>Tùy chọn:</strong> Từ đồng nghĩa, URL ảnh.</p>
+        </details>
+
+        <label class="import-replace-option">
+            <input type="checkbox" id="import-replace" />
+            <span>
+                <strong>Thay thế toàn bộ thẻ hiện có</strong>
+                <small>Các thẻ cũ và tiến độ học liên quan sẽ bị xóa sau khi file hợp lệ.</small>
+            </span>
+        </label>
+
+        <div id="import-feedback" class="import-feedback" role="status" aria-live="polite" hidden></div>
+
         <div class="modal-actions">
             <button id="btn-import-cancel" type="button" class="btn btn-secondary">Hủy</button>
-            <button id="btn-import-confirm" type="button" class="btn btn-primary">Thêm</button>
+            <button id="btn-import-confirm" type="button" class="btn btn-primary" disabled>Nhập file</button>
         </div>
     </div>
 </div>

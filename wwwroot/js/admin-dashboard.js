@@ -1,5 +1,6 @@
 (function () {
     const DEFAULT_INTERVAL_MS = 30000;
+    const DEFAULT_REQUEST_TIMEOUT_MS = 10000;
 
     let timerId = null;
     let inFlight = false;
@@ -7,7 +8,10 @@
     let rootElement = null;
     let snapshotUrl = null;
     let intervalMs = DEFAULT_INTERVAL_MS;
+    let requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS;
     let lastUpdatedTime = '';
+    let lastAlertSignature = '';
+    let hasSuccessfulSnapshot = false;
 
     // Khởi động polling cho dashboard; options chỉ dùng để test trình duyệt với chu kỳ ngắn.
     function start(options) {
@@ -29,6 +33,12 @@
         if (options && Number.isFinite(options.intervalMs) && options.intervalMs > 0) {
             intervalMs = options.intervalMs;
         }
+        requestTimeoutMs = DEFAULT_REQUEST_TIMEOUT_MS;
+        if (options && Number.isFinite(options.timeoutMs) && options.timeoutMs > 0) {
+            requestTimeoutMs = options.timeoutMs;
+        }
+        lastAlertSignature = '';
+        hasSuccessfulSnapshot = false;
 
         document.addEventListener('visibilitychange', handleVisibilityChange);
         window.addEventListener('pagehide', stop);
@@ -90,17 +100,33 @@
         }
 
         inFlight = true;
-        abortController = new AbortController();
+        const controller = new AbortController();
+        abortController = controller;
+        let timedOut = false;
+        const timeoutId = window.setTimeout(function () {
+            timedOut = true;
+            controller.abort();
+        }, requestTimeoutMs);
         try {
             if (!lastUpdatedTime) {
-                setStatus('Đang cập nhật...');
+                setStatus('Đang cập nhật · giờ Việt Nam');
+            }
+            if (!hasSuccessfulSnapshot) {
+                renderAlerts([{
+                    code: 'pending',
+                    tone: 'neutral',
+                    title: 'Đang kiểm tra',
+                    detail: 'Thông báo sẽ hiện ở đây nếu có việc cần xử lý.',
+                    actionText: '',
+                    href: ''
+                }]);
             }
             const response = await fetch(snapshotUrl, {
                 headers: {
                     'Accept': 'application/json'
                 },
                 cache: 'no-store',
-                signal: abortController.signal
+                signal: controller.signal
             });
             if (!response.ok) {
                 throw new Error('HTTP ' + response.status);
@@ -109,15 +135,29 @@
             const snapshot = await response.json();
             renderSnapshot(snapshot);
         } catch (error) {
-            if (!error || error.name !== 'AbortError') {
+            if (!error || error.name !== 'AbortError' || timedOut) {
                 const suffix = lastUpdatedTime
                     ? ' · đang hiển thị số liệu lúc ' + lastUpdatedTime
                     : '';
-                setStatus('Không thể cập nhật' + suffix);
+                const timeoutSuffix = timedOut ? ' (hết thời gian chờ)' : '';
+                setStatus('Không thể cập nhật' + timeoutSuffix + suffix);
+                if (!hasSuccessfulSnapshot) {
+                    renderAlerts([{
+                        code: 'load-failed',
+                        tone: 'warning',
+                        title: 'Chưa tải được thông báo',
+                        detail: 'Kiểm tra kết nối rồi tải lại trang.',
+                        actionText: 'Tải lại',
+                        href: window.location.href
+                    }]);
+                }
             }
         } finally {
+            window.clearTimeout(timeoutId);
             inFlight = false;
-            abortController = null;
+            if (abortController === controller) {
+                abortController = null;
+            }
         }
     }
 
@@ -130,6 +170,7 @@
         renderKpis(snapshot.kpis || []);
         renderAlerts(snapshot.alerts || []);
         renderPeriod(snapshot.period);
+        hasSuccessfulSnapshot = true;
     }
 
     // Cập nhật từng KPI theo vị trí để layout card không bị tạo lại toàn bộ.
@@ -165,8 +206,24 @@
             return;
         }
 
+        const normalizedAlerts = alerts.map(function (alert, index) {
+            return {
+                code: alert.code || 'alert-' + index,
+                tone: alert.tone || 'neutral',
+                title: alert.title || '',
+                detail: alert.detail || '',
+                actionText: alert.actionText || '',
+                href: alert.href || ''
+            };
+        });
+        const signature = JSON.stringify(normalizedAlerts);
+        if (signature === lastAlertSignature) {
+            return;
+        }
+
+        lastAlertSignature = signature;
         container.replaceChildren();
-        if (alerts.length === 0) {
+        if (normalizedAlerts.length === 0) {
             container.appendChild(createAlert({
                 tone: 'success',
                 title: 'Không có việc cần xử lý',
@@ -177,7 +234,7 @@
             return;
         }
 
-        alerts.forEach(function (alert) {
+        normalizedAlerts.forEach(function (alert) {
             container.appendChild(createAlert(alert));
         });
     }
@@ -221,7 +278,7 @@
 
         const generatedAt = new Date(period.generatedAtVietnam);
         lastUpdatedTime = formatVietnamTime(generatedAt);
-        setStatus('Cập nhật ' + lastUpdatedTime);
+        setStatus('Cập nhật ' + lastUpdatedTime + ' · giờ Việt Nam');
 
         if (period.startVietnam && period.endVietnam) {
             setText(
@@ -297,18 +354,20 @@
     }
 
     function formatVietnamDateRange(start, end) {
-        const startText = start.toLocaleDateString('vi-VN', {
-            day: '2-digit',
-            month: '2-digit',
-            timeZone: 'Asia/Ho_Chi_Minh'
-        });
-        const endText = end.toLocaleDateString('vi-VN', {
+        const formatter = new Intl.DateTimeFormat('vi-VN', {
             day: '2-digit',
             month: '2-digit',
             year: 'numeric',
             timeZone: 'Asia/Ho_Chi_Minh'
         });
-        return startText + '–' + endText;
+        const startParts = Object.fromEntries(formatter.formatToParts(start)
+            .filter(function (part) { return part.type !== 'literal'; })
+            .map(function (part) { return [part.type, part.value]; }));
+        const endParts = Object.fromEntries(formatter.formatToParts(end)
+            .filter(function (part) { return part.type !== 'literal'; })
+            .map(function (part) { return [part.type, part.value]; }));
+        return startParts.day + '/' + startParts.month
+            + '–' + endParts.day + '/' + endParts.month + '/' + endParts.year;
     }
 
     function extractTime(value) {

@@ -262,6 +262,7 @@
     margin-bottom: 1rem;
     padding: 1rem;
     border-radius: var(--dt-radius-sm);
+    scroll-margin-block: 1.5rem;
     display: none;
 }
 

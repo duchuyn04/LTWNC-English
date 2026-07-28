@@ -48,7 +48,7 @@
             <dd>@Model.CompletedDisplay</dd>
         </div>
         <div>
-            <dt>Thờ lượng</dt>
+            <dt>Thời lượng</dt>
             <dd>@Model.DurationDisplay</dd>
         </div>
     </dl>
@@ -65,7 +65,7 @@
 {
     <section class="admin-panel" aria-labelledby="dictation-answers-heading">
         <div class="admin-panel-header">
-            <h2 id="dictation-answers-heading">Câu trả lờ nghe chép chính tả</h2>
+            <h2 id="dictation-answers-heading">Câu trả lời nghe chép</h2>
             <p>@Model.DictationAnswers.Count câu</p>
         </div>
         <div class="admin-table-wrapper">
@@ -73,9 +73,9 @@
                 <thead>
                     <tr>
                         <th scope="col">Từ vựng</th>
-                        <th scope="col">Ngườ học nhập</th>
+                        <th scope="col">Người học nhập</th>
                         <th scope="col">Kết quả</th>
-                        <th scope="col">Thờ điểm trả lờ</th>
+                        <th scope="col">Thời điểm trả lời</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -100,7 +100,7 @@
 {
     <section class="admin-panel" aria-labelledby="mission-summary-heading">
         <div class="admin-panel-header">
-            <h2 id="mission-summary-heading">Tóm tắt Nhiệm vụ tiếng Anh</h2>
+            <h2 id="mission-summary-heading">Tóm tắt hội thoại AI</h2>
             <span class="admin-status admin-status--info">@Model.Mission.Status</span>
         </div>
         <dl class="admin-detail-grid">

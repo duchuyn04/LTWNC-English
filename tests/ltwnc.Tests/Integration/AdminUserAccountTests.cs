@@ -65,7 +65,7 @@ public sealed class AdminUserAccountTests : IClassFixture<AdminWebApplicationFac
         string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Thao tác bảo vệ tài khoản", html);
+        Assert.Contains("Quản lý truy cập", html);
         Assert.Contains("Khóa tài khoản", html);
         Assert.Contains("Thu hồi phiên", html);
         Assert.DoesNotContain("Đặt mật khẩu", html);

@@ -57,7 +57,12 @@
                     <label for="dictation-answer" class="dictation-input-label">Điền lại nội dung bạn nghe được</label>
                     <textarea id="dictation-answer" class="dictation-answer" rows="2" lang="en" placeholder="Nhập từ hoặc câu bạn nghe được..."></textarea>
 
-                    <div id="dictation-feedback" class="dictation-feedback" hidden>
+                    <div id="dictation-feedback"
+                         class="dictation-feedback"
+                         role="status"
+                         aria-live="polite"
+                         tabindex="-1"
+                         hidden>
                         <div id="dictation-feedback-icon" class="dictation-feedback-icon"></div>
                         <div id="dictation-feedback-answer" class="dictation-feedback-answer"></div>
                         <div id="dictation-feedback-hint" class="dictation-feedback-hint"></div>
@@ -397,6 +402,7 @@
             document.getElementById('dictation-feedback-answer').textContent = message;
             document.getElementById('dictation-feedback-hint').textContent = '';
             document.getElementById('dictation-feedback-comparison').hidden = true;
+            scrollFeedbackIntoView();
         }
 
         function handleCheckResult(data) {
@@ -449,6 +455,8 @@
                 continueBtn.hidden = false;
                 if (!data.isCorrect && retryBtn) retryBtn.hidden = false;
             }
+
+            scrollFeedbackIntoView();
         }
 
         function startRetry() {
@@ -464,7 +472,7 @@
             continueBtn.hidden = true;
             if (retryBtn) retryBtn.hidden = true;
             checkBtn.hidden = false;
-            dontKnowBtn.hidden = true;
+            dontKnowBtn.hidden = false;
 
             answerInput.focus();
         }
@@ -478,18 +486,23 @@
                 .trim();
         }
 
-        function checkRetryAnswer() {
+        function checkRetryAnswer(forceUnknown = false) {
             if (!isRetrying || cards.length === 0) return;
 
             const value = answerInput.value.trim();
-            if (!value) {
+            if (!value && !forceUnknown) {
                 answerInput.focus();
                 return;
+            }
+            if (forceUnknown) {
+                answerInput.value = '';
             }
 
             const normalizedInput = normalizeRetryInput(value);
             const normalizedCorrect = normalizeRetryInput(lastCorrectAnswer);
-            const isNowCorrect = normalizedInput === normalizedCorrect && normalizedCorrect !== '';
+            const isNowCorrect = !forceUnknown
+                && normalizedInput === normalizedCorrect
+                && normalizedCorrect !== '';
 
             feedbackPanel.hidden = false;
             answerInput.readOnly = true;
@@ -518,6 +531,8 @@
                 continueBtn.hidden = false;
                 if (retryBtn) retryBtn.hidden = false;
             }
+
+            scrollFeedbackIntoView();
         }
 
         function renderWordComparison(words) {
@@ -547,8 +562,27 @@
         }
 
         function markUnknown() {
-            if (cards.length === 0 || isAnswered || isRetrying || isSubmitting || isCompleting) return;
+            if (cards.length === 0 || isSubmitting || isCompleting) return;
+            if (isRetrying) {
+                checkRetryAnswer(true);
+                return;
+            }
+            if (isAnswered) return;
             submitCheck('');
+        }
+
+        function scrollFeedbackIntoView() {
+            if (feedbackPanel.hidden) return;
+
+            window.requestAnimationFrame(() => {
+                const prefersReducedMotion = window.matchMedia
+                    && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+                feedbackPanel.scrollIntoView({
+                    behavior: prefersReducedMotion ? 'auto' : 'smooth',
+                    block: 'center',
+                    inline: 'nearest'
+                });
+            });
         }
 
         function nextCard() {

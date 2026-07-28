@@ -43,7 +43,17 @@ public sealed class AdminLoginFlowTests : IClassFixture<AdminWebApplicationFacto
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         Assert.Contains("<h1>Tổng quan</h1>", html);
-        Assert.Contains("placeholder=\"Email hoặc mã\"", html);
+        Assert.Contains("placeholder=\"Email, mã, bộ thẻ hoặc nhiệm vụ\"", html);
+        Assert.Contains(">Vận hành</p>", html);
+        Assert.Contains("href=\"/Admin/ContentReports\"", html);
+        Assert.Contains("Báo cáo cần xử lý", html);
+        Assert.Contains("<span>Hỗ trợ</span>", html);
+        Assert.Contains("Hồ sơ học tập", html);
+        Assert.Contains("Hội thoại AI", html);
+        Assert.Contains("<span>Hệ thống</span>", html);
+        Assert.Contains("Thành tích", html);
+        Assert.Contains("Cấu hình AI", html);
+        Assert.Contains("Nhật ký quản trị", html);
         Assert.Contains("data-admin-menu-toggle", html);
         Assert.Contains("aria-controls=\"admin-sidebar\"", html);
         Assert.Contains("data-admin-menu-backdrop", html);

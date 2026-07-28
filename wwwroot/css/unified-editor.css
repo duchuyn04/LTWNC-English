@@ -202,7 +202,8 @@
     box-shadow: none;
 }
 
-.unified-editor .btn:disabled {
+.unified-editor .btn:disabled,
+#import-modal .btn:disabled {
     border-color: var(--ue-line);
     background: var(--ue-sunken);
     color: var(--ue-muted-light);
@@ -597,48 +598,177 @@
     color: var(--muted);
 }
 
-#import-modal .form-select,
-#import-modal textarea {
-    margin-bottom: 1rem;
+.import-file-picker {
+    position: relative;
 }
 
-#import-modal .modal-content > label {
+.import-file-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.import-file-dropzone {
+    display: flex;
+    min-height: 9rem;
+    align-items: center;
+    justify-content: center;
+    gap: 0.9rem;
+    margin: 0;
+    padding: 1.25rem;
+    border: 1.5px dashed var(--line-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface-sunken);
+    color: var(--ink);
+    text-align: left;
+    cursor: pointer;
+    transition: border-color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+}
+
+.import-file-dropzone:hover,
+.import-file-dropzone.is-dragging {
+    border-color: var(--ink);
+    background: var(--sage-soft);
+}
+
+.import-file-dropzone.is-dragging {
+    transform: translateY(-2px);
+}
+
+.import-file-input:focus-visible + .import-file-dropzone {
+    outline: 3px solid color-mix(in srgb, var(--brass) 35%, transparent);
+    outline-offset: 2px;
+}
+
+.import-file-icon {
+    display: grid;
+    width: 3rem;
+    height: 3rem;
+    flex: 0 0 3rem;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 1.35rem;
+}
+
+.import-file-dropzone strong,
+.import-file-dropzone small {
+    display: block;
+}
+
+.import-file-dropzone strong {
+    margin-bottom: 0.25rem;
+    font-size: 0.95rem;
+}
+
+.import-file-dropzone small,
+.import-replace-option small {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.import-file-selection {
     display: flex;
     align-items: center;
     gap: 0.5rem;
+    margin-top: 0.65rem;
+    color: var(--ink-soft);
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.import-file-selection[hidden],
+.import-feedback[hidden] {
+    display: none;
+}
+
+.import-format-help {
+    margin-top: 0.85rem;
+    color: var(--ink-soft);
+    font-size: 0.82rem;
+}
+
+.import-format-help summary {
     width: fit-content;
+    color: var(--ink);
+    font-weight: 700;
     cursor: pointer;
+}
+
+.import-format-help p {
+    margin: 0.55rem 0 0;
+}
+
+#import-modal .import-replace-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 0.85rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    cursor: pointer;
+}
+
+.import-replace-option strong,
+.import-replace-option small {
+    display: block;
 }
 
 #import-modal input[type="checkbox"] {
     width: 1.1rem;
     height: 1.1rem;
-    margin: 0;
+    flex: 0 0 auto;
+    margin: 0.15rem 0 0;
     accent-color: var(--ink);
 }
 
-#import-preview {
+.import-feedback {
     max-height: 12rem;
     overflow-y: auto;
     margin-top: 1rem;
     padding: 0.85rem;
+    border: 1px solid var(--line);
     border-radius: var(--radius-control);
     background: var(--surface-sunken);
     color: var(--ink-soft);
     font-size: 0.85rem;
 }
 
-#import-preview:empty {
-    display: none;
-}
-
-#import-preview p,
-#import-preview ul {
-    margin-bottom: 0.5rem;
-}
-
-#import-preview .error {
+.import-feedback.is-error {
+    border-color: color-mix(in srgb, var(--error) 35%, var(--line));
+    background: var(--error-bg);
     color: var(--error);
+}
+
+.import-feedback.is-warning {
+    border-color: color-mix(in srgb, var(--brass) 42%, var(--line));
+    background: var(--brass-soft);
+}
+
+.import-feedback.is-success {
+    border-color: color-mix(in srgb, var(--success) 35%, var(--line));
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+.import-feedback p,
+.import-feedback ul {
+    margin: 0;
+}
+
+.import-feedback ul {
+    margin-top: 0.55rem;
+    padding-left: 1.15rem;
 }
 
 .modal-actions {

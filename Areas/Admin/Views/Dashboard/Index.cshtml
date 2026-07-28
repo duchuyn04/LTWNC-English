@@ -21,7 +21,7 @@
                        role="status"
                        aria-live="polite"
                        aria-atomic="true">
-                    Cập nhật @Model.GeneratedAtVietnam.ToString("HH:mm")
+                    Đang cập nhật · giờ Việt Nam
                 </small>
             </p>
         </div>
@@ -60,11 +60,16 @@
             <i class="ph ph-bell-ringing" aria-hidden="true"></i>
             <h2 id="admin-alert-panel-title">Việc cần xử lý</h2>
         </div>
-        <div class="admin-alert-list" data-dashboard-alerts role="status" aria-live="polite" aria-atomic="true">
-            <article class="admin-live-alert admin-live-alert--success admin-live-alert--empty">
-                <i class="ph ph-check-circle" aria-hidden="true"></i>
+        <div class="admin-alert-list"
+             data-dashboard-alerts
+             role="status"
+             aria-live="polite"
+             aria-atomic="false">
+            <article class="admin-live-alert admin-live-alert--neutral admin-live-alert--empty">
+                <i class="ph ph-info" aria-hidden="true"></i>
                 <div>
-                    <h3>Không có việc cần xử lý</h3>
+                    <h3>Đang kiểm tra</h3>
+                    <p>Thông báo sẽ hiện ở đây nếu có việc cần xử lý.</p>
                 </div>
             </article>
         </div>
@@ -99,8 +104,9 @@
             <i class="ph ph-caret-down" aria-hidden="true"></i>
         </summary>
         <div>
-            <p>Người hoạt động được đếm một lần khi có phiên học hoặc lượt ôn thẻ trong khoảng đã chọn.</p>
-            <p>Hoàn thành bỏ qua phiên đang hoạt động dưới 30 phút; lỗi AI chỉ hiện khi có ít nhất 20 yêu cầu.</p>
+            <p>Mỗi người chỉ được tính một lần nếu đã học hoặc ôn thẻ trong khoảng đã chọn.</p>
+            <p>Tỷ lệ hoàn thành chưa tính các phiên đang diễn ra dưới 30 phút.</p>
+            <p>Tỷ lệ lỗi AI trong kỳ chỉ hiện khi có từ 20 yêu cầu trở lên.</p>
         </div>
     </details>
 </section>

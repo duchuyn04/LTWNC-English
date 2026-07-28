@@ -96,7 +96,7 @@ public sealed class AdminLearningDetailsViewModel
     public required AdminSetProgressViewModel SetProgress { get; init; }
 }
 
-// Một câu trả lờ nghe chép chính tả trong trang chi tiết.
+// Một câu trả lời nghe chép trong trang chi tiết.
 public sealed class AdminDictationAnswerViewModel
 {
     public required string CardFrontText { get; init; }
@@ -118,7 +118,7 @@ public sealed class AdminMissionSummaryViewModel
     public required int TargetWordUsed { get; init; }
 }
 
-// Ảnh chụp tiến độ của ngườ học trên bộ thẻ của phiên.
+// Tiến độ của người học trên bộ thẻ tại thời điểm xem.
 public sealed class AdminSetProgressViewModel
 {
     public required int TotalCards { get; init; }
@@ -246,7 +246,7 @@ public static class AdminLearningViewModelMapper
         };
     }
 
-    // Chuyển một câu trả lờ nghe chép sang dữ liệu hiển thị.
+    // Chuyển một câu trả lời nghe chép sang dữ liệu hiển thị.
     private static AdminDictationAnswerViewModel ToDictationAnswerViewModel(
         AdminDictationAnswerRow answer)
     {
@@ -383,7 +383,7 @@ public static class AdminLearningViewModelMapper
         return $"{minutes} phút {seconds} giây";
     }
 
-    // Thờ gian tương đối để Admin đọc nhanh, ví dụ "5 phút trước".
+    // Hiển thị thời gian tương đối, ví dụ "5 phút trước".
     private static string FormatRelative(DateTimeOffset now, DateTime valueUtc)
     {
         DateTimeOffset value = new DateTimeOffset(

@@ -1,6 +1,18 @@
 @{
     string currentPath = Context.Request.Path.Value ?? "/Admin";
     string pageHeading = ViewData["Heading"] as string ?? "Quản trị hệ thống";
+    bool isDashboardActive = currentPath.Equals("/Admin", StringComparison.OrdinalIgnoreCase);
+    bool isUsersActive = currentPath.StartsWith("/Admin/Users", StringComparison.OrdinalIgnoreCase);
+    bool isContentReportsActive = currentPath.StartsWith("/Admin/ContentReports", StringComparison.OrdinalIgnoreCase);
+    bool isContentActive = currentPath.Equals("/Admin/Content", StringComparison.OrdinalIgnoreCase)
+        || currentPath.StartsWith("/Admin/Content/", StringComparison.OrdinalIgnoreCase);
+    bool isLearningActive = currentPath.StartsWith("/Admin/Learning", StringComparison.OrdinalIgnoreCase);
+    bool isEnglishMissionsActive = currentPath.StartsWith("/Admin/EnglishMissions", StringComparison.OrdinalIgnoreCase);
+    bool isAchievementsActive = currentPath.StartsWith("/Admin/Achievements", StringComparison.OrdinalIgnoreCase);
+    bool isAiProvidersActive = currentPath.StartsWith("/Admin/AiProviders", StringComparison.OrdinalIgnoreCase);
+    bool isAuditLogsActive = currentPath.StartsWith("/Admin/AuditLogs", StringComparison.OrdinalIgnoreCase);
+    bool isSupportActive = isLearningActive || isEnglishMissionsActive;
+    bool isSystemActive = isAchievementsActive || isAiProvidersActive || isAuditLogsActive;
 }
 <!DOCTYPE html>
 <html lang="vi">
@@ -42,31 +54,55 @@
                 <small>ADMIN</small>
             </a>
 
-            <nav class="admin-navigation">
-                <a class="@(currentPath.Equals("/Admin", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin" aria-current="@(currentPath.Equals("/Admin", StringComparison.OrdinalIgnoreCase) ? "page" : null)">
-                    <i class="ph ph-squares-four" aria-hidden="true"></i><span>Tổng quan</span>
-                </a>
-                <a class="@(currentPath.StartsWith("/Admin/Users", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/Users">
-                    <i class="ph ph-users-three" aria-hidden="true"></i><span>Người dùng</span>
-                </a>
-                <a class="@((currentPath.Equals("/Admin/Content", StringComparison.OrdinalIgnoreCase) || currentPath.StartsWith("/Admin/Content/", StringComparison.OrdinalIgnoreCase)) ? "active" : null)" href="/Admin/Content">
-                    <i class="ph ph-stack" aria-hidden="true"></i><span>Nội dung</span>
-                </a>
-                <a class="@(currentPath.StartsWith("/Admin/Learning", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/Learning">
-                    <i class="ph ph-graduation-cap" aria-hidden="true"></i><span>Phiên học</span>
-                </a>
-                <a class="@(currentPath.StartsWith("/Admin/EnglishMissions", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/EnglishMissions">
-                    <i class="ph ph-chats-circle" aria-hidden="true"></i><span>Nhiệm vụ tiếng Anh</span>
-                </a>
-                <a class="@(currentPath.StartsWith("/Admin/Achievements", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/Achievements">
-                    <i class="ph ph-medal" aria-hidden="true"></i><span>Thành tích</span>
-                </a>
-                <a class="@(currentPath.StartsWith("/Admin/AiProviders", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/AiProviders">
-                    <i class="ph ph-plugs-connected" aria-hidden="true"></i><span>Nhà cung cấp AI</span>
-                </a>
-                <a class="@(currentPath.StartsWith("/Admin/AuditLogs", StringComparison.OrdinalIgnoreCase) ? "active" : null)" href="/Admin/AuditLogs">
-                    <i class="ph ph-scroll" aria-hidden="true"></i><span>Bản ghi kiểm toán quản trị</span>
-                </a>
+            <nav class="admin-navigation" aria-label="Chức năng quản trị">
+                <div class="admin-navigation-group">
+                    <p class="admin-navigation-label">Vận hành</p>
+                    <a class="@(isDashboardActive ? "active" : null)" href="/Admin" aria-current="@(isDashboardActive ? "page" : null)">
+                        <i class="ph ph-squares-four" aria-hidden="true"></i><span>Tổng quan</span>
+                    </a>
+                    <a class="@(isContentReportsActive ? "active" : null)" href="/Admin/ContentReports" aria-current="@(isContentReportsActive ? "page" : null)">
+                        <i class="ph ph-flag" aria-hidden="true"></i><span>Báo cáo cần xử lý</span>
+                    </a>
+                    <a class="@(isContentActive ? "active" : null)" href="/Admin/Content" aria-current="@(isContentActive ? "page" : null)">
+                        <i class="ph ph-stack" aria-hidden="true"></i><span>Nội dung học</span>
+                    </a>
+                    <a class="@(isUsersActive ? "active" : null)" href="/Admin/Users" aria-current="@(isUsersActive ? "page" : null)">
+                        <i class="ph ph-users-three" aria-hidden="true"></i><span>Người dùng</span>
+                    </a>
+                </div>
+
+                <details class="admin-navigation-disclosure" open="@isSupportActive">
+                    <summary>
+                        <span>Hỗ trợ</span>
+                        <i class="ph ph-caret-down" aria-hidden="true"></i>
+                    </summary>
+                    <div class="admin-navigation-group">
+                        <a class="@(isLearningActive ? "active" : null)" href="/Admin/Learning" aria-current="@(isLearningActive ? "page" : null)">
+                            <i class="ph ph-graduation-cap" aria-hidden="true"></i><span>Hồ sơ học tập</span>
+                        </a>
+                        <a class="@(isEnglishMissionsActive ? "active" : null)" href="/Admin/EnglishMissions" aria-current="@(isEnglishMissionsActive ? "page" : null)">
+                            <i class="ph ph-chats-circle" aria-hidden="true"></i><span>Hội thoại AI</span>
+                        </a>
+                    </div>
+                </details>
+
+                <details class="admin-navigation-disclosure" open="@isSystemActive">
+                    <summary>
+                        <span>Hệ thống</span>
+                        <i class="ph ph-caret-down" aria-hidden="true"></i>
+                    </summary>
+                    <div class="admin-navigation-group">
+                        <a class="@(isAchievementsActive ? "active" : null)" href="/Admin/Achievements" aria-current="@(isAchievementsActive ? "page" : null)">
+                            <i class="ph ph-medal" aria-hidden="true"></i><span>Thành tích</span>
+                        </a>
+                        <a class="@(isAiProvidersActive ? "active" : null)" href="/Admin/AiProviders" aria-current="@(isAiProvidersActive ? "page" : null)">
+                            <i class="ph ph-plugs-connected" aria-hidden="true"></i><span>Cấu hình AI</span>
+                        </a>
+                        <a class="@(isAuditLogsActive ? "active" : null)" href="/Admin/AuditLogs" aria-current="@(isAuditLogsActive ? "page" : null)">
+                            <i class="ph ph-scroll" aria-hidden="true"></i><span>Nhật ký quản trị</span>
+                        </a>
+                    </div>
+                </details>
             </nav>
 
             <div class="admin-sidebar-footer">
@@ -102,7 +138,7 @@
                     <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
                     <input id="admin-global-search-input" name="q" type="search"
                            value="@(Context.Request.Path.StartsWithSegments("/Admin/Search") ? Context.Request.Query["q"].ToString() : string.Empty)"
-                           placeholder="Email hoặc mã" maxlength="100" />
+                           placeholder="Email, mã, bộ thẻ hoặc nhiệm vụ" maxlength="100" />
                     <button type="submit" title="Tìm kiếm" aria-label="Tìm kiếm">
                         <i class="ph ph-arrow-right" aria-hidden="true"></i>
                     </button>

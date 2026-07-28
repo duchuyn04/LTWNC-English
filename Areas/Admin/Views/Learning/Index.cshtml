@@ -53,8 +53,8 @@
                 <option value="" selected="@(string.IsNullOrEmpty(Model.Sort))">Mới nhất</option>
                 <option value="oldest" selected="@(Model.Sort == "oldest")">Cũ nhất</option>
                 <option value="score" selected="@(Model.Sort == "score")">Điểm cao trước</option>
-                <option value="duration" selected="@(Model.Sort == "duration")">Thờ lượng dài trước</option>
-                <option value="user" selected="@(Model.Sort == "user")">Email ngườ học A-Z</option>
+                <option value="duration" selected="@(Model.Sort == "duration")">Thời lượng dài trước</option>
+                <option value="user" selected="@(Model.Sort == "user")">Email người học A-Z</option>
             </select>
         </div>
         <div class="admin-filter-field admin-filter-field--compact">
@@ -83,12 +83,12 @@
             <table class="admin-table">
                 <thead>
                     <tr>
-                        <th scope="col">Thờ gian bắt đầu</th>
+                        <th scope="col">Thời gian bắt đầu</th>
                         <th scope="col">Ngườ học</th>
                         <th scope="col">Chế độ</th>
                         <th scope="col">Bộ thẻ</th>
                         <th scope="col">Điểm</th>
-                        <th scope="col">Thờ lượng</th>
+                        <th scope="col">Thời lượng</th>
                         <th scope="col">Trạng thái</th>
                         <th scope="col">Thao tác</th>
                     </tr>

@@ -31,7 +31,8 @@ test.describe('Admin dashboard live polling', () => {
             releaseFirstResponse();
         }
         await expect.poll(() => requestCount).toBeGreaterThanOrEqual(2);
-        await expect(page.locator('[data-dashboard-live-status]')).toHaveText('Cập nhật 12:00');
+        await expect(page.locator('[data-dashboard-live-status]')).toHaveText('Cập nhật 12:00 · giờ Việt Nam');
+        await expect(page.locator('[data-dashboard-period]')).toHaveText('01/07–19/07/2026');
 
         await page.evaluate(() => window.AdminDashboardLive.stop());
     });
@@ -172,6 +173,7 @@ async function loadDashboardHarness(page) {
             contentType: 'text/html',
             body: `
         <section data-dashboard-live data-snapshot-url="/Admin/Snapshot?days=30">
+            <strong data-dashboard-period></strong>
             <div data-dashboard-live-status role="status" aria-live="polite"></div>
             <div data-dashboard-alerts role="status" aria-live="polite"></div>
             <article data-kpi-index="0" class="admin-kpi-card admin-kpi-card--neutral">

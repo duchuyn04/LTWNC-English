@@ -23,6 +23,8 @@ public sealed class ContentController : Controller
         string? search,
         string? status,
         string? visibility,
+        string? reports,
+        string? sort,
         int page = ContentModerationService.DefaultPage,
         int pageSize = ContentModerationService.DefaultPageSize,
         CancellationToken cancellationToken = default)
@@ -31,6 +33,8 @@ public sealed class ContentController : Controller
             Search: search,
             Status: status,
             Visibility: visibility,
+            Reports: reports,
+            Sort: sort,
             Page: page,
             PageSize: pageSize);
 

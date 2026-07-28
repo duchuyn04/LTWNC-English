@@ -87,7 +87,7 @@ public sealed class AdminDashboardLiveSnapshotTests
         }
 
         string visibleAlertText = string.Join(" ", visibleAlertParts);
-        Assert.Contains("Kiểm tra nhà cung cấp", visibleAlertText);
+        Assert.Contains("Kiểm tra kết nối", visibleAlertText);
         Assert.DoesNotContain("health check", visibleAlertText, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("provider", visibleAlertText, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("private-user-id", json);
