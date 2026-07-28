@@ -61,10 +61,25 @@ Project dùng một số mẫu GoF, không phải "có đủ cho đẹp báo cá
 
 **Vấn đề:** Thao tác hàng loạt (xóa nhiều, gắn sao, bỏ sao) cần undo. Nếu service gọi thẳng EF theo từng action, logic thực thi, hoàn tác và log dính vào nhau.
 
-**Cách làm:** Gói thao tác thành object có `Execute` / `Undo`. `CardActionService` chạy command, lưu snapshot vào `CardActionLog`.
+**Cách làm:** Gói thao tác thành object có `Execute` / `Undo`. `CardActionService` chạy command và lưu trạng thái hoàn tác vào `CardActionLog`.
 
 - `DeleteCardsCommand`, `StarCardsCommand`, `UnstarCardsCommand`
-- Mỗi command mang setId, userId, danh sách cardId và biết undo
+- Mỗi command mang setId, userId, danh sách cardId và biết cách thực hiện thao tác
+
+### 💾 Memento
+
+**Vấn đề:** Undo cần giữ trạng thái trước khi thay đổi. Nếu việc chạy command, lấy snapshot và nạp lại snapshot là các lời gọi rời nhau, caller có thể gọi thiếu bước hoặc dùng nhầm trạng thái tạm.
+
+**Cách làm:** Mỗi Command tự chụp trạng thái rồi trả `CardActionMemento` từ `ExecuteAsync()`. `CardActionService` là Caretaker: lưu nguyên `StateJson` vào `CardActionLog.SnapshotJson` và truyền Memento lại cho Command khi Undo.
+
+```mermaid
+flowchart LR
+    Caretaker["Caretaker<br/>CardActionService"] --> Originator["Originator<br/>Card Action Command"]
+    Originator --> Memento["Memento<br/>CardActionMemento"]
+    Caretaker --> Store["Persistent store<br/>CardActionLog.SnapshotJson"]
+```
+
+Định dạng JSON và database không đổi nên log cũ vẫn Undo được. Memento rỗng hoặc hỏng bị từ chối trước khi khôi phục; transaction không commit và `UndoneAt` không được cập nhật.
 
 ### 🏭 Factory Method
 

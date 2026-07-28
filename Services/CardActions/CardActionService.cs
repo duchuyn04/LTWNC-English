@@ -30,12 +30,8 @@ public class CardActionService : ICardActionService
         await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
             await _context.Database.BeginTransactionAsync();
 
-        // 2. Gọi `ExecuteAsync` để thực hiện bước nghiệp vụ này.
-        await command.ExecuteAsync();
-
-        // Snapshot trạng thái trước/sau tùy command (thường là trước khi đổi)
-        // 3. Gọi `GetSnapshotJson` và lưu kết quả vào `snapshot`.
-        string snapshot = command.GetSnapshotJson();
+        // Command tự chụp trạng thái trước khi đổi và trả Memento cho service lưu giữ.
+        CardActionMemento memento = await command.ExecuteAsync();
 
         // 4. Khởi tạo `log` với dữ liệu ban đầu cần thiết.
         CardActionLog log = new CardActionLog
@@ -44,7 +40,7 @@ public class CardActionService : ICardActionService
             SetId = command.SetId,
             ActionType = command.ActionType,
             CardIdsJson = JsonSerializer.Serialize(command.CardIds),
-            SnapshotJson = snapshot,
+            SnapshotJson = memento.StateJson,
             ExecutedAt = DateTime.UtcNow
         };
 
@@ -97,11 +93,11 @@ public class CardActionService : ICardActionService
             userId,
             cardIds);
 
-        // 11. Gọi `LoadSnapshot` để thực hiện bước nghiệp vụ này.
-        command.LoadSnapshot(log.SnapshotJson);
+        // Log cũ và log mới đều lưu cùng JSON nên cùng dựng được Memento.
+        CardActionMemento memento = new(log.SnapshotJson);
 
-        // 12. Gọi `UndoAsync` để thực hiện bước nghiệp vụ này.
-        await command.UndoAsync();
+        // Command tự đọc và kiểm tra Memento trước khi khôi phục.
+        await command.UndoAsync(memento);
         // 13. Cập nhật `log.UndoneAt` bằng giá trị mới.
         log.UndoneAt = DateTime.UtcNow;
         // 14. Gọi `SaveChangesAsync` để thực hiện bước nghiệp vụ này.

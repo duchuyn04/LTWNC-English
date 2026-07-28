@@ -1,7 +1,7 @@
 namespace ltwnc.Services.CardActions;
 
 // Contract command thao tác hàng loạt trên thẻ (xóa / sao / bỏ sao).
-// Execute chạy thao tác, Undo hoàn tác, snapshot JSON lưu trạng thái trước khi đổi.
+// Execute trả Memento của trạng thái cũ, Undo dùng Memento để khôi phục.
 public interface ICardActionCommand
 {
     // Tên loại action: "Delete", "Star", "Unstar" (khớp factory và CardActionLog)
@@ -16,15 +16,9 @@ public interface ICardActionCommand
     // Id các thẻ bị ảnh hưởng
     IReadOnlyList<int> CardIds { get; }
 
-    // Chạy thao tác (có thể ghi DB); thường chụp snapshot trước khi đổi
-    Task ExecuteAsync();
+    // Chụp trạng thái cũ, chạy thao tác và trả Memento để lưu cho Undo
+    Task<CardActionMemento> ExecuteAsync();
 
-    // Khôi phục theo snapshot đã load
-    Task UndoAsync();
-
-    // Serialize snapshot hiện tại (lưu vào CardActionLog)
-    string GetSnapshotJson();
-
-    // Nạp snapshot từ log trước khi Undo
-    void LoadSnapshot(string json);
+    // Khôi phục trạng thái từ Memento đã lưu
+    Task UndoAsync(CardActionMemento memento);
 }

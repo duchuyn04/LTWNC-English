@@ -125,11 +125,10 @@ public class DeleteCardsCommandTests : IDisposable
     public async Task UndoAsync_restores_cards_progress_dictation_details_and_mission_words()
     {
         var command = new ltwnc.Services.CardActions.DeleteCardsCommand(_context, _set.Id, OwnerId, [_card.Id]);
-        await command.ExecuteAsync();
+        ltwnc.Services.CardActions.CardActionMemento memento = await command.ExecuteAsync();
         var undo = new ltwnc.Services.CardActions.DeleteCardsCommand(_context, _set.Id, OwnerId, [_card.Id]);
-        undo.LoadSnapshot(command.GetSnapshotJson());
 
-        await undo.UndoAsync();
+        await undo.UndoAsync(memento);
 
         Assert.NotNull(await _context.Flashcards.FindAsync(_card.Id));
         Assert.NotNull(await _context.UserProgresses.FindAsync(_progress.Id));

@@ -11,9 +11,6 @@ public class DeleteCardsCommand : ICardActionCommand
     // Query / xóa / restore entity
     private readonly AppDbContext _context;
 
-    // Snapshot từng thẻ sau Execute (hoặc sau LoadSnapshot)
-    private readonly List<FlashcardSnapshot> _snapshots = new();
-
     // Cố định "Delete"
     public string ActionType => "Delete";
 
@@ -40,7 +37,7 @@ public class DeleteCardsCommand : ICardActionCommand
     }
 
     // Chụp thẻ + progress + dictation detail rồi xóa (FK: xóa con trước)
-    public async Task ExecuteAsync()
+    public async Task<CardActionMemento> ExecuteAsync()
     {
         // 1. Gọi `ToListAsync` và lưu kết quả vào `cards`.
         List<Flashcard> cards = await _context.Flashcards
@@ -64,8 +61,8 @@ public class DeleteCardsCommand : ICardActionCommand
             .Where(word => CardIds.Contains(word.FlashcardId))
             .ToListAsync();
 
-        // 5. Gọi `Clear` để thực hiện bước nghiệp vụ này.
-        _snapshots.Clear();
+        // Memento giữ snapshot cục bộ, command không lưu trạng thái Undo tạm thời.
+        List<FlashcardSnapshot> snapshots = new();
 
         // 6. Duyệt từng `card` trong `cards` để xử lý lần lượt.
         foreach (Flashcard card in cards)
@@ -140,7 +137,7 @@ public class DeleteCardsCommand : ICardActionCommand
                 .ToList();
 
             // 18. Gọi `Add` để thực hiện bước nghiệp vụ này.
-            _snapshots.Add(new FlashcardSnapshot
+            snapshots.Add(new FlashcardSnapshot
             {
                 Id = card.Id,
                 FlashcardSetId = card.FlashcardSetId,
@@ -171,15 +168,21 @@ public class DeleteCardsCommand : ICardActionCommand
         _context.Flashcards.RemoveRange(cards);
         // 23. Gọi `SaveChangesAsync` để thực hiện bước nghiệp vụ này.
         await _context.SaveChangesAsync();
+
+        return new CardActionMemento(JsonSerializer.Serialize(snapshots));
     }
 
     // Restore thẻ / progress / detail với đúng Id cũ (SQL Server: IDENTITY_INSERT)
-    public async Task UndoAsync()
+    public async Task UndoAsync(CardActionMemento memento)
     {
+        // Đọc và kiểm tra toàn bộ Memento trước khi bắt đầu khôi phục dữ liệu.
+        List<FlashcardSnapshot> snapshots = CardActionMemento.Restore<List<FlashcardSnapshot>>(memento);
+        ValidateSnapshots(snapshots);
+
         // 1. Khởi tạo `cards` với dữ liệu ban đầu cần thiết.
         List<Flashcard> cards = new List<Flashcard>();
-        // 2. Duyệt từng `snapshot` trong `_snapshots` để xử lý lần lượt.
-        foreach (FlashcardSnapshot snapshot in _snapshots)
+        // 2. Duyệt từng `snapshot` trong Memento để xử lý lần lượt.
+        foreach (FlashcardSnapshot snapshot in snapshots)
         {
             // 3. Gọi `Add` để thực hiện bước nghiệp vụ này.
             cards.Add(new Flashcard
@@ -211,8 +214,8 @@ public class DeleteCardsCommand : ICardActionCommand
 
         // 7. Khởi tạo `progresses` với dữ liệu ban đầu cần thiết.
         List<UserProgress> progresses = new List<UserProgress>();
-        // 8. Duyệt từng `snapshot` trong `_snapshots` để xử lý lần lượt.
-        foreach (FlashcardSnapshot snapshot in _snapshots)
+        // 8. Duyệt từng `snapshot` trong Memento để xử lý lần lượt.
+        foreach (FlashcardSnapshot snapshot in snapshots)
         {
             // 9. Duyệt từng `progressSnapshot` trong `snapshot.UserProgresses` để xử lý lần lượt.
             foreach (UserProgressSnapshot progressSnapshot in snapshot.UserProgresses)
@@ -243,8 +246,8 @@ public class DeleteCardsCommand : ICardActionCommand
 
         // 14. Khởi tạo `details` với dữ liệu ban đầu cần thiết.
         List<DictationSessionDetail> details = new List<DictationSessionDetail>();
-        // 15. Duyệt từng `snapshot` trong `_snapshots` để xử lý lần lượt.
-        foreach (FlashcardSnapshot snapshot in _snapshots)
+        // 15. Duyệt từng `snapshot` trong Memento để xử lý lần lượt.
+        foreach (FlashcardSnapshot snapshot in snapshots)
         {
             // 16. Duyệt từng `detailSnapshot` trong `snapshot.DictationSessionDetails` để xử lý lần lượt.
             foreach (DictationSessionDetailSnapshot detailSnapshot in snapshot.DictationSessionDetails)
@@ -273,8 +276,8 @@ public class DeleteCardsCommand : ICardActionCommand
 
         // 21. Khởi tạo `missionWords` với dữ liệu ban đầu cần thiết.
         List<EnglishMissionTargetWord> missionWords = new List<EnglishMissionTargetWord>();
-        // 22. Duyệt từng `snapshot` trong `_snapshots` để xử lý lần lượt.
-        foreach (FlashcardSnapshot snapshot in _snapshots)
+        // 22. Duyệt từng `snapshot` trong Memento để xử lý lần lượt.
+        foreach (FlashcardSnapshot snapshot in snapshots)
         {
             // 23. Duyệt từng `wordSnapshot` trong `snapshot.EnglishMissionTargetWords` để xử lý lần lượt.
             foreach (EnglishMissionTargetWordSnapshot wordSnapshot in snapshot.EnglishMissionTargetWords)
@@ -305,28 +308,78 @@ public class DeleteCardsCommand : ICardActionCommand
         }
     }
 
-    // Serialize list FlashcardSnapshot
-    public string GetSnapshotJson()
+    // Kiểm tra cấu trúc và quan hệ trong snapshot trước khi ghi bất kỳ bản ghi nào.
+    private void ValidateSnapshots(List<FlashcardSnapshot> snapshots)
     {
-        // 1. Trả kết quả từ `Serialize` cho nơi gọi.
-        return JsonSerializer.Serialize(_snapshots);
-    }
+        HashSet<int> expectedCardIds = CardIds.ToHashSet();
+        HashSet<int> snapshotCardIds = new();
+        HashSet<int> progressIds = new();
+        HashSet<int> detailIds = new();
+        HashSet<int> missionWordIds = new();
 
-    // Deserialize list FlashcardSnapshot vào _snapshots
-    public void LoadSnapshot(string json)
-    {
-        // 1. Gọi `Clear` để thực hiện bước nghiệp vụ này.
-        _snapshots.Clear();
-
-        // 2. Gọi `Deserialize` và lưu kết quả vào `loaded`.
-        List<FlashcardSnapshot>? loaded =
-            JsonSerializer.Deserialize<List<FlashcardSnapshot>>(json);
-
-        // 3. Kiểm tra `loaded != null` để chọn nhánh xử lý phù hợp.
-        if (loaded != null)
+        if (snapshots.Count == 0 || expectedCardIds.Count == 0)
         {
-            // 4. Gọi `AddRange` để thực hiện bước nghiệp vụ này.
-            _snapshots.AddRange(loaded);
+            throw CardActionMemento.InvalidMemento();
+        }
+
+        foreach (FlashcardSnapshot snapshot in snapshots)
+        {
+            if (snapshot is null)
+            {
+                throw CardActionMemento.InvalidMemento();
+            }
+
+            bool invalidCard = snapshot.Id <= 0
+                || !snapshotCardIds.Add(snapshot.Id)
+                || snapshot.FlashcardSetId != SetId
+                || snapshot.FrontText is null
+                || snapshot.BackText is null
+                || snapshot.Pronunciation is null
+                || snapshot.PartOfSpeech is null
+                || snapshot.ExampleSentence is null
+                || snapshot.ExampleMeaning is null;
+            if (invalidCard)
+            {
+                throw CardActionMemento.InvalidMemento();
+            }
+
+            List<UserProgressSnapshot> progresses = snapshot.UserProgresses
+                ?? throw CardActionMemento.InvalidMemento();
+            List<DictationSessionDetailSnapshot> details = snapshot.DictationSessionDetails
+                ?? throw CardActionMemento.InvalidMemento();
+            List<EnglishMissionTargetWordSnapshot> missionWords = snapshot.EnglishMissionTargetWords
+                ?? throw CardActionMemento.InvalidMemento();
+
+            bool invalidProgress = progresses.Any(progress =>
+                progress is null
+                || progress.Id <= 0
+                || !progressIds.Add(progress.Id)
+                || progress.UserId is null
+                || progress.FlashcardId != snapshot.Id);
+            bool invalidDetail = details.Any(detail =>
+                detail is null
+                || detail.Id <= 0
+                || !detailIds.Add(detail.Id)
+                || detail.StudySessionId <= 0
+                || detail.AnsweredText is null
+                || detail.FlashcardId != snapshot.Id);
+            bool invalidMissionWord = missionWords.Any(word =>
+                word is null
+                || word.Id <= 0
+                || !missionWordIds.Add(word.Id)
+                || word.EnglishMissionId <= 0
+                || word.Term is null
+                || word.Definition is null
+                || word.FlashcardId != snapshot.Id);
+            if (invalidProgress || invalidDetail || invalidMissionWord)
+            {
+                throw CardActionMemento.InvalidMemento();
+            }
+        }
+
+        if (!snapshotCardIds.SetEquals(expectedCardIds))
+        {
+            throw CardActionMemento.InvalidMemento();
         }
     }
 
