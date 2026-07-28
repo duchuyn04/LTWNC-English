@@ -1,0 +1,589 @@
+/* Hallmark · macrostructure: Workbench · genre: modern-minimal · tone: utilitarian · theme: LTWNC warm editorial · enrichment: none · nav: N3 adapted side rail · footer: none · pre-emit critique: P5 H5 E4 S5 R5 V5 · contrast: pass (40–41) · slop: pass (42–45) · honest: pass (46) · chrome: pass (47) · tokens: pass (48) · mobile: pass (34, 49–57) */
+/* ==================== DASHBOARD ==================== */
+
+.admin-dashboard > * + * {
+    margin-top: 1.5rem;
+}
+
+/* Thanh ngữ cảnh: thời gian, bộ lọc và xuất dữ liệu trong một hàng gọn. */
+.admin-dashboard-context {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    align-items: center;
+    padding: 0.875rem 1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+}
+
+.admin-dashboard-period {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    min-width: 0;
+    color: var(--ink-soft);
+}
+
+.admin-dashboard-period > i {
+    flex: 0 0 auto;
+    color: var(--brass-deep);
+    font-size: 1.125rem;
+}
+
+.admin-dashboard-period p {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    min-width: 0;
+    margin: 0;
+    font-size: 0.8125rem;
+    line-height: 1.3;
+}
+
+.admin-dashboard-period strong {
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.admin-intro {
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5rem;
+    align-items: flex-end;
+    padding: clamp(1.5rem, 4vw, 2.5rem);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+}
+
+.admin-intro .eyebrow,
+.admin-alert-panel .eyebrow {
+    display: inline-block;
+    margin: 0;
+}
+
+.admin-intro h2 {
+    margin: 0.4rem 0 0.75rem;
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 3vw, 2.375rem);
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    line-height: 1.12;
+    text-wrap: balance;
+}
+
+.admin-intro p:last-child {
+    max-width: 44rem;
+    margin: 0;
+    color: var(--muted);
+}
+
+.admin-dashboard-live-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 1.5rem;
+    margin: 0;
+    color: var(--muted-light);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.admin-header-actions {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    justify-content: flex-end;
+}
+
+/* Segmented control chọn khoảng ngày */
+.admin-range-filter {
+    display: inline-flex;
+    flex: 0 0 auto;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    background: var(--surface-sunken);
+}
+
+.admin-range-filter button {
+    min-width: 4.5rem;
+    min-height: 2.75rem;
+    border: 0;
+    border-radius: var(--admin-radius-inner);
+    background: transparent;
+    color: var(--ink-soft);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+}
+
+.admin-range-filter button:hover,
+.admin-range-filter button:focus {
+    background: var(--color-ink-wash);
+    color: var(--ink);
+}
+
+.admin-range-filter button.active {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+/* ---------- Workbench metrics ---------- */
+
+.admin-kpi-section {
+    display: grid;
+    gap: 1rem;
+}
+
+.admin-kpi-section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-inline: 0.25rem;
+}
+
+.admin-kpi-section-heading h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.admin-kpi-section-heading p {
+    margin: 0.25rem 0 0;
+    color: var(--muted);
+    font-size: 0.8125rem;
+}
+
+.admin-kpi-section-heading > span {
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.admin-kpi-card {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    gap: 0.75rem 1rem;
+    align-content: start;
+    min-width: 0;
+    padding: 1.25rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.admin-kpi-card[data-kpi-index="3"] {
+    grid-column: span 6;
+    background: var(--surface-sunken);
+}
+
+.admin-kpi-card[data-kpi-index="2"],
+.admin-kpi-card[data-kpi-index="0"] {
+    grid-column: span 3;
+}
+
+.admin-kpi-card[data-kpi-index="1"],
+.admin-kpi-card[data-kpi-index="4"],
+.admin-kpi-card[data-kpi-index="5"] {
+    grid-column: span 4;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .admin-kpi-card:hover {
+        border-color: var(--line-strong);
+    }
+}
+
+.admin-kpi-icon {
+    display: grid;
+    place-items: center;
+    width: 2rem;
+    height: 2rem;
+    color: var(--ink-soft);
+    font-size: 1.25rem;
+}
+
+.admin-kpi-content {
+    min-width: 0;
+}
+
+.admin-kpi-content h3 {
+    margin: 0 0 0.25rem;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-kpi-content strong {
+    display: block;
+    overflow-wrap: anywhere;
+    color: var(--ink);
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.03em;
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-kpi-card[data-kpi-index="3"] .admin-kpi-content strong {
+    font-size: clamp(2.5rem, 4vw, 3.5rem);
+}
+
+.admin-kpi-content strong.admin-kpi-value--empty {
+    color: var(--muted-light);
+    font-size: 1.0625rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    line-height: 1.5;
+}
+
+.admin-kpi-content p {
+    margin: 0.4rem 0 0;
+    color: var(--muted);
+    font-size: 0.8125rem;
+}
+
+.admin-kpi-content p:empty,
+.admin-kpi-content span:empty {
+    display: none;
+}
+
+.admin-kpi-content span {
+    display: inline-block;
+    margin-top: 0.5rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.admin-kpi-card--positive .admin-kpi-content span {
+    color: var(--success);
+}
+
+.admin-kpi-card--negative .admin-kpi-content span {
+    color: var(--error);
+}
+
+.admin-kpi-action {
+    grid-column: 1 / -1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    min-width: 0;
+    min-height: 2.75rem;
+    margin-top: 0.125rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--line);
+    color: var(--ink-soft);
+    font-size: 0.8125rem;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.admin-kpi-action span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-kpi-action i {
+    flex: 0 0 auto;
+    transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-kpi-action:hover,
+.admin-kpi-action:focus {
+    color: var(--brass-deep);
+}
+
+.admin-kpi-action:hover i {
+    transform: translateX(2px);
+}
+
+.admin-kpi-action:active {
+    transform: translateY(1px);
+}
+
+/* ---------- Action queue ---------- */
+
+.admin-alert-panel {
+    display: grid;
+    grid-template-columns: 13rem minmax(0, 1fr);
+    gap: 1.5rem;
+    padding: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+}
+
+.admin-alert-heading {
+    display: grid;
+    align-content: start;
+    gap: 0.5rem;
+    min-width: 0;
+}
+
+.admin-alert-heading > div {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+}
+
+.admin-alert-heading i {
+    color: var(--brass-deep);
+    font-size: 1.125rem;
+}
+
+.admin-alert-heading h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.admin-alert-heading > p {
+    max-width: 18ch;
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.75rem;
+    line-height: 1.5;
+}
+
+.admin-alert-list {
+    display: grid;
+}
+
+.admin-live-alert {
+    display: grid;
+    grid-template-columns: 1.5rem minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.875rem 0;
+    border-top: 1px solid var(--line);
+    background: transparent;
+}
+
+.admin-live-alert:first-child {
+    padding-top: 0;
+    border-top: 0;
+}
+
+.admin-live-alert:last-child {
+    padding-bottom: 0;
+}
+
+.admin-live-alert > i {
+    color: var(--muted);
+    font-size: 1.125rem;
+}
+
+.admin-live-alert > div {
+    min-width: 0;
+}
+
+.admin-live-alert h3 {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 600;
+}
+
+.admin-live-alert p {
+    display: -webkit-box;
+    margin: 0.25rem 0 0;
+    overflow: hidden;
+    color: var(--muted);
+    font-size: 0.8125rem;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.admin-live-alert a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0.35rem 0.75rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--admin-radius-inner);
+    background: transparent;
+    color: var(--ink);
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: background-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-live-alert a:hover {
+    background: var(--surface-sunken);
+}
+
+.admin-live-alert a:active {
+    transform: translateY(1px);
+}
+
+.admin-live-alert--danger > i {
+    color: var(--error);
+}
+
+.admin-live-alert--warning > i {
+    color: var(--brass-deep);
+}
+
+.admin-live-alert--success > i {
+    color: var(--success);
+}
+
+/* ---------- KPI methodology & foundation ---------- */
+
+.admin-kpi-methodology {
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    background: var(--surface-sunken);
+}
+
+.admin-kpi-methodology summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    min-height: 2.75rem;
+    padding: 0.625rem 0.875rem;
+    color: var(--ink-soft);
+    font-size: 0.8125rem;
+    font-weight: 650;
+    cursor: pointer;
+    list-style: none;
+}
+
+.admin-kpi-methodology summary::-webkit-details-marker {
+    display: none;
+}
+
+.admin-kpi-methodology summary span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.admin-kpi-methodology summary > i {
+    transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-kpi-methodology[open] summary > i {
+    transform: rotate(180deg);
+}
+
+.admin-kpi-methodology > div {
+    padding: 0 0.875rem 0.875rem;
+}
+
+.admin-kpi-methodology p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.8125rem;
+}
+
+.admin-kpi-methodology p + p {
+    margin-top: 0.35rem;
+}
+
+.admin-kpi-notes {
+    display: grid;
+    grid-template-columns: minmax(10rem, 0.7fr) minmax(0, 2fr) auto;
+    gap: 1rem;
+    align-items: start;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-card);
+    background: var(--surface-sunken);
+}
+
+.admin-kpi-notes h2 {
+    margin: 0;
+    font-size: 0.9375rem;
+    font-weight: 700;
+}
+
+.admin-kpi-notes p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.8125rem;
+}
+
+.admin-kpi-notes p + p {
+    margin-top: 0.35rem;
+}
+
+.admin-kpi-notes small {
+    color: var(--muted-light);
+    font-size: 0.75rem;
+    text-align: right;
+}
+
+.admin-foundation-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1rem;
+    margin-top: 1.5rem;
+}
+
+.admin-foundation-card {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1.375rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    transition: border-color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.admin-foundation-card:hover {
+    border-color: var(--line-strong);
+    box-shadow: var(--shadow-card);
+}
+
+.admin-foundation-card > i {
+    display: grid;
+    flex: 0 0 auto;
+    place-items: center;
+    width: 2.75rem;
+    height: 2.75rem;
+    border-radius: var(--radius-control);
+    background: var(--sage-soft);
+    color: var(--ink);
+    font-size: 1.375rem;
+}
+
+.admin-foundation-card h2 {
+    margin: 0 0 0.375rem;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.admin-foundation-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.8125rem;
+}

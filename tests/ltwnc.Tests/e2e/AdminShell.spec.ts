@@ -2,13 +2,16 @@ import { expect, test } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
-const cssPath = path.resolve('../../wwwroot/css/admin-dashboard.css');
+const cssDirectory = path.resolve('../../wwwroot/css/admin');
 const shellScriptPath = path.resolve('../../wwwroot/js/admin-shell.js');
+const readAdminCss = () => ['shell.css', 'dashboard.css', 'components.css', 'responsive.css']
+    .map(file => fs.readFileSync(path.join(cssDirectory, file), 'utf8'))
+    .join('\n');
 
 test.describe('Admin shell and shared controls', () => {
     test('mobile drawer supports pointer, keyboard, Escape, backdrop, and focus restoration', async ({ page }) => {
         await page.setViewportSize({ width: 375, height: 760 });
-        await page.setContent(shellHarness(fs.readFileSync(cssPath, 'utf8')));
+        await page.setContent(shellHarness(readAdminCss()));
         await page.addScriptTag({ path: shellScriptPath });
 
         const toggle = page.locator('[data-admin-menu-toggle]');
@@ -35,7 +38,7 @@ test.describe('Admin shell and shared controls', () => {
     test('long input values stay intact and long selects do not expand the page', async ({ page }) => {
         const longValue = 'admin-with-a-very-long-email-address-and-reference-code@example.com';
         await page.setViewportSize({ width: 360, height: 740 });
-        await page.setContent(controlHarness(fs.readFileSync(cssPath, 'utf8')));
+        await page.setContent(controlHarness(readAdminCss()));
 
         const input = page.locator('#long-input');
         const select = page.locator('#long-select');
@@ -43,14 +46,14 @@ test.describe('Admin shell and shared controls', () => {
 
         await expect(input).toHaveValue(longValue);
         expect(await select.evaluate(element => getComputedStyle(element).textOverflow)).toBe('ellipsis');
-        expect(await input.evaluate(element => getComputedStyle(element).textOverflow)).toBe('clip');
+        expect(await input.evaluate(element => getComputedStyle(element).textOverflow)).toBe('ellipsis');
         expect((await input.boundingBox())?.height).toBeGreaterThanOrEqual(44);
         expect((await select.boundingBox())?.height).toBeGreaterThanOrEqual(44);
         expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(360);
     });
 
     test('admin shell has no horizontal overflow at supported widths', async ({ page }) => {
-        const adminCss = fs.readFileSync(cssPath, 'utf8');
+        const adminCss = readAdminCss();
         for (const width of [360, 375, 768, 1024, 1440]) {
             await page.setViewportSize({ width, height: 800 });
             await page.setContent(shellHarness(adminCss));
@@ -59,8 +62,22 @@ test.describe('Admin shell and shared controls', () => {
         }
     });
 
+    test('dashboard workbench prioritizes completion without overflowing mobile', async ({ page }) => {
+        const adminCss = readAdminCss();
+        await page.setViewportSize({ width: 1280, height: 800 });
+        await page.setContent(dashboardHarness(adminCss));
+        const completionWidth = (await page.locator('[data-kpi-index="3"]').boundingBox())?.width ?? 0;
+        const sessionWidth = (await page.locator('[data-kpi-index="2"]').boundingBox())?.width ?? 0;
+        expect(completionWidth).toBeGreaterThan(sessionWidth);
+
+        await page.setViewportSize({ width: 320, height: 800 });
+        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
+        expect((await page.locator('[data-kpi-index="3"]').boundingBox())?.width)
+            .toBeLessThanOrEqual(280);
+    });
+
     test('content inventory uses compact rows on desktop and cards on mobile', async ({ page }) => {
-        const adminCss = fs.readFileSync(cssPath, 'utf8');
+        const adminCss = readAdminCss();
         await page.setViewportSize({ width: 1280, height: 800 });
         await page.setContent(contentTableHarness(adminCss));
         expect((await page.locator('.admin-content-table tbody tr').first().boundingBox())?.height)
@@ -92,9 +109,25 @@ function shellHarness(adminCss: string) {
                 <button class="admin-sidebar-backdrop" type="button" data-admin-menu-backdrop hidden aria-label="Đóng menu"></button>
                 <div class="admin-workspace">
                     <header class="admin-topbar"><div><h1>Tổng quan</h1></div></header>
-                    <main class="admin-main"><div class="admin-kpi-grid">${'<article class="admin-kpi-card"><div class="admin-kpi-content"><h2>Chỉ số</h2><strong>12</strong></div></article>'.repeat(6)}</div></main>
+                    <main class="admin-main"><div class="admin-kpi-grid">${'<article class="admin-kpi-card"><div class="admin-kpi-content"><h3>Chỉ số</h3><strong>12</strong></div></article>'.repeat(6)}</div></main>
                 </div>
             </div>
+        </body>`;
+}
+
+function dashboardHarness(adminCss: string) {
+    const cards = [3, 2, 0, 1, 4, 5].map(index => `
+        <article class="admin-kpi-card" data-kpi-index="${index}">
+            <div class="admin-kpi-icon">●</div>
+            <div class="admin-kpi-content"><h3>Chỉ số</h3><strong>68.4%</strong><p>Chi tiết</p></div>
+            <a class="admin-kpi-action">Xem chi tiết</a>
+        </article>`).join('');
+    return `
+        <style>${baseTokens()}${adminCss}</style>
+        <body class="admin-body">
+            <main class="admin-main">
+                <section class="admin-kpi-section"><div class="admin-kpi-grid">${cards}</div></section>
+            </main>
         </body>`;
 }
 

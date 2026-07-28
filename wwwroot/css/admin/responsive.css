@@ -1,0 +1,408 @@
+/* ==================== RESPONSIVE ==================== */
+
+@media (max-width: 62rem) {
+    .admin-shell {
+        grid-template-columns: 13.5rem minmax(0, 1fr);
+    }
+
+    .admin-foundation-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-kpi-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .admin-kpi-card,
+    .admin-kpi-card[data-kpi-index] {
+        grid-column: span 1;
+    }
+
+    .admin-kpi-card[data-kpi-index="3"] {
+        grid-column: span 2;
+    }
+
+    .admin-alert-panel {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-kpi-notes {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-kpi-notes small {
+        text-align: left;
+    }
+}
+
+@media (max-width: 47.99rem) {
+    .admin-shell {
+        display: block;
+    }
+
+    .admin-mobile-bar {
+        position: sticky;
+        top: 0;
+        z-index: 220;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        min-height: 3.5rem;
+        padding: 0.5rem 1rem;
+        border-bottom: 1px solid var(--line);
+        background: var(--color-mobile-bar-overlay);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
+
+    .admin-mobile-brand {
+        display: inline-flex;
+        align-items: center;
+        min-height: 2.75rem;
+        gap: 0.625rem;
+        min-width: 0;
+        color: var(--ink);
+        font-size: 0.875rem;
+        text-decoration: none;
+    }
+
+    .admin-mobile-brand > span {
+        display: grid;
+        place-items: center;
+        flex: 0 0 auto;
+        width: 2rem;
+        height: 2rem;
+        border-radius: var(--admin-radius-inner);
+        background: var(--brass);
+        font-family: var(--font-display);
+        font-weight: 800;
+    }
+
+    .admin-mobile-brand strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .admin-menu-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        min-width: 4.75rem;
+        min-height: 2.75rem;
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--line-strong);
+        border-radius: var(--radius-control);
+        background: var(--surface);
+        color: var(--ink);
+        font: inherit;
+        font-size: 0.8125rem;
+        font-weight: 650;
+        cursor: pointer;
+    }
+
+    .admin-sidebar {
+        position: fixed;
+        z-index: 240;
+        inset: 0 auto 0 0;
+        width: min(19rem, calc(100vw - 3rem));
+        max-width: 100%;
+        height: 100dvh;
+        padding: 1rem;
+        overflow-y: auto;
+        visibility: hidden;
+        pointer-events: none;
+        transform: translateX(-105%);
+        transition: transform var(--duration-fast) var(--ease-out),
+                    visibility 0s linear var(--duration-fast);
+    }
+
+    .admin-sidebar.is-open {
+        visibility: visible;
+        pointer-events: auto;
+        transform: translateX(0);
+        transition-delay: 0s;
+    }
+
+    .admin-sidebar-backdrop {
+        position: fixed;
+        z-index: 230;
+        inset: 0;
+        display: block;
+        width: 100%;
+        height: 100%;
+        padding: 0;
+        border: 0;
+        background: var(--color-backdrop);
+        cursor: pointer;
+    }
+
+    .admin-sidebar-backdrop[hidden] {
+        display: none;
+    }
+
+    .admin-menu-open {
+        overflow: hidden;
+    }
+
+    .admin-brand {
+        margin: 0 0 1rem;
+    }
+
+    .admin-navigation {
+        display: grid;
+        margin: 0;
+        padding: 0;
+        overflow: visible;
+    }
+
+    .admin-navigation a {
+        min-height: 2.75rem;
+    }
+
+    .admin-navigation a.active {
+        box-shadow: inset 3px 0 0 var(--brass);
+    }
+
+    .admin-sidebar-footer {
+        margin-top: auto;
+        padding-top: 1rem;
+    }
+
+    .admin-account {
+        grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+    }
+
+    .admin-account p {
+        display: grid;
+    }
+
+    .admin-topbar {
+        position: static;
+        flex-wrap: wrap;
+        gap: 0.875rem;
+        min-height: auto;
+    }
+
+    .admin-global-search {
+        width: 100%;
+        min-width: 0;
+        order: 3;
+    }
+
+    .admin-role-badge {
+        display: none;
+    }
+
+    .admin-dashboard-context,
+    .admin-intro {
+        display: grid;
+        align-items: start;
+    }
+
+    .admin-alert-heading > p {
+        max-width: none;
+    }
+
+    .admin-kpi-section-heading {
+        align-items: start;
+    }
+
+    .admin-range-filter {
+        width: 100%;
+    }
+
+    .admin-header-actions {
+        justify-content: stretch;
+        width: 100%;
+    }
+
+    .admin-range-filter button {
+        flex: 1 1 0;
+        min-width: 0;
+    }
+
+    .admin-live-alert {
+        grid-template-columns: 1.5rem minmax(0, 1fr);
+    }
+
+    .admin-live-alert a {
+        grid-column: 2;
+        justify-self: start;
+        min-height: 2.75rem;
+    }
+
+    .admin-filter-field input,
+    .admin-filter-field select,
+    .admin-filter-submit,
+    .admin-range-filter button,
+    .admin-global-search {
+        min-height: 2.75rem;
+    }
+
+    .admin-content-table-wrapper {
+        overflow: visible;
+        border: 0;
+        border-radius: 0;
+    }
+
+    .admin-content-table,
+    .admin-content-table tbody {
+        display: block;
+        width: 100%;
+    }
+
+    .admin-content-table thead {
+        display: none;
+    }
+
+    .admin-content-table tbody {
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .admin-content-table tbody tr {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem 1rem;
+        padding: 1rem;
+        border: 1px solid var(--line);
+        border-radius: var(--radius-control);
+        background: var(--surface);
+    }
+
+    .admin-content-table tbody tr:hover {
+        background: var(--surface);
+    }
+
+    .admin-content-table td,
+    .admin-content-table td:nth-child(2) {
+        display: grid;
+        gap: 0.25rem;
+        max-width: none;
+        padding: 0;
+        border: 0;
+        overflow-wrap: anywhere;
+        white-space: normal;
+    }
+
+    .admin-content-table td::before {
+        content: attr(data-label);
+        color: var(--muted);
+        font-size: 0.6875rem;
+        font-weight: 600;
+    }
+
+    .admin-content-table-title,
+    .admin-content-table td:nth-child(2),
+    .admin-content-table td:nth-child(7),
+    .admin-content-table-action {
+        grid-column: 1 / -1;
+    }
+
+    .admin-content-table-title::before,
+    .admin-content-table-action::before {
+        display: none;
+    }
+
+    .admin-content-table-action {
+        padding-top: 0.25rem !important;
+        border-top: 1px solid var(--line) !important;
+    }
+
+    .admin-row-action {
+        justify-content: space-between;
+        width: 100%;
+    }
+}
+
+@media (max-width: 40rem) {
+    .admin-filter-form {
+        display: grid;
+    }
+
+    .admin-filter-field,
+    .admin-filter-field--compact {
+        min-width: 0;
+    }
+
+    .admin-detail-grid,
+    .admin-action-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 30rem) {
+    .admin-kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 0.75rem;
+    }
+
+    .admin-kpi-card,
+    .admin-kpi-card[data-kpi-index="3"] {
+        grid-column: 1;
+    }
+
+    .admin-kpi-card {
+        grid-template-columns: 2.5rem minmax(0, 1fr);
+        gap: 0.5rem 0.75rem;
+        padding: 1rem;
+    }
+
+    .admin-kpi-icon {
+        width: 2.5rem;
+        height: 2.5rem;
+        font-size: 1.25rem;
+    }
+
+    .admin-kpi-content h3 {
+        margin-bottom: 0.2rem;
+    }
+
+    .admin-kpi-content strong {
+        font-size: 1.75rem;
+    }
+
+    .admin-kpi-content p {
+        margin-top: 0.3rem;
+    }
+
+    .admin-kpi-content span {
+        margin-top: 0.4rem;
+    }
+
+    .admin-kpi-action {
+        grid-column: 1 / -1;
+        min-height: 2.75rem;
+        margin-top: 0;
+        padding-top: 0.4rem;
+    }
+
+    .admin-learner-link span {
+        font-size: 0.75rem;
+    }
+
+    .admin-pagination {
+        flex-wrap: wrap;
+    }
+}
+
+/* ==================== REDUCED MOTION ==================== */
+
+@media (prefers-reduced-motion: reduce) {
+    .admin-body *,
+    .admin-body *::before,
+    .admin-body *::after {
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+
+    .admin-navigation a,
+    .admin-learner-link {
+        transition: none;
+    }
+}

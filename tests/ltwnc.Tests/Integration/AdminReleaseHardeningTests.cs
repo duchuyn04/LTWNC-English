@@ -72,11 +72,9 @@ public sealed class AdminReleaseHardeningTests
     [Fact]
     public void AdminStyles_DefineMobileFloorFocusRingAndReducedMotion()
     {
-        string css = File.ReadAllText(Path.Combine(
-            RepositoryRoot,
-            "wwwroot",
-            "css",
-            "admin-dashboard.css"));
+        string adminCssDirectory = Path.Combine(RepositoryRoot, "wwwroot", "css", "admin");
+        string css = string.Concat(
+            Directory.GetFiles(adminCssDirectory, "*.css").Select(File.ReadAllText));
 
         Assert.Contains("min-width: 0", css);
         Assert.Contains(":focus-visible", css);

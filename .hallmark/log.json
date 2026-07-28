@@ -1,0 +1,10 @@
+[
+  {
+    "date": "2026-07-28",
+    "macrostructure": "Workbench",
+    "theme": "LTWNC warm editorial",
+    "enrichment": "none",
+    "brief": "Redesign the admin dashboard for operational triage",
+    "scope": "single-page"
+  }
+]

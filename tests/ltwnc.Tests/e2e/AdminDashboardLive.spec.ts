@@ -2,6 +2,11 @@ import { expect, test } from '@playwright/test';
 import fs from 'fs';
 import path from 'path';
 
+const cssDirectory = path.resolve('../../wwwroot/css/admin');
+const readAdminCss = () => ['shell.css', 'dashboard.css', 'components.css', 'responsive.css']
+    .map(file => fs.readFileSync(path.join(cssDirectory, file), 'utf8'))
+    .join('\n');
+
 test.describe('Admin dashboard live polling', () => {
     test('refreshes on interval without overlapping requests', async ({ page }) => {
         let requestCount = 0;
@@ -99,7 +104,7 @@ test.describe('Admin dashboard live polling', () => {
     });
 
     test('keeps keyboard focus visible at 360px and respects reduced motion', async ({ page }) => {
-        const adminCss = fs.readFileSync(path.resolve('../../wwwroot/css/admin-dashboard.css'), 'utf8');
+        const adminCss = readAdminCss();
         await page.setViewportSize({ width: 360, height: 740 });
         await page.emulateMedia({ reducedMotion: 'reduce' });
         await page.setContent(`

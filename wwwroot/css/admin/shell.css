@@ -1,0 +1,485 @@
+/* ============================================================
+   LTWNC Admin — Warm Editorial (tinh chỉnh)
+   Một hệ thiết kế duy nhất: mọi màu/radius/motion map về
+   design tokens của site.css. Không dùng hex rỗng, không pill
+   tràn lan, không uppercase lạm dụng.
+   ============================================================ */
+
+/* ---------- Admin tokens (bổ trợ site.css, scope riêng admin) ---------- */
+
+html {
+    overflow-x: clip;
+}
+
+.admin-body {
+    /* Radius: card 16 / control 10 / inner 8 — khóa hình dạng */
+    --admin-radius-inner: 8px;
+    /* Nút primary hover/active */
+    --admin-ink-hover: color-mix(in srgb, var(--ink) 86%, var(--paper));
+    --admin-error-hover: color-mix(in srgb, var(--error) 86%, var(--paper));
+    /* Badge warning dùng tông đồng thay vàng chóe */
+    --admin-warning-bg: var(--brass-soft);
+    --admin-warning-text: var(--brass-deep);
+    /* Z-index scale */
+    --admin-z-skip: 1100;
+
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: clip;
+    background: var(--paper);
+    scroll-behavior: smooth;
+}
+
+.admin-body *,
+.admin-body *::before,
+.admin-body *::after {
+    box-sizing: border-box;
+}
+
+/* Thay thế visually-hidden của Bootstrap (admin không load Bootstrap) */
+.visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0 0 0 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
+}
+
+.admin-body :focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 2px;
+    border-radius: 4px;
+}
+
+.admin-main:focus-visible {
+    outline-offset: -2px;
+}
+
+.admin-body button:disabled,
+.admin-body [aria-disabled="true"] {
+    opacity: 0.55;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.admin-skip-link {
+    position: fixed;
+    z-index: var(--admin-z-skip);
+    top: 0.75rem;
+    left: 0.75rem;
+    padding: 0.625rem 0.875rem;
+    border-radius: var(--radius-control);
+    background: var(--ink);
+    color: var(--paper);
+    transform: translateY(-150%);
+    transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-skip-link:focus {
+    color: var(--paper);
+    transform: translateY(0);
+}
+
+/* ==================== SHELL ==================== */
+
+.admin-shell {
+    display: grid;
+    grid-template-columns: 16.5rem minmax(0, 1fr);
+    min-height: 100vh;
+}
+
+.admin-mobile-bar,
+.admin-sidebar-backdrop {
+    display: none;
+}
+
+/* ---------- Sidebar ---------- */
+
+.admin-sidebar {
+    position: sticky;
+    top: 0;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 1.5rem 0.875rem;
+    overflow-y: auto;
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.admin-brand {
+    display: grid;
+    grid-template-columns: 2.5rem 1fr;
+    grid-template-rows: auto auto;
+    column-gap: 0.75rem;
+    align-items: center;
+    margin: 0 0.5rem 1.75rem;
+    color: var(--paper);
+    text-decoration: none;
+}
+
+.admin-brand:hover,
+.admin-brand:focus {
+    color: var(--paper);
+}
+
+.admin-brand > span {
+    grid-row: 1 / 3;
+    display: grid;
+    place-items: center;
+    width: 2.5rem;
+    height: 2.5rem;
+    border-radius: var(--radius-control);
+    background: var(--brass);
+    color: var(--ink);
+    font-family: var(--font-display);
+    font-weight: 800;
+}
+
+.admin-brand strong {
+    align-self: end;
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    line-height: 1;
+    letter-spacing: 0.01em;
+}
+
+.admin-brand small {
+    align-self: start;
+    margin-top: 0.2rem;
+    color: var(--muted-light);
+    font-size: 0.625rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+}
+
+.admin-navigation {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.admin-navigation-group {
+    display: grid;
+    gap: 0.125rem;
+}
+
+.admin-navigation-label,
+.admin-navigation-disclosure summary {
+    margin: 0 0.75rem 0.35rem;
+    color: var(--muted-light);
+    font-size: 0.6875rem;
+    font-weight: 600;
+}
+
+.admin-navigation-disclosure summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 2rem;
+    cursor: pointer;
+    list-style: none;
+}
+
+.admin-navigation-disclosure summary::-webkit-details-marker {
+    display: none;
+}
+
+.admin-navigation-disclosure summary i {
+    font-size: 0.875rem;
+    transition: transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-navigation-disclosure[open] summary i {
+    transform: rotate(180deg);
+}
+
+.admin-navigation-disclosure summary:hover,
+.admin-navigation-disclosure summary:focus-visible {
+    color: var(--surface);
+}
+
+.admin-navigation a,
+.admin-learner-link {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    min-height: 2.75rem;
+    padding: 0.55rem 0.75rem;
+    border-radius: var(--radius-control);
+    color: var(--line-strong);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+}
+
+.admin-navigation a span,
+.admin-learner-link span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-navigation a:hover,
+.admin-navigation a:focus,
+.admin-learner-link:hover,
+.admin-learner-link:focus {
+    background: var(--admin-sidebar-hover);
+    color: var(--surface);
+}
+
+/* Active: nền sáng nhẹ + vạch đồng trái — một tín hiệu, rõ ràng */
+.admin-navigation a.active {
+    background: var(--admin-sidebar-active);
+    box-shadow: inset 3px 0 0 var(--brass);
+    color: var(--surface);
+    font-weight: 600;
+}
+
+.admin-navigation i,
+.admin-learner-link i {
+    flex: 0 0 auto;
+    font-size: 1.2rem;
+}
+
+.admin-sidebar-footer {
+    display: grid;
+    gap: 0.75rem;
+    margin-top: auto;
+    padding-top: 1.5rem;
+}
+
+.admin-learner-link {
+    border: 1px solid var(--admin-sidebar-line);
+}
+
+.admin-account {
+    display: grid;
+    grid-template-columns: 2.25rem minmax(0, 1fr) auto;
+    gap: 0.625rem;
+    align-items: center;
+    padding-top: 0.875rem;
+    border-top: 1px solid var(--admin-sidebar-line);
+}
+
+.admin-avatar {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: var(--radius-control);
+    background: var(--sage);
+    color: var(--ink);
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.admin-account p {
+    display: grid;
+    min-width: 0;
+    margin: 0;
+}
+
+.admin-account strong,
+.admin-account small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-account strong {
+    color: var(--surface);
+    font-size: 0.8125rem;
+}
+
+.admin-account small {
+    color: var(--muted-light);
+    font-size: 0.6875rem;
+}
+
+.admin-account button {
+    display: grid;
+    place-items: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    border: 0;
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--line-strong);
+    cursor: pointer;
+    transition: color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+}
+
+.admin-account button:hover,
+.admin-account button:focus {
+    background: var(--admin-sidebar-hover);
+    color: var(--surface);
+}
+
+/* ---------- Workspace & topbar ---------- */
+
+.admin-workspace {
+    min-width: 0;
+}
+
+.admin-page-title {
+    min-width: 0;
+}
+
+.admin-topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    min-height: 5.25rem;
+    padding: 1rem clamp(1rem, 4vw, 3rem);
+    border-bottom: 1px solid var(--line);
+    background: var(--color-topbar-overlay);
+    backdrop-filter: blur(12px) saturate(1.05);
+    -webkit-backdrop-filter: blur(12px) saturate(1.05);
+}
+
+.admin-topbar p {
+    margin: 0 0 0.2rem;
+    color: var(--brass-deep);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+}
+
+.admin-topbar h1 {
+    min-width: 0;
+    margin: 0;
+    overflow-wrap: anywhere;
+    font-size: clamp(1.375rem, 2.4vw, 1.875rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1.15;
+}
+
+.admin-global-search {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    width: min(26rem, 40vw);
+    min-width: 15rem;
+    min-height: 2.5rem;
+    padding: 0.3rem 0.4rem 0.3rem 0.75rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--muted);
+    transition: border-color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.admin-global-search:focus-within {
+    border-color: var(--brass);
+    box-shadow: 0 0 0 3px var(--brass-soft);
+}
+
+.admin-global-search input {
+    align-self: stretch;
+    width: 100%;
+    min-width: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    outline: 0;
+    font: inherit;
+    font-size: 0.875rem;
+    line-height: 1.25;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.admin-global-search input::placeholder {
+    color: var(--muted-light);
+}
+
+.admin-global-search button {
+    display: inline-grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 2.75rem;
+    height: 2.75rem;
+    border: 0;
+    border-radius: var(--admin-radius-inner);
+    background: var(--ink);
+    color: var(--paper);
+    cursor: pointer;
+    transition: background-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+}
+
+.admin-global-search button:hover {
+    background: var(--admin-ink-hover);
+}
+
+.admin-global-search button:active {
+    transform: translateY(1px);
+}
+
+/* Badge phiên: trung tính, không pill xanh lá */
+.admin-role-badge,
+.admin-ready-badge {
+    display: inline-flex;
+    gap: 0.4rem;
+    align-items: center;
+    padding: 0.35rem 0.7rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    color: var(--ink-soft);
+    font-size: 0.75rem;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.admin-main {
+    width: min(88rem, 100%);
+    margin: 0 auto;
+    padding: clamp(1.25rem, 4vw, 2.75rem);
+}
+
+/* ==================== PANEL NỀN CHUNG ==================== */
+
+.admin-panel {
+    margin-bottom: 1.5rem;
+    padding: 1.5rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+}
+
+.admin-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 1rem;
+    margin-bottom: 1.125rem;
+}
+
+.admin-panel-header h2 {
+    margin: 0;
+    font-size: 1.125rem;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    text-wrap: balance;
+}
+
+.admin-panel-header p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+}

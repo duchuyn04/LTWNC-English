@@ -54,11 +54,8 @@ artifacts/
 *.swo
 *~
 
-## Claude Code
+## PI
 .agents/
-skills-lock.json
-AGENTS.md
-CONTEXT.md
 
 ## Tests
 tests/*

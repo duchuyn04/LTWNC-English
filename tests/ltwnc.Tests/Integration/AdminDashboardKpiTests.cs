@@ -40,6 +40,11 @@ public sealed class AdminDashboardKpiTests
         Assert.Contains("Hoàn thành", html);
         Assert.Contains("Hội thoại AI", html);
         Assert.Contains("Lỗi AI trong kỳ", html);
+        Assert.Contains("Chỉ số trong kỳ", html);
+        Assert.Contains("href=\"/css/admin/tokens.css?v=", html);
+        Assert.True(
+            html.IndexOf("data-kpi-index=\"3\"", StringComparison.Ordinal)
+            < html.IndexOf("data-kpi-index=\"2\"", StringComparison.Ordinal));
         Assert.Contains("href=\"/Admin/Users\">", html);
         Assert.Contains("Xem người dùng", html);
         Assert.Contains("href=\"/Admin/Learning\">", html);

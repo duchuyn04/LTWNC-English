@@ -51,6 +51,9 @@ public sealed class AdminLoginFlowTests : IClassFixture<AdminWebApplicationFacto
         Assert.Contains("Hồ sơ học tập", html);
         Assert.Contains("Hội thoại AI", html);
         Assert.Contains("<span>Hệ thống</span>", html);
+        Assert.Equal(
+            2,
+            html.Split("class=\"admin-navigation-disclosure\" open", StringSplitOptions.None).Length - 1);
         Assert.Contains("Thành tích", html);
         Assert.Contains("Cấu hình AI", html);
         Assert.Contains("Nhật ký quản trị", html);

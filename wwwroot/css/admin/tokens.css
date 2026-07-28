@@ -1,0 +1,92 @@
+/* Hallmark tokens · LTWNC Admin Workbench */
+:root {
+    --color-paper: oklch(96.5% 0.012 85);
+    --color-surface: oklch(99% 0.007 85);
+    --color-surface-sunken: oklch(93.5% 0.018 85);
+    --color-ink: oklch(29% 0.025 140);
+    --color-ink-soft: oklch(39% 0.025 140);
+    --color-muted: oklch(47% 0.018 135);
+    --color-muted-light: oklch(68% 0.012 130);
+    --color-rule: oklch(89% 0.012 125);
+    --color-rule-strong: oklch(82% 0.018 125);
+    --color-sage: oklch(91% 0.035 130);
+    --color-sage-soft: oklch(95% 0.025 130);
+    --color-accent: oklch(61% 0.13 73);
+    --color-accent-ink: var(--color-ink);
+    --color-accent-deep: oklch(50% 0.11 73);
+    --color-accent-soft: oklch(95% 0.025 85);
+    --color-success: oklch(48% 0.075 150);
+    --color-success-bg: oklch(93% 0.025 145);
+    --color-error: oklch(48% 0.13 25);
+    --color-error-bg: oklch(94% 0.03 30);
+    --color-focus: oklch(54% 0.14 73);
+    --color-shadow: oklch(29% 0.025 140 / 0.08);
+    --color-sidebar-hover: oklch(99% 0.007 85 / 0.08);
+    --color-sidebar-active: oklch(99% 0.007 85 / 0.13);
+    --color-sidebar-rule: oklch(99% 0.007 85 / 0.14);
+    --color-topbar-overlay: oklch(96.5% 0.012 85 / 0.88);
+    --color-mobile-bar-overlay: oklch(96.5% 0.012 85 / 0.96);
+    --color-ink-wash: oklch(29% 0.025 140 / 0.06);
+    --color-ink-underline: oklch(29% 0.025 140 / 0.3);
+    --color-backdrop: oklch(22% 0.025 140 / 0.48);
+
+    --font-display: "Newsreader", Georgia, serif;
+    --font-body: "Be Vietnam Pro", "Helvetica Neue", "Segoe UI", sans-serif;
+
+    --space-3xs: 0.125rem;
+    --space-2xs: 0.25rem;
+    --space-xs: 0.5rem;
+    --space-sm: 0.75rem;
+    --space-md: 1rem;
+    --space-lg: 1.5rem;
+    --space-xl: 2.5rem;
+    --space-2xl: 4rem;
+    --space-3xl: 6rem;
+
+    --text-xs: 0.75rem;
+    --text-sm: 0.875rem;
+    --text-base: 1rem;
+    --text-md: 1.25rem;
+    --text-lg: 1.5625rem;
+    --text-xl: 1.953rem;
+
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+    --ease-in: cubic-bezier(0.7, 0, 0.84, 0);
+    --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+    --dur-micro: 120ms;
+    --dur-short: 220ms;
+    --dur-long: 420ms;
+
+    --radius-card: 16px;
+    --radius-control: 10px;
+    --radius-inner: 8px;
+    --rule-thin: 1px;
+}
+
+/* Scope the Hallmark palette to Admin so learner-facing pages stay unchanged. */
+.admin-body {
+    --paper: var(--color-paper);
+    --surface: var(--color-surface);
+    --surface-sunken: var(--color-surface-sunken);
+    --ink: var(--color-ink);
+    --ink-soft: var(--color-ink-soft);
+    --muted: var(--color-muted);
+    --muted-light: var(--color-muted-light);
+    --line: var(--color-rule);
+    --line-strong: var(--color-rule-strong);
+    --sage: var(--color-sage);
+    --sage-soft: var(--color-sage-soft);
+    --brass: var(--color-accent);
+    --brass-deep: var(--color-accent-deep);
+    --brass-soft: var(--color-accent-soft);
+    --success: var(--color-success);
+    --success-bg: var(--color-success-bg);
+    --error: var(--color-error);
+    --error-bg: var(--color-error-bg);
+    --admin-sidebar-hover: var(--color-sidebar-hover);
+    --admin-sidebar-active: var(--color-sidebar-active);
+    --admin-sidebar-line: var(--color-sidebar-rule);
+    --shadow-card: 0 1px 2px var(--color-shadow);
+    --duration-fast: var(--dur-micro);
+    --duration-med: var(--dur-short);
+}

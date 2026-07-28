@@ -1,0 +1,21 @@
+{
+  "scannedAt": "2026-07-28",
+  "framework": "ASP.NET Core Razor with vanilla CSS and JavaScript",
+  "fontStack": {
+    "display": "Newsreader",
+    "body": "Be Vietnam Pro",
+    "source": "Areas/Admin/Views/Shared/_AdminLayout.cshtml"
+  },
+  "palette": {
+    "source": "wwwroot/css/site.css",
+    "anchor": "warm paper, forest ink, brass accent"
+  },
+  "motion": "CSS transitions with reduced-motion support",
+  "spacing": "rem-based existing scale",
+  "preserve": [
+    "routes and server-side dashboard behavior",
+    "font pairing",
+    "brand palette",
+    "admin navigation information architecture"
+  ]
+}

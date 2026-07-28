@@ -69,7 +69,10 @@ public sealed class AdminAreaAccessTests : IClassFixture<AdminWebApplicationFact
         Assert.Contains("Nhật ký quản trị", html);
         Assert.Contains("href=\"/Set\" target=\"_blank\"", html);
         Assert.Contains("/css/site.css", html);
-        Assert.Contains("/css/admin-dashboard.css", html);
+        Assert.Contains("/css/admin/shell.css", html);
+        Assert.Contains("/css/admin/dashboard.css", html);
+        Assert.Contains("/css/admin/components.css", html);
+        Assert.Contains("/css/admin/responsive.css", html);
         Assert.DoesNotContain("PROTOTYPE", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("prototype-switcher", html);
         Assert.DoesNotContain("12.480", html);
