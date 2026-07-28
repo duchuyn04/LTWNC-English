@@ -71,6 +71,105 @@ Có ba nhóm dữ liệu:
 
 Method `Clone()` xử lý hai nhóm đầu. Service xử lý nhóm cuối.
 
+## Trước khi áp dụng Prototype, code được viết như thế nào?
+
+Trước đây, `FlashcardSetService` tự tạo bộ thẻ mới rồi chép từng thuộc tính từ bộ nguồn.
+
+Code cũ có dạng như sau:
+
+```csharp
+var copy = new FlashcardSet
+{
+    Title = source.Title,
+    Description = source.Description,
+    UserId = learnerId,
+    IsPublic = false,
+    SourceSetId = source.Id,
+    CreatedAt = DateTime.UtcNow,
+    UpdatedAt = DateTime.UtcNow
+};
+```
+
+Sau đó service tiếp tục tự tạo bản sao cho từng thẻ:
+
+```csharp
+copy.Flashcards = source.Flashcards.Select(card => new Flashcard
+{
+    FrontText = card.FrontText,
+    BackText = card.BackText,
+    Pronunciation = card.Pronunciation,
+    PartOfSpeech = card.PartOfSpeech,
+    ExampleSentence = card.ExampleSentence,
+    ExampleMeaning = card.ExampleMeaning,
+    IsStarred = card.IsStarred,
+    UploadedImagePath = card.UploadedImagePath
+}).ToList();
+```
+
+Cách này vẫn tạo được bản sao. Vấn đề là service phải biết quá nhiều chi tiết của `FlashcardSet` và `Flashcard`.
+
+Trong cùng một method, service phải làm tất cả các việc sau:
+
+```text
+Kiểm tra bộ nguồn
+Kiểm tra quyền sao chép
+Kiểm tra bản sao đã tồn tại chưa
+Nhớ từng thuộc tính cần sao chép
+Nhớ từng thuộc tính cần reset
+Tạo bản sao cho từng thẻ
+Lưu database
+```
+
+Method trở nên dài và khó kiểm tra. Khi entity có thêm một thuộc tính, lập trình viên phải nhớ quay lại service để sửa đoạn sao chép.
+
+Code cũ còn sao chép cả `IsStarred` và `UploadedImagePath`. Điều này không đúng với người chủ mới:
+
+- `IsStarred` là lựa chọn cá nhân của An, không phải của Bình.
+- `UploadedImagePath` chỉ là đường dẫn đến file ảnh cũ. Chép đường dẫn không tạo ra một file ảnh mới.
+
+Sai sót này xảy ra vì quy tắc sao chép nằm lẫn trong một service đang làm nhiều việc khác.
+
+## Vì sao chọn Prototype cho chức năng này?
+
+Chức năng sao chép bộ thẻ có đúng các dấu hiệu phù hợp với Prototype.
+
+### Đã có sẵn một object làm mẫu
+
+Service đã tải `source`, tức bộ thẻ của An, từ database. Object mới của Bình phần lớn giống object này. Vì vậy tạo bản sao từ `source` tự nhiên hơn việc dựng lại mọi thuộc tính trong service.
+
+### Bản sao giống bản gốc nhưng không giống hoàn toàn
+
+Nội dung học cần được giữ, còn ID, chủ sở hữu, quyền công khai và trạng thái cá nhân phải thay đổi. `Clone()` là nơi ghi rõ quy tắc giữ gì và bỏ gì.
+
+### Object có nhiều object con
+
+Một `FlashcardSet` chứa nhiều `Flashcard`. Mỗi thẻ cũng phải được tạo thành object mới. Prototype cho phép `FlashcardSet.Clone()` gọi tiếp `Flashcard.Clone()` để tạo deep copy.
+
+### Entity hiểu dữ liệu của nó rõ nhất
+
+`Flashcard` biết thuộc tính nào là nội dung học và thuộc tính nào là trạng thái cá nhân. Đặt quy tắc sao chép trong `Flashcard.Clone()` giúp service không cần biết chi tiết đó.
+
+Có thể so sánh ngắn gọn:
+
+```text
+Trước Prototype:
+Service tự chép từng thuộc tính của bộ thẻ và từng thẻ con.
+
+Sau Prototype:
+Service yêu cầu source.Clone() tạo bản sao đúng quy tắc.
+```
+
+Code trong service được rút từ một khối sao chép dài thành:
+
+```csharp
+FlashcardSet copy = source.Clone();
+copy.UserId = learnerId;
+copy.SourceSetId = source.Id;
+copy.IsPublic = false;
+```
+
+Prototype không được chọn chỉ để code ngắn hơn. Nó được chọn để quy tắc sao chép nằm đúng chỗ và không bị rải trong service.
+
 ## Vì sao không dùng dấu `=`?
 
 Đoạn code sau không tạo bản sao:
