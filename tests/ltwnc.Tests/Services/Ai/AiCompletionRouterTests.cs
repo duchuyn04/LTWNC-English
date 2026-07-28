@@ -45,8 +45,16 @@ public sealed class AiCompletionRouterTests : IDisposable
     [Fact]
     public async Task CompleteAsync_WhenFirstProviderFails_UsesNextProviderAndLogsFallbackAttempt()
     {
-        await SeedProviderAsync("Primary", priority: 0, isEnabled: true, lastCheckSucceeded: true);
-        await SeedProviderAsync("Backup", priority: 1, isEnabled: true, lastCheckSucceeded: true);
+        AiProvider primary = await SeedProviderAsync(
+            "Primary",
+            priority: 0,
+            isEnabled: true,
+            lastCheckSucceeded: true);
+        AiProvider backup = await SeedProviderAsync(
+            "Backup",
+            priority: 1,
+            isEnabled: true,
+            lastCheckSucceeded: true);
         _adapter.Failures["Primary"] = new AiProviderUnavailableException("lỗi tạm thời");
         _adapter.Responses["Backup"] = "backup-ok";
 
@@ -56,10 +64,13 @@ public sealed class AiCompletionRouterTests : IDisposable
             .ToListAsync();
 
         Assert.Equal("backup-ok", result.Content);
+        Assert.Equal(backup.Id, result.ProviderId);
         Assert.Equal(["Primary", "Backup"], _adapter.Calls);
         Assert.False(logs[0].Succeeded);
+        Assert.Equal(primary.Id, logs[0].ProviderId);
         Assert.Equal(0, logs[0].FallbackAttempt);
         Assert.True(logs[1].Succeeded);
+        Assert.Equal(backup.Id, logs[1].ProviderId);
         Assert.Equal(1, logs[1].FallbackAttempt);
         string serializedLogs = JsonSerializer.Serialize(logs);
         Assert.DoesNotContain("system-secret", serializedLogs);
@@ -105,9 +116,9 @@ public sealed class AiCompletionRouterTests : IDisposable
     public async Task CompleteAsync_AllowsRunningRequestToFinishWhenProviderIsDisabledMidFlight()
     {
         AiProvider provider = await SeedProviderAsync("Running", priority: 0, isEnabled: true, lastCheckSucceeded: true);
-        _adapter.OnCallAsync = async calledProvider =>
+        _adapter.OnCallAsync = async _ =>
         {
-            AiProvider stored = await _context.AiProviders.SingleAsync(item => item.Id == calledProvider.Id);
+            AiProvider stored = await _context.AiProviders.SingleAsync(item => item.Id == provider.Id);
             stored.IsEnabled = false;
             await _context.SaveChangesAsync();
         };
@@ -181,15 +192,15 @@ public sealed class AiCompletionRouterTests : IDisposable
         public Dictionary<string, string> Responses { get; } = new(StringComparer.Ordinal);
         public Dictionary<string, Exception> Failures { get; } = new(StringComparer.Ordinal);
         public HashSet<string> DelayUntilCancelledFor { get; } = new(StringComparer.Ordinal);
-        public Func<AiProvider, Task>? OnCallAsync { get; set; }
+        public Func<AiProviderConnection, Task>? OnCallAsync { get; set; }
 
-        public void ValidateConfiguration(AiProvider provider)
+        public void ValidateConfiguration(AiProviderConnection connection)
         {
         }
 
         // Test router không dùng danh sách model.
         public Task<IReadOnlyList<string>> GetModelsAsync(
-            AiProvider provider,
+            AiProviderConnection connection,
             string? apiKey,
             CancellationToken cancellationToken)
         {
@@ -198,33 +209,33 @@ public sealed class AiCompletionRouterTests : IDisposable
 
         // Giả lập completion theo tên provider và tôn trọng cancellation token của router.
         public async Task<string> CompleteAsync(
-            AiProvider provider,
+            AiProviderConnection connection,
             string? apiKey,
             AiCompletionRequest request,
             CancellationToken cancellationToken)
         {
-            Calls.Add(provider.Name);
+            Calls.Add(connection.Name);
             if (OnCallAsync != null)
             {
-                await OnCallAsync(provider);
+                await OnCallAsync(connection);
             }
 
-            if (DelayUntilCancelledFor.Contains(provider.Name))
+            if (DelayUntilCancelledFor.Contains(connection.Name))
             {
                 await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
             }
 
-            if (Failures.TryGetValue(provider.Name, out Exception? exception))
+            if (Failures.TryGetValue(connection.Name, out Exception? exception))
             {
                 throw exception;
             }
 
-            if (Responses.TryGetValue(provider.Name, out string? response))
+            if (Responses.TryGetValue(connection.Name, out string? response))
             {
                 return response;
             }
 
-            return $"{provider.Name}-ok";
+            return $"{connection.Name}-ok";
         }
     }
 }

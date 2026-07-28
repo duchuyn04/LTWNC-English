@@ -141,11 +141,16 @@ public class AiCompletionRouter : IAiCompletionRouter
         // 2. Thực hiện khối nghiệp vụ và chuyển lỗi sang nhánh xử lý tương ứng.
         try
         {
-            // 3. Gọi `DecryptApiKey` và lưu kết quả vào `key`.
+            // 3. Chuyển entity lưu trữ thành cấu hình runtime trước khi giải mã secret.
+            var connection = new AiProviderConnection(
+                provider.Name,
+                provider.BaseUrl,
+                provider.ModelId,
+                provider.TimeoutSeconds);
+            // 4. Giải mã khóa ngay trước khi gọi Adapter; khóa không đi vào cấu hình runtime.
             string? key = DecryptApiKey(provider);
-            // 4. Gọi `CompleteAsync` và lưu kết quả vào `content`.
             string content = await adapter.CompleteAsync(
-                provider,
+                connection,
                 key,
                 request,
                 overallTimeout.Token);

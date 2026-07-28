@@ -1,7 +1,6 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using ltwnc.Models.Entities;
 using ltwnc.Services.Ai;
 using Microsoft.Extensions.Configuration;
 
@@ -219,15 +218,13 @@ public sealed class OpenAiCompatibleAdapterTests
         return new OpenAiCompatibleAdapter(client);
     }
 
-    private static AiProvider Provider()
+    private static AiProviderConnection Provider()
     {
-        return new AiProvider
-        {
-            Name = "Provider Test",
-            BaseUrl = "https://example.test/v1",
-            ModelId = "model-test",
-            TimeoutSeconds = 30
-        };
+        return new AiProviderConnection(
+            "Provider Test",
+            "https://example.test/v1",
+            "model-test",
+            30);
     }
 
     private sealed class FakeHttpClientFactory(HttpMessageHandler handler) : IHttpClientFactory

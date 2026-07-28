@@ -1,5 +1,3 @@
-using ltwnc.Models.Entities;
-
 namespace ltwnc.Services.Ai;
 
 // Adapter: chuyển contract của application sang contract riêng của OpenAI-compatible API client.
@@ -14,43 +12,43 @@ public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
 
     public string AdapterType => "OpenAICompatible";
 
-    public void ValidateConfiguration(AiProvider provider)
+    public void ValidateConfiguration(AiProviderConnection connection)
     {
         try
         {
-            _client.ValidateConfiguration(provider);
+            _client.ValidateConfiguration(connection);
         }
         catch (OpenAiClientException exception)
         {
             throw ToApplicationException(exception);
         }
 
-        if (string.IsNullOrWhiteSpace(provider.ModelId))
+        if (string.IsNullOrWhiteSpace(connection.ModelId))
         {
             throw new AiProviderConfigurationException("Model ID là bắt buộc.");
         }
 
-        if (provider.TimeoutSeconds is < 5 or > 300)
+        if (connection.TimeoutSeconds is < 5 or > 300)
         {
             throw new AiProviderConfigurationException("Timeout phải từ 5 đến 300 giây.");
         }
     }
 
     public async Task<IReadOnlyList<string>> GetModelsAsync(
-        AiProvider provider,
+        AiProviderConnection connection,
         string? apiKey,
         CancellationToken cancellationToken)
     {
         try
         {
             OpenAiModelListResponse response = await _client.GetModelsAsync(
-                provider,
+                connection,
                 apiKey,
                 cancellationToken);
             if (response.Data == null)
             {
                 throw new AiProviderUnavailableException(
-                    $"{provider.Name} trả danh sách model không hợp lệ.");
+                    $"{connection.Name} trả danh sách model không hợp lệ.");
             }
 
             return response.Data
@@ -68,13 +66,13 @@ public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
     }
 
     public async Task<string> CompleteAsync(
-        AiProvider provider,
+        AiProviderConnection connection,
         string? apiKey,
         AiCompletionRequest request,
         CancellationToken cancellationToken)
     {
         var openAiRequest = new OpenAiChatRequest(
-            provider.ModelId,
+            connection.ModelId,
             [
                 new OpenAiChatMessage("system", request.SystemPrompt),
                 new OpenAiChatMessage("user", request.UserPrompt)
@@ -85,7 +83,7 @@ public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
         try
         {
             OpenAiChatResponse response = await _client.CompleteAsync(
-                provider,
+                connection,
                 apiKey,
                 openAiRequest,
                 cancellationToken);
@@ -93,7 +91,7 @@ public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
             if (string.IsNullOrWhiteSpace(content))
             {
                 throw new AiProviderUnavailableException(
-                    $"{provider.Name} trả response không đúng chuẩn OpenAI.");
+                    $"{connection.Name} trả response không đúng chuẩn OpenAI.");
             }
 
             return content;

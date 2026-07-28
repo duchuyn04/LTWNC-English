@@ -580,8 +580,11 @@ public class AiProviderService : IAiProviderService
     {
         // 1. Gọi `GetRequiredAsync` và lưu kết quả vào `provider`.
         AiProvider provider = await GetRequiredAsync(id, cancellationToken);
-        // 2. Trả kết quả từ `GetModelsAsync` cho nơi gọi.
-        return await GetAdapter(provider).GetModelsAsync(provider, Decrypt(provider), cancellationToken);
+        // 2. Chỉ giải mã khóa ngay trước khi gọi Adapter.
+        return await GetAdapter(provider).GetModelsAsync(
+            ToConnection(provider),
+            Decrypt(provider),
+            cancellationToken);
     }
 
     // Thử một completion ngắn để xác nhận provider còn kết nối được.
@@ -592,9 +595,9 @@ public class AiProviderService : IAiProviderService
         // 2. Thực hiện khối nghiệp vụ và chuyển lỗi sang nhánh xử lý tương ứng.
         try
         {
-            // 3. Gọi `CompleteAsync` để thực hiện bước nghiệp vụ này.
+            // 3. Chỉ giải mã khóa ngay trước khi gọi Adapter.
             await GetAdapter(provider).CompleteAsync(
-                provider,
+                ToConnection(provider),
                 Decrypt(provider),
                 new AiCompletionRequest("Return only JSON.", "Return {\"ok\":true}.", 64),
                 cancellationToken);
@@ -682,18 +685,15 @@ public class AiProviderService : IAiProviderService
             return "Adapter là bắt buộc.";
         }
 
-        var provider = new AiProvider
-        {
-            Name = input.Name,
-            AdapterType = input.AdapterType,
-            BaseUrl = input.BaseUrl,
-            ModelId = input.ModelId,
-            TimeoutSeconds = input.TimeoutSeconds
-        };
+        var connection = new AiProviderConnection(
+            input.Name,
+            input.BaseUrl,
+            input.ModelId,
+            input.TimeoutSeconds);
 
         try
         {
-            GetAdapter(input.AdapterType).ValidateConfiguration(provider);
+            GetAdapter(input.AdapterType).ValidateConfiguration(connection);
             return null;
         }
         catch (AiProviderConfigurationException exception)
@@ -733,6 +733,16 @@ public class AiProviderService : IAiProviderService
             Reason: reason,
             CorrelationId: actor.CorrelationId,
             Metadata: metadata);
+    }
+
+    // Chuyển entity lưu trữ thành cấu hình runtime không chứa ID, trạng thái hoặc secret.
+    private static AiProviderConnection ToConnection(AiProvider provider)
+    {
+        return new AiProviderConnection(
+            provider.Name,
+            provider.BaseUrl,
+            provider.ModelId,
+            provider.TimeoutSeconds);
     }
 
     // Tìm adapter đã đăng ký trong DI theo loại provider.

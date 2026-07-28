@@ -493,19 +493,19 @@ public sealed class AiProviderServiceTests
         public string AdapterType => "Rejecting";
         public bool ValidateWasCalled { get; private set; }
 
-        public void ValidateConfiguration(AiProvider provider)
+        public void ValidateConfiguration(AiProviderConnection connection)
         {
             ValidateWasCalled = true;
             throw new AiProviderConfigurationException("Cấu hình bị adapter từ chối.");
         }
 
         public Task<IReadOnlyList<string>> GetModelsAsync(
-            AiProvider provider,
+            AiProviderConnection connection,
             string? apiKey,
             CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public Task<string> CompleteAsync(
-            AiProvider provider,
+            AiProviderConnection connection,
             string? apiKey,
             AiCompletionRequest request,
             CancellationToken cancellationToken) => throw new NotSupportedException();
