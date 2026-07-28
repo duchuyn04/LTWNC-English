@@ -375,7 +375,7 @@ public sealed class AiProviderServiceTests
                 ["AiProviders:AllowPrivateNetworks"] = allowPrivateNetworks.ToString()
             })
             .Build();
-        var client = new OpenAiCompatibleClient(new FakeHttpClientFactory(handler), configuration);
+        var client = new OpenAiCompatibleApiClient(new FakeHttpClientFactory(handler), configuration);
         var auditService = new AdminAuditService(context, TimeProvider.System);
         return new AiProviderService(
             context,

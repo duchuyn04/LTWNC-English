@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
@@ -60,6 +61,9 @@ public sealed class AiCompletionRouterTests : IDisposable
         Assert.Equal(0, logs[0].FallbackAttempt);
         Assert.True(logs[1].Succeeded);
         Assert.Equal(1, logs[1].FallbackAttempt);
+        string serializedLogs = JsonSerializer.Serialize(logs);
+        Assert.DoesNotContain("system-secret", serializedLogs);
+        Assert.DoesNotContain("user-conversation", serializedLogs);
     }
 
     // Không có provider đủ điều kiện thì người học chỉ nhận thông báo chung, không lộ tên provider.

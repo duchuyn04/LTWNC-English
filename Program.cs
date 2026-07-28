@@ -253,7 +253,7 @@ else
 {
     builder.Services.AddDataProtection();
 }
-builder.Services.AddScoped<ltwnc.Services.Ai.OpenAiCompatibleClient>();
+builder.Services.AddScoped<ltwnc.Services.Ai.OpenAiCompatibleApiClient>();
 builder.Services.AddScoped<ltwnc.Services.Ai.IAiProviderAdapter, ltwnc.Services.Ai.OpenAiCompatibleAdapter>();
 builder.Services.AddScoped<ltwnc.Services.Ai.IAiCompletionRouter, ltwnc.Services.Ai.AiCompletionRouter>();
 builder.Services.AddScoped<ltwnc.Services.Ai.IAiProviderService, ltwnc.Services.Ai.AiProviderService>();

@@ -690,7 +690,7 @@ public class AiProviderService : IAiProviderService
         try
         {
             // 6. Cập nhật `_` bằng giá trị mới.
-            _ = OpenAiCompatibleClient.BuildEndpoint(input.BaseUrl, "models", _allowPrivateNetworks);
+            _ = OpenAiCompatibleApiClient.BuildEndpoint(input.BaseUrl, "models", _allowPrivateNetworks);
         }
         catch (ArgumentException exception)
         {
