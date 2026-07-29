@@ -23,14 +23,13 @@ public class StudyControllerQuizTests
     private readonly Mock<IFlashcardSetService> _setService = new();
 
     [Fact]
-    public async Task QuizStart_renders_setup_with_active_session_continuation()
+    public async Task QuizStart_abandons_active_session_before_rendering_setup()
     {
         _quizService.Setup(service => service.GetSetupAsync(7, "user-1"))
             .ReturnsAsync(new QuizSetupState
             {
                 SetId = 7,
-                SetTitle = "Core English",
-                ActiveSession = new StudySession { Id = 42 }
+                SetTitle = "Core English"
             });
         StudyController controller = CreateController("user-1");
 
@@ -43,7 +42,9 @@ public class StudyControllerQuizTests
         Assert.Equal("Core English", model.SetTitle);
         Assert.Equal(QuizTimingMode.Preset, model.TimingMode);
         Assert.Equal(QuizService.DefaultQuizMinutes, model.SelectedPresetMinutes);
-        Assert.Equal(42, model.ActiveSessionId);
+        _quizService.Verify(
+            service => service.AbandonActiveAsync(7, "user-1"),
+            Times.Once);
         _quizService.Verify(
             service => service.GetSetupAsync(7, "user-1"),
             Times.Once);
@@ -564,6 +565,19 @@ public class StudyControllerQuizTests
     }
 
     [Fact]
+    public async Task QuizAbandon_cancels_session_and_redirects_to_study_index()
+    {
+        StudyController controller = CreateController("user-1");
+
+        IActionResult result = await controller.QuizAbandon(7, 42);
+
+        _quizService.Verify(service => service.AbandonAsync(7, 42, "user-1"), Times.Once);
+        RedirectToActionResult redirect = Assert.IsType<RedirectToActionResult>(result);
+        Assert.Equal(nameof(StudyController.Index), redirect.ActionName);
+        Assert.Equal(7, redirect.RouteValues!["setId"]);
+    }
+
+    [Fact]
     public async Task QuizRestart_redirects_to_fresh_session()
     {
         _quizService.Setup(service => service.RestartAsync(7, 42, "user-1"))
@@ -635,6 +649,7 @@ public class StudyControllerQuizTests
     [Theory]
     [InlineData("answer")]
     [InlineData("timeout")]
+    [InlineData("abandon")]
     [InlineData("restart")]
     [InlineData("retry-wrong")]
     [InlineData("retry-all")]
@@ -647,6 +662,7 @@ public class StudyControllerQuizTests
         {
             "answer" => await controller.QuizAnswer(7, 42, 501, 2),
             "timeout" => await controller.QuizTimeout(7, 42),
+            "abandon" => await controller.QuizAbandon(7, 42),
             "restart" => await controller.QuizRestart(7, 42),
             "retry-wrong" => await controller.RetryWrong(7, 42),
             "retry-all" => await controller.RetryAll(7, 42),
@@ -664,6 +680,7 @@ public class StudyControllerQuizTests
         AssertRoute(nameof(StudyController.Quiz), 3, "/Study/{setId}/Quiz/{sessionId:int}", typeof(HttpGetAttribute));
         AssertRoute(nameof(StudyController.QuizAnswer), 4, "/Study/{setId}/Quiz/{sessionId:int}/Answer", typeof(HttpPostAttribute));
         AssertRoute(nameof(StudyController.QuizTimeout), 2, "/Study/{setId}/Quiz/{sessionId:int}/Timeout", typeof(HttpPostAttribute));
+        AssertRoute(nameof(StudyController.QuizAbandon), 2, "/Study/{setId}/Quiz/{sessionId:int}/Abandon", typeof(HttpPostAttribute));
         AssertRoute(nameof(StudyController.QuizRestart), 2, "/Study/{setId}/Quiz/{sessionId:int}/Restart", typeof(HttpPostAttribute));
         AssertRoute(nameof(StudyController.QuizResult), 2, "/Study/{setId}/Quiz/Result/{sessionId:int}", typeof(HttpGetAttribute));
         AssertRoute(nameof(StudyController.RetryWrong), 2, "/Study/{setId}/Quiz/{sessionId:int}/RetryWrong", typeof(HttpPostAttribute));
@@ -671,6 +688,7 @@ public class StudyControllerQuizTests
 
         AssertPostValidatesAntiforgery(nameof(StudyController.QuizAnswer));
         AssertPostValidatesAntiforgery(nameof(StudyController.QuizTimeout));
+        AssertPostValidatesAntiforgery(nameof(StudyController.QuizAbandon));
         AssertPostValidatesAntiforgery(nameof(StudyController.QuizRestart));
         AssertPostValidatesAntiforgery(nameof(StudyController.RetryWrong));
         AssertPostValidatesAntiforgery(nameof(StudyController.RetryAll));

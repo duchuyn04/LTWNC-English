@@ -1,5 +1,21 @@
 [
   {
+    "date": "2026-07-29",
+    "macrostructure": "Narrative Workflow",
+    "theme": "Almanac adapted to LTWNC",
+    "enrichment": "none",
+    "brief": "Redesign the quiz setup and question flow for continuous answering",
+    "scope": "single-page"
+  },
+  {
+    "date": "2026-07-29",
+    "macrostructure": "Feature Stack",
+    "theme": "LTWNC warm editorial",
+    "enrichment": "none",
+    "brief": "Keep flashcard study actions available without vertical scrolling",
+    "scope": "single-page"
+  },
+  {
     "date": "2026-07-28",
     "macrostructure": "Workbench",
     "theme": "LTWNC warm editorial",

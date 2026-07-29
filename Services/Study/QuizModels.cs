@@ -20,7 +20,6 @@ public sealed class QuizSetupState
 {
     public int SetId { get; init; }
     public string SetTitle { get; init; } = string.Empty;
-    public StudySession? ActiveSession { get; init; }
 }
 
 public sealed class QuizQuestionState

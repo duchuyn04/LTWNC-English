@@ -3,6 +3,7 @@
     string? deadlineUtc = Model.DeadlineUtc?.ToUniversalTime().ToString("O");
     string? timeoutUrl = Url.Action("QuizTimeout", "Study", new { setId = Model.SetId, sessionId = Model.SessionId });
     ViewData["Title"] = "Trắc nghiệm";
+    ViewData["HideLayoutChrome"] = true;
     string directionLabel = Model.Direction == QuizQuestionDirection.TermToDefinition
         ? "Chọn nghĩa đúng"
         : "Chọn từ phù hợp";
@@ -12,7 +13,7 @@
     <link rel="stylesheet" href="~/css/quiz.css" asp-append-version="true" />
 }
 
-<div class="quiz-shell">
+<div class="quiz-shell quiz-shell-question">
     <main class="quiz-stage"
           data-quiz-root
           data-question-id="@Model.QuestionId"
@@ -25,10 +26,16 @@
 
         <header class="quiz-header">
             <div class="quiz-header-actions">
-                <a class="quiz-exit" asp-action="Index" asp-route-setId="@Model.SetId">
-                    <i class="ph ph-arrow-left" aria-hidden="true"></i>
-                    <span>Thoát</span>
-                </a>
+                <form asp-action="QuizAbandon"
+                      asp-route-setId="@Model.SetId"
+                      asp-route-sessionId="@Model.SessionId"
+                      method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="quiz-exit">
+                        <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                        <span>Thoát</span>
+                    </button>
+                </form>
                 <form asp-action="QuizRestart"
                       asp-route-setId="@Model.SetId"
                       asp-route-sessionId="@Model.SessionId"
@@ -42,21 +49,23 @@
                 <span class="quiz-eyebrow">Trắc nghiệm</span>
                 <h1>@Model.SetTitle</h1>
             </div>
-            <div class="quiz-score" aria-label="Số câu đúng">
-                <strong>@Model.CorrectCount</strong>
-                <span>đúng</span>
+            <div class="quiz-session-meta">
+                <div class="quiz-score" aria-label="Số câu đúng">
+                    <strong>@Model.CorrectCount</strong>
+                    <span>đúng</span>
+                </div>
+                @if (Model.DeadlineUtc.HasValue)
+                {
+                    <div class="quiz-timer"
+                         data-quiz-timer
+                         role="timer"
+                         aria-live="off"
+                         aria-label="Thời gian còn lại">--:--</div>
+                    <span class="visually-hidden"
+                          data-quiz-timer-announcement
+                          aria-live="polite"></span>
+                }
             </div>
-            @if (Model.DeadlineUtc.HasValue)
-            {
-                <div class="quiz-timer"
-                     data-quiz-timer
-                     role="timer"
-                     aria-live="off"
-                     aria-label="Thời gian còn lại">--:--</div>
-                <span class="visually-hidden"
-                      data-quiz-timer-announcement
-                      aria-live="polite"></span>
-            }
         </header>
 
         @if (TempData["Message"] is string message)
@@ -78,7 +87,7 @@
                  aria-valuemax="@Model.TotalQuestions"
                  aria-valuenow="@Model.AnsweredCount">
                 <span data-quiz-progress-bar
-                      style="width: @(Model.AnsweredCount * 100 / Math.Max(Model.TotalQuestions, 1))%"></span>
+                      style="--quiz-progress-value: @(Model.AnsweredCount / (double)Math.Max(Model.TotalQuestions, 1))"></span>
             </div>
         </div>
 
@@ -103,6 +112,7 @@
                             class="@choiceClass"
                             data-quiz-answer
                             data-choice-index="@index"
+                            aria-keyshortcuts="@(index + 1)"
                             disabled="@Model.IsReviewOnly">
                         <span class="quiz-choice-key" aria-hidden="true">@(index + 1)</span>
                         <span data-quiz-choice-text>@Model.Choices[index]</span>

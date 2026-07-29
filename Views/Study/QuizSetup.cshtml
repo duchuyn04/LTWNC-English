@@ -1,33 +1,40 @@
 @model QuizSetupViewModel
 @{
     ViewData["Title"] = "Thiết lập trắc nghiệm";
+    ViewData["HideLayoutChrome"] = true;
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/quiz.css" asp-append-version="true" />
 }
 
-<div class="quiz-shell">
+<div class="quiz-shell quiz-shell-setup">
     <main class="quiz-stage quiz-stage-setup">
         <header class="quiz-header quiz-header-setup">
-            <a class="quiz-exit" asp-action="Index" asp-route-setId="@Model.SetId">Thoát</a>
+            <a class="quiz-exit" asp-action="Index" asp-route-setId="@Model.SetId">
+                <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                <span>Thoát</span>
+            </a>
             <div class="quiz-heading">
                 <span class="quiz-eyebrow">Trắc nghiệm</span>
                 <h1>@Model.SetTitle</h1>
             </div>
         </header>
 
+        <ol class="quiz-steps" aria-label="Các bước làm bài">
+            <li class="is-current" aria-current="step"><span>1</span> Thiết lập</li>
+            <li><span>2</span> Làm bài</li>
+            <li><span>3</span> Kết quả</li>
+        </ol>
+
         <div class="quiz-setup-layout" data-quiz-setup>
             <section class="quiz-setup-main" aria-labelledby="quiz-setup-title">
-                <span class="quiz-eyebrow">Trắc nghiệm</span>
-                <h2 id="quiz-setup-title">Thiết lập bài trắc nghiệm</h2>
-                <p class="quiz-setup-intro">Chọn nhịp độ phù hợp trước khi bắt đầu.</p>
+                <h2 id="quiz-setup-title">Bạn muốn làm bài trong bao lâu?</h2>
+                <p class="quiz-setup-intro">Chọn thời lượng, sau đó bắt đầu với câu đầu tiên.</p>
 
                 <form asp-route="QuizStartPost"
                       asp-route-setId="@Model.SetId"
-                      method="post"
-                      data-quiz-replaces-active="@Model.ActiveSessionId.HasValue.ToString().ToLowerInvariant()"
-                      data-quiz-replace-message="Bắt đầu bài mới sẽ thay thế bài đang làm và không giữ các câu đã trả lời. Bạn vẫn muốn tiếp tục?">
+                      method="post">
                     @Html.AntiForgeryToken()
                     <input asp-for="TimingMode" type="hidden" data-quiz-mode-input />
                     <input asp-for="SelectedPresetMinutes" type="hidden" data-quiz-preset-input />
@@ -93,31 +100,13 @@
                         <span asp-validation-for="CustomMinutes"></span>
                     </fieldset>
 
-                    @if (Model.ActiveSessionId.HasValue)
-                    {
-                        <p class="quiz-replace-warning" role="note">
-                            Bắt đầu bài mới sẽ thay thế bài đang làm. Các câu đã trả lời trong bài hiện tại sẽ không được giữ lại.
-                        </p>
-                    }
-
-                    <button type="submit"
-                            class="quiz-action quiz-action-primary quiz-setup-submit"
-                            data-quiz-submit-label>Bắt đầu bài kiểm tra</button>
+                    <div class="quiz-submit-dock">
+                        <button type="submit"
+                                class="quiz-action quiz-action-primary quiz-setup-submit"
+                                data-quiz-submit-label>Bắt đầu bài kiểm tra</button>
+                    </div>
                 </form>
             </section>
-
-            @if (Model.ActiveSessionId.HasValue)
-            {
-                <aside class="quiz-active-session" aria-labelledby="quiz-active-title">
-                    <span class="quiz-eyebrow">Đang dở</span>
-                    <h2 id="quiz-active-title">Bạn còn một bài chưa hoàn thành</h2>
-                    <p>Tiến độ hiện tại đã được lưu lại.</p>
-                    <a class="quiz-action quiz-action-light"
-                       asp-action="Quiz"
-                       asp-route-setId="@Model.SetId"
-                       asp-route-sessionId="@Model.ActiveSessionId">Tiếp tục làm bài</a>
-                </aside>
-            }
         </div>
     </main>
 </div>

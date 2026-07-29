@@ -1,3 +1,4 @@
+/* Hallmark · macrostructure: Feature Stack · genre: editorial · tone: utilitarian-focus · theme: LTWNC warm editorial · enrichment: none · nav: study mode switcher · footer: none · pre-emit critique: P4 H5 E4 S5 R5 V4 · contrast: pass (40–41) · slop: pass (42–45) · honest: pass (46) · chrome: pass (47) · tokens: pass (48) · mobile: pass (34, 49–57) */
 :root {
     /* Compatibility aliases; the global tokens remain the source of truth. */
     --fc-ink: var(--ink);
@@ -16,6 +17,7 @@
     --fc-radius: var(--radius-card);
     --fc-shadow: var(--shadow-card);
     --fc-shadow-lg: var(--shadow-lift);
+    --fc-z-dock: 80;
 }
 
 html,
@@ -27,7 +29,7 @@ body {
 .study-shell {
     min-height: 100dvh;
     margin: -3rem calc(50% - 50vw);
-    padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1rem, 6vw, 6rem) 5rem;
+    padding: clamp(1.5rem, 4vw, 3.5rem) clamp(1rem, 6vw, 6rem) calc(8rem + env(safe-area-inset-bottom));
     color: var(--fc-ink);
     background: var(--fc-canvas);
     font-family: var(--font-body);
@@ -351,11 +353,13 @@ body {
 }
 
 .progress-fill {
+    width: 100%;
     height: 100%;
-    width: 0%;
     border-radius: inherit;
     background: var(--fc-accent);
-    transition: width var(--duration-med) ease;
+    transform: scaleX(0);
+    transform-origin: left center;
+    transition: transform var(--duration-med) var(--ease-out);
 }
 
 .progress-text {
@@ -381,9 +385,9 @@ body {
     border: 1px solid var(--fc-line);
     border-radius: var(--radius-card);
     background: var(--fc-paper);
-    box-shadow: var(--fc-shadow-lg);
+    box-shadow: var(--fc-shadow);
     cursor: pointer;
-    transition: box-shadow var(--duration-fast) ease;
+    transition: box-shadow var(--duration-med) var(--ease-out);
 }
 
 .flashcard-core {
@@ -521,8 +525,17 @@ body {
     justify-content: center;
     font-size: 1.25rem;
     cursor: pointer;
-    transition: color var(--duration-fast) ease,
-                background-color var(--duration-fast) ease;
+    transition: color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+}
+
+.card-audio-btn i,
+.card-star-btn i,
+.vocab-audio i,
+.study-edit-link i,
+.icon-button i {
+    display: inline-flex;
+    transition: transform var(--duration-fast) var(--ease-out);
 }
 
 .card-audio-btn:hover {
@@ -584,14 +597,34 @@ body {
     color: var(--fc-success);
 }
 
-/* Control bar */
+/* Persistent study dock: primary actions never leave the viewport. */
 .control-bar {
-    display: flex;
+    position: fixed;
+    inset-inline-start: 50%;
+    bottom: max(0.75rem, env(safe-area-inset-bottom));
+    z-index: var(--fc-z-dock);
+    display: grid;
+    grid-template-columns: auto 44px minmax(140px, 1fr) 44px;
     align-items: center;
-    justify-content: center;
-    gap: 1rem;
-    margin: 0.5rem auto 0;
-    width: min(100%, 720px);
+    gap: 0.6rem;
+    width: min(calc(100% - 2rem), 760px);
+    margin: 0;
+    padding: 0.55rem;
+    border: 1px solid var(--line-strong);
+    border-radius: calc(var(--radius-control) + 4px);
+    background: var(--fc-paper);
+    box-shadow: var(--fc-shadow-lg);
+    transform: translateX(-50%);
+}
+
+.control-progress {
+    min-width: 3.2rem;
+    color: var(--fc-muted);
+    font-size: 0.78rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+    text-align: center;
+    white-space: nowrap;
 }
 
 .control-btn {
@@ -603,12 +636,17 @@ body {
     border-radius: var(--radius-control);
     font-weight: 700;
     cursor: pointer;
-    transition: transform var(--duration-fast) ease,
-                background-color var(--duration-fast) ease,
-                border-color var(--duration-fast) ease,
-                color var(--duration-fast) ease,
-                box-shadow var(--duration-fast) ease;
+    transition: transform var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out),
+                border-color var(--duration-fast) var(--ease-out),
+                color var(--duration-fast) var(--ease-out),
+                box-shadow var(--duration-fast) var(--ease-out);
     box-shadow: var(--shadow-card);
+}
+
+.control-btn i {
+    display: inline-flex;
+    transition: transform var(--duration-med) var(--ease-out);
 }
 
 .control-btn:active {
@@ -616,8 +654,16 @@ body {
 }
 
 .control-btn:focus-visible {
-    outline: none;
-    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brass) 30%, transparent);
+    outline: 3px solid var(--fc-accent);
+    outline-offset: 2px;
+}
+
+.control-btn:disabled,
+.control-btn[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.42;
+    box-shadow: none;
+    transform: none;
 }
 
 .control-btn-prev,
@@ -1319,10 +1365,36 @@ body {
     filter: brightness(0.92);
 }
 
+@media (hover: hover) and (pointer: fine) {
+    .flashcard-frame:hover {
+        box-shadow: var(--fc-shadow-lg);
+    }
+
+    .control-btn-flip:hover i {
+        transform: rotate(-18deg);
+    }
+
+    .control-btn-prev:hover:not(:disabled) i {
+        transform: translateX(-2px);
+    }
+
+    .control-btn-next:hover:not(:disabled) i {
+        transform: translateX(2px);
+    }
+
+    .card-star-btn:hover i,
+    .card-audio-btn:hover i,
+    .vocab-audio:hover i,
+    .study-edit-link:hover i,
+    .icon-button:hover i {
+        transform: translateY(-1px);
+    }
+}
+
 /* Responsive */
 @media (max-width: 767px) {
     .study-shell {
-        padding: 1rem 1rem 3rem;
+        padding: 1rem 1rem calc(7rem + env(safe-area-inset-bottom));
     }
 
     .study-page-header {
@@ -1330,22 +1402,42 @@ body {
         padding-bottom: 1.25rem;
     }
 
-    .study-breadcrumb {
-        font-size: 0.72rem;
+    .study-breadcrumb,
+    .study-title-kicker {
+        display: none;
     }
 
-    .study-title-row,
+    .study-title-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
     .study-vocabulary-header {
         align-items: stretch;
         flex-direction: column;
     }
 
+    .set-title {
+        overflow: visible;
+        overflow-wrap: anywhere;
+        font-size: clamp(1.5rem, 7vw, 2rem);
+        text-overflow: clip;
+        white-space: normal;
+    }
+
     .study-title-actions {
-        justify-content: space-between;
+        justify-content: flex-end;
     }
 
     .study-edit-link {
-        flex: 1 1 auto;
+        width: 44px;
+        padding: 0;
+    }
+
+    .study-edit-link span {
+        display: none;
     }
 
     .study-mode-tabs {
@@ -1389,9 +1481,15 @@ body {
     }
 
     .control-bar {
-        display: grid;
-        grid-template-columns: 44px minmax(0, 1fr) 44px;
-        gap: 0.75rem;
+        grid-template-columns: auto 44px minmax(0, 1fr) 44px;
+        gap: 0.4rem;
+        width: calc(100% - 1rem);
+        padding: 0.45rem;
+    }
+
+    .control-progress {
+        min-width: 2.4rem;
+        font-size: 0.72rem;
     }
 
     .control-center {
@@ -1410,8 +1508,12 @@ body {
 
     .control-btn-rate {
         min-width: 0;
-        padding-inline: 0.55rem;
-        font-size: 0.78rem;
+        padding-inline: 0.4rem;
+        font-size: 0.72rem;
+    }
+
+    .control-btn-rate i {
+        display: none;
     }
 
     .keyboard-hint {

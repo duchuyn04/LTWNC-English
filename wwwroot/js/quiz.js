@@ -47,7 +47,9 @@
 
         const answered = Math.min(total, current + 1);
         progress.setAttribute('aria-valuenow', String(answered));
-        progressBar.style.width = `${total > 0 ? answered * 100 / total : 0}%`;
+        progressBar.style.setProperty(
+            '--quiz-progress-value',
+            String(total > 0 ? answered / total : 0));
         if (progressCount) {
             progressCount.textContent = `Đã trả lời ${answered} / ${total}`;
         }
@@ -151,6 +153,25 @@
 
     startTimer();
 
+    document.addEventListener('keydown', (event) => {
+        const target = event.target;
+        const isTyping = target instanceof HTMLElement
+            && (target.matches('input, select, textarea, button, a') || target.isContentEditable);
+        if (isTyping || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+
+        const choiceIndex = Number(event.key) - 1;
+        const choice = buttons[choiceIndex];
+        if (!Number.isInteger(choiceIndex)
+            || choiceIndex < 0
+            || choiceIndex > 3
+            || !choice
+            || choice.disabled
+            || root.getAttribute('aria-busy') === 'true') return;
+
+        event.preventDefault();
+        choice.click();
+    });
+
     buttons.forEach((button) => {
         button.addEventListener('click', async () => {
             if (root.getAttribute('aria-busy') === 'true') return;
@@ -235,7 +256,7 @@
                 nextLabel.textContent = result.isLastQuestion ? 'Xem kết quả' : 'Câu tiếp theo';
                 nextLink.hidden = false;
                 root.setAttribute('aria-busy', 'false');
-                nextLink.focus();
+                nextLink.focus({ preventScroll: true });
             } catch (error) {
                 showRetryableError();
             }

@@ -74,6 +74,10 @@ public sealed class QuizSetupRenderingTests : IClassFixture<WebApplicationFactor
         Assert.Contains("name=\"TimingChoice\"", html);
         Assert.Contains("name=\"TimingMode\"", form.Value);
         Assert.DoesNotContain("quiz-active-session", html);
+        Assert.DoesNotContain("Tiếp tục làm bài", html);
+        quizService.Verify(
+            service => service.AbandonActiveAsync(7, "user-1"),
+            Times.Once);
     }
 
     private sealed class TestAuthenticationHandler : AuthenticationHandler<AuthenticationSchemeOptions>

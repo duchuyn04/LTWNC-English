@@ -371,7 +371,7 @@ public class StudyController : Controller
     public async Task<IActionResult> QuizStart(int setId)
     {
         // 1. Kiểm tra người dùng đã đăng nhập.
-        // 2. Lấy thông tin thiết lập Quiz và phiên đang hoạt động.
+        // 2. Hủy phiên Quiz cũ khi người dùng quay lại màn thiết lập.
         // 3. Hiển thị form chọn thời gian hoặc trả lỗi quyền phù hợp.
         string? userId = _currentUser.UserId;
         if (userId == null)
@@ -381,14 +381,14 @@ public class StudyController : Controller
 
         try
         {
+            await _quizService.AbandonActiveAsync(setId, userId);
             QuizSetupState state = await _quizService.GetSetupAsync(setId, userId);
             return View("QuizSetup", new QuizSetupViewModel
             {
                 SetId = state.SetId,
                 SetTitle = state.SetTitle,
                 TimingMode = QuizTimingMode.Preset,
-                SelectedPresetMinutes = QuizService.DefaultQuizMinutes,
-                ActiveSessionId = state.ActiveSession?.Id
+                SelectedPresetMinutes = QuizService.DefaultQuizMinutes
             });
         }
         catch (KeyNotFoundException)
@@ -488,7 +488,7 @@ public class StudyController : Controller
         string userId,
         QuizSetupViewModel input)
     {
-        // 1. Tải lại tiêu đề bộ thẻ và phiên Quiz đang hoạt động.
+        // 1. Tải lại tiêu đề bộ thẻ.
         // 2. Gắn dữ liệu hiển thị vào input mà người dùng vừa gửi.
         // 3. Render form hoặc trả lỗi quyền, không tìm thấy.
         try
@@ -496,7 +496,6 @@ public class StudyController : Controller
             QuizSetupState state = await _quizService.GetSetupAsync(setId, userId);
             input.SetId = state.SetId;
             input.SetTitle = state.SetTitle;
-            input.ActiveSessionId = state.ActiveSession?.Id;
             return View("QuizSetup", input);
         }
         catch (KeyNotFoundException)
@@ -581,6 +580,32 @@ public class StudyController : Controller
         catch (QuizExpiredException)
         {
             return RedirectToAction(nameof(QuizResult), new { setId, sessionId });
+        }
+    }
+
+    [HttpPost]
+    [Route("/Study/{setId}/Quiz/{sessionId:int}/Abandon")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> QuizAbandon(int setId, int sessionId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        try
+        {
+            await _quizService.AbandonAsync(setId, sessionId, userId);
+            return RedirectToAction(nameof(Index), new { setId });
+        }
+        catch (UnauthorizedAccessException)
+        {
+            return Forbid();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
         }
     }
 

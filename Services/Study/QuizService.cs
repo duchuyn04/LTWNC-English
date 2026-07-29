@@ -43,23 +43,11 @@ public class QuizService : IQuizService
     {
         // 1. Gọi `GetOwnedSetAsync` và lưu kết quả vào `set`.
         FlashcardSet set = await GetOwnedSetAsync(setId, userId);
-        // 2. Gọi `FirstOrDefaultAsync` và lưu kết quả vào `activeSession`.
-        StudySession? activeSession = await _context.StudySessions
-            .AsNoTracking()
-            .Where(session => session.FlashcardSetId == setId
-                && session.UserId == userId
-                && session.Mode == StudyMode.Quiz
-                && session.Score == null
-                && session.CompletedAt == null)
-            .OrderByDescending(session => session.Id)
-            .FirstOrDefaultAsync();
-
-        // 3. Tạo và trả đối tượng kết quả cho nơi gọi.
+        // 2. Tạo và trả dữ liệu cần thiết cho màn thiết lập.
         return new QuizSetupState
         {
             SetId = set.Id,
-            SetTitle = set.Title,
-            ActiveSession = activeSession
+            SetTitle = set.Title
         };
     }
 
@@ -364,6 +352,45 @@ public class QuizService : IQuizService
                 await transaction.DisposeAsync();
             }
         }
+    }
+
+    public async Task AbandonActiveAsync(int setId, string userId)
+    {
+        await GetOwnedSetAsync(setId, userId);
+        DateTime now = GetUtcNow();
+        await _context.StudySessions
+            .Where(session => session.FlashcardSetId == setId
+                && session.UserId == userId
+                && session.Mode == StudyMode.Quiz
+                && session.Score == null
+                && session.CompletedAt == null)
+            .ExecuteUpdateAsync(updates => updates
+                .SetProperty(session => session.CompletedAt, now));
+    }
+
+    public async Task AbandonAsync(int setId, int sessionId, string userId)
+    {
+        StudySession? session = await _context.StudySessions
+            .FirstOrDefaultAsync(row => row.Id == sessionId);
+        if (session == null
+            || session.FlashcardSetId != setId
+            || session.Mode != StudyMode.Quiz)
+        {
+            throw new KeyNotFoundException("Phiên trắc nghiệm không tồn tại.");
+        }
+
+        if (session.UserId != userId)
+        {
+            throw new UnauthorizedAccessException("Không có quyền hủy phiên trắc nghiệm này.");
+        }
+
+        if (session.CompletedAt.HasValue || session.Score.HasValue)
+        {
+            return;
+        }
+
+        session.CompletedAt = GetUtcNow();
+        await _context.SaveChangesAsync();
     }
 
     public async Task<QuizQuestionState> GetCurrentQuestionAsync(

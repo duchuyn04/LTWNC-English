@@ -86,6 +86,61 @@ public class QuizServiceTests
     }
 
     [Fact]
+    public async Task AbandonActive_marks_the_current_attempt_as_abandoned()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+        StudySession session = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            null);
+
+        await service.AbandonActiveAsync(set.Id, set.UserId);
+
+        database.Context.ChangeTracker.Clear();
+        StudySession stored = await database.Context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(row => row.Id == session.Id);
+        Assert.NotNull(stored.CompletedAt);
+        Assert.Null(stored.Score);
+        Assert.False(await database.Context.StudySessions.AnyAsync(row =>
+            row.FlashcardSetId == set.Id
+            && row.Mode == StudyMode.Quiz
+            && row.CompletedAt == null));
+    }
+
+    [Fact]
+    public async Task Abandon_marks_active_attempt_as_abandoned()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        var timeProvider = new FixedTimeProvider(new DateTimeOffset(
+            2026, 7, 29, 9, 30, 0, TimeSpan.Zero));
+        QuizService service = CreateService(
+            database.Context,
+            new RecordingStudyEventPublisher(),
+            timeProvider);
+        StudySession session = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            null);
+
+        await service.AbandonAsync(set.Id, session.Id, set.UserId);
+
+        database.Context.ChangeTracker.Clear();
+        StudySession stored = await database.Context.StudySessions
+            .AsNoTracking()
+            .SingleAsync(row => row.Id == session.Id);
+        Assert.Equal(timeProvider.GetUtcNow().UtcDateTime, stored.CompletedAt);
+        Assert.Null(stored.Score);
+        await Assert.ThrowsAsync<QuizSessionAbandonedException>(() =>
+            service.GetCurrentQuestionAsync(set.Id, session.Id, set.UserId));
+    }
+
+    [Fact]
     public async Task RetryAll_from_untimed_source_creates_untimed_session()
     {
         await using var database = await QuizTestDatabase.CreateAsync();

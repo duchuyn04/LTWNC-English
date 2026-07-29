@@ -23,7 +23,10 @@ public class QuizViewTests
         Assert.Contains("@Html.AntiForgeryToken()", QuizSetupView);
         Assert.Contains("quiz-setup-layout", QuizSetupView);
         Assert.Contains("quiz-header quiz-header-setup", QuizSetupView);
-        Assert.Contains("quiz-active-session", QuizSetupView);
+        Assert.Contains("ViewData[\"HideLayoutChrome\"] = true", QuizSetupView);
+        Assert.Contains("class=\"quiz-steps\"", QuizSetupView);
+        Assert.Contains("class=\"quiz-submit-dock\"", QuizSetupView);
+        Assert.DoesNotContain("quiz-active-session", QuizSetupView);
         Assert.Contains("Không giới hạn thời gian", QuizSetupView);
         Assert.Contains("asp-for=\"TimingMode\"", QuizSetupView);
         Assert.Contains("data-quiz-timing=\"untimed\"", QuizSetupView);
@@ -32,11 +35,11 @@ public class QuizViewTests
         Assert.Contains("data-quiz-preset", QuizSetupView);
         Assert.Contains("data-quiz-custom", QuizSetupView);
         Assert.Contains("data-quiz-submit-label", QuizSetupView);
-        Assert.Contains("data-quiz-replaces-active", QuizSetupView);
-        Assert.Contains("quiz-replace-warning", QuizSetupView);
+        Assert.DoesNotContain("data-quiz-replaces-active", QuizSetupView);
+        Assert.DoesNotContain("quiz-replace-warning", QuizSetupView);
         Assert.Contains("~/js/quiz-setup.js", QuizSetupView);
-        Assert.Contains("Model.ActiveSessionId.HasValue", QuizSetupView);
-        Assert.Contains("asp-action=\"Quiz\"", QuizSetupView);
+        Assert.DoesNotContain("ActiveSessionId", QuizSetupView);
+        Assert.DoesNotContain("Tiếp tục làm bài", QuizSetupView);
         Assert.Contains("if (Model.DeadlineUtc.HasValue)", QuizView);
         Assert.DoesNotContain("Ã", QuizSetupView);
     }
@@ -51,13 +54,14 @@ public class QuizViewTests
         Assert.Contains("customInput.disabled = mode !== 'Custom'", QuizSetupScript);
         Assert.Contains("Bắt đầu không giới hạn", QuizSetupScript);
         Assert.Contains("submitLabel.disabled = true", QuizSetupScript);
-        Assert.Contains("window.confirm", QuizSetupScript);
-        Assert.Contains("event.preventDefault()", QuizSetupScript);
+        Assert.DoesNotContain("window.confirm", QuizSetupScript);
+        Assert.DoesNotContain("event.preventDefault()", QuizSetupScript);
         Assert.Contains("prefers-reduced-motion", QuizStyles);
         Assert.Contains("quiz-setup-layout", QuizStyles);
         Assert.Contains("quiz-timing-card.is-selected", QuizStyles);
         Assert.Contains("@media (max-width: 760px)", QuizStyles);
         Assert.Contains(".quiz-header-setup", QuizStyles);
+        Assert.DoesNotContain(".quiz-active-session", QuizStyles);
     }
 
     [Fact]
@@ -69,7 +73,9 @@ public class QuizViewTests
         Assert.Contains("data-answer-url", QuizView);
         Assert.Contains("for (int index = 0; index < Model.Choices.Count; index++)", QuizView);
         Assert.Contains("data-choice-index=\"@index\"", QuizView);
+        Assert.Contains("aria-keyshortcuts=\"@(index + 1)\"", QuizView);
         Assert.Contains("data-quiz-choice-text", QuizView);
+        Assert.Contains("ViewData[\"HideLayoutChrome\"] = true", QuizView);
         Assert.Contains("@Html.AntiForgeryToken()", QuizView);
         Assert.Contains("aria-live=\"polite\"", QuizView);
         Assert.Contains("if (Model.IsReviewOnly", QuizView);
@@ -110,6 +116,9 @@ public class QuizViewTests
             "<div class=\"quiz-header-actions\">[\\s\\S]*?</div>");
 
         Assert.Contains("class=\"quiz-exit\"", actions);
+        Assert.Contains("asp-action=\"QuizAbandon\"", actions);
+        Assert.Contains("asp-route-sessionId=\"@Model.SessionId\"", actions);
+        Assert.Contains("method=\"post\"", actions);
         Assert.Contains("asp-action=\"QuizRestart\"", actions);
         Assert.Contains("@Html.AntiForgeryToken()", actions);
         Assert.Contains("onsubmit=\"return confirm", actions);
@@ -245,6 +254,9 @@ public class QuizViewTests
         Assert.Contains("data-quiz-progress-bar", QuizView);
         Assert.Contains("updateAnsweredProgress()", QuizScript);
         Assert.Contains("progress.setAttribute('aria-valuenow'", QuizScript);
+        Assert.Contains("--quiz-progress-value", QuizView);
+        Assert.Contains("progressBar.style.setProperty", QuizScript);
+        Assert.DoesNotContain("progressBar.style.width", QuizScript);
         Assert.DoesNotContain("(Model.CurrentNumber - 1)", QuizView);
     }
 
@@ -303,7 +315,7 @@ public class QuizViewTests
         Assert.Contains(":focus-visible", QuizStyles);
         Assert.Contains(".quiz-choice:disabled.is-correct", QuizStyles);
         Assert.Contains(".quiz-choice:disabled.is-wrong", QuizStyles);
-        Assert.Contains("outline: 3px solid #92400e;", QuizStyles);
+        Assert.Contains("outline: 3px solid var(--quiz-accent-deep);", QuizStyles);
         Assert.DoesNotContain("outline: 3px solid rgba(", QuizStyles);
         Assert.Contains("@media (max-width:", QuizStyles);
         Assert.Contains("prefers-reduced-motion: reduce", QuizStyles);
@@ -314,7 +326,7 @@ public class QuizViewTests
     {
         string header = RequiredMatch(QuizStyles, "\\.quiz-header \\{[\\s\\S]*?\\}");
 
-        Assert.Contains("grid-template-columns: auto minmax(0, 1fr) auto auto;", header);
+        Assert.Contains("grid-template-columns: minmax(0, 1fr) auto;", header);
         Assert.Contains(".quiz-timer", QuizStyles);
         Assert.Contains(".quiz-timer.is-warning", QuizStyles);
         Assert.Contains(".quiz-restart", QuizStyles);
@@ -324,6 +336,18 @@ public class QuizViewTests
         Assert.Contains(".quiz-previous:focus-visible", QuizStyles);
         Assert.Contains("grid-column: 1 / -1;", QuizStyles);
         Assert.Contains(".quiz-timer", RequiredMatch(QuizStyles, "@media \\(prefers-reduced-motion: reduce\\) \\{[\\s\\S]*?\\n\\}"));
+        Assert.Contains(".quiz-shell-question .quiz-actions:has(a:not([hidden]))", QuizStyles);
+        Assert.Contains(".quiz-submit-dock", QuizStyles);
+    }
+
+    [Fact]
+    public void Quiz_view_supports_number_shortcuts_without_hijacking_form_controls()
+    {
+        Assert.Contains("document.addEventListener('keydown'", QuizScript);
+        Assert.Contains("const choiceIndex = Number(event.key) - 1", QuizScript);
+        Assert.Contains("target.matches('input, select, textarea, button, a')", QuizScript);
+        Assert.Contains("choice.click()", QuizScript);
+        Assert.Contains("nextLink.focus({ preventScroll: true })", QuizScript);
     }
 
     private static string RequiredMatch(string source, string pattern)

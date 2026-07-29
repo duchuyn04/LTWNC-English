@@ -18,7 +18,7 @@
                 <label asp-for="Email" class="auth-label"></label>
                 <input asp-for="Email"
                        class="auth-input"
-                       placeholder="you@example.com"
+                       placeholder="Nhập email của bạn"
                        autocomplete="email"
                        aria-describedby="Email-error"
                        autofocus />
@@ -29,7 +29,7 @@
                 <label asp-for="Username" class="auth-label"></label>
                 <input asp-for="Username"
                        class="auth-input"
-                       placeholder="minhnguyen"
+                       placeholder="Chọn tên đăng nhập"
                        autocomplete="username"
                        aria-describedby="Username-error" />
                 <span asp-validation-for="Username" id="Username-error"></span>
@@ -41,7 +41,7 @@
             <span class="auth-password">
                 <input asp-for="Password"
                        class="auth-input"
-                       placeholder="Có chữ hoa, chữ thường và số"
+                       placeholder="Tạo mật khẩu"
                        autocomplete="new-password"
                        aria-describedby="Password-hint Password-error" />
                 <button class="auth-password__toggle"
@@ -59,7 +59,7 @@
             <span class="auth-password">
                 <input asp-for="ConfirmPassword"
                        class="auth-input"
-                       placeholder="Nhập lại mật khẩu"
+                       placeholder="Xác nhận mật khẩu"
                        autocomplete="new-password"
                        aria-describedby="ConfirmPassword-error" />
                 <button class="auth-password__toggle"

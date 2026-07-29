@@ -109,14 +109,21 @@
         </main>
 
         <div class="control-bar" aria-label="Điều khiển học">
-            <button type="button" id="nav-left-btn" class="control-btn control-btn-prev" onclick="handleLeftAction()" title="Thẻ trước (←)">
+            <span id="dock-progress-text" class="control-progress" aria-live="polite">1 / 1</span>
+
+            <button type="button"
+                    id="nav-left-btn"
+                    class="control-btn control-btn-prev"
+                    onclick="handleLeftAction()"
+                    title="Thẻ trước (←)"
+                    aria-label="Chuyển đến thẻ trước">
                 <i class="ph ph-arrow-left" aria-hidden="true"></i>
             </button>
 
             <div class="control-center">
                 <button type="button" id="flip-btn" class="control-btn control-btn-flip" onclick="toggleCardFlip()" title="Lật thẻ (Space)">
                     <i class="ph ph-arrows-counter-clockwise" aria-hidden="true"></i>
-                    <span>Lật</span>
+                    <span>Lật thẻ</span>
                 </button>
 
                 <div id="rating-group" class="rating-group" hidden>
@@ -131,7 +138,12 @@
                 </div>
             </div>
 
-            <button type="button" id="nav-right-btn" class="control-btn control-btn-next" onclick="handleRightAction()" title="Thẻ tiếp (→)">
+            <button type="button"
+                    id="nav-right-btn"
+                    class="control-btn control-btn-next"
+                    onclick="handleRightAction()"
+                    title="Thẻ tiếp (→)"
+                    aria-label="Chuyển đến thẻ tiếp theo">
                 <i class="ph ph-arrow-right" aria-hidden="true"></i>
             </button>
         </div>
@@ -554,9 +566,11 @@
             const currentDisplay = currentIndex + 1;
             const total = flashcards.length;
             document.getElementById('card-progress-text').textContent = `Thẻ ${currentDisplay} / ${total}`;
-            document.getElementById('card-progress-fill').style.width = `${(currentDisplay / total) * 100}%`;
+            document.getElementById('dock-progress-text').textContent = `${currentDisplay} / ${total}`;
+            document.getElementById('card-progress-fill').style.transform = `scaleX(${currentDisplay / total})`;
 
             updateStarUI(currentCard.IsStarred);
+            updateNavigationState();
             updateControlBarForFlip();
         }
 
@@ -575,6 +589,29 @@
 
         function updateProgressModeButtons() {
             // Legacy function kept for compatibility; progress mode UI removed.
+        }
+
+        function updateNavigationState() {
+            const previousButton = document.getElementById('nav-left-btn');
+            const nextButton = document.getElementById('nav-right-btn');
+            const nextIcon = nextButton?.querySelector('i');
+            const isLastCard = currentIndex === flashcards.length - 1;
+
+            if (previousButton) {
+                previousButton.disabled = currentIndex === 0;
+                previousButton.setAttribute('aria-disabled', String(previousButton.disabled));
+            }
+
+            if (nextButton) {
+                nextButton.disabled = flashcards.length === 0;
+                nextButton.setAttribute('aria-disabled', String(nextButton.disabled));
+                nextButton.title = isLastCard ? 'Hoàn thành phiên học' : 'Thẻ tiếp (→)';
+                nextButton.setAttribute('aria-label', isLastCard ? 'Hoàn thành phiên học' : 'Chuyển đến thẻ tiếp theo');
+            }
+
+            if (nextIcon) {
+                nextIcon.className = isLastCard ? 'ph ph-check' : 'ph ph-arrow-right';
+            }
         }
 
         function updateControlBarForFlip() {

@@ -5,7 +5,7 @@ namespace ltwnc.Services.Study;
 // Hợp đồng quản lý thiết lập, vòng đời, câu hỏi và kết quả Quiz.
 public interface IQuizService
 {
-    // Lấy thông tin bộ thẻ và phiên Quiz đang hoạt động.
+    // Lấy thông tin bộ thẻ cho màn thiết lập Quiz.
     Task<QuizSetupState> GetSetupAsync(int setId, string userId);
 
     // Tạo phiên Quiz mới theo bộ lọc và giới hạn thời gian.
@@ -35,6 +35,12 @@ public interface IQuizService
         int questionId,
         int selectedChoiceIndex,
         string userId);
+
+    // Hủy mọi phiên Quiz đang hoạt động của bộ thẻ khi quay lại màn thiết lập.
+    Task AbandonActiveAsync(int setId, string userId);
+
+    // Hủy phiên Quiz đang hoạt động để phiên không thể tiếp tục.
+    Task AbandonAsync(int setId, int sessionId, string userId);
 
     // Hoàn tất phiên đã hết thời gian làm bài.
     Task CompleteExpiredAsync(int setId, int sessionId, string userId);

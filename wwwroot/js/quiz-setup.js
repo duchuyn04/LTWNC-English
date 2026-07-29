@@ -51,15 +51,8 @@
         if (option) applyOption(option);
     });
 
-    form?.addEventListener('submit', (event) => {
+    form?.addEventListener('submit', () => {
         if (!form.checkValidity() || !submitLabel) return;
-        if (form.dataset.quizReplacesActive === 'true'
-            && !window.confirm(
-                form.dataset.quizReplaceMessage
-                || 'Bắt đầu bài mới sẽ thay thế bài đang làm. Bạn vẫn muốn tiếp tục?')) {
-            event.preventDefault();
-            return;
-        }
         submitLabel.disabled = true;
         submitLabel.setAttribute('aria-busy', 'true');
     });

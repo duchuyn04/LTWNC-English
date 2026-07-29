@@ -14,5 +14,4 @@ public class QuizSetupViewModel
     public QuizTimingMode? TimingMode { get; set; }
     public int? SelectedPresetMinutes { get; set; }
     public int? CustomMinutes { get; set; }
-    public int? ActiveSessionId { get; set; }
 }
