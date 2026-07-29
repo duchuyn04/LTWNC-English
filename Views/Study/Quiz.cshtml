@@ -3,7 +3,6 @@
     string? deadlineUtc = Model.DeadlineUtc?.ToUniversalTime().ToString("O");
     string? timeoutUrl = Url.Action("QuizTimeout", "Study", new { setId = Model.SetId, sessionId = Model.SessionId });
     ViewData["Title"] = "Trắc nghiệm";
-    ViewData["HideLayoutChrome"] = true;
     string directionLabel = Model.Direction == QuizQuestionDirection.TermToDefinition
         ? "Chọn nghĩa đúng"
         : "Chọn từ phù hợp";
@@ -45,10 +44,6 @@
                     <button type="submit" class="quiz-restart">Làm lại từ đầu</button>
                 </form>
             </div>
-            <div class="quiz-heading">
-                <span class="quiz-eyebrow">Trắc nghiệm</span>
-                <h1>@Model.SetTitle</h1>
-            </div>
             <div class="quiz-session-meta">
                 <div class="quiz-score" aria-label="Số câu đúng">
                     <strong>@Model.CorrectCount</strong>
@@ -73,29 +68,44 @@
             <div class="quiz-alert" role="status" aria-live="polite">@message</div>
         }
 
-        <div class="quiz-progress" aria-label="Tiến độ bài trắc nghiệm">
-            <span>
-                Câu @Model.CurrentNumber / @Model.TotalQuestions
-                <span aria-hidden="true">·</span>
-                <span data-quiz-progress-count>Đã trả lời @Model.AnsweredCount / @Model.TotalQuestions</span>
-            </span>
-            <div class="quiz-progress-track"
-                 data-quiz-progress
-                 role="progressbar"
-                 aria-label="Số câu đã trả lời"
-                 aria-valuemin="0"
-                 aria-valuemax="@Model.TotalQuestions"
-                 aria-valuenow="@Model.AnsweredCount">
-                <span data-quiz-progress-bar
-                      style="--quiz-progress-value: @(Model.AnsweredCount / (double)Math.Max(Model.TotalQuestions, 1))"></span>
-            </div>
+        <div class="quiz-page-intro quiz-page-intro-question">
+            <span class="quiz-eyebrow">Trắc nghiệm</span>
+            <h1>@Model.SetTitle</h1>
         </div>
 
-        <section class="quiz-card" aria-labelledby="quiz-prompt">
-            <p class="quiz-direction">@directionLabel</p>
-            <h2 id="quiz-prompt" class="quiz-prompt">@Model.PromptText</h2>
+        <div class="quiz-workspace quiz-workspace-question">
+            <aside class="quiz-context-panel" aria-label="Tiến độ bài trắc nghiệm">
+                <div class="quiz-question-index">
+                    <span>Câu hiện tại</span>
+                    <strong>@Model.CurrentNumber <small>/ @Model.TotalQuestions</small></strong>
+                </div>
 
-            <div class="quiz-choices" role="group" aria-label="Các lựa chọn trả lời">
+                <div class="quiz-progress">
+                    <span data-quiz-progress-count>Đã trả lời @Model.AnsweredCount / @Model.TotalQuestions</span>
+                    <div class="quiz-progress-track"
+                         data-quiz-progress
+                         role="progressbar"
+                         aria-label="Số câu đã trả lời"
+                         aria-valuemin="0"
+                         aria-valuemax="@Model.TotalQuestions"
+                         aria-valuenow="@Model.AnsweredCount">
+                        <span data-quiz-progress-bar
+                              style="--quiz-progress-value: @(Model.AnsweredCount / (double)Math.Max(Model.TotalQuestions, 1))"></span>
+                    </div>
+                </div>
+
+                <ol class="quiz-steps" aria-label="Các bước làm bài">
+                    <li><span>1</span> Thiết lập</li>
+                    <li class="is-current" aria-current="step"><span>2</span> Làm bài</li>
+                    <li><span>3</span> Kết quả</li>
+                </ol>
+            </aside>
+
+            <section class="quiz-card" aria-labelledby="quiz-prompt">
+                <p class="quiz-direction">@directionLabel</p>
+                <h2 id="quiz-prompt" class="quiz-prompt">@Model.PromptText</h2>
+
+                <div class="quiz-choices" role="group" aria-label="Các lựa chọn trả lời">
                 @for (int index = 0; index < Model.Choices.Count; index++)
                 {
                     string choiceClass = "quiz-choice";
@@ -126,11 +136,11 @@
                         }
                     </button>
                 }
-            </div>
+                </div>
 
-            <p class="quiz-feedback" data-quiz-feedback role="status" aria-live="polite"></p>
+                <p class="quiz-feedback" data-quiz-feedback role="status" aria-live="polite"></p>
 
-            <div class="quiz-actions">
+                <div class="quiz-actions">
                 @if (Model.PreviousQuestionId.HasValue)
                 {
                     <a class="quiz-previous"
@@ -174,8 +184,9 @@
                     <span data-quiz-next-label>Câu tiếp theo</span>
                     <i class="ph ph-arrow-right" aria-hidden="true"></i>
                 </a>
-            </div>
-        </section>
+                </div>
+            </section>
+        </div>
     </main>
 </div>
 

@@ -475,7 +475,12 @@
                     row.innerHTML = `
                         <span class="vocab-row-index" aria-hidden="true">${visibleIndex}</span>
                         <div class="vocab-row-term">
-                            <i class="${card.IsStarred ? 'ph ph-star-fill is-starred' : 'ph ph-star'}" aria-hidden="true"></i>
+                            <button type="button"
+                                    class="vocab-star ${card.IsStarred ? 'is-starred' : ''}"
+                                    aria-label="${card.IsStarred ? 'Bỏ đánh dấu sao' : 'Đánh dấu sao'} ${escapeHtml(card.FrontText || '')}"
+                                    aria-pressed="${card.IsStarred}">
+                                <i class="${card.IsStarred ? 'ph ph-star-fill' : 'ph ph-star'}" aria-hidden="true"></i>
+                            </button>
                             <div>
                                 <p class="vocab-word ${isMastered ? 'fw-bold' : ''}">${escapeHtml(card.FrontText || '')}</p>
                                 <p class="vocab-meta">${escapeHtml([card.PartOfSpeech, card.Pronunciation].filter(Boolean).join(' · '))}</p>
@@ -489,6 +494,8 @@
                             <i class="ph ph-speaker-high" aria-hidden="true"></i>
                         </button>
                     `;
+                    const star = row.querySelector('.vocab-star');
+                    star.addEventListener('click', () => toggleVocabularyCardStar(card));
                     const audio = row.querySelector('.vocab-audio');
                     audio.addEventListener('click', () => speak(card.FrontText || '', false));
                     rows.appendChild(row);
@@ -605,12 +612,12 @@
             if (nextButton) {
                 nextButton.disabled = flashcards.length === 0;
                 nextButton.setAttribute('aria-disabled', String(nextButton.disabled));
-                nextButton.title = isLastCard ? 'Hoàn thành phiên học' : 'Thẻ tiếp (→)';
-                nextButton.setAttribute('aria-label', isLastCard ? 'Hoàn thành phiên học' : 'Chuyển đến thẻ tiếp theo');
+                nextButton.title = isLastCard ? 'Quay lại thẻ đầu' : 'Thẻ tiếp (→)';
+                nextButton.setAttribute('aria-label', isLastCard ? 'Quay lại thẻ đầu' : 'Chuyển đến thẻ tiếp theo');
             }
 
             if (nextIcon) {
-                nextIcon.className = isLastCard ? 'ph ph-check' : 'ph ph-arrow-right';
+                nextIcon.className = isLastCard ? 'ph ph-arrow-clockwise' : 'ph ph-arrow-right';
             }
         }
 
@@ -629,19 +636,28 @@
         }
 
         function toggleCurrentCardStar(event) {
-            if (event) {
-                event.stopPropagation();
-            }
+            event?.stopPropagation();
             if (flashcards.length === 0) return;
+            toggleCardStar(flashcards[currentIndex]);
+        }
 
-            const card = flashcards[currentIndex];
-            const verificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        function toggleVocabularyCardStar(card) {
+            toggleCardStar(card);
+        }
 
-            card.IsStarred = !card.IsStarred;
-            updateStarUI(card.IsStarred);
-            const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
-            if (vocabCard) vocabCard.IsStarred = card.IsStarred;
+        function syncCardStarState(cardId, isStarred) {
+            const studyCard = flashcards.find(card => card.Id === cardId);
+            const vocabularyCard = vocabularyCards.find(card => card.Id === cardId);
+            if (studyCard) studyCard.IsStarred = isStarred;
+            if (vocabularyCard) vocabularyCard.IsStarred = isStarred;
+            if (flashcards[currentIndex]?.Id === cardId) updateStarUI(isStarred);
             renderVocabularyPanel();
+        }
+
+        function toggleCardStar(card) {
+            const previousState = card.IsStarred;
+            const verificationToken = document.querySelector('input[name="__RequestVerificationToken"]').value;
+            syncCardStarState(card.Id, !previousState);
 
             const params = new URLSearchParams();
             params.append('__RequestVerificationToken', verificationToken);
@@ -654,29 +670,14 @@
                 },
                 body: params
             })
-            .then(res => res.json())
-            .then(data => {
-                if (data.success) {
-                    card.IsStarred = data.isStarred;
-                    updateStarUI(card.IsStarred);
-                    const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
-                    if (vocabCard) vocabCard.IsStarred = card.IsStarred;
-                    renderVocabularyPanel();
-                } else {
-                    card.IsStarred = !card.IsStarred;
-                    updateStarUI(card.IsStarred);
-                    const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
-                    if (vocabCard) vocabCard.IsStarred = card.IsStarred;
-                    renderVocabularyPanel();
-                }
+            .then(response => {
+                if (!response.ok) throw new Error('Không thể cập nhật đánh dấu sao.');
+                return response.json();
             })
-            .catch(err => {
-                console.error('AJAX Error:', err);
-                card.IsStarred = !card.IsStarred;
-                updateStarUI(card.IsStarred);
-                const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
-                if (vocabCard) vocabCard.IsStarred = card.IsStarred;
-                renderVocabularyPanel();
+            .then(data => syncCardStarState(card.Id, data.isStarred))
+            .catch(error => {
+                console.error('AJAX Error:', error);
+                syncCardStarState(card.Id, previousState);
             });
         }
 
@@ -727,13 +728,10 @@
         }
 
         function nextCard() {
-            if (currentIndex < flashcards.length - 1) {
-                currentIndex++;
-                updateUI();
-                return;
-            }
+            if (flashcards.length === 0) return;
 
-            showCompletionScreen();
+            currentIndex = (currentIndex + 1) % flashcards.length;
+            updateUI();
         }
 
         function prevCard() {
@@ -793,6 +791,12 @@
             })
             .catch(err => console.error('AJAX Error:', err));
 
+            const ratedCount = sessionStats.learned.size + sessionStats.unlearned.size;
+            if (ratedCount === flashcards.length) {
+                showCompletionScreen();
+                return;
+            }
+
             nextCard();
         }
 
@@ -833,7 +837,7 @@
             document.getElementById('count-unlearned').textContent = unlearnedCount;
 
             document.getElementById('study-view').style.display = 'none';
-            document.getElementById('completion-view').style.display = 'block';
+            document.getElementById('completion-view').style.display = 'grid';
         }
 
         document.addEventListener('keydown', function(e) {

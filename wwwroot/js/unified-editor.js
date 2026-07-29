@@ -31,6 +31,10 @@
     const quickCardCount = document.getElementById('editor-quick-card-count');
     const btnFinishSticky = document.getElementById('btn-finish-sticky');
     const btnAdd = document.getElementById('btn-add-card');
+    const sidebarCardCount = document.getElementById('editor-sidebar-card-count');
+    const cardSearch = document.getElementById('card-search');
+    const cardFilter = document.getElementById('card-filter');
+    const filterEmpty = document.getElementById('editor-filter-empty');
 
     let pendingSaves = new Map(); // cardId -> timeoutId
     const dirtyCards = new Set(); // card dataset ids with unsaved changes
@@ -50,10 +54,30 @@
     function updateCardNumbering() {
         const cards = container.querySelectorAll('.flashcard-card');
         cards.forEach((card, index) => {
-            card.querySelector('.card-number').textContent = index + 1;
+            card.querySelector('.card-number').textContent = String(index + 1).padStart(2, '0');
         });
         cardCountLabel.textContent = cards.length;
         if (quickCardCount) quickCardCount.textContent = cards.length;
+        if (sidebarCardCount) sidebarCardCount.textContent = cards.length;
+        applyCardFilters();
+    }
+
+    function applyCardFilters() {
+        const query = (cardSearch?.value || '').trim().toLocaleLowerCase('vi');
+        const filter = cardFilter?.value || 'all';
+        let visibleCount = 0;
+
+        container.querySelectorAll('.flashcard-card').forEach(card => {
+            const term = card.querySelector('.card-term')?.textContent || '';
+            const definition = card.querySelector('.card-definition')?.textContent || '';
+            const searchableText = `${term} ${definition}`.toLocaleLowerCase('vi');
+            const matchesQuery = !query || searchableText.includes(query);
+            const matchesFilter = filter !== 'starred' || card.dataset.starred === 'true';
+            card.hidden = !matchesQuery || !matchesFilter;
+            if (!card.hidden) visibleCount += 1;
+        });
+
+        if (filterEmpty) filterEmpty.hidden = visibleCount > 0;
     }
 
     async function persistOrder() {
@@ -336,56 +360,69 @@
 
     function createEmptyCard() {
         const tempId = generateTempId();
-        const div = document.createElement('div');
+        const div = document.createElement('article');
         div.className = 'flashcard-card expanded';
         div.dataset.id = tempId;
         div.dataset.starred = 'false';
         div.dataset.imageUrl = '';
         div.innerHTML = `
             <div class="card-header">
-                <span class="card-drag-handle" aria-label="Drag to reorder">⋮⋮</span>
-                <span class="card-number">0</span>
-                <button type="button" class="btn-star" aria-label="Toggle star">☆</button>
-                <span class="card-term"></span>
+                <span class="card-drag-handle" tabindex="0" aria-label="Kéo để đổi thứ tự">⋮⋮</span>
+                <span class="card-number">00</span>
+                <button type="button" class="btn-star" aria-label="Đánh dấu sao" aria-pressed="false">☆</button>
+                <button type="button" class="card-summary" aria-label="Mở hoặc thu gọn thẻ">
+                    <span class="card-summary-field">
+                        <small>Thuật ngữ</small>
+                        <strong class="card-term"></strong>
+                    </span>
+                    <span class="card-summary-field card-summary-definition">
+                        <small>Định nghĩa</small>
+                        <span class="card-definition"></span>
+                    </span>
+                </button>
                 <div class="card-actions">
                     <button type="button" class="btn-move-up" aria-label="Đưa thẻ lên" title="Đưa thẻ lên">
-                        <i class="ph ph-caret-up" aria-hidden="true"></i>
+                        <i class="ph ph-arrow-up" aria-hidden="true"></i>
                     </button>
                     <button type="button" class="btn-move-down" aria-label="Đưa thẻ xuống" title="Đưa thẻ xuống">
-                        <i class="ph ph-caret-down" aria-hidden="true"></i>
+                        <i class="ph ph-arrow-down" aria-hidden="true"></i>
                     </button>
-                    <button type="button" class="btn-toggle" aria-label="Expand/collapse">▲</button>
-                    <button type="button" class="btn-delete" aria-label="Delete">🗑</button>
+                    <button type="button" class="btn-toggle" aria-label="Thu gọn thẻ" aria-expanded="true">
+                        <i class="ph ph-caret-up" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="btn-delete" aria-label="Xóa thẻ">
+                        <i class="ph ph-trash" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
             <div class="card-body">
                 <div class="form-row">
                     <div class="form-group">
                         <label>Thuật ngữ <span class="required">*</span></label>
-                        <input class="form-control input-front" placeholder="Thuật ngữ" />
+                        <input class="form-control input-front" placeholder="Thuật ngữ" aria-required="true" />
                     </div>
                     <div class="form-group">
                         <label>Định nghĩa <span class="required">*</span></label>
-                        <input class="form-control input-back" placeholder="Định nghĩa" />
+                        <input class="form-control input-back" placeholder="Định nghĩa" aria-required="true" />
                     </div>
                 </div>
                 <div class="form-row">
                     <div class="form-group">
                         <label>Phát âm</label>
-                        <input class="form-control input-pronunciation" placeholder="IPA" />
+                        <input class="form-control input-pronunciation" placeholder="Ví dụ: /ˈtenənt/" />
                     </div>
                     <div class="form-group">
                         <label>Loại từ</label>
-                        <input class="form-control input-part-of-speech" placeholder="noun, verb..." />
+                        <input class="form-control input-part-of-speech" placeholder="noun, verb…" />
                     </div>
                 </div>
                 <div class="form-group">
                     <label>Ví dụ tiếng Anh</label>
-                    <textarea class="form-control input-example-sentence" rows="2" placeholder="Ví dụ"></textarea>
+                    <textarea class="form-control input-example-sentence" rows="2" placeholder="Đặt thuật ngữ vào một câu thực tế"></textarea>
                 </div>
                 <div class="form-group">
                     <label>Nghĩa câu ví dụ tiếng Việt</label>
-                    <textarea class="form-control input-example-meaning" rows="2" placeholder="Nghĩa"></textarea>
+                    <textarea class="form-control input-example-meaning" rows="2" placeholder="Dịch nghĩa câu ví dụ"></textarea>
                 </div>
                 <div class="form-group">
                     <label>Từ đồng nghĩa</label>
@@ -397,6 +434,15 @@
         return div;
     }
 
+    function setCardExpanded(card, expanded) {
+        card.classList.toggle('expanded', expanded);
+        card.classList.toggle('collapsed', !expanded);
+        const toggle = card.querySelector('.btn-toggle');
+        toggle.setAttribute('aria-expanded', String(expanded));
+        toggle.setAttribute('aria-label', expanded ? 'Thu gọn thẻ' : 'Mở rộng thẻ');
+        toggle.querySelector('i').className = expanded ? 'ph ph-caret-up' : 'ph ph-caret-down';
+    }
+
     function bindCardEvents(card) {
         const inputs = card.querySelectorAll('input, textarea');
         inputs.forEach(input => {
@@ -404,6 +450,10 @@
                 if (input.classList.contains('input-front')) {
                     card.querySelector('.card-term').textContent = input.value;
                 }
+                if (input.classList.contains('input-back')) {
+                    card.querySelector('.card-definition').textContent = input.value;
+                }
+                applyCardFilters();
                 scheduleSave(card);
             });
             input.addEventListener('blur', () => saveCard(card));
@@ -411,9 +461,7 @@
 
         card.querySelector('.btn-toggle').addEventListener('click', (e) => {
             e.stopPropagation();
-            card.classList.toggle('expanded');
-            card.classList.toggle('collapsed');
-            card.querySelector('.btn-toggle').textContent = card.classList.contains('expanded') ? '▲' : '▼';
+            setCardExpanded(card, !card.classList.contains('expanded'));
         });
 
         card.querySelector('.btn-delete').addEventListener('click', async (e) => {
@@ -449,6 +497,7 @@
 
             const starButton = card.querySelector('.btn-star');
             const previousState = card.dataset.starred === 'true';
+            starButton.setAttribute('aria-pressed', String(previousState));
             try {
                 const response = await apiFetch(`/api/flashcards/flashcards/${id}/star`, { method: 'POST' });
                 if (!response.ok) {
@@ -457,10 +506,13 @@
                 const result = await response.json();
                 card.dataset.starred = result.isStarred;
                 starButton.textContent = result.isStarred ? '★' : '☆';
+                starButton.setAttribute('aria-pressed', String(result.isStarred));
+                applyCardFilters();
             } catch (err) {
                 setSaveStatus('Lỗi đánh sao', 'error');
                 card.dataset.starred = previousState ? 'true' : 'false';
                 starButton.textContent = previousState ? '★' : '☆';
+                starButton.setAttribute('aria-pressed', String(previousState));
                 console.error('Star toggle failed:', err);
             }
         });
@@ -495,9 +547,7 @@
 
         card.addEventListener('click', () => {
             if (!card.classList.contains('expanded')) {
-                card.classList.add('expanded');
-                card.classList.remove('collapsed');
-                card.querySelector('.btn-toggle').textContent = '▲';
+                setCardExpanded(card, true);
             }
         });
     }
@@ -518,7 +568,12 @@
         }
     });
 
+    cardSearch.addEventListener('input', applyCardFilters);
+    cardFilter.addEventListener('change', applyCardFilters);
+
     btnAdd.addEventListener('click', () => {
+        cardSearch.value = '';
+        cardFilter.value = 'all';
         const card = createEmptyCard();
         container.appendChild(card);
         updateCardNumbering();
@@ -548,8 +603,7 @@
             ? firstBackInput
             : firstFrontInput;
 
-        firstInvalidCard.classList.add('expanded');
-        firstInvalidCard.classList.remove('collapsed');
+        setCardExpanded(firstInvalidCard, true);
         firstInvalidCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
         focusTarget?.focus();
         setSaveStatus('Bổ sung thuật ngữ và định nghĩa trước khi hoàn tất', 'error');
@@ -731,10 +785,10 @@
         card.querySelector('.input-example-meaning').value = data.exampleMeaning || '';
         card.querySelector('.input-synonyms').value = data.synonyms || '';
         card.querySelector('.card-term').textContent = data.frontText || '';
+        card.querySelector('.card-definition').textContent = data.backText || '';
         card.querySelector('.btn-star').textContent = data.isStarred ? '★' : '☆';
-        card.classList.remove('expanded');
-        card.classList.add('collapsed');
-        card.querySelector('.btn-toggle').textContent = '▼';
+        card.querySelector('.btn-star').setAttribute('aria-pressed', String(Boolean(data.isStarred)));
+        setCardExpanded(card, false);
         container.appendChild(card);
         return card;
     }

@@ -1,0 +1,524 @@
+<!doctype html>
+<html class="light" lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Lumina Academic - Deck Editor</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined"
+      rel="stylesheet"
+    />
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              primary: "#3b82f6", // Vibrant Lumina Blue
+              "background-light": "#f8fafc",
+              "background-dark": "#0f172a",
+              "surface-light": "#ffffff",
+              "surface-dark": "#1e293b",
+            },
+            fontFamily: {
+              display: ["Inter", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "0.75rem",
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+      .custom-scrollbar::-webkit-scrollbar {
+        width: 6px;
+      }
+      .custom-scrollbar::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+      }
+      .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+        background: #475569;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-background-light dark:bg-background-dark text-primary dark:text-slate-100 min-h-screen flex flex-col"
+  >
+    <nav
+      class="sticky top-0 z-50 bg-surface-light dark:bg-surface-dark border-b border-primary/10 px-6 py-3 flex items-center justify-between shadow-sm"
+    >
+      <div class="flex items-center gap-8">
+        <div class="flex items-center gap-2 text-primary font-bold text-xl">
+          <span class="material-icons-outlined">menu_book</span>
+          <span class="">LTWNC</span>
+        </div>
+        <div
+          class="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600 dark:text-slate-400"
+        >
+          <a class="hover:text-primary transition-colors" href="#">Trang chủ</a>
+          <a class="hover:text-primary transition-colors" href="#">Thư viện</a>
+          <a class="text-primary border-b-2 border-primary pb-1" href="#"
+            >Bộ thẻ của tôi</a
+          >
+          <a class="hover:text-primary transition-colors" href="#"
+            >Thành tích</a
+          >
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="flex items-center gap-2 text-sm text-slate-500">
+          <span
+            class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"
+          ></span>
+          <span class="">Đã tự động lưu 14:20</span>
+        </div>
+        <button
+          class="bg-slate-100 dark:bg-slate-800 p-2 rounded-full text-slate-600 dark:text-slate-300"
+        >
+          <span class="material-icons-outlined text-[20px]">notifications</span>
+        </button>
+        <div
+          class="flex items-center gap-2 pl-4 border-l border-slate-200 dark:border-slate-700"
+        >
+          <div
+            class="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-white text-xs font-bold"
+          >
+            DH
+          </div>
+          <span class="text-sm font-medium">duchuy2004</span>
+        </div>
+      </div>
+    </nav>
+    <main class="flex-1 flex overflow-hidden">
+      <aside
+        class="w-80 border-r border-primary/10 bg-surface-container-low dark:bg-surface-dark/50 p-6 overflow-y-auto hidden lg:block"
+      >
+        <div class="flex flex-col gap-6">
+          <a
+            class="flex items-center gap-2 text-sm text-slate-500 hover:text-primary transition-colors group"
+            href="#"
+          >
+            <span
+              class="material-icons-outlined text-sm transition-transform group-hover:-translate-x-1"
+              >arrow_back</span
+            >
+            Quay lại bộ thẻ
+          </a>
+          <div class="space-y-4">
+            <div class="space-y-1">
+              <label
+                class="text-xs font-semibold uppercase tracking-wider text-slate-500"
+                >Tên bộ từ</label
+              >
+              <input
+                class="w-full bg-surface-light dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-primary focus:border-primary"
+                type="text"
+                value="Từ vựng phòng trọ và căn hộ"
+              />
+            </div>
+            <div class="space-y-1">
+              <label
+                class="text-xs font-semibold uppercase tracking-wider text-slate-500"
+                >Mô tả</label
+              >
+              <textarea
+                class="w-full bg-surface-light dark:bg-slate-800 border-slate-200 dark:border-slate-700 focus:ring-primary focus:border-primary text-sm"
+                rows="4"
+              >
+Những từ hay gặp khi xem nhà, ký hợp đồng và báo đồ bị hỏng.</textarea
+              >
+            </div>
+            <div
+              class="flex items-center gap-3 p-3 bg-primary/5 dark:bg-primary/20 border border-primary/10 rounded-lg"
+            >
+              <input
+                checked=""
+                class="rounded text-primary focus:ring-primary h-4 w-4"
+                id="is_public"
+                type="checkbox"
+              />
+              <label
+                class="text-sm font-medium text-primary dark:text-slate-300 leading-none"
+                for="is_public"
+                >Chế độ công khai</label
+              >
+            </div>
+          </div>
+          <div class="pt-6 border-t border-slate-200 dark:border-slate-800">
+            <h4
+              class="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-4"
+            >
+              Thống kê deck
+            </h4>
+            <div class="grid grid-cols-2 gap-4">
+              <div
+                class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg text-center"
+              >
+                <span class="block text-2xl font-bold">50</span>
+                <span class="text-[10px] text-slate-500">TỪ VỰNG</span>
+              </div>
+              <div
+                class="bg-slate-50 dark:bg-slate-800 p-3 rounded-lg text-center"
+              >
+                <span class="block text-2xl font-bold">12</span>
+                <span class="text-[10px] text-slate-500">CHƯA THUỘC</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </aside>
+      <section class="flex-1 flex flex-col bg-slate-50/50 dark:bg-slate-900/50">
+        <div
+          class="px-8 py-4 bg-surface-light dark:bg-surface-dark border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-4"
+        >
+          <div class="flex items-center gap-3">
+            <h1 class="text-xl font-bold">Danh sách từ</h1>
+            <span
+              class="px-2 py-0.5 bg-slate-200 dark:bg-slate-700 text-slate-600 dark:text-slate-300 text-xs font-bold rounded"
+              >DRAFT</span
+            >
+          </div>
+          <div class="flex items-center gap-3">
+            <div class="relative">
+              <span
+                class="material-icons-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm"
+                >search</span
+              >
+              <input
+                class="pl-9 pr-4 py-1.5 text-sm w-64 bg-slate-100 dark:bg-slate-800 border-none rounded-lg focus:ring-primary"
+                placeholder="Tìm kiếm từ..."
+                type="text"
+              />
+            </div>
+            <button
+              class="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-200 bg-surface-light dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors rounded-lg"
+            >
+              <span class="material-icons-outlined text-[18px]"
+                >file_upload</span
+              >
+              Import CSV
+            </button>
+            <button
+              class="flex items-center gap-2 px-6 py-2 text-sm font-bold text-white bg-primary hover:opacity-90 shadow-lg shadow-primary/20 transition-all rounded"
+            >
+              <span class="material-icons-outlined text-[18px]"
+                >check_circle</span
+              >
+              Hoàn tất
+            </button>
+          </div>
+        </div>
+        <div class="flex-1 overflow-y-auto p-8 custom-scrollbar">
+          <div class="max-w-5xl mx-auto space-y-4">
+            <div
+              class="bg-surface-light dark:bg-surface-dark border-2 border-primary ring-4 ring-primary/5 rounded overflow-hidden shadow-sm"
+            >
+              <div
+                class="px-6 py-3 bg-primary/5 border-b border-primary/10 flex items-center justify-between"
+              >
+                <div class="flex items-center gap-4">
+                  <span
+                    class="material-icons-outlined text-slate-400 cursor-move"
+                    >drag_indicator</span
+                  >
+                  <span
+                    class="w-8 h-8 flex items-center justify-center bg-primary text-white font-bold rounded-full text-xs"
+                    >01</span
+                  >
+                  <span class="font-bold text-slate-800 dark:text-white"
+                    >landlord</span
+                  >
+                </div>
+                <div class="flex items-center gap-1">
+                  <button
+                    class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-amber-400"
+                  >
+                    <span class="material-icons-outlined">star</span>
+                  </button>
+                  <button
+                    class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-400"
+                  >
+                    <span class="material-icons-outlined"
+                      >keyboard_arrow_up</span
+                    >
+                  </button>
+                  <button
+                    class="p-1.5 hover:bg-white dark:hover:bg-slate-700 rounded-lg text-slate-400"
+                  >
+                    <span class="material-icons-outlined"
+                      >keyboard_arrow_down</span
+                    >
+                  </button>
+                  <button
+                    class="p-1.5 hover:bg-red-50 text-red-400 dark:hover:bg-red-900/20 rounded-lg ml-2"
+                  >
+                    <span class="material-icons-outlined">delete_outline</span>
+                  </button>
+                </div>
+              </div>
+              <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+                <div class="space-y-2">
+                  <label
+                    class="text-xs font-bold text-slate-400 uppercase tracking-widest"
+                    >Thuật ngữ *</label
+                  >
+                  <input
+                    class="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-primary rounded-xl font-medium"
+                    type="text"
+                    value="landlord"
+                  />
+                </div>
+                <div class="space-y-2">
+                  <label
+                    class="text-xs font-bold text-slate-400 uppercase tracking-widest"
+                    >Định nghĩa *</label
+                  >
+                  <input
+                    class="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-primary rounded-xl"
+                    type="text"
+                    value="chủ nhà"
+                  />
+                </div>
+                <div class="space-y-2">
+                  <label
+                    class="text-xs font-bold text-slate-400 uppercase tracking-widest"
+                    >Phát âm</label
+                  >
+                  <div class="relative">
+                    <input
+                      class="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-primary rounded-xl pr-10"
+                      type="text"
+                      value="/ˈlændlɔːrd/"
+                    />
+                    <button
+                      class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-primary"
+                    >
+                      <span class="material-icons-outlined text-[18px]"
+                        >volume_up</span
+                      >
+                    </button>
+                  </div>
+                </div>
+                <div class="space-y-2">
+                  <label
+                    class="text-xs font-bold text-slate-400 uppercase tracking-widest"
+                    >Loại từ</label
+                  >
+                  <select
+                    class="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-primary rounded-xl"
+                  >
+                    <option>noun</option>
+                    <option>verb</option>
+                    <option>adj</option>
+                  </select>
+                </div>
+                <div class="md:col-span-2 space-y-2">
+                  <label
+                    class="text-xs font-bold text-slate-400 uppercase tracking-widest"
+                    >Ví dụ tiếng Anh</label
+                  >
+                  <textarea
+                    class="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-primary rounded-xl text-sm"
+                    rows="2"
+                  >
+The landlord will replace the broken lock.</textarea
+                  >
+                </div>
+                <div class="md:col-span-2 space-y-2">
+                  <label
+                    class="text-xs font-bold text-slate-400 uppercase tracking-widest"
+                    >Nghĩa ví dụ tiếng Việt</label
+                  >
+                  <textarea
+                    class="w-full bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 focus:ring-primary rounded-xl text-sm"
+                    rows="2"
+                  >
+Chủ nhà sẽ thay ổ khóa bị hỏng.</textarea
+                  >
+                </div>
+              </div>
+            </div>
+            <div
+              class="group bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-800 hover:border-primary/50 rounded-2xl overflow-hidden shadow-sm transition-all"
+            >
+              <div class="px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-6 flex-1">
+                  <span
+                    class="material-icons-outlined text-slate-300 group-hover:text-slate-400 cursor-move"
+                    >drag_indicator</span
+                  >
+                  <span
+                    class="w-7 h-7 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold rounded-full text-[10px]"
+                    >02</span
+                  >
+                  <div class="grid grid-cols-2 gap-12 flex-1">
+                    <div>
+                      <p
+                        class="text-xs font-bold text-slate-400 uppercase tracking-tight mb-1"
+                      >
+                        Thuật ngữ
+                      </p>
+                      <p class="font-semibold">deposit</p>
+                    </div>
+                    <div>
+                      <p
+                        class="text-xs font-bold text-slate-400 uppercase tracking-tight mb-1"
+                      >
+                        Định nghĩa
+                      </p>
+                      <p class="text-slate-600 dark:text-slate-400">
+                        tiền đặt cọc
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <button
+                    class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400"
+                  >
+                    <span class="material-icons-outlined">star_border</span>
+                  </button>
+                  <button
+                    class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400"
+                  >
+                    <span class="material-icons-outlined text-[20px]"
+                      >edit</span
+                    >
+                  </button>
+                  <button
+                    class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400"
+                  >
+                    <span class="material-icons-outlined"
+                      >keyboard_arrow_down</span
+                    >
+                  </button>
+                  <button
+                    class="p-1.5 hover:bg-red-50 text-red-400 dark:hover:bg-red-900/20 rounded-lg ml-2"
+                  >
+                    <span class="material-icons-outlined">delete_outline</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <div
+              class="group bg-surface-light dark:bg-surface-dark border border-slate-200 dark:border-slate-800 hover:border-primary/50 rounded-2xl overflow-hidden shadow-sm transition-all"
+            >
+              <div class="px-6 py-4 flex items-center justify-between">
+                <div class="flex items-center gap-6 flex-1">
+                  <span
+                    class="material-icons-outlined text-slate-300 group-hover:text-slate-400 cursor-move"
+                    >drag_indicator</span
+                  >
+                  <span
+                    class="w-7 h-7 flex items-center justify-center bg-slate-100 dark:bg-slate-800 text-slate-500 font-bold rounded-full text-[10px]"
+                    >03</span
+                  >
+                  <div class="grid grid-cols-2 gap-12 flex-1">
+                    <div>
+                      <p
+                        class="text-xs font-bold text-slate-400 uppercase tracking-tight mb-1"
+                      >
+                        Thuật ngữ
+                      </p>
+                      <p class="font-semibold">amenities</p>
+                    </div>
+                    <div>
+                      <p
+                        class="text-xs font-bold text-slate-400 uppercase tracking-tight mb-1"
+                      >
+                        Định nghĩa
+                      </p>
+                      <p class="text-slate-600 dark:text-slate-400">
+                        tiện nghi (hồ bơi, gym...)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <div
+                  class="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <button
+                    class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400"
+                  >
+                    <span class="material-icons-outlined">star_border</span>
+                  </button>
+                  <button
+                    class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400"
+                  >
+                    <span class="material-icons-outlined text-[20px]"
+                      >edit</span
+                    >
+                  </button>
+                  <button
+                    class="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg text-slate-400"
+                  >
+                    <span class="material-icons-outlined text-[20px]"
+                      >keyboard_arrow_down</span
+                    >
+                  </button>
+                  <button
+                    class="p-1.5 hover:bg-red-50 text-red-400 dark:hover:bg-red-900/20 rounded-lg ml-2"
+                  >
+                    <span class="material-icons-outlined">delete_outline</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <button
+              class="w-full py-8 border-2 border-dashed border-slate-300 dark:border-slate-700 hover:border-primary dark:hover:border-primary hover:bg-primary/5 transition-all rounded-2xl flex flex-col items-center justify-center gap-2 group"
+            >
+              <div
+                class="w-12 h-12 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-colors"
+              >
+                <span class="material-icons-outlined text-2xl">add</span>
+              </div>
+              <span class="font-bold text-slate-500 group-hover:text-primary"
+                >Thêm thẻ mới</span
+              >
+              <span class="text-xs text-slate-400">Phím tắt: Ctrl + Enter</span>
+            </button>
+          </div>
+        </div>
+        <footer
+          class="lg:hidden p-4 bg-surface-light dark:bg-surface-dark border-t border-slate-200 dark:border-slate-800 flex justify-between items-center"
+        >
+          <div class="text-xs text-slate-500">
+            <span class="font-bold">50</span> thẻ trong bộ
+          </div>
+          <button
+            class="bg-primary text-white px-4 py-2 rounded-lg text-sm font-bold"
+          >
+            Hoàn tất
+          </button>
+        </footer>
+      </section>
+    </main>
+    <div class="fixed bottom-8 right-8 flex flex-col gap-3">
+      <button
+        class="w-12 h-12 bg-white dark:bg-slate-800 shadow-xl rounded-full flex items-center justify-center text-slate-600 dark:text-slate-300 hover:scale-110 transition-transform"
+      >
+        <span class="material-icons-outlined">help_outline</span>
+      </button>
+      <button
+        class="w-12 h-12 bg-primary shadow-xl shadow-primary/30 rounded-full flex items-center justify-center text-white hover:scale-110 transition-transform"
+      >
+        <span class="material-icons-outlined">keyboard_double_arrow_up</span>
+      </button>
+    </div>
+  </body>
+</html>

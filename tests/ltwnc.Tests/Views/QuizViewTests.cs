@@ -13,7 +13,7 @@ public class QuizViewTests
     private static readonly string QuizStyles = ReadFile("wwwroot", "css", "quiz.css");
 
     [Fact]
-    public void Quiz_setup_view_offers_presets_custom_duration_and_active_continuation()
+    public void Quiz_setup_view_offers_presets_custom_duration_and_fresh_attempts()
     {
         Assert.Contains("~/css/quiz.css", QuizSetupView);
         Assert.Contains("new[] { 5, 10, 15, 20 }", QuizSetupView);
@@ -22,8 +22,10 @@ public class QuizViewTests
         Assert.Contains("max=\"120\"", QuizSetupView);
         Assert.Contains("@Html.AntiForgeryToken()", QuizSetupView);
         Assert.Contains("quiz-setup-layout", QuizSetupView);
+        Assert.Contains("quiz-workspace", QuizSetupView);
+        Assert.Contains("quiz-context-panel quiz-context-panel-setup", QuizSetupView);
         Assert.Contains("quiz-header quiz-header-setup", QuizSetupView);
-        Assert.Contains("ViewData[\"HideLayoutChrome\"] = true", QuizSetupView);
+        Assert.DoesNotContain("HideLayoutChrome", QuizSetupView);
         Assert.Contains("class=\"quiz-steps\"", QuizSetupView);
         Assert.Contains("class=\"quiz-submit-dock\"", QuizSetupView);
         Assert.DoesNotContain("quiz-active-session", QuizSetupView);
@@ -42,6 +44,46 @@ public class QuizViewTests
         Assert.DoesNotContain("Tiếp tục làm bài", QuizSetupView);
         Assert.Contains("if (Model.DeadlineUtc.HasValue)", QuizView);
         Assert.DoesNotContain("Ã", QuizSetupView);
+    }
+
+    [Fact]
+    public void Quiz_views_use_the_reference_split_layout_with_the_project_design_system()
+    {
+        string questionWorkspace = RequiredMatch(
+            QuizView,
+            "<div class=\"quiz-workspace quiz-workspace-question\">[\\s\\S]*?</section>\\s*</div>");
+        string questionContext = RequiredMatch(
+            questionWorkspace,
+            "<aside class=\"quiz-context-panel\"[\\s\\S]*?</aside>");
+        string setupWorkspace = RequiredMatch(
+            QuizSetupView,
+            "<div class=\"quiz-setup-layout quiz-workspace\"[\\s\\S]*?</section>\\s*</div>");
+        string submitDock = RequiredMatch(
+            QuizStyles,
+            "\\.quiz-submit-dock \\{[\\s\\S]*?\\}");
+
+        Assert.Contains("data-quiz-progress", questionContext);
+        Assert.Contains("class=\"quiz-steps\"", questionContext);
+        Assert.Contains("quiz-context-panel quiz-context-panel-setup", setupWorkspace);
+        Assert.Contains("grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);", QuizStyles);
+        Assert.Contains("border-top: 1px solid var(--quiz-line);", submitDock);
+        Assert.DoesNotContain("position: fixed", submitDock);
+        Assert.Contains("font-family: var(--font-body);", QuizStyles);
+        Assert.DoesNotContain("font-family: var(--font-display);", QuizStyles);
+        Assert.DoesNotContain("tailwind", QuizSetupView, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Manrope", QuizStyles, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Noto Serif", QuizStyles, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Quiz_setup_uses_a_compact_left_aligned_text_hierarchy()
+    {
+        Assert.Contains(".quiz-header-setup .quiz-heading", QuizStyles);
+        Assert.Contains("font-size: clamp(1.75rem, 3.5vw, 2.5rem);", QuizStyles);
+        Assert.Contains("letter-spacing: -0.025em;", QuizStyles);
+        Assert.Contains("text-align: left;", RequiredMatch(
+            QuizStyles,
+            "\\.quiz-header-setup \\.quiz-heading \\{[\\s\\S]*?\\}"));
     }
 
     [Fact]
@@ -75,7 +117,7 @@ public class QuizViewTests
         Assert.Contains("data-choice-index=\"@index\"", QuizView);
         Assert.Contains("aria-keyshortcuts=\"@(index + 1)\"", QuizView);
         Assert.Contains("data-quiz-choice-text", QuizView);
-        Assert.Contains("ViewData[\"HideLayoutChrome\"] = true", QuizView);
+        Assert.DoesNotContain("HideLayoutChrome", QuizView);
         Assert.Contains("@Html.AntiForgeryToken()", QuizView);
         Assert.Contains("aria-live=\"polite\"", QuizView);
         Assert.Contains("if (Model.IsReviewOnly", QuizView);
@@ -334,10 +376,35 @@ public class QuizViewTests
         Assert.Contains(".quiz-next-question", QuizStyles);
         Assert.Contains(".quiz-return-current", QuizStyles);
         Assert.Contains(".quiz-previous:focus-visible", QuizStyles);
-        Assert.Contains("grid-column: 1 / -1;", QuizStyles);
+        Assert.Contains("grid-column: 2;", RequiredMatch(
+            QuizStyles,
+            "\\.quiz-header-setup \\.quiz-heading \\{[\\s\\S]*?\\}"));
         Assert.Contains(".quiz-timer", RequiredMatch(QuizStyles, "@media \\(prefers-reduced-motion: reduce\\) \\{[\\s\\S]*?\\n\\}"));
         Assert.Contains(".quiz-shell-question .quiz-actions:has(a:not([hidden]))", QuizStyles);
         Assert.Contains(".quiz-submit-dock", QuizStyles);
+    }
+
+    [Fact]
+    public void Quiz_mobile_layout_prioritizes_setup_choices_progress_and_primary_actions()
+    {
+        string quizHeader = RequiredMatch(QuizStyles, "body > header \\{[\\s\\S]*?\\}");
+        Assert.Contains("position: sticky;", quizHeader);
+        Assert.Contains("top: 0;", quizHeader);
+        Assert.Contains(".quiz-context-panel-setup", QuizStyles);
+        Assert.Contains("display: none;", RequiredMatch(
+            QuizStyles,
+            "\\.quiz-context-panel-setup \\{[\\s\\S]*?\\}"));
+        Assert.Contains("grid-template-columns: auto minmax(0, 1fr);", QuizStyles);
+        Assert.Contains(".quiz-shell-question .quiz-steps", QuizStyles);
+        Assert.Contains(".quiz-shell-question [data-quiz-progress-count]", QuizStyles);
+        Assert.Contains("content: \"Câu \";", QuizStyles);
+        Assert.Contains(".quiz-actions:has([data-quiz-next]:not([hidden]))", QuizStyles);
+        Assert.Contains(".quiz-stage-setup .quiz-submit-dock", QuizStyles);
+        Assert.Contains("position: fixed;", RequiredMatch(
+            QuizStyles,
+            "\\.quiz-stage-setup \\.quiz-submit-dock \\{[\\s\\S]*?\\}"));
+        Assert.Contains("env(safe-area-inset-bottom)", QuizStyles);
+        Assert.DoesNotContain("HideLayoutChrome", ResultView);
     }
 
     [Fact]

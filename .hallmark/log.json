@@ -1,6 +1,30 @@
 [
   {
     "date": "2026-07-29",
+    "macrostructure": "Split Studio",
+    "theme": "LTWNC warm editorial",
+    "enrichment": "none",
+    "brief": "Align quiz setup and answering screens to the supplied two-column reference layout",
+    "scope": "single-page"
+  },
+  {
+    "date": "2026-07-29",
+    "macrostructure": "Workbench",
+    "theme": "LTWNC warm editorial",
+    "enrichment": "none",
+    "brief": "Rebuild the unified flashcard-set editor around the supplied sidebar and card-workspace layout",
+    "scope": "single-page"
+  },
+  {
+    "date": "2026-07-29",
+    "macrostructure": "Split Studio",
+    "theme": "LTWNC warm editorial",
+    "enrichment": "none",
+    "brief": "Rebuild the Flashcard study workspace from the supplied split-layout template",
+    "scope": "single-page"
+  },
+  {
+    "date": "2026-07-29",
     "macrostructure": "Narrative Workflow",
     "theme": "Almanac adapted to LTWNC",
     "enrichment": "none",

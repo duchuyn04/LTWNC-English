@@ -1,7 +1,6 @@
 @model QuizSetupViewModel
 @{
     ViewData["Title"] = "Thiết lập trắc nghiệm";
-    ViewData["HideLayoutChrome"] = true;
 }
 
 @section Styles {
@@ -21,16 +20,31 @@
             </div>
         </header>
 
-        <ol class="quiz-steps" aria-label="Các bước làm bài">
-            <li class="is-current" aria-current="step"><span>1</span> Thiết lập</li>
-            <li><span>2</span> Làm bài</li>
-            <li><span>3</span> Kết quả</li>
-        </ol>
+        <div class="quiz-page-intro">
+            <h2 id="quiz-setup-title">Bạn muốn làm bài trong bao lâu?</h2>
+            <p>Chọn thời lượng, sau đó bắt đầu với câu đầu tiên.</p>
+        </div>
 
-        <div class="quiz-setup-layout" data-quiz-setup>
-            <section class="quiz-setup-main" aria-labelledby="quiz-setup-title">
-                <h2 id="quiz-setup-title">Bạn muốn làm bài trong bao lâu?</h2>
-                <p class="quiz-setup-intro">Chọn thời lượng, sau đó bắt đầu với câu đầu tiên.</p>
+        <div class="quiz-setup-layout quiz-workspace" data-quiz-setup>
+            <aside class="quiz-context-panel quiz-context-panel-setup" aria-label="Thông tin bài trắc nghiệm">
+                <div class="quiz-context-heading">
+                    <span class="quiz-context-icon" aria-hidden="true">
+                        <i class="ph ph-timer"></i>
+                    </span>
+                    <div>
+                        <span class="quiz-context-label">Thiết lập thời gian</span>
+                        <h3>@Model.SetTitle</h3>
+                    </div>
+                </div>
+
+                <ol class="quiz-steps" aria-label="Các bước làm bài">
+                    <li class="is-current" aria-current="step"><span>1</span> Thiết lập</li>
+                    <li><span>2</span> Làm bài</li>
+                    <li><span>3</span> Kết quả</li>
+                </ol>
+            </aside>
+
+            <section class="quiz-setup-main" aria-labelledby="quiz-timing-title">
 
                 <form asp-route="QuizStartPost"
                       asp-route-setId="@Model.SetId"
@@ -42,7 +56,7 @@
                     <span asp-validation-for="TimingMode" class="quiz-validation-message"></span>
 
                     <fieldset class="quiz-timing-fieldset">
-                        <legend>Thời lượng</legend>
+                        <legend id="quiz-timing-title">Thời lượng</legend>
                         <div class="quiz-timing-grid">
                             @foreach (int minutes in new[] { 5, 10, 15, 20 })
                             {

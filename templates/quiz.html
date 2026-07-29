@@ -1,0 +1,492 @@
+<!doctype html>
+
+<html class="light" lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Lexis - Thiết lập bài kiểm tra</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600&family=Noto+Serif:wght@600;700&family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Manrope:wght@100..900&family=Noto+Serif:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "on-primary-fixed-variant": "#3d4a40",
+              "on-tertiary-fixed-variant": "#48473f",
+              "inverse-on-surface": "#f2f1ec",
+              "surface-variant": "#e4e2dd",
+              "surface-container": "#f0eee9",
+              "surface-container-highest": "#e4e2dd",
+              "on-primary-container": "#95a397",
+              "surface-bright": "#fbf9f4",
+              "on-secondary-container": "#785c28",
+              error: "#ba1a1a",
+              "on-primary": "#ffffff",
+              "secondary-fixed-dim": "#e6c182",
+              "on-secondary-fixed-variant": "#5b430f",
+              surface: "#fbf9f4",
+              primary: "#18241b",
+              "surface-container-low": "#f5f3ee",
+              "secondary-fixed": "#ffdea7",
+              "error-container": "#ffdad6",
+              tertiary: "#22211a",
+              "on-secondary": "#ffffff",
+              "on-error": "#ffffff",
+              "on-secondary-fixed": "#271900",
+              background: "#fbf9f4",
+              "primary-fixed-dim": "#bccabd",
+              "inverse-primary": "#bccabd",
+              "tertiary-fixed-dim": "#cac6bc",
+              "on-error-container": "#93000a",
+              outline: "#747873",
+              "on-background": "#1b1c19",
+              "tertiary-fixed": "#e6e2d7",
+              "on-surface-variant": "#434843",
+              "on-tertiary-container": "#a19f95",
+              "surface-container-lowest": "#ffffff",
+              "outline-variant": "#c3c8c2",
+              "surface-dim": "#dbdad5",
+              "inverse-surface": "#30312e",
+              "surface-container-high": "#eae8e3",
+              "primary-fixed": "#d8e6d9",
+              "on-tertiary-fixed": "#1c1c15",
+              "tertiary-container": "#37362f",
+              "on-surface": "#1b1c19",
+              "on-primary-fixed": "#131e16",
+              "secondary-container": "#fdd897",
+              "surface-tint": "#556157",
+              "on-tertiary": "#ffffff",
+              "primary-container": "#2d3930",
+              secondary: "#755a25",
+            },
+            borderRadius: {
+              DEFAULT: "0.25rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              full: "9999px",
+            },
+            spacing: {
+              xl: "48px",
+              sm: "8px",
+              unit: "4px",
+              lg: "24px",
+              "margin-desktop": "64px",
+              gutter: "24px",
+              md: "16px",
+              "margin-mobile": "16px",
+              xs: "4px",
+            },
+            fontFamily: {
+              "body-md": ["Manrope"],
+              "display-lg": ["Noto Serif"],
+              "headline-lg": ["Noto Serif"],
+              "label-md": ["Manrope"],
+              "body-lg": ["Manrope"],
+              "headline-lg-mobile": ["Noto Serif"],
+            },
+            fontSize: {
+              "body-md": ["16px", { lineHeight: "1.5", fontWeight: "400" }],
+              "display-lg": ["48px", { lineHeight: "1.1", fontWeight: "700" }],
+              "headline-lg": ["32px", { lineHeight: "1.2", fontWeight: "600" }],
+              "label-md": [
+                "14px",
+                {
+                  lineHeight: "1.2",
+                  letterSpacing: "0.05em",
+                  fontWeight: "600",
+                },
+              ],
+              "body-lg": ["18px", { lineHeight: "1.6", fontWeight: "400" }],
+              "headline-lg-mobile": [
+                "24px",
+                { lineHeight: "1.2", fontWeight: "600" },
+              ],
+            },
+          },
+        },
+      };
+    </script>
+    <style>
+      .material-symbols-outlined {
+        font-variation-settings:
+          "FILL" 0,
+          "wght" 400,
+          "GRAD" 0,
+          "opsz" 24;
+        display: inline-block;
+        vertical-align: middle;
+      }
+      .option-card:hover {
+        background-color: #f2efe8;
+        border-color: #c5a367;
+      }
+      .option-card.active {
+        border-color: #755a25;
+        background-color: #fdd89733;
+        box-shadow: 0px 10px 30px rgba(45, 57, 48, 0.05);
+      }
+      .custom-radio {
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid #747873;
+        border-radius: 50%;
+        outline: none;
+        transition: 0.2s;
+        position: relative;
+      }
+      .custom-radio:checked {
+        border-color: #755a25;
+      }
+      .custom-radio:checked::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background-color: #755a25;
+      }
+    </style>
+  </head>
+  <body
+    class="bg-background text-on-surface font-body-md min-h-screen flex flex-col"
+  >
+    <!-- Top Navigation Bar -->
+    <header
+      class="bg-surface border-b border-outline-variant w-full z-40 sticky top-0"
+    >
+      <div
+        class="flex justify-between items-center px-margin-mobile md:px-margin-desktop py-md max-w-[1120px] mx-auto w-full"
+      >
+        <div class="flex items-center gap-md">
+          <button
+            class="flex items-center gap-xs text-on-surface-variant hover:text-primary transition-colors cursor-pointer"
+          >
+            <span class="material-symbols-outlined">arrow_back</span>
+            <span class="font-label-md text-label-md">Quay lại</span>
+          </button>
+          <div
+            class="hidden md:flex items-center gap-xs text-on-surface-variant/60 font-label-md text-label-md"
+          >
+            <span>/</span>
+            <span class="hover:text-primary transition-colors cursor-pointer"
+              >Bộ thẻ của tôi</span
+            >
+            <span>/</span>
+            <span class="text-on-surface-variant"
+              >Từ vựng phòng trọ và căn hộ</span
+            >
+          </div>
+        </div>
+        <div class="flex items-center gap-lg">
+          <nav class="hidden md:flex gap-lg">
+            <a
+              class="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors"
+              href="#"
+              >Flashcards</a
+            >
+            <a
+              class="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors"
+              href="#"
+              >Library</a
+            >
+            <a
+              class="text-on-surface-variant font-label-md text-label-md hover:text-secondary transition-colors"
+              href="#"
+              >Progress</a
+            >
+          </nav>
+          <button
+            class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors"
+          >
+            settings
+          </button>
+        </div>
+      </div>
+    </header>
+    <main
+      class="flex-grow max-w-[1120px] mx-auto w-full px-margin-mobile md:px-margin-desktop py-xl"
+    >
+      <!-- Header Section -->
+      <div class="mb-xl text-center md:text-left">
+        <h1
+          class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary mb-sm"
+        >
+          Bạn muốn làm bài trong bao lâu?
+        </h1>
+        <p class="text-on-surface-variant font-body-md text-body-md">
+          Chọn thời lượng, sau đó bắt đầu với câu đầu tiên.
+        </p>
+      </div>
+      <!-- Layout Wrapper -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-xl items-start">
+        <!-- Left Side: Graphic/Context -->
+        <div class="hidden lg:block lg:col-span-4 space-y-lg">
+          <div
+            class="bg-surface-container rounded-xl p-lg border border-outline-variant"
+          >
+            <div class="flex items-center gap-md mb-md">
+              <div
+                class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container"
+              >
+                <span
+                  class="material-symbols-outlined"
+                  style="font-variation-settings: &quot;FILL&quot; 1"
+                  >timer</span
+                >
+              </div>
+              <span class="font-label-md text-label-md text-primary"
+                >Thiết lập thời gian</span
+              >
+            </div>
+            <p class="text-on-surface-variant text-body-md leading-relaxed">
+              Điều chỉnh nhịp độ giúp bạn rèn luyện trí nhớ hiệu quả hơn. Người
+              mới bắt đầu thường chọn 10 phút để tối ưu hóa khả năng tập trung.
+            </p>
+          </div>
+          <div class="relative overflow-hidden rounded-xl aspect-[4/3]">
+            <img
+              class="object-cover w-full h-full"
+              data-alt="A high-quality, minimalist photograph of a stack of vintage books resting on a warm wooden desk. A steaming cup of tea sits nearby on a linen coaster. The scene is illuminated by soft morning sunlight streaming through a large window, creating a peaceful and studious atmosphere. The color palette consists of warm creams, earthy browns, and deep forest greens, perfectly matching the Academic Minimalism aesthetic of the Lexis brand."
+              src="https://lh3.googleusercontent.com/aida-public/AB6AXuCeGDvSr3XgVWmCWi8UdWkV8L4pesSM0h3R4DaPDsHlrKfqP7slo2VyUDvGZVHvY0Nait7RRqRjlv2z5oQGU6I2YyRcjLm7YPfK08uCoUtblEmjXB_O0dKMU4m2LFDGSbHU6mjomBneu8iliWzB2m8hsG7WifES8Hup5FX-bFg_CcBVIBNOQCN1peeCLBwzNWTwtuQTvPR8Y4qDpG8CRmUFO-KBt9KXfObsGJgKmbliEROeB3gokqc"
+            />
+          </div>
+        </div>
+        <!-- Central Content: Duration Selection -->
+        <div
+          class="lg:col-span-8 bg-surface-container-lowest border border-outline-variant rounded-[24px] p-lg md:p-xl"
+        >
+          <div class="space-y-md">
+            <h2
+              class="font-label-md text-label-md text-primary-container mb-md border-b border-outline-variant pb-xs"
+            >
+              Thời lượng
+            </h2>
+            <!-- Duration Grid -->
+            <div
+              class="grid grid-cols-1 md:grid-cols-2 gap-md"
+              id="duration-grid"
+            >
+              <!-- Option 1 -->
+              <label
+                class="option-card flex items-center gap-md p-md border border-outline-variant rounded-xl cursor-pointer transition-all duration-200"
+              >
+                <input
+                  class="custom-radio"
+                  name="duration"
+                  type="radio"
+                  value="5"
+                />
+                <div class="flex flex-col">
+                  <span class="font-label-md text-primary">5 phút</span>
+                  <span class="text-xs text-on-surface-variant italic"
+                    >Nhịp độ gợi ý</span
+                  >
+                </div>
+              </label>
+              <!-- Option 2 (Selected) -->
+              <label
+                class="option-card active flex items-center gap-md p-md border border-outline-variant rounded-xl cursor-pointer transition-all duration-200"
+              >
+                <input
+                  checked=""
+                  class="custom-radio"
+                  name="duration"
+                  type="radio"
+                  value="10"
+                />
+                <div class="flex flex-col">
+                  <span class="font-label-md text-primary">10 phút</span>
+                  <span class="text-xs text-on-surface-variant italic"
+                    >Nhịp độ gợi ý</span
+                  >
+                </div>
+              </label>
+              <!-- Option 3 -->
+              <label
+                class="option-card flex items-center gap-md p-md border border-outline-variant rounded-xl cursor-pointer transition-all duration-200"
+              >
+                <input
+                  class="custom-radio"
+                  name="duration"
+                  type="radio"
+                  value="15"
+                />
+                <div class="flex flex-col">
+                  <span class="font-label-md text-primary">15 phút</span>
+                  <span class="text-xs text-on-surface-variant italic"
+                    >Nhịp độ gợi ý</span
+                  >
+                </div>
+              </label>
+              <!-- Option 4 -->
+              <label
+                class="option-card flex items-center gap-md p-md border border-outline-variant rounded-xl cursor-pointer transition-all duration-200"
+              >
+                <input
+                  class="custom-radio"
+                  name="duration"
+                  type="radio"
+                  value="20"
+                />
+                <div class="flex flex-col">
+                  <span class="font-label-md text-primary">20 phút</span>
+                  <span class="text-xs text-on-surface-variant italic"
+                    >Nhịp độ gợi ý</span
+                  >
+                </div>
+              </label>
+            </div>
+            <!-- Unlimited Option -->
+            <label
+              class="option-card flex items-center gap-md p-md border border-outline-variant rounded-xl cursor-pointer transition-all duration-200 mt-md"
+            >
+              <input
+                class="custom-radio"
+                name="duration"
+                type="radio"
+                value="unlimited"
+              />
+              <div class="flex items-center gap-md">
+                <span
+                  class="material-symbols-outlined text-secondary"
+                  style="font-variation-settings: &quot;FILL&quot; 1"
+                  >all_inclusive</span
+                >
+                <div class="flex flex-col">
+                  <span class="font-label-md text-primary"
+                    >Không giới hạn thời gian</span
+                  >
+                  <span class="text-xs text-on-surface-variant"
+                    >Làm bài theo tốc độ của bạn</span
+                  >
+                </div>
+              </div>
+            </label>
+            <!-- Custom Duration -->
+            <div class="mt-md">
+              <label
+                class="option-card flex items-center justify-between p-md border border-outline-variant rounded-xl cursor-pointer transition-all duration-200"
+              >
+                <div class="flex items-center gap-md">
+                  <input
+                    class="custom-radio"
+                    name="duration"
+                    type="radio"
+                    value="custom"
+                  />
+                  <div class="flex flex-col">
+                    <span class="font-label-md text-primary"
+                      >Thời lượng tùy chỉnh</span
+                    >
+                    <span class="text-xs text-on-surface-variant"
+                      >Chọn từ 1 đến 120 phút</span
+                    >
+                  </div>
+                </div>
+                <div class="flex items-center gap-xs">
+                  <input
+                    class="w-16 bg-surface-container border-none text-center font-label-md focus:ring-1 focus:ring-secondary rounded-lg py-sm"
+                    max="120"
+                    min="1"
+                    placeholder="--"
+                    type="number"
+                  />
+                  <span
+                    class="text-xs text-on-surface-variant uppercase tracking-wider"
+                    >phút</span
+                  >
+                </div>
+              </label>
+            </div>
+          </div>
+          <!-- Footer Action -->
+          <div
+            class="mt-xl flex flex-col md:flex-row items-center justify-between gap-lg pt-lg border-t border-outline-variant"
+          >
+            <div class="flex items-center gap-sm">
+              <span class="material-symbols-outlined text-secondary-fixed-dim"
+                >info</span
+              >
+              <span class="text-xs text-on-surface-variant"
+                >Kết quả sẽ được lưu vào Library của bạn.</span
+              >
+            </div>
+            <button
+              class="w-full md:w-auto bg-primary-container text-on-primary font-label-md text-label-md px-xl py-md rounded-lg hover:bg-primary transition-all duration-200 cursor-pointer shadow-sm active:scale-95"
+            >
+              Bắt đầu bài kiểm tra
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+    <!-- Bottom Navigation Bar (Mobile) -->
+    <nav
+      class="md:hidden fixed bottom-0 w-full z-50 bg-surface border-t border-outline-variant flex justify-around items-center px-margin-mobile py-sm"
+    >
+      <a
+        class="flex flex-col items-center justify-center text-on-surface-variant p-2"
+        href="#"
+      >
+        <span class="material-symbols-outlined">style</span>
+        <span class="font-label-md text-[10px]">Flashcards</span>
+      </a>
+      <a
+        class="flex flex-col items-center justify-center text-on-surface-variant p-2"
+        href="#"
+      >
+        <span class="material-symbols-outlined">library_books</span>
+        <span class="font-label-md text-[10px]">Library</span>
+      </a>
+      <a
+        class="flex flex-col items-center justify-center text-on-surface-variant p-2"
+        href="#"
+      >
+        <span class="material-symbols-outlined">analytics</span>
+        <span class="font-label-md text-[10px]">Progress</span>
+      </a>
+    </nav>
+    <script>
+      // Micro-interaction for radio card selection
+      document.querySelectorAll('input[name="duration"]').forEach((radio) => {
+        radio.addEventListener("change", (e) => {
+          // Remove active class from all labels
+          document.querySelectorAll(".option-card").forEach((card) => {
+            card.classList.remove("active");
+          });
+
+          // Add active class to parent label
+          if (e.target.checked) {
+            e.target.closest(".option-card").classList.add("active");
+          }
+        });
+      });
+
+      // Toggle custom input focus
+      const customRadio = document.querySelector('input[value="custom"]');
+      const customInput = document.querySelector('input[type="number"]');
+
+      customInput.addEventListener("focus", () => {
+        customRadio.checked = true;
+        customRadio.dispatchEvent(new Event("change"));
+      });
+    </script>
+  </body>
+</html>

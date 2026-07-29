@@ -4,6 +4,28 @@ public class UnifiedEditorImportTests
 {
     private static readonly string View = ReadFile("Views", "FlashcardSet", "Editor.cshtml");
     private static readonly string Script = ReadFile("wwwroot", "js", "unified-editor.js");
+    private static readonly string Styles = ReadFile("wwwroot", "css", "unified-editor.css");
+
+    [Fact]
+    public void Editor_UsesWorkbenchSidebarAndScrollableCardWorkspace()
+    {
+        Assert.Contains("class=\"editor-sidebar\"", View);
+        Assert.Contains("class=\"editor-workspace\"", View);
+        Assert.Contains("class=\"editor-scroll-region\"", View);
+        Assert.Contains("id=\"card-search\"", View);
+        Assert.Contains("grid-template-columns: minmax(17rem, 20rem) minmax(0, 1fr)", Styles);
+        Assert.Contains("overflow-y: auto", Styles);
+        Assert.Contains("@media (min-width: 64rem)", Styles);
+    }
+
+    [Fact]
+    public void Editor_SearchAndStarFilterOperateOnRenderedCards()
+    {
+        Assert.Contains("function applyCardFilters()", Script);
+        Assert.Contains("cardSearch.addEventListener('input', applyCardFilters)", Script);
+        Assert.Contains("cardFilter.addEventListener('change', applyCardFilters)", Script);
+        Assert.Contains("card.hidden = !matchesQuery || !matchesFilter", Script);
+    }
 
     [Fact]
     public void Editor_UsesCsvAndXlsxFilePickerInsteadOfPasteTextarea()

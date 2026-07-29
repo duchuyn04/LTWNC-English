@@ -5,128 +5,212 @@
 }
 
 @section Styles {
-    <link rel="stylesheet" href="~/css/unified-editor.css" />
+    <link rel="stylesheet" href="~/css/unified-editor.css" asp-append-version="true" />
 }
 
-<div class="unified-editor" data-set-id="@Model.Id" data-is-new="@(Model.Id.HasValue ? "false" : "true")" data-description="@(Model.Description ?? "")" data-is-public="@Model.IsPublic.ToString().ToLowerInvariant()" data-is-quarantined="@Model.IsQuarantined.ToString().ToLowerInvariant()">
+<div class="unified-editor"
+     data-set-id="@Model.Id"
+     data-is-new="@(Model.Id.HasValue ? "false" : "true")"
+     data-description="@(Model.Description ?? "")"
+     data-is-public="@Model.IsPublic.ToString().ToLowerInvariant()"
+     data-is-quarantined="@Model.IsQuarantined.ToString().ToLowerInvariant()">
     @Html.AntiForgeryToken()
 
-    <a class="editor-back-link" href="/Set">
-        <i class="ph ph-arrow-left" aria-hidden="true"></i>
-        <span>Quay lại bộ thẻ</span>
-    </a>
+    <aside class="editor-sidebar" aria-labelledby="editor-sidebar-title">
+        <div class="editor-sidebar-inner">
+            <a class="editor-back-link" href="/Set">
+                <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                <span>Quay lại bộ thẻ</span>
+            </a>
 
-    <div class="editor-header">
-        <div>
-            <h2>Danh sách từ</h2>
-            <p class="subtitle"><span id="card-count">@Model.Cards.Count</span> thẻ · có thể chỉnh sửa trực tiếp</p>
+            <div class="editor-sidebar-heading">
+                <h2 id="editor-sidebar-title">Thông tin bộ thẻ</h2>
+                <p>Thay đổi được tự động lưu khi bạn rời khỏi trường nhập.</p>
+            </div>
+
+            <details class="editor-meta-panel" open>
+                <summary>
+                    <span>Thiết lập bộ thẻ</span>
+                    <i class="ph ph-caret-down" aria-hidden="true"></i>
+                </summary>
+                <div class="editor-meta">
+                    <label for="set-title">Tên bộ từ <span class="required">*</span></label>
+                    <input id="set-title"
+                           class="form-control"
+                           value="@Model.Title"
+                           placeholder="Ví dụ: Từ vựng phòng trọ"
+                           aria-required="true" />
+
+                    <label for="set-description">Mô tả</label>
+                    <textarea id="set-description"
+                              class="form-control"
+                              rows="4"
+                              placeholder="Nội dung và mục tiêu của bộ thẻ">@Model.Description</textarea>
+
+                    <label class="checkbox-label" for="set-is-public">
+                        <input type="checkbox" id="set-is-public" @(Model.IsPublic ? "checked" : "") @(Model.IsQuarantined ? "disabled" : "") />
+                        <span>
+                            <strong>Công khai</strong>
+                            <small>Mọi người có thể tìm và sao chép bộ thẻ này.</small>
+                        </span>
+                    </label>
+                </div>
+            </details>
+
+            <div class="editor-sidebar-stats" aria-label="Thống kê bộ thẻ">
+                <span>Số thẻ hiện có</span>
+                <strong id="editor-sidebar-card-count">@Model.Cards.Count</strong>
+            </div>
+
+            <div class="save-status" id="save-status" role="status" aria-live="polite"></div>
         </div>
-        <div class="header-actions">
-            <select id="card-filter" class="form-select">
-                <option value="all">Tất cả thẻ</option>
-                <option value="starred">Đã đánh dấu</option>
-            </select>
-            <button id="btn-import" type="button" class="btn btn-secondary">Import</button>
-            <button id="btn-finish" type="button" class="btn btn-primary" disabled>Hoàn tất</button>
-        </div>
-    </div>
+    </aside>
 
-    @if (Model.IsQuarantined)
-    {
-        <div class="set-report-alert set-report-alert--danger" role="alert">
-            Bộ flashcard này đang bị cách ly. Bạn vẫn có thể chỉnh sửa nội dung, nhưng chỉ Admin mới có thể khôi phục để xuất hiện công khai.
-            @if (!string.IsNullOrWhiteSpace(Model.ModerationPublicReason))
-            {
-                <span>Lý do: @Model.ModerationPublicReason</span>
-            }
-            @if (Model.ModeratedAtUtc.HasValue)
-            {
-                <span>Thời điểm xử lý: @FormatVietnamTime(Model.ModeratedAtUtc.Value)</span>
-            }
-        </div>
-    }
+    <section class="editor-workspace" aria-labelledby="editor-page-title">
+        <header class="editor-header">
+            <div class="editor-title-block">
+                <h1 id="editor-page-title">Danh sách từ</h1>
+                <p class="subtitle"><span id="card-count">@Model.Cards.Count</span> thẻ · chỉnh sửa trực tiếp trong danh sách</p>
+            </div>
 
-    <div class="editor-meta">
-        <label for="set-title">Tên bộ từ <span class="required">*</span></label>
-        <input id="set-title" class="form-control" value="@Model.Title" placeholder="Nhập tên bộ thẻ" />
+            <div class="header-actions" aria-label="Công cụ danh sách từ">
+                <label class="editor-search" for="card-search">
+                    <span class="visually-hidden">Tìm từ trong bộ thẻ</span>
+                    <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+                    <input id="card-search"
+                           class="form-control"
+                           type="search"
+                           placeholder="Tìm thuật ngữ hoặc định nghĩa"
+                           autocomplete="off" />
+                </label>
 
-        <label for="set-description">Mô tả</label>
-        <textarea id="set-description" class="form-control" rows="3" placeholder="Mô tả bộ thẻ">@Model.Description</textarea>
+                <select id="card-filter" class="form-select" aria-label="Lọc danh sách thẻ">
+                    <option value="all">Tất cả thẻ</option>
+                    <option value="starred">Đã đánh dấu</option>
+                </select>
 
-        <label class="checkbox-label">
-            <input type="checkbox" id="set-is-public" @(Model.IsPublic ? "checked" : "") @(Model.IsQuarantined ? "disabled" : "") />
-            Công khai
-        </label>
+                <button id="btn-import" type="button" class="btn btn-secondary">
+                    <i class="ph ph-upload-simple" aria-hidden="true"></i>
+                    <span>Nhập file</span>
+                </button>
+                <button id="btn-finish" type="button" class="btn btn-primary" disabled>
+                    <i class="ph ph-check" aria-hidden="true"></i>
+                    <span>Hoàn tất</span>
+                </button>
+            </div>
+        </header>
 
-        <div class="save-status" id="save-status"></div>
-    </div>
-
-    <div id="cards-container" class="cards-container">
-        @for (int i = 0; i < Model.Cards.Count; i++)
+        @if (Model.IsQuarantined)
         {
-            var card = Model.Cards[i];
-            <div class="flashcard-card @(i == 0 ? "expanded" : "collapsed")"
-                 data-id="@(Model.Id.HasValue ? card.Id.ToString() : "new-" + Guid.NewGuid())"
-                 data-order="@card.OrderIndex"
-                 data-image-url="@card.ImageUrl"
-                 data-starred="@card.IsStarred.ToString().ToLowerInvariant()">
-                <div class="card-header">
-                    <span class="card-drag-handle" aria-label="Drag to reorder">⋮⋮</span>
-                    <span class="card-number">@(i + 1)</span>
-                    <button type="button" class="btn-star" aria-label="Toggle star">
-                        @(card.IsStarred ? "★" : "☆")
-                    </button>
-                    <span class="card-term">@card.FrontText</span>
-                    <div class="card-actions">
-                        <button type="button" class="btn-move-up" aria-label="Đưa thẻ lên" title="Đưa thẻ lên">
-                            <i class="ph ph-caret-up" aria-hidden="true"></i>
-                        </button>
-                        <button type="button" class="btn-move-down" aria-label="Đưa thẻ xuống" title="Đưa thẻ xuống">
-                            <i class="ph ph-caret-down" aria-hidden="true"></i>
-                        </button>
-                        <button type="button" class="btn-toggle" aria-label="Expand/collapse">▲</button>
-                        <button type="button" class="btn-delete" aria-label="Delete">🗑</button>
-                    </div>
-                </div>
-                <div class="card-body">
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Thuật ngữ <span class="required">*</span></label>
-                            <input class="form-control input-front" value="@card.FrontText" placeholder="Thuật ngữ" />
-                        </div>
-                        <div class="form-group">
-                            <label>Định nghĩa <span class="required">*</span></label>
-                            <input class="form-control input-back" value="@card.BackText" placeholder="Định nghĩa" />
-                        </div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>Phát âm</label>
-                            <input class="form-control input-pronunciation" value="@card.Pronunciation" placeholder="IPA" />
-                        </div>
-                        <div class="form-group">
-                            <label>Loại từ</label>
-                            <input class="form-control input-part-of-speech" value="@card.PartOfSpeech" placeholder="noun, verb..." />
-                        </div>
-                    </div>
-                    <div class="form-group">
-                        <label>Ví dụ tiếng Anh</label>
-                        <textarea class="form-control input-example-sentence" rows="2" placeholder="Ví dụ">@card.ExampleSentence</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Nghĩa câu ví dụ tiếng Việt</label>
-                        <textarea class="form-control input-example-meaning" rows="2" placeholder="Nghĩa">@card.ExampleMeaning</textarea>
-                    </div>
-                    <div class="form-group">
-                        <label>Từ đồng nghĩa</label>
-                        <input class="form-control input-synonyms" value="@card.Synonyms" placeholder="Cách nhau bằng dấu phẩy" />
-                    </div>
-                </div>
+            <div class="set-report-alert set-report-alert--danger" role="alert">
+                Bộ flashcard này đang bị cách ly. Bạn vẫn có thể chỉnh sửa nội dung, nhưng chỉ Admin mới có thể khôi phục để xuất hiện công khai.
+                @if (!string.IsNullOrWhiteSpace(Model.ModerationPublicReason))
+                {
+                    <span>Lý do: @Model.ModerationPublicReason</span>
+                }
+                @if (Model.ModeratedAtUtc.HasValue)
+                {
+                    <span>Thời điểm xử lý: @FormatVietnamTime(Model.ModeratedAtUtc.Value)</span>
+                }
             </div>
         }
-    </div>
 
-    <button id="btn-add-card" type="button" class="btn btn-add-card">+ Thêm thẻ mới</button>
+        <div class="editor-scroll-region">
+            <div id="cards-container" class="cards-container">
+                @for (int i = 0; i < Model.Cards.Count; i++)
+                {
+                    var card = Model.Cards[i];
+                    <article class="flashcard-card @(i == 0 ? "expanded" : "collapsed")"
+                             data-id="@(Model.Id.HasValue ? card.Id.ToString() : "new-" + Guid.NewGuid())"
+                             data-order="@card.OrderIndex"
+                             data-image-url="@card.ImageUrl"
+                             data-starred="@card.IsStarred.ToString().ToLowerInvariant()">
+                        <div class="card-header">
+                            <span class="card-drag-handle" tabindex="0" aria-label="Kéo để đổi thứ tự">⋮⋮</span>
+                            <span class="card-number">@((i + 1).ToString("00"))</span>
+                            <button type="button"
+                                    class="btn-star"
+                                    aria-label="Đánh dấu sao thẻ @card.FrontText"
+                                    aria-pressed="@card.IsStarred.ToString().ToLowerInvariant()">
+                                @(card.IsStarred ? "★" : "☆")
+                            </button>
+                            <button type="button" class="card-summary" aria-label="Mở hoặc thu gọn thẻ @card.FrontText">
+                                <span class="card-summary-field">
+                                    <small>Thuật ngữ</small>
+                                    <strong class="card-term">@card.FrontText</strong>
+                                </span>
+                                <span class="card-summary-field card-summary-definition">
+                                    <small>Định nghĩa</small>
+                                    <span class="card-definition">@card.BackText</span>
+                                </span>
+                            </button>
+                            <div class="card-actions">
+                                <button type="button" class="btn-move-up" aria-label="Đưa thẻ lên" title="Đưa thẻ lên">
+                                    <i class="ph ph-arrow-up" aria-hidden="true"></i>
+                                </button>
+                                <button type="button" class="btn-move-down" aria-label="Đưa thẻ xuống" title="Đưa thẻ xuống">
+                                    <i class="ph ph-arrow-down" aria-hidden="true"></i>
+                                </button>
+                                <button type="button" class="btn-toggle" aria-label="Thu gọn thẻ" aria-expanded="@(i == 0 ? "true" : "false")">
+                                    <i class="ph @(i == 0 ? "ph-caret-up" : "ph-caret-down")" aria-hidden="true"></i>
+                                </button>
+                                <button type="button" class="btn-delete" aria-label="Xóa thẻ @card.FrontText">
+                                    <i class="ph ph-trash" aria-hidden="true"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="card-body">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Thuật ngữ <span class="required">*</span></label>
+                                    <input class="form-control input-front" value="@card.FrontText" placeholder="Thuật ngữ" aria-required="true" />
+                                </div>
+                                <div class="form-group">
+                                    <label>Định nghĩa <span class="required">*</span></label>
+                                    <input class="form-control input-back" value="@card.BackText" placeholder="Định nghĩa" aria-required="true" />
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Phát âm</label>
+                                    <input class="form-control input-pronunciation" value="@card.Pronunciation" placeholder="Ví dụ: /ˈtenənt/" />
+                                </div>
+                                <div class="form-group">
+                                    <label>Loại từ</label>
+                                    <input class="form-control input-part-of-speech" value="@card.PartOfSpeech" placeholder="noun, verb…" />
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Ví dụ tiếng Anh</label>
+                                <textarea class="form-control input-example-sentence" rows="2" placeholder="Đặt thuật ngữ vào một câu thực tế">@card.ExampleSentence</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Nghĩa câu ví dụ tiếng Việt</label>
+                                <textarea class="form-control input-example-meaning" rows="2" placeholder="Dịch nghĩa câu ví dụ">@card.ExampleMeaning</textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>Từ đồng nghĩa</label>
+                                <input class="form-control input-synonyms" value="@card.Synonyms" placeholder="Cách nhau bằng dấu phẩy" />
+                            </div>
+                        </div>
+                    </article>
+                }
+            </div>
+
+            <p id="editor-filter-empty" class="editor-filter-empty" role="status" hidden>
+                Không có thẻ phù hợp. Thử từ khóa khác hoặc chọn “Tất cả thẻ”.
+            </p>
+
+            <button id="btn-add-card" type="button" class="btn btn-add-card">
+                <i class="ph ph-plus-circle" aria-hidden="true"></i>
+                <span>
+                    <strong>Thêm thẻ mới</strong>
+                    <small>Tạo một hàng trống và bắt đầu nhập thuật ngữ.</small>
+                </span>
+            </button>
+        </div>
+    </section>
 
     <div class="editor-quick-actions" aria-label="Thao tác nhanh">
         <div class="editor-quick-save-state">
@@ -136,10 +220,7 @@
                 <small><span id="editor-quick-card-count">@Model.Cards.Count</span> thẻ trong bộ</small>
             </span>
         </div>
-        <button id="btn-finish-sticky"
-                type="button"
-                class="btn btn-primary"
-                disabled>
+        <button id="btn-finish-sticky" type="button" class="btn btn-primary" disabled>
             Hoàn tất
         </button>
     </div>
