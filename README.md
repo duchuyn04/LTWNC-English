@@ -149,13 +149,13 @@ Các application service (`FlashcardSetService`, `StudyService`, `DictationServi
 
 English Mission gọi AI qua backend. Provider quản lý tại `/Admin/AiProviders`, hỗ trợ API key tùy chọn, discovery model qua `/models`, kiểm tra kết nối, fallback theo `Priority`. API key mã hóa bằng ASP.NET Core Data Protection.
 
-Migration mặc định tạo provider local:
+Cấu hình provider phụ thuộc vào từng môi trường và không nên ghi giá trị nội bộ vào repository. Tạo provider qua `/Admin/AiProviders` với các giá trị phù hợp:
 
 ```text
-Name: 9Router Local
-Base URL: http://localhost:20128/v1
-Model: cx/gpt-5.6-luna
-API key: không có
+Name: <provider-name>
+Base URL: <openai-compatible-base-url>
+Model: <model-id>
+API key: <optional-api-key>
 ```
 
 ### Tạo tài khoản Admin
