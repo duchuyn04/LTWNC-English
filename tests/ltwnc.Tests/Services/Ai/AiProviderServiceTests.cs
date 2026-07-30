@@ -15,54 +15,6 @@ namespace ltwnc.Tests.Services.Ai;
 public sealed class AiProviderServiceTests
 {
     [Fact]
-    public async Task Discovery_OmitsAuthorizationWhenApiKeyIsEmpty()
-    {
-        var handler = new RecordingHandler("{\"data\":[{\"id\":\"model-a\"}]}");
-        await using AppDbContext context = CreateContext();
-        var service = CreateService(context, handler, allowPrivateNetworks: true);
-        AiProviderOperationResult result = await service.SaveAsync(null, new AiProviderInput
-        {
-            Name = "Local",
-            BaseUrl = "http://localhost:1234/v1",
-            ModelId = "model-a",
-            Reason = "Tạo provider local để test models"
-        }, Actor());
-        Assert.True(result.Succeeded);
-
-        var provider = await context.AiProviders.SingleAsync();
-
-        var models = await service.DiscoverModelsAsync(provider.Id);
-
-        Assert.Equal(["model-a"], models);
-        Assert.Null(handler.Authorization);
-    }
-
-    [Fact]
-    public async Task Discovery_SendsBearerWhenApiKeyIsConfigured()
-    {
-        var handler = new RecordingHandler("{\"data\":[{\"id\":\"model-a\"}]}");
-        await using AppDbContext context = CreateContext();
-        var service = CreateService(context, handler, allowPrivateNetworks: true);
-        AiProviderOperationResult result = await service.SaveAsync(null, new AiProviderInput
-        {
-            Name = "Remote",
-            BaseUrl = "https://example.test/v1",
-            ModelId = "model-a",
-            ApiKey = "secret-key",
-            Reason = "Tạo provider remote có API key"
-        }, Actor());
-        Assert.True(result.Succeeded);
-
-        var provider = await context.AiProviders.SingleAsync();
-
-        await service.DiscoverModelsAsync(provider.Id);
-
-        Assert.Equal("Bearer secret-key", handler.Authorization);
-        Assert.NotEqual("secret-key", provider.EncryptedApiKey);
-        Assert.Equal("-key", provider.ApiKeyLastFour);
-    }
-
-    [Fact]
     public async Task Save_RejectsPlainHttpForRemoteProvider()
     {
         var handler = new RecordingHandler("{}");
@@ -331,7 +283,7 @@ public sealed class AiProviderServiceTests
 
     // Test thất bại ba lần liên tiếp phải đánh dấu provider không ổn định; test thành công reset bộ đếm.
     [Fact]
-    public async Task TestAsync_ThreeFailuresMarksProviderUnstableAndSuccessResetsCounter()
+    public async Task TestAsync_ThreeFailuresAndSuccessResetsCounter()
     {
         var handler = new SequenceHandler(
             new HttpResponseMessage(HttpStatusCode.InternalServerError)
@@ -367,78 +319,12 @@ public sealed class AiProviderServiceTests
         await Assert.ThrowsAsync<AiProviderUnavailableException>(() => service.TestAsync(provider.Id));
         AiProvider afterFailures = await context.AiProviders.SingleAsync();
         int failureCountBeforeSuccess = afterFailures.ConsecutiveFailureCount;
-        AiProviderHealthSnapshot failureSnapshot =
-            (await service.GetHealthSnapshotsAsync()).Single(item => item.ProviderId == provider.Id);
-
         await service.TestAsync(provider.Id);
         AiProvider afterSuccess = await context.AiProviders.SingleAsync();
 
         Assert.Equal(3, failureCountBeforeSuccess);
-        Assert.True(failureSnapshot.IsUnstable);
         Assert.Equal(0, afterSuccess.ConsecutiveFailureCount);
         Assert.True(afterSuccess.LastCheckSucceeded);
-    }
-
-    // Tỷ lệ lỗi chỉ tính trong cửa sổ 5 phút và chỉ kết luận khi đủ số mẫu tối thiểu.
-    [Fact]
-    public async Task GetHealthSnapshotsAsync_UsesFiveMinuteWindowMinimumSampleAndConfiguredThreshold()
-    {
-        await using AppDbContext context = CreateContext();
-        var handler = new RecordingHandler("{}");
-        var service = CreateService(context, handler, allowPrivateNetworks: true);
-        AiProviderOperationResult saveResult = await service.SaveAsync(null, new AiProviderInput
-        {
-            Name = "Rate",
-            BaseUrl = "https://example.test/v1",
-            ModelId = "model-a",
-            Reason = "Tao provider de test error rate"
-        }, Actor());
-        Assert.True(saveResult.Succeeded);
-        AiProvider provider = await context.AiProviders.SingleAsync();
-        DateTime now = DateTime.UtcNow;
-        for (int index = 0; index < 20; index++)
-        {
-            bool succeeded = index >= 3;
-            string? failureKind = null;
-            if (!succeeded)
-            {
-                failureKind = "Timeout";
-            }
-
-            context.AiOperationLogs.Add(new AiOperationLog
-            {
-                ProviderId = provider.Id,
-                ProviderName = provider.Name,
-                ModelId = provider.ModelId,
-                OccurredAtUtc = now.AddMinutes(-1),
-                Operation = "Completion",
-                Succeeded = succeeded,
-                FailureKind = failureKind,
-                LatencyMs = 25,
-                FallbackAttempt = 0
-            });
-        }
-
-        context.AiOperationLogs.Add(new AiOperationLog
-        {
-            ProviderId = provider.Id,
-            ProviderName = provider.Name,
-            ModelId = provider.ModelId,
-            OccurredAtUtc = now.AddMinutes(-10),
-            Operation = "Completion",
-            Succeeded = false,
-            FailureKind = "OldFailure",
-            LatencyMs = 25,
-            FallbackAttempt = 0
-        });
-        await context.SaveChangesAsync();
-
-        AiProviderHealthSnapshot snapshot =
-            (await service.GetHealthSnapshotsAsync()).Single(item => item.ProviderId == provider.Id);
-
-        Assert.Equal(20, snapshot.SampleSize);
-        Assert.Equal(15m, snapshot.ErrorRatePercent);
-        Assert.True(snapshot.ErrorRateExceeded);
     }
 
     private static AiProviderActorContext Actor()
@@ -471,8 +357,7 @@ public sealed class AiProviderServiceTests
             context,
             protection,
             adapters,
-            new AdminAuditService(context, TimeProvider.System),
-            configuration);
+            new AdminAuditService(context, TimeProvider.System));
     }
 
     private static IConfiguration CreateConfiguration(bool allowPrivateNetworks)
@@ -498,11 +383,6 @@ public sealed class AiProviderServiceTests
             ValidateWasCalled = true;
             throw new AiProviderConfigurationException("Cấu hình bị adapter từ chối.");
         }
-
-        public Task<IReadOnlyList<string>> GetModelsAsync(
-            AiProviderConnection connection,
-            string? apiKey,
-            CancellationToken cancellationToken) => throw new NotSupportedException();
 
         public Task<string> CompleteAsync(
             AiProviderConnection connection,

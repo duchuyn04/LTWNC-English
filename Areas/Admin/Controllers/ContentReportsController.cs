@@ -22,35 +22,25 @@ public sealed class ContentReportsController : Controller
         _moderationService = moderationService;
     }
 
-    // Hiển thị hàng đợi báo cáo với lọc, sắp xếp và phân trang phía máy chủ.
+    // Hiển thị báo cáo đang chờ hoặc đã cách ly, cũ nhất trước.
     [HttpGet("")]
     public async Task<IActionResult> Index(
-        string? search,
         string? status,
-        string? reason,
-        string? sort,
         int page = ContentReportService.DefaultPage,
-        int pageSize = ContentReportService.DefaultPageSize,
         CancellationToken cancellationToken = default)
     {
+        string selectedStatus = string.Equals(
+            status,
+            "quarantined",
+            StringComparison.OrdinalIgnoreCase)
+            ? "quarantined"
+            : "pending";
         AdminContentReportPage result = await _reportService.SearchForAdminAsync(
-            new AdminContentReportQuery(search, status, reason, sort, page, pageSize),
+            new AdminContentReportQuery(
+                Status: selectedStatus,
+                Page: page),
             cancellationToken);
-        int overduePendingCount = await _reportService.CountPendingOlderThanAsync(
-            TimeSpan.FromHours(24),
-            cancellationToken);
-
-        AdminContentReportIndexViewModel model =
-            AdminContentReportViewModelMapper.ToIndexViewModel(
-                result,
-                _reportService.GetReasonOptions(),
-                search,
-                status,
-                reason,
-                sort,
-                overduePendingCount);
-
-        return View(model);
+        return View(AdminContentReportViewModelMapper.ToIndexViewModel(result, selectedStatus));
     }
 
     // POST bác bỏ báo cáo, bắt buộc antiforgery, confirm phía view và lý do xử lý.
@@ -90,6 +80,26 @@ public sealed class ContentReportsController : Controller
         StoreOperationMessage(result);
 
         return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost("Restore/{flashcardSetId:int}")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Restore(
+        int flashcardSetId,
+        AdminContentReportRestoreInputModel input,
+        CancellationToken cancellationToken = default)
+    {
+        ContentModerationOperationResult result = await _moderationService.RestoreSetAsync(
+            new RestoreFlashcardSetCommand(
+                flashcardSetId,
+                input.FlashcardSetVersion,
+                AdminActorContextFactory.FromHttpContext(HttpContext),
+                input.Reason,
+                input.Confirmed),
+            cancellationToken);
+        StoreOperationMessage(result);
+
+        return RedirectToAction(nameof(Index), new { status = "quarantined" });
     }
 
     // Dựng lệnh nghiệp vụ từ Admin hiện tại, trace id và dữ liệu form.

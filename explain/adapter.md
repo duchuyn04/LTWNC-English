@@ -142,7 +142,7 @@ Nó cũng lấy nội dung từ response OpenAI và chuyển lỗi giao thức t
 
 ### Adaptee
 
-`OpenAiCompatibleApiClient` biết cách gọi endpoint `/models` và `/chat/completions`.
+`OpenAiCompatibleApiClient` biết cách gọi endpoint `/chat/completions`.
 
 Nó chịu trách nhiệm HTTP, DNS, timeout riêng của provider, HTTPS, chặn địa chỉ mạng nội bộ và đọc JSON theo giao thức OpenAI.
 

@@ -19,10 +19,9 @@ Các tài liệu trong thư mục này dành cho người mới học lập trì
 | Simple Factory | Tạo đúng Command từ loại thao tác | [Đọc Simple Factory](factory.md) |
 | Observer | Phát sự kiện học cho thành tích và logging | [Đọc Observer](observer.md) |
 | Adapter | Chuyển đổi giữa contract ứng dụng và API OpenAI | [Đọc Adapter](adapter.md) |
-| Protection Proxy | Kiểm tra quyền trước khi xuất CSV Admin | [Đọc Protection Proxy](protection-proxy.md) |
 
 ## Thứ tự đọc gợi ý
 
-Đọc `Prototype` trước vì mẫu này ít thành phần nhất. Sau đó đọc `Strategy`, `Command`, `Memento` và `Simple Factory`. Ba tài liệu cuối là `Observer`, `Adapter` và `Protection Proxy` vì chúng liên quan nhiều object phối hợp với nhau hơn.
+Đọc `Prototype` trước vì mẫu này ít thành phần nhất. Sau đó đọc `Strategy`, `Command`, `Memento` và `Simple Factory`. Hai tài liệu cuối là `Observer` và `Adapter` vì chúng liên quan nhiều object phối hợp với nhau hơn.
 
 `Simple Factory` trong project không phải Factory Method chuẩn GoF. Tài liệu riêng giải thích sự khác nhau để tránh học nhầm tên.

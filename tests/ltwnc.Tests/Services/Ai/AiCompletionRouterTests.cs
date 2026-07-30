@@ -198,15 +198,6 @@ public sealed class AiCompletionRouterTests : IDisposable
         {
         }
 
-        // Test router không dùng danh sách model.
-        public Task<IReadOnlyList<string>> GetModelsAsync(
-            AiProviderConnection connection,
-            string? apiKey,
-            CancellationToken cancellationToken)
-        {
-            return Task.FromResult<IReadOnlyList<string>>([]);
-        }
-
         // Giả lập completion theo tên provider và tôn trọng cancellation token của router.
         public async Task<string> CompleteAsync(
             AiProviderConnection connection,

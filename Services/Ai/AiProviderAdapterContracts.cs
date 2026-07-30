@@ -15,12 +15,6 @@ public interface IAiProviderAdapter
     // Kiểm tra cấu hình riêng của loại provider trước khi lưu hoặc kết nối.
     void ValidateConfiguration(AiProviderConnection connection);
 
-    // Lấy danh sách model mà provider hiện tại hỗ trợ.
-    Task<IReadOnlyList<string>> GetModelsAsync(
-        AiProviderConnection connection,
-        string? apiKey,
-        CancellationToken cancellationToken);
-
     // Gửi request completion tới provider cụ thể.
     Task<string> CompleteAsync(
         AiProviderConnection connection,

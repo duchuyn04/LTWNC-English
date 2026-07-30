@@ -2,128 +2,267 @@
 @{
     ViewData["Title"] = "Tổng quan";
     ViewData["Heading"] = "Tổng quan";
-    string snapshotUrl = $"/Admin/Snapshot?days={Model.Days}";
+    bool hasActivity = Model.Activity.Any(day => day.Completed > 0 || day.Abandoned > 0);
+    bool hasNewUsers = Model.NewUsers.Any(day => day.Count > 0);
+    bool hasReports = Model.Reports.Any(day => day.Count > 0);
+    int newUserTotal = Model.NewUsers.Sum(day => day.Count);
+    int reportTotal = Model.Reports.Sum(day => day.Count);
+    int[] quickRanges = [7, 14, 30];
+    string chartDataJson = System.Text.Json.JsonSerializer.Serialize(new
+    {
+        labels = Model.Activity.Select(day => day.Date.ToString("dd/MM")),
+        completed = Model.Activity.Select(day => day.Completed),
+        abandoned = Model.Activity.Select(day => day.Abandoned),
+        newUsers = Model.NewUsers.Select(day => day.Count),
+        reports = Model.Reports.Select(day => day.Count)
+    });
 }
 
-<section class="admin-dashboard"
-         data-dashboard-live
-         data-snapshot-url="@snapshotUrl">
-    <section class="admin-dashboard-context" aria-label="Phạm vi dữ liệu">
-        <div class="admin-dashboard-period">
-            <i class="ph ph-calendar-blank" aria-hidden="true"></i>
-            <p>
-                <strong data-dashboard-period>
-                    @Model.PeriodStartVietnam.ToString("dd/MM")–@Model.PeriodEndVietnam.ToString("dd/MM/yyyy")
-                </strong>
-                <span aria-hidden="true">·</span>
-                <small class="admin-dashboard-live-status"
-                       data-dashboard-live-status
-                       role="status"
-                       aria-live="polite"
-                       aria-atomic="true">
-                    Đang cập nhật · giờ Việt Nam
-                </small>
-            </p>
-        </div>
-        <div class="admin-header-actions">
-            <form class="admin-range-filter" method="get" action="/Admin" aria-label="Chọn khoảng thời gian">
-                @foreach (int option in Model.AllowedDays)
-                {
-                    bool isSelectedRange = Model.Days == option;
-                    string rangeButtonClass = string.Empty;
-                    string rangePressedValue = "false";
-                    if (isSelectedRange)
-                    {
-                        rangeButtonClass = "active";
-                        rangePressedValue = "true";
-                    }
-
-                    <button
-                        type="submit"
-                        name="days"
-                        value="@option"
-                        class="@rangeButtonClass"
-                        aria-pressed="@rangePressedValue">
-                        @option ngày
-                    </button>
-                }
-            </form>
-            <a class="admin-filter-submit" href="/Admin/Export/Kpis?days=@Model.Days">
-                <i class="ph ph-download-simple" aria-hidden="true"></i>
-                <span>Xuất CSV</span>
-            </a>
-        </div>
-    </section>
-
-    <section class="admin-alert-panel" aria-labelledby="admin-alert-panel-title">
-        <header class="admin-alert-heading">
-            <div>
-                <i class="ph ph-bell-ringing" aria-hidden="true"></i>
-                <h2 id="admin-alert-panel-title">Việc cần xử lý</h2>
-            </div>
-            <p>Ưu tiên theo ảnh hưởng hiện tại.</p>
-        </header>
-        <div class="admin-alert-list"
-             data-dashboard-alerts
-             role="status"
-             aria-live="polite"
-             aria-atomic="false">
-            <article class="admin-live-alert admin-live-alert--neutral admin-live-alert--empty">
-                <i class="ph ph-info" aria-hidden="true"></i>
-                <div>
-                    <h3>Đang kiểm tra</h3>
-                    <p>Thông báo sẽ hiện ở đây nếu có việc cần xử lý.</p>
-                </div>
-            </article>
-        </div>
-    </section>
-
-    <section class="admin-kpi-section" aria-labelledby="admin-kpi-section-title">
-        <header class="admin-kpi-section-heading">
-            <div>
-                <h2 id="admin-kpi-section-title">Chỉ số trong kỳ</h2>
-                <p>So với khoảng thời gian liền trước.</p>
-            </div>
-            <span>@Model.Days ngày</span>
-        </header>
-        <div class="admin-kpi-grid">
-            @foreach (int index in new[] { 3, 2, 0, 1, 4, 5 })
-            {
-                AdminDashboardKpiCardViewModel kpi = Model.Kpis[index];
-                bool isEmptyValue = kpi.Value.Length == 0 || !char.IsDigit(kpi.Value[0]);
-                <article class="admin-kpi-card admin-kpi-card--@kpi.Tone" data-kpi-index="@index">
-                    <div class="admin-kpi-icon" aria-hidden="true">
-                        <i class="ph @kpi.Icon" data-kpi-icon></i>
-                    </div>
-                    <div class="admin-kpi-content">
-                        <h3 data-kpi-label>@kpi.Label</h3>
-                        <strong data-kpi-value class="@(isEmptyValue ? "admin-kpi-value--empty" : null)">@kpi.Value</strong>
-                        <p data-kpi-detail>@kpi.Detail</p>
-                        <span data-kpi-comparison>@kpi.Comparison</span>
-                    </div>
-                    <a class="admin-kpi-action" href="@kpi.ActionHref">
-                        <span>@kpi.ActionLabel</span>
-                        <i class="ph ph-arrow-right" aria-hidden="true"></i>
-                    </a>
-                </article>
-            }
-        </div>
-    </section>
-
-    <details class="admin-kpi-methodology">
-        <summary>
-            <span><i class="ph ph-info" aria-hidden="true"></i> Cách tính chỉ số</span>
-            <i class="ph ph-caret-down" aria-hidden="true"></i>
-        </summary>
+<section class="admin-dashboard">
+    <section class="admin-dashboard-filter" aria-labelledby="dashboard-range-heading">
         <div>
-            <p>Mỗi người chỉ được tính một lần nếu đã học hoặc ôn thẻ trong khoảng đã chọn.</p>
-            <p>Tỷ lệ hoàn thành chưa tính các phiên đang diễn ra dưới 30 phút.</p>
-            <p>Tỷ lệ lỗi AI trong kỳ chỉ hiện khi có từ 20 yêu cầu trở lên.</p>
+            <h2 id="dashboard-range-heading">Hoạt động học tập</h2>
+            <p>@Model.From.ToString("dd/MM/yyyy") – @Model.To.ToString("dd/MM/yyyy")</p>
         </div>
-    </details>
+        <div class="admin-dashboard-filter-actions">
+            <nav class="admin-dashboard-quick-ranges" aria-label="Chọn nhanh khoảng thời gian">
+                <a class="@(Model.IsToday ? "active" : null)"
+                   aria-current="@(Model.IsToday ? "page" : null)"
+                   href="/Admin">Hôm nay</a>
+                @foreach (int days in quickRanges)
+                {
+                    DateOnly rangeFrom = Model.Today.AddDays(1 - days);
+                    bool isActive = Model.From == rangeFrom && Model.To == Model.Today;
+                    <a class="@(isActive ? "active" : null)"
+                       aria-current="@(isActive ? "page" : null)"
+                       href="/Admin?from=@rangeFrom.ToString("yyyy-MM-dd")&amp;to=@Model.Today.ToString("yyyy-MM-dd")">@days ngày</a>
+                }
+            </nav>
+            <form method="get" action="/Admin">
+                <label>
+                    <span>Từ ngày</span>
+                    <input type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" required />
+                </label>
+                <label>
+                    <span>Đến ngày</span>
+                    <input type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")" required />
+                </label>
+                <button type="submit">Áp dụng</button>
+            </form>
+        </div>
+    </section>
+
+    @if (Model.RangeError != null)
+    {
+        <p class="admin-alert admin-alert--warning" role="alert">@Model.RangeError Đang hiển thị hôm nay.</p>
+    }
+
+    <div class="admin-dashboard-status-grid">
+        <section class="admin-dashboard-card" aria-labelledby="pending-report-heading">
+            <i class="ph ph-flag" aria-hidden="true"></i>
+            <div>
+                <h2 id="pending-report-heading">Báo cáo đang chờ</h2>
+                <strong>@Model.PendingReportCount</strong>
+                <p>@(Model.PendingReportCount == 0 ? "Không có việc cần xử lý." : "Có báo cáo nội dung cần xem.")</p>
+            </div>
+            <a href="/Admin/ContentReports">Mở hàng đợi</a>
+        </section>
+
+        <section class="admin-dashboard-card @(Model.AiStatus.IsHealthy ? "is-healthy" : "needs-attention")"
+                 aria-labelledby="ai-status-heading">
+            <i class="ph @(Model.AiStatus.IsHealthy ? "ph-check-circle" : "ph-warning")" aria-hidden="true"></i>
+            <div>
+                <h2 id="ai-status-heading">Trạng thái AI</h2>
+                <strong>@Model.AiStatus.Title</strong>
+                <p>@Model.AiStatus.Detail</p>
+            </div>
+            <a href="/Admin/AiProviders">Cấu hình AI</a>
+        </section>
+    </div>
+
+    <div class="admin-dashboard-charts">
+        <section class="admin-dashboard-chart @(hasActivity ? null : "is-empty")" aria-labelledby="activity-chart-heading">
+            <header>
+                <div>
+                    <h2 id="activity-chart-heading">Phiên học theo ngày</h2>
+                    <p>Phiên bỏ dở là phiên chưa hoàn thành sau 30 phút.</p>
+                </div>
+                <div class="admin-chart-legend" aria-label="Chú thích">
+                    <span><i class="completed"></i>Hoàn thành</span>
+                    <span><i class="abandoned"></i>Bỏ dở</span>
+                </div>
+            </header>
+
+            @if (!hasActivity)
+            {
+                <div class="admin-chart-empty" role="status">
+                    <div class="admin-chart-empty-icon" aria-hidden="true">
+                        <i class="ph ph-chart-line-up"></i>
+                    </div>
+                    <strong>Chưa có phiên học</strong>
+                    <p>Không có phiên hoàn thành hoặc bỏ dở trong khoảng thời gian này.</p>
+                </div>
+            }
+            else
+            {
+                <figure class="admin-line-chart" aria-labelledby="activity-chart-heading activity-chart-description">
+                    <figcaption id="activity-chart-description" class="visually-hidden">
+                        Biểu đồ đường gồm số phiên hoàn thành và bỏ dở theo từng ngày trong khoảng đã chọn.
+                    </figcaption>
+                    <div class="admin-line-chart-canvas">
+                        <canvas data-admin-dashboard-chart="activity" role="img" aria-label="Biểu đồ phiên học theo ngày">
+                            Trình duyệt không hỗ trợ biểu đồ canvas. Dữ liệu đầy đủ có trong bảng bên dưới.
+                        </canvas>
+                    </div>
+                </figure>
+
+                <div class="visually-hidden">
+                    <table>
+                        <caption>Dữ liệu phiên học theo ngày</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Ngày</th>
+                                <th scope="col">Hoàn thành</th>
+                                <th scope="col">Bỏ dở</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (AdminDashboardActivityDay day in Model.Activity)
+                            {
+                                <tr>
+                                    <th scope="row">@day.Date.ToString("dd/MM/yyyy")</th>
+                                    <td>@day.Completed</td>
+                                    <td>@day.Abandoned</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        <section class="admin-dashboard-chart @(hasNewUsers ? null : "is-empty")" aria-labelledby="new-users-chart-heading">
+            <header>
+                <div>
+                    <h2 id="new-users-chart-heading">Người dùng mới</h2>
+                    <p>Tài khoản được tạo trong khoảng đã chọn.</p>
+                </div>
+                <div class="admin-chart-total" aria-label="Tổng số người dùng mới">
+                    <strong>@newUserTotal</strong>
+                    <span>người mới</span>
+                </div>
+            </header>
+
+            @if (!hasNewUsers)
+            {
+                <div class="admin-chart-empty" role="status">
+                    <div class="admin-chart-empty-icon" aria-hidden="true">
+                        <i class="ph ph-user-plus"></i>
+                    </div>
+                    <strong>Chưa có người dùng mới</strong>
+                    <p>Không có tài khoản mới trong khoảng thời gian này.</p>
+                </div>
+            }
+            else
+            {
+                <figure class="admin-line-chart" aria-labelledby="new-users-chart-heading new-users-chart-description">
+                    <figcaption id="new-users-chart-description" class="visually-hidden">
+                        Biểu đồ đường số người dùng mới theo từng ngày trong khoảng đã chọn.
+                    </figcaption>
+                    <div class="admin-line-chart-canvas">
+                        <canvas data-admin-dashboard-chart="new-users" role="img" aria-label="Biểu đồ người dùng mới theo ngày">
+                            Trình duyệt không hỗ trợ biểu đồ canvas. Dữ liệu đầy đủ có trong bảng bên dưới.
+                        </canvas>
+                    </div>
+                </figure>
+
+                <div class="visually-hidden">
+                    <table>
+                        <caption>Dữ liệu người dùng mới theo ngày</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Ngày</th>
+                                <th scope="col">Người dùng mới</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (AdminDashboardNewUserDay day in Model.NewUsers)
+                            {
+                                <tr>
+                                    <th scope="row">@day.Date.ToString("dd/MM/yyyy")</th>
+                                    <td>@day.Count</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        <section class="admin-dashboard-chart @(hasReports ? null : "is-empty")" aria-labelledby="reports-chart-heading">
+            <header>
+                <div>
+                    <h2 id="reports-chart-heading">Báo cáo nội dung</h2>
+                    <p>Báo cáo được gửi trong khoảng đã chọn.</p>
+                </div>
+                <div class="admin-chart-total" aria-label="Tổng số báo cáo nội dung">
+                    <strong>@reportTotal</strong>
+                    <span>báo cáo</span>
+                </div>
+            </header>
+
+            @if (!hasReports)
+            {
+                <div class="admin-chart-empty" role="status">
+                    <div class="admin-chart-empty-icon" aria-hidden="true">
+                        <i class="ph ph-flag"></i>
+                    </div>
+                    <strong>Chưa có báo cáo</strong>
+                    <p>Không có báo cáo nội dung nào được gửi trong khoảng thời gian này.</p>
+                </div>
+            }
+            else
+            {
+                <figure class="admin-line-chart" aria-labelledby="reports-chart-heading reports-chart-description">
+                    <figcaption id="reports-chart-description" class="visually-hidden">
+                        Biểu đồ đường số báo cáo nội dung được gửi theo từng ngày trong khoảng đã chọn.
+                    </figcaption>
+                    <div class="admin-line-chart-canvas">
+                        <canvas data-admin-dashboard-chart="reports" role="img" aria-label="Biểu đồ báo cáo nội dung theo ngày">
+                            Trình duyệt không hỗ trợ biểu đồ canvas. Dữ liệu đầy đủ có trong bảng bên dưới.
+                        </canvas>
+                    </div>
+                </figure>
+
+                <div class="visually-hidden">
+                    <table>
+                        <caption>Dữ liệu báo cáo nội dung theo ngày</caption>
+                        <thead>
+                            <tr>
+                                <th scope="col">Ngày</th>
+                                <th scope="col">Báo cáo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (AdminDashboardReportDay day in Model.Reports)
+                            {
+                                <tr>
+                                    <th scope="row">@day.Date.ToString("dd/MM/yyyy")</th>
+                                    <td>@day.Count</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
+
+    <script id="admin-dashboard-chart-data" type="application/json">@Html.Raw(chartDataJson)</script>
 </section>
 
 @section Scripts
 {
-    <script src="~/js/admin-dashboard.js" asp-append-version="true"></script>
+    <script src="~/lib/chart.js/chart.umd.min.js" asp-append-version="true"></script>
+    <script src="~/js/admin-dashboard-chart.js" asp-append-version="true"></script>
 }

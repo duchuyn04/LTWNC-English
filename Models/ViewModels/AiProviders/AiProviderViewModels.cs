@@ -23,10 +23,6 @@ public sealed class AiProviderRowViewModel
     public bool? LastCheckSucceeded { get; init; }
     public string? LastError { get; init; }
     public int ConsecutiveFailureCount { get; init; }
-    public int HealthSampleSize { get; init; }
-    public decimal? ErrorRatePercent { get; init; }
-    public bool ErrorRateExceeded { get; init; }
-    public bool IsUnstable { get; init; }
 }
 
 public sealed class AiProviderEditViewModel

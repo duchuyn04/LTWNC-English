@@ -125,9 +125,9 @@ public sealed class ContentReportTests
         Assert.Equal(1, await CountReportsAsync(factory));
     }
 
-    // Admin xem được hàng đợi, lọc theo lý do và thấy báo cáo quá 24 giờ để cảnh báo dùng sau.
+    // Admin xem được hàng đợi tối giản, sắp xếp báo cáo cũ nhất trước.
     [Fact]
-    public async Task AdminQueue_FiltersReportsAndCountsOverdue()
+    public async Task AdminQueue_ShowsPendingReportsOldestFirst()
     {
         using var factory = new AdminWebApplicationFactory();
         const string adminEmail = "report-admin-queue@example.com";
@@ -137,18 +137,22 @@ public sealed class ContentReportTests
         await factory.SeedUserAsync("report_queue_owner", ownerEmail);
         await factory.SeedUserAsync("report_queue_reporter", reporterEmail);
         int setId = await SeedSetAsync(factory, ownerEmail, isPublic: true, title: "Bộ cần kiểm tra");
+        int newerSetId = await SeedSetAsync(factory, ownerEmail, isPublic: true, title: "Bộ mới hơn");
         await SeedReportAsync(factory, setId, reporterEmail, "copyright", createdHoursAgo: 25);
+        await SeedReportAsync(factory, newerSetId, reporterEmail, "spam", createdHoursAgo: 1);
 
         using HttpClient client = CreateClient(factory);
         await factory.SignInVerifiedAdminAsync(client, adminEmail);
-        HttpResponseMessage response = await client.GetAsync(
-            "/Admin/ContentReports?reason=copyright&sort=oldest&pageSize=25");
+        HttpResponseMessage response = await client.GetAsync("/Admin/ContentReports");
         string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("Hàng đợi báo cáo nội dung", html);
+        Assert.Contains("Báo cáo cần xử lý", html);
         Assert.Contains("Bộ cần kiểm tra", html);
-        Assert.Contains("báo cáo đang chờ quá 24 giờ", html);
+        Assert.Contains("Bộ mới hơn", html);
+        Assert.True(
+            html.IndexOf("Bộ cần kiểm tra", StringComparison.Ordinal)
+            < html.IndexOf("Bộ mới hơn", StringComparison.Ordinal));
     }
 
     // Bác bỏ báo cáo ghi trạng thái xử lý và audit trong cùng kết quả nghiệp vụ.
@@ -216,6 +220,57 @@ public sealed class ContentReportTests
         Assert.Equal(HttpStatusCode.Redirect, response.StatusCode);
         Assert.Equal(ContentReportStatus.Pending, report.Status);
         Assert.True(await AuditExistsAsync(factory, reportId, AdminAuditOutcome.Denied));
+    }
+
+    [Fact]
+    public async Task Admin_QuarantinesAndRestoresSetFromReportQueue()
+    {
+        using var factory = new AdminWebApplicationFactory();
+        const string adminEmail = "report-admin-moderate@example.com";
+        const string ownerEmail = "report-moderate-owner@example.com";
+        const string reporterEmail = "report-moderate-reporter@example.com";
+        await factory.SeedUserAsync("report_admin_moderate", adminEmail, isAdmin: true, twoFactorEnabled: true);
+        await factory.SeedUserAsync("report_moderate_owner", ownerEmail);
+        await factory.SeedUserAsync("report_moderate_reporter", reporterEmail);
+        int setId = await SeedSetAsync(factory, ownerEmail, isPublic: true);
+        long reportId = await SeedReportAsync(factory, setId, reporterEmail, "unsafe");
+
+        using HttpClient client = CreateClient(factory);
+        await factory.SignInVerifiedAdminAsync(client, adminEmail);
+        HttpResponseMessage quarantineResponse = await AdminWebApplicationFactory.SubmitFormAsync(
+            client,
+            "/Admin/ContentReports",
+            $"/Admin/ContentReports/{reportId}/Quarantine",
+            new Dictionary<string, string>
+            {
+                ["ReportVersion"] = "1",
+                ["FlashcardSetVersion"] = "1",
+                ["PublicReason"] = "Nội dung không an toàn.",
+                ["Confirmed"] = "true"
+            });
+
+        FlashcardSet quarantinedSet = await GetSetAsync(factory, setId);
+        ContentReport quarantinedReport = await SingleReportAsync(factory);
+        Assert.Equal(HttpStatusCode.Redirect, quarantineResponse.StatusCode);
+        Assert.Equal(FlashcardSetModerationStatus.Quarantined, quarantinedSet.ModerationStatus);
+        Assert.Equal(ContentReportStatus.Quarantined, quarantinedReport.Status);
+
+        HttpResponseMessage restoreResponse = await AdminWebApplicationFactory.SubmitFormAsync(
+            client,
+            "/Admin/ContentReports?status=quarantined",
+            $"/Admin/ContentReports/Restore/{setId}",
+            new Dictionary<string, string>
+            {
+                ["FlashcardSetVersion"] = quarantinedSet.ModerationVersion.ToString(),
+                ["Reason"] = "Đã kiểm tra lại nội dung.",
+                ["Confirmed"] = "true"
+            });
+
+        FlashcardSet restoredSet = await GetSetAsync(factory, setId);
+        Assert.Equal(HttpStatusCode.Redirect, restoreResponse.StatusCode);
+        Assert.Equal(FlashcardSetModerationStatus.Active, restoredSet.ModerationStatus);
+        Assert.True(await SetAuditExistsAsync(factory, setId, AdminAuditActions.ContentReportsQuarantine));
+        Assert.True(await SetAuditExistsAsync(factory, setId, AdminAuditActions.ContentSetsRestore));
     }
 
     // Gửi form report hợp lệ và trả về response để test có thể kiểm tra redirect.
@@ -315,6 +370,30 @@ public sealed class ContentReportTests
         using IServiceScope scope = factory.Services.CreateScope();
         AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         return await context.ContentReports.AsNoTracking().SingleAsync();
+    }
+
+    private static async Task<FlashcardSet> GetSetAsync(
+        AdminWebApplicationFactory factory,
+        int setId)
+    {
+        using IServiceScope scope = factory.Services.CreateScope();
+        AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        return await context.FlashcardSets.AsNoTracking().SingleAsync(set => set.Id == setId);
+    }
+
+    private static async Task<bool> SetAuditExistsAsync(
+        AdminWebApplicationFactory factory,
+        int setId,
+        string action)
+    {
+        using IServiceScope scope = factory.Services.CreateScope();
+        AppDbContext context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+        string targetId = setId.ToString();
+        return await context.AdminAuditLogs.AnyAsync(log =>
+            log.Action == action
+            && log.TargetType == "FlashcardSet"
+            && log.TargetId == targetId
+            && log.Outcome == AdminAuditOutcome.Success);
     }
 
     // Kiểm tra audit cho thao tác xử lý báo cáo nội dung.

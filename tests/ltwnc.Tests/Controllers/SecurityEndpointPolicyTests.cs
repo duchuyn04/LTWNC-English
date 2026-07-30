@@ -63,26 +63,13 @@ public sealed class SecurityEndpointPolicyTests
 
     [Theory]
     [InlineData(nameof(AiProvidersController.Save))]
-    [InlineData(nameof(AiProvidersController.Delete))]
+    [InlineData(nameof(AiProvidersController.Enable))]
+    [InlineData(nameof(AiProvidersController.Disable))]
     [InlineData(nameof(AiProvidersController.SetPrimary))]
     public void SensitiveAiProviderChanges_RequireAntiforgery(
         string methodName)
     {
         MethodInfo method = typeof(AiProvidersController).GetMethods()
-            .Single(candidate => candidate.Name == methodName
-                && candidate.GetCustomAttribute<HttpPostAttribute>() != null);
-
-        Assert.NotEmpty(method.GetCustomAttributes<ValidateAntiForgeryTokenAttribute>());
-    }
-
-    [Theory]
-    [InlineData(nameof(ltwnc.Areas.Admin.Controllers.AchievementsController.ResyncUser))]
-    [InlineData(nameof(ltwnc.Areas.Admin.Controllers.AchievementsController.ResyncAll))]
-    public void AchievementResyncChanges_RequireAntiforgery(
-        string methodName)
-    {
-        MethodInfo method = typeof(ltwnc.Areas.Admin.Controllers.AchievementsController)
-            .GetMethods()
             .Single(candidate => candidate.Name == methodName
                 && candidate.GetCustomAttribute<HttpPostAttribute>() != null);
 

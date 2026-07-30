@@ -5,9 +5,7 @@
     }
 
     var tokenInput = page.querySelector("input[name=\"__RequestVerificationToken\"]");
-    var dialog = document.getElementById("provider-dialog");
-
-    // Gửi POST nhẹ cho các thao tác không đổi cấu hình: kiểm tra kết nối và lấy danh sách mô hình.
+    // Gửi POST để kiểm tra kết nối mà không làm lộ khóa API.
     async function postProviderCommand(id, action) {
         var body = new URLSearchParams();
         body.append("__RequestVerificationToken", tokenInput.value);
@@ -32,22 +30,6 @@
         return data;
     }
 
-    // Đổ mô hình vào dialog bằng textContent để không render HTML từ dữ liệu nhà cung cấp trả về.
-    function renderModels(models) {
-        var summary = dialog.querySelector("p");
-        var list = dialog.querySelector("ul");
-        summary.textContent = models.length + " mô hình được tìm thấy.";
-        list.innerHTML = "";
-
-        models.forEach(function (model) {
-            var item = document.createElement("li");
-            item.textContent = model;
-            list.appendChild(item);
-        });
-
-        dialog.hidden = false;
-    }
-
     // Bắt click trong danh sách nhà cung cấp để gọi đúng action của từng card.
     page.addEventListener("click", async function (event) {
         var target = event.target;
@@ -65,11 +47,6 @@
                 return;
             }
 
-            if (target.closest(".provider-models")) {
-                target.disabled = true;
-                var data = await postProviderCommand(id, "Models");
-                renderModels(data.models);
-            }
         }
         catch (error) {
             alert(error.message);
@@ -79,10 +56,5 @@
                 target.disabled = false;
             }
         }
-    });
-
-    // Đóng dialog mô hình khi Admin đã xem xong.
-    dialog.querySelector(".provider-dialog-close").addEventListener("click", function () {
-        dialog.hidden = true;
     });
 })();

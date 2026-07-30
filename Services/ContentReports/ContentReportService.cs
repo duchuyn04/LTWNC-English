@@ -9,8 +9,7 @@ namespace ltwnc.Services.ContentReports;
 public sealed class ContentReportService : IContentReportService
 {
     public const int DefaultPage = 1;
-    public const int DefaultPageSize = 25;
-    public const int MaxPageSize = 100;
+    public const int DefaultPageSize = 20;
 
     private const int MaxDescriptionLength = 1000;
     private const int MaxResolutionReasonLength = 500;
@@ -181,18 +180,13 @@ public sealed class ContentReportService : IContentReportService
         // 1. Gọi `Max` và lưu kết quả vào `page`.
         int page = Math.Max(DefaultPage, query.Page);
         // 2. Gọi `Clamp` và lưu kết quả vào `pageSize`.
-        int pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
+        int pageSize = DefaultPageSize;
 
         // 3. Gọi `AsNoTracking` và lưu kết quả vào `reports`.
         IQueryable<ContentReport> reports = _context.ContentReports.AsNoTracking();
         // 4. Cập nhật `reports` bằng giá trị mới.
         reports = ApplyStatusFilter(reports, query.Status);
-        // 5. Cập nhật `reports` bằng giá trị mới.
-        reports = ApplyReasonFilter(reports, query.Reason);
-        // 6. Cập nhật `reports` bằng giá trị mới.
-        reports = ApplySearchFilter(reports, query.Search);
-        // 7. Cập nhật `reports` bằng giá trị mới.
-        reports = ApplySort(reports, query.Sort);
+        reports = reports.OrderBy(report => report.CreatedAtUtc).ThenBy(report => report.Id);
 
         // 8. Gọi `CountAsync` và lưu kết quả vào `totalCount`.
         int totalCount = await reports.CountAsync(cancellationToken);
@@ -208,22 +202,6 @@ public sealed class ContentReportService : IContentReportService
 
         // 11. Tạo và trả đối tượng kết quả cho nơi gọi.
         return new AdminContentReportPage(items, totalCount, page, pageSize);
-    }
-
-    // Đếm báo cáo đang chờ quá ngưỡng tuổi để dashboard/cảnh báo issue sau truy vấn lại được.
-    public async Task<int> CountPendingOlderThanAsync(
-        TimeSpan age,
-        CancellationToken cancellationToken = default)
-    {
-        // 1. Gọi `Subtract` và lưu kết quả vào `threshold`.
-        DateTime threshold = _timeProvider.GetUtcNow().UtcDateTime.Subtract(age);
-        // 2. Trả kết quả từ `CountAsync` cho nơi gọi.
-        return await _context.ContentReports
-            .AsNoTracking()
-            .CountAsync(report =>
-                report.Status == ContentReportStatus.Pending
-                && report.CreatedAtUtc <= threshold,
-                cancellationToken);
     }
 
     // Bác bỏ báo cáo đang chờ, ghi lý do xử lý và audit trong cùng transaction.
@@ -365,7 +343,7 @@ public sealed class ContentReportService : IContentReportService
     }
 
     // Lọc trạng thái; mặc định là Pending vì đây là trang hàng đợi xử lý.
-    private static IQueryable<ContentReport> ApplyStatusFilter(
+    private IQueryable<ContentReport> ApplyStatusFilter(
         IQueryable<ContentReport> reports,
         string? status)
     {
@@ -379,133 +357,17 @@ public sealed class ContentReportService : IContentReportService
             return reports.Where(report => report.Status == ContentReportStatus.Pending);
         }
 
-        // 4. Kiểm tra `normalizedStatus == "all"` để chọn nhánh xử lý phù hợp.
-        if (normalizedStatus == "all")
-        {
-            // 5. Trả `reports` cho nơi gọi.
-            return reports;
-        }
-
-        // 6. Kiểm tra `normalizedStatus == "dismissed"` để chọn nhánh xử lý phù hợp.
-        if (normalizedStatus == "dismissed")
-        {
-            // 7. Trả kết quả từ `Where` cho nơi gọi.
-            return reports.Where(report => report.Status == ContentReportStatus.Dismissed);
-        }
-
-        // 8. Kiểm tra `normalizedStatus == "quarantined"` để chọn nhánh xử lý phù hợp.
         if (normalizedStatus == "quarantined")
         {
-            // 9. Trả kết quả từ `Where` cho nơi gọi.
-            return reports.Where(report => report.Status == ContentReportStatus.Quarantined);
+            return reports.Where(report =>
+                report.Status == ContentReportStatus.Quarantined
+                && _context.FlashcardSets.Any(set =>
+                    set.Id == report.FlashcardSetId
+                    && set.ModerationStatus == FlashcardSetModerationStatus.Quarantined));
         }
 
         // 10. Trả kết quả từ `Where` cho nơi gọi.
         return reports.Where(report => report.Status == ContentReportStatus.Pending);
-    }
-
-    // Lọc theo danh mục lý do cố định; giá trị lạ bị bỏ qua để không tạo query tùy ý.
-    private static IQueryable<ContentReport> ApplyReasonFilter(
-        IQueryable<ContentReport> reports,
-        string? reason)
-    {
-        // 1. Gọi `NormalizeReason` và lưu kết quả vào `normalizedReason`.
-        string normalizedReason = NormalizeReason(reason);
-        // 2. Kiểm tra `!IsValidReason(normalizedReason)` để chọn nhánh xử lý phù hợp.
-        if (!IsValidReason(normalizedReason))
-        {
-            // 3. Trả `reports` cho nơi gọi.
-            return reports;
-        }
-
-        // 4. Trả kết quả từ `Where` cho nơi gọi.
-        return reports.Where(report => report.Reason == normalizedReason);
-    }
-
-    // Tìm kiếm theo mã báo cáo, mã bộ, tiêu đề bộ và email người liên quan.
-    private IQueryable<ContentReport> ApplySearchFilter(
-        IQueryable<ContentReport> reports,
-        string? search)
-    {
-        // 1. Kiểm tra `string.IsNullOrWhiteSpace(search)` để chọn nhánh xử lý phù hợp.
-        if (string.IsNullOrWhiteSpace(search))
-        {
-            // 2. Trả `reports` cho nơi gọi.
-            return reports;
-        }
-
-        // 3. Gọi `Trim` và lưu kết quả vào `term`.
-        string term = search.Trim();
-        // 4. Tính giá trị và lưu vào `reportId` để dùng ở bước tiếp theo.
-        long? reportId = null;
-        // 5. Kiểm tra `long.TryParse(term, out long parsedReportId)` để chọn nhánh xử lý phù hợp.
-        if (long.TryParse(term, out long parsedReportId))
-        {
-            // 6. Cập nhật `reportId` bằng giá trị mới.
-            reportId = parsedReportId;
-        }
-
-        // 7. Tính giá trị và lưu vào `flashcardSetId` để dùng ở bước tiếp theo.
-        int? flashcardSetId = null;
-        // 8. Kiểm tra `int.TryParse(term, out int parsedFlashcardSetId)` để chọn nhánh xử lý phù hợp.
-        if (int.TryParse(term, out int parsedFlashcardSetId))
-        {
-            // 9. Cập nhật `flashcardSetId` bằng giá trị mới.
-            flashcardSetId = parsedFlashcardSetId;
-        }
-
-        // 10. Trả kết quả từ `Where` cho nơi gọi.
-        return reports.Where(report =>
-            (reportId != null && report.Id == reportId.Value)
-            || (flashcardSetId != null && report.FlashcardSetId == flashcardSetId.Value)
-            || _context.FlashcardSets.Any(set =>
-                set.Id == report.FlashcardSetId
-                && set.Title.Contains(term))
-            || _context.AppUsers.Any(user =>
-                (user.Id == report.ReporterUserId
-                    || _context.FlashcardSets.Any(set =>
-                        set.Id == report.FlashcardSetId
-                        && set.UserId == user.Id))
-                && ((user.Email != null && user.Email.Contains(term))
-                    || (user.UserName != null && user.UserName.Contains(term))
-                    || user.Id.Contains(term))));
-    }
-
-    // Sắp xếp bằng danh sách khóa cố định để tránh truyền tên cột trực tiếp từ query string.
-    private static IQueryable<ContentReport> ApplySort(
-        IQueryable<ContentReport> reports,
-        string? sort)
-    {
-        // 1. Gọi `NormalizeToken` và lưu kết quả vào `normalizedSort`.
-        string normalizedSort = NormalizeToken(sort);
-        // 2. Kiểm tra `normalizedSort == "oldest"` để chọn nhánh xử lý phù hợp.
-        if (normalizedSort == "oldest")
-        {
-            // 3. Trả kết quả từ `ThenBy` cho nơi gọi.
-            return reports.OrderBy(report => report.CreatedAtUtc).ThenBy(report => report.Id);
-        }
-
-        // 4. Kiểm tra `normalizedSort == "reason"` để chọn nhánh xử lý phù hợp.
-        if (normalizedSort == "reason")
-        {
-            // 5. Trả kết quả từ `ThenByDescending` cho nơi gọi.
-            return reports.OrderBy(report => report.Reason)
-                .ThenByDescending(report => report.CreatedAtUtc)
-                .ThenByDescending(report => report.Id);
-        }
-
-        // 6. Kiểm tra `normalizedSort == "status"` để chọn nhánh xử lý phù hợp.
-        if (normalizedSort == "status")
-        {
-            // 7. Trả kết quả từ `ThenByDescending` cho nơi gọi.
-            return reports.OrderBy(report => report.Status)
-                .ThenByDescending(report => report.CreatedAtUtc)
-                .ThenByDescending(report => report.Id);
-        }
-
-        // 8. Trả kết quả từ `ThenByDescending` cho nơi gọi.
-        return reports.OrderByDescending(report => report.CreatedAtUtc)
-            .ThenByDescending(report => report.Id);
     }
 
     // Phát hiện form cũ hoặc báo cáo đã được xử lý trước khi cho phép bác bỏ.

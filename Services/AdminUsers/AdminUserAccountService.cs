@@ -11,8 +11,7 @@ namespace ltwnc.Services.AdminUsers;
 public sealed class AdminUserAccountService : IAdminUserAccountService
 {
     public const int DefaultPage = 1;
-    public const int DefaultPageSize = 25;
-    public const int MaxPageSize = 100;
+    public const int DefaultPageSize = 20;
 
     private static readonly DateTimeOffset PermanentLockoutEnd =
         new(new DateTime(9999, 12, 31, 23, 59, 59, DateTimeKind.Utc));
@@ -47,7 +46,7 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
         // 1. Gọi `Max` và lưu kết quả vào `page`.
         int page = Math.Max(DefaultPage, query.Page);
         // 2. Gọi `Clamp` và lưu kết quả vào `pageSize`.
-        int pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
+        int pageSize = DefaultPageSize;
         // 3. Gọi `AsNoTracking` và lưu kết quả vào `users`.
         IQueryable<AppUser> users = _context.AppUsers.AsNoTracking();
 
@@ -57,7 +56,7 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
         // 5. Cập nhật `users` bằng giá trị mới.
         users = ApplyStatus(users, query.Status);
         // 6. Cập nhật `users` bằng giá trị mới.
-        users = ApplySort(users, query.Sort);
+        users = users.OrderBy(user => user.Email).ThenBy(user => user.UserName);
 
         // 7. Gọi `CountAsync` và lưu kết quả vào `totalCount`.
         int totalCount = await users.CountAsync(cancellationToken);
@@ -409,42 +408,6 @@ public sealed class AdminUserAccountService : IAdminUserAccountService
     }
 
     // Sắp xếp server-side theo danh sách khóa cố định để tránh truyền field tùy ý vào truy vấn.
-    private IQueryable<AppUser> ApplySort(
-        IQueryable<AppUser> users,
-        string? sort)
-    {
-        // 1. Gọi `NormalizeToken` và lưu kết quả vào `normalizedSort`.
-        string normalizedSort = NormalizeToken(sort);
-        // 2. Kiểm tra `normalizedSort == "username"` để chọn nhánh xử lý phù hợp.
-        if (normalizedSort == "username")
-        {
-            // 3. Trả kết quả từ `ThenBy` cho nơi gọi.
-            return users.OrderBy(user => user.UserName).ThenBy(user => user.Email);
-        }
-
-        // 4. Kiểm tra `normalizedSort == "created"` để chọn nhánh xử lý phù hợp.
-        if (normalizedSort == "created")
-        {
-            // 5. Trả kết quả từ `ThenBy` cho nơi gọi.
-            return users
-                .OrderByDescending(user => _context.UserProfiles
-                    .Where(profile => profile.UserId == user.Id)
-                    .Select(profile => (DateTime?)profile.CreatedAt)
-                    .FirstOrDefault())
-                .ThenBy(user => user.Email);
-        }
-
-        // 6. Kiểm tra `normalizedSort == "locked"` để chọn nhánh xử lý phù hợp.
-        if (normalizedSort == "locked")
-        {
-            // 7. Trả kết quả từ `ThenBy` cho nơi gọi.
-            return users.OrderByDescending(user => user.LockoutEnd != null).ThenBy(user => user.Email);
-        }
-
-        // 8. Trả kết quả từ `ThenBy` cho nơi gọi.
-        return users.OrderBy(user => user.Email).ThenBy(user => user.UserName);
-    }
-
     // Gom các bất biến khóa Admin vào một chỗ để controller không tự quyết định bảo mật.
     private async Task<string?> GetLockDenialReasonAsync(
         AdminUserAccountCommand command,

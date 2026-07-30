@@ -19,31 +19,7 @@ public sealed class OpenAiCompatibleApiClient
 
     internal void ValidateConfiguration(OpenAiClientConfiguration configuration)
     {
-        _ = CreateEndpoint(configuration, "models");
-    }
-
-    internal async Task<OpenAiModelListResponse> GetModelsAsync(
-        OpenAiClientConfiguration configuration,
-        string? apiKey,
-        CancellationToken cancellationToken)
-    {
-        Uri endpoint = CreateEndpoint(configuration, "models");
-        await ValidateResolvedHostAsync(endpoint, cancellationToken);
-        using HttpRequestMessage request = new(HttpMethod.Get, endpoint);
-        AddAuthorization(request, apiKey);
-        using HttpResponseMessage response = await SendAsync(configuration, request, cancellationToken);
-        EnsureSuccess(configuration, response);
-
-        try
-        {
-            OpenAiModelListResponse? result = JsonSerializer.Deserialize<OpenAiModelListResponse>(
-                await response.Content.ReadAsStringAsync(cancellationToken));
-            return result ?? throw InvalidResponse(configuration);
-        }
-        catch (JsonException exception)
-        {
-            throw InvalidResponse(configuration, exception);
-        }
+        _ = CreateEndpoint(configuration, "chat/completions");
     }
 
     internal async Task<OpenAiChatResponse> CompleteAsync(

@@ -47,10 +47,11 @@ public class PublicLibraryServiceTests : IDisposable
     }
 
     [Theory]
-    [InlineData("academic", "Academic words")]
-    [InlineData("writing", "Academic words")]
-    [InlineData("minhanh", "Academic words")]
-    public async Task BrowseAsync_SearchesTitleDescriptionAndAuthorCaseInsensitively(
+    [InlineData("Academic", "Academic words")]
+    [InlineData("Writing", "Academic words")]
+    [InlineData("MinhAnh", "Academic words")]
+    [InlineData("Quán cà phê", "Quán cà phê")]
+    public async Task BrowseAsync_SearchesTitleDescriptionAndAuthorAndPreservesSearchText(
         string search,
         string expectedTitle)
     {
@@ -59,10 +60,10 @@ public class PublicLibraryServiceTests : IDisposable
         await SeedSetAsync("author", expectedTitle, true, description: "IELTS Writing vocabulary");
         await SeedSetAsync("author-2", "Travel", true, description: "Airport phrases");
 
-        PublicLibraryResult result = await _service.BrowseAsync(new(search.ToUpperInvariant(), "recent", 1));
+        PublicLibraryResult result = await _service.BrowseAsync(new(search, "recent", 1));
 
         Assert.Equal(expectedTitle, Assert.Single(result.Items).Title);
-        Assert.Equal(search.ToLowerInvariant(), result.Search);
+        Assert.Equal(search, result.Search);
     }
 
     [Fact]

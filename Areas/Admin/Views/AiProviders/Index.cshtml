@@ -50,30 +50,6 @@
                 primaryText = "Nhà cung cấp chính";
             }
 
-            string healthText = "Chưa đủ dữ liệu";
-            string healthClass = "neutral";
-            if (provider.IsUnstable)
-            {
-                healthText = "Không ổn định";
-                healthClass = "error";
-            }
-            else if (provider.LastCheckSucceeded == true)
-            {
-                healthText = "Sẵn sàng";
-                healthClass = "success";
-            }
-            else if (provider.LastCheckSucceeded == false)
-            {
-                healthText = "Cần kiểm tra lại";
-                healthClass = "error";
-            }
-
-            string errorRateText = "Chưa đủ mẫu";
-            if (provider.ErrorRatePercent.HasValue)
-            {
-                errorRateText = $"{provider.ErrorRatePercent:0.#}% lỗi / 5 phút";
-            }
-
             <article class="provider-card" data-provider-id="@provider.Id">
                 <div class="provider-priority">@provider.Priority</div>
                 <div class="provider-main">
@@ -91,12 +67,8 @@
                         <span><i class="ph ph-key" aria-hidden="true"></i> @provider.ApiKeyDisplay</span>
                         <span><i class="ph ph-clock" aria-hidden="true"></i> @provider.TimeoutSeconds giây</span>
                         <span><i class="ph ph-lock-key" aria-hidden="true"></i> Phiên bản @provider.Version</span>
-                        <span><i class="ph ph-activity" aria-hidden="true"></i> @errorRateText</span>
                         <span><i class="ph ph-warning-circle" aria-hidden="true"></i> @provider.ConsecutiveFailureCount lần kiểm tra lỗi liên tiếp</span>
                     </div>
-                    <small class="provider-check @healthClass">
-                        @healthText · @provider.HealthSampleSize yêu cầu gần đây
-                    </small>
                     @if (provider.LastCheckedAt.HasValue)
                     {
                         string checkClass = "error";
@@ -114,7 +86,6 @@
                 </div>
                 <div class="provider-actions">
                     <button class="provider-test" type="button">Kiểm tra</button>
-                    <button class="provider-models" type="button">Mô hình</button>
                     <a href="/Admin/AiProviders/@provider.Id/Edit">Sửa</a>
                 </div>
                 <div class="provider-lifecycle">
@@ -169,16 +140,6 @@
         }
     </div>
 
-    <div id="provider-dialog" class="provider-dialog" hidden>
-        <div>
-            <button type="button" class="provider-dialog-close" aria-label="Đóng">
-                <i class="ph ph-x" aria-hidden="true"></i>
-            </button>
-            <h2>Mô hình</h2>
-            <p></p>
-            <ul></ul>
-        </div>
-    </div>
 </section>
 
 @section Scripts

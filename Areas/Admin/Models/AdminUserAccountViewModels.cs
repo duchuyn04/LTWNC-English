@@ -8,7 +8,6 @@ public sealed class AdminUserIndexViewModel
     public required IReadOnlyList<AdminUserRowViewModel> Items { get; init; }
     public string? Search { get; init; }
     public string? Status { get; init; }
-    public string? Sort { get; init; }
     public int Page { get; init; }
     public int PageSize { get; init; }
     public int TotalCount { get; init; }
@@ -87,15 +86,13 @@ public static class AdminUserViewModelMapper
     public static AdminUserIndexViewModel ToIndexViewModel(
         AdminUserAccountPage page,
         string? search,
-        string? status,
-        string? sort)
+        string? status)
     {
         return new AdminUserIndexViewModel
         {
             Items = page.Items.Select(ToRowViewModel).ToArray(),
             Search = search,
             Status = status,
-            Sort = sort,
             Page = page.Page,
             PageSize = page.PageSize,
             TotalCount = page.TotalCount

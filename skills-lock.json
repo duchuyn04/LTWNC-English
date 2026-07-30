@@ -31,6 +31,18 @@
       "skillPath": "skills/engineering/domain-modeling/SKILL.md",
       "computedHash": "b747e8b4dcd0f367ef940c290b14f858bf9576ad9961fd6684bacff5688f4a2b"
     },
+    "generate-test-cases": {
+      "source": "mavka-ai/unit-tests-skills",
+      "sourceType": "github",
+      "skillPath": "skills/generate-test-cases/SKILL.md",
+      "computedHash": "8bc01ba066b121038645c04c968c565642ce30cf072434be86fb4c24eb9913ba"
+    },
+    "generate-tests": {
+      "source": "mavka-ai/unit-tests-skills",
+      "sourceType": "github",
+      "skillPath": "skills/generate-tests/SKILL.md",
+      "computedHash": "80e0bd99f883a18e90be0dcfd505985df024fe42009b9e0f600a2a75c62ed7cd"
+    },
     "grill-me": {
       "source": "mattpocock/skills",
       "sourceType": "github",

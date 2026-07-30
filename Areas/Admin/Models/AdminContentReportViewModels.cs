@@ -5,15 +5,10 @@ namespace ltwnc.Areas.Admin.Models;
 public sealed class AdminContentReportIndexViewModel
 {
     public required IReadOnlyList<AdminContentReportRowViewModel> Items { get; init; }
-    public required IReadOnlyList<ContentReportReasonOption> ReasonOptions { get; init; }
-    public string? Search { get; init; }
-    public string? Status { get; init; }
-    public string? Reason { get; init; }
-    public string? Sort { get; init; }
+    public required string Status { get; init; }
     public int Page { get; init; }
     public int PageSize { get; init; }
     public int TotalCount { get; init; }
-    public int OverduePendingCount { get; init; }
 
     public int TotalPages
     {
@@ -43,6 +38,8 @@ public sealed class AdminContentReportIndexViewModel
             return Page < TotalPages;
         }
     }
+
+    public bool ShowsQuarantined => Status == "quarantined";
 }
 
 public sealed class AdminContentReportRowViewModel
@@ -62,6 +59,7 @@ public sealed class AdminContentReportRowViewModel
     public int Version { get; init; }
     public int FlashcardSetVersion { get; init; }
     public bool CanDismiss { get; init; }
+    public bool CanRestore { get; init; }
 }
 
 public sealed class AdminContentReportDismissInputModel
@@ -80,30 +78,27 @@ public sealed class AdminContentReportQuarantineInputModel
     public bool Confirmed { get; set; }
 }
 
+public sealed class AdminContentReportRestoreInputModel
+{
+    public int FlashcardSetVersion { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public bool Confirmed { get; set; }
+}
+
 public static class AdminContentReportViewModelMapper
 {
     // Chuyển page service sang view model và giữ nguyên bộ lọc hiện tại.
     public static AdminContentReportIndexViewModel ToIndexViewModel(
         AdminContentReportPage page,
-        IReadOnlyList<ContentReportReasonOption> reasonOptions,
-        string? search,
-        string? status,
-        string? reason,
-        string? sort,
-        int overduePendingCount)
+        string status)
     {
         return new AdminContentReportIndexViewModel
         {
             Items = page.Items.Select(ToRowViewModel).ToArray(),
-            ReasonOptions = reasonOptions,
-            Search = search,
             Status = status,
-            Reason = reason,
-            Sort = sort,
             Page = page.Page,
             PageSize = page.PageSize,
-            TotalCount = page.TotalCount,
-            OverduePendingCount = overduePendingCount
+            TotalCount = page.TotalCount
         };
     }
 
@@ -129,7 +124,8 @@ public static class AdminContentReportViewModelMapper
             ResolutionReason = report.ResolutionReason,
             Version = report.Version,
             FlashcardSetVersion = report.FlashcardSetVersion,
-            CanDismiss = report.Status == ltwnc.Models.Entities.ContentReportStatus.Pending
+            CanDismiss = report.Status == ltwnc.Models.Entities.ContentReportStatus.Pending,
+            CanRestore = report.Status == ltwnc.Models.Entities.ContentReportStatus.Quarantined
         };
     }
 

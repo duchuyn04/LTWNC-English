@@ -113,19 +113,6 @@ flowchart LR
 
 `AiProviderConnection` chỉ mang tên, base URL, model và timeout. API key được giải mã ngay trước lời gọi Adapter rồi truyền bằng tham số riêng; khóa không nằm trong record, debug output hoặc operation log. Router fallback theo provider chính và `Priority` khi gặp lỗi có thể thử lại.
 
-### 🛡️ Protection Proxy
-
-**Vấn đề:** Route xuất CSV đã có Admin policy, nhưng service export vẫn có thể được gọi từ code nội bộ với actor audit không khớp người dùng hiện tại.
-
-**Cách làm:** Controller tiếp tục gọi Subject `IAdminExportService`. DI đưa lời gọi qua `AdminExportProtectionProxy`, dùng chính `AdminAreaPolicy` để kiểm tra quyền và dựng lại actor từ claims trước khi ủy quyền cho `AdminExportService`. Real Subject vẫn chịu trách nhiệm tạo CSV và ghi audit thành công.
-
-```mermaid
-flowchart LR
-    Client["Client<br/>DashboardController<br/>AuditLogsController"] --> Subject["Subject<br/>IAdminExportService"]
-    Subject --> Proxy["Protection Proxy<br/>AdminExportProtectionProxy"]
-    Proxy --> RealSubject["Real Subject<br/>AdminExportService"]
-```
-
 MVC policy vẫn là lớp bảo vệ HTTP để giữ nguyên phản hồi 401/403. Proxy là lớp defense-in-depth tại service seam; caller không đạt policy hoặc khai actor khác danh tính hiện tại sẽ bị từ chối trước khi tạo CSV.
 
 ### 📦 Application service interfaces
@@ -147,7 +134,7 @@ Các application service (`FlashcardSetService`, `StudyService`, `DictationServi
 
 ## 🤖 AI providers và English Mission
 
-English Mission gọi AI qua backend. Provider quản lý tại `/Admin/AiProviders`, hỗ trợ API key tùy chọn, discovery model qua `/models`, kiểm tra kết nối, fallback theo `Priority`. API key mã hóa bằng ASP.NET Core Data Protection.
+English Mission gọi AI qua backend. Provider quản lý tại `/Admin/AiProviders`, hỗ trợ API key tùy chọn, kiểm tra kết nối và fallback theo `Priority`. API key mã hóa bằng ASP.NET Core Data Protection.
 
 Cấu hình provider phụ thuộc vào từng môi trường và không nên ghi giá trị nội bộ vào repository. Tạo provider qua `/Admin/AiProviders` với các giá trị phù hợp:
 
@@ -176,27 +163,21 @@ Provider từ xa bắt buộc HTTPS. HTTP chỉ được phép cho localhost/loo
 ltwnc/
 ├── Areas/
 │   └── Admin/                        # Khu vực quản trị tách biệt
-│       ├── Controllers/              # Dashboard, Users, Content, AiProviders, AuditLogs...
+│       ├── Controllers/              # Dashboard, ContentReports, Users, AiProviders, AuditLogs
 │       ├── Models/                   # ViewModels riêng cho admin
 │       └── Views/                    # Razor views admin
 ├── Controllers/                      # MVC chính: Home, Account, Study, FlashcardSet, Profile...
 ├── Services/                         # Nghiệp vụ, tổ chức theo domain
 │   ├── Achievements/                 # Catalog, progress, unlock + observer thành tích
-│   ├── AdminAchievements/            # Admin quản lý huy hiệu
-│   ├── AdminAuditRetention/          # Tác vụ nền dọn audit log quá hạn
-│   ├── AdminDashboard/               # KPI dashboard
-│   ├── AdminEnglishMissions/         # Admin quản lý mission + dọn transcript
-│   ├── AdminExports/                 # Xuất dữ liệu CSV/Excel
-│   ├── AdminSearch/                  # Tìm kiếm toàn cục admin
-│   ├── AdminStudyRecords/            # Admin xem bản ghi học
+│   ├── AdminDashboard/               # Báo cáo chờ, trạng thái AI, biểu đồ phiên học
 │   ├── AdminUsers/                   # Admin quản lý tài khoản + khóa
 │   ├── Ai/                           # AI completion router, adapter, provider
 │   ├── Audit/                        # Ghi audit log cho hành động admin
 │   ├── Auth/                         # AuthService tự quản, CurrentUser
 │   ├── CardActions/                  # Command: batch delete/star/unstar + undo
-│   ├── ContentModeration/            # Kiểm duyệt nội dung (quarantine/restrict/allow)
+│   ├── ContentModeration/            # Cách ly/khôi phục bộ thẻ từ báo cáo
 │   ├── ContentReports/               # Xử lý báo cáo nội dung từ user
-│   ├── EnglishMission/               # Mission service, contracts
+│   ├── EnglishMission/               # Mission service, contracts, dọn nội dung hội thoại cũ
 │   ├── FlashcardSets/                # CRUD bộ thẻ / thẻ / copy / import CSV-XLSX
 │   ├── Leaderboard/                  # Bảng xếp hạng
 │   ├── Profiles/                     # Profile, avatar, thống kê, timeline

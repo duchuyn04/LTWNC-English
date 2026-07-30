@@ -32,9 +32,9 @@ public sealed class AdminReleaseHardeningTests
         Assert.DoesNotContain("Chưa có provider", html);
     }
 
-    // Dashboard AJAX phải công bố trạng thái cho công nghệ hỗ trợ mà không cần đọc logic JavaScript nội bộ.
+    // Biểu đồ server-rendered phải có nhãn cho công nghệ hỗ trợ mà không cần JavaScript.
     [Fact]
-    public async Task Dashboard_RendersAssistiveLiveStatusForAjaxUpdates()
+    public async Task Dashboard_RendersAccessibleServerSideChart()
     {
         using var factory = new AdminWebApplicationFactory();
         const string adminEmail = "admin-release-live-status@example.com";
@@ -47,9 +47,32 @@ public sealed class AdminReleaseHardeningTests
         string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Contains("data-dashboard-live-status", html);
-        Assert.Contains("role=\"status\"", html);
-        Assert.Contains("aria-live=\"polite\"", html);
+        Assert.Contains("Phiên học theo ngày", html);
+        Assert.Contains("phiên hoàn thành", html);
+        Assert.Contains("Phiên bỏ dở", html);
+        Assert.DoesNotContain("admin-dashboard.js", html);
+    }
+
+    // Các mốc nhanh phải bao gồm hôm nay và mặc định chọn 7 ngày.
+    [Fact]
+    public async Task Dashboard_RendersQuickDateRangesAndMarksSevenDaysAsDefault()
+    {
+        using var factory = new AdminWebApplicationFactory();
+        const string adminEmail = "admin-release-quick-ranges@example.com";
+        using HttpClient client = await CreateSignedInAdminClientAsync(
+            factory,
+            "admin_release_quick_ranges",
+            adminEmail);
+
+        HttpResponseMessage response = await client.GetAsync("/Admin");
+        string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Contains("href=\"/Admin?from=2026-07-06&to=2026-07-19\">14 ngày</a>", html);
+        Assert.Contains("href=\"/Admin?from=2026-06-20&to=2026-07-19\">30 ngày</a>", html);
+        Assert.Matches(
+            "class=\"active\"[^>]*aria-current=\"page\"[^>]*href=\"/Admin\\?from=2026-07-13&to=2026-07-19\">7 ngày</a>",
+            html);
     }
 
     // Prototype chỉ là công cụ thiết kế nội bộ nên môi trường test/production không được trả màn hình prototype.

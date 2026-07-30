@@ -4,7 +4,6 @@ public sealed class AdminAuditLogIndexViewModel
 {
     public required IReadOnlyList<AdminAuditLogRow> Items { get; init; }
     public required string? Search { get; init; }
-    public required string? Action { get; init; }
     public required string? Outcome { get; init; }
     public required int Page { get; init; }
     public required int PageSize { get; init; }

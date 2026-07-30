@@ -6,15 +6,19 @@ namespace ltwnc.Services.Leaderboard;
 
 public sealed class LeaderboardService : ILeaderboardService
 {
+    // Chỉ hiển thị tối đa 20 người đầu bảng
     private const int TopEntryLimit = 20;
+
+    // Dùng để truy vấn dữ liệu từ database
     private readonly AppDbContext _db;
+
+    // Cung cấp thời gian hiện tại
     private readonly TimeProvider _timeProvider;
 
+    // Nếu không truyền TimeProvider thì sử dụng thời gian hệ thống
     public LeaderboardService(AppDbContext db, TimeProvider? timeProvider = null)
     {
-        // 1. Lưu dependency `_db` để các phương thức khác sử dụng.
         _db = db;
-        // 2. Lưu dependency `_timeProvider` để các phương thức khác sử dụng.
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
@@ -23,24 +27,35 @@ public sealed class LeaderboardService : ILeaderboardService
         string? viewerUserId,
         CancellationToken cancellationToken = default)
     {
-        // 1. Tính giá trị và lưu vào `normalizedPeriod` để dùng ở bước tiếp theo.
+        // Chỉ chấp nhận hai khoảng thời gian:
+        // - periodDays = 30 thì lấy 30 ngày;
+        // - mọi giá trị khác đều được chuyển thành 7 ngày.
         int normalizedPeriod = periodDays == 30 ? 30 : 7;
-        // 2. Gọi `AddDays` và lưu kết quả vào `cutoff`.
+
+        // Tính thời điểm bắt đầu dùng để lọc phiên học.
+        // Ví dụ bảng 7 ngày: lấy thời gian hiện tại trừ đi 7 ngày
         DateTime cutoff = _timeProvider.GetUtcNow().UtcDateTime.AddDays(-normalizedPeriod);
 
-        // 3. Gọi `ToListAsync` và lưu kết quả vào `grouped`.
+        // Lấy và tổng hợp dữ liệu học tập theo từng người dùng
         var grouped = await (
             from session in _db.StudySessions.AsNoTracking()
+
+            // Ghép phiên học với hồ sơ người dùng
             join profile in _db.UserProfiles.AsNoTracking()
                 on session.UserId equals profile.UserId
+
+            // Ghép thêm tài khoản để lấy username
             join user in _db.AppUsers.AsNoTracking()
                 on session.UserId equals user.Id
+            // Chỉ lấy những phiên học đủ điều kiện xuất hiện trên bảng xếp hạng
             where profile.IsPublic
                 && profile.ShowStats
                 && session.CompletedAt.HasValue
                 && session.CompletedAt.Value >= cutoff
                 && session.DurationSeconds.HasValue
                 && session.DurationSeconds.Value > 0
+
+            // Chỉ lấy các trường cần thiết
             select new
             {
                 session.UserId,
@@ -48,7 +63,10 @@ public sealed class LeaderboardService : ILeaderboardService
                 profile.AvatarPath,
                 session.DurationSeconds
             })
+            // Gom tất cả phiên học thuộc cùng một người dùng
             .GroupBy(row => new { row.UserId, row.Username, row.AvatarPath })
+
+            // Tính tổng thời gian học và số phiên học của mỗi người
             .Select(group => new
             {
                 group.Key.UserId,
@@ -57,44 +75,59 @@ public sealed class LeaderboardService : ILeaderboardService
                 TotalSeconds = group.Sum(row => (long)row.DurationSeconds!.Value),
                 SessionCount = group.Count()
             })
+            // Thực thi truy vấn và tải kết quả về bộ nhớ
             .ToListAsync(cancellationToken);
-
-        // 4. Gọi `ToList` và lưu kết quả vào `ranked`.
+        // Sắp xếp người dùng và gán thứ hạng
         List<LeaderboardEntryViewModel> ranked = grouped
+            // Ưu tiên người có tổng thời gian học cao hơn
             .OrderByDescending(row => row.TotalSeconds)
+            // Nếu bằng thời gian, ưu tiên người có nhiều phiên hơn
             .ThenByDescending(row => row.SessionCount)
+            // Nếu vẫn bằng nhau, sắp xếp theo username
             .ThenBy(row => row.Username)
+            // Dùng UserId làm tiêu chí cuối để thứ tự ổn định
             .ThenBy(row => row.UserId)
+
+            // Chuyển mỗi kết quả thành một dòng bảng xếp hạng.
+            // index bắt đầu từ 0 nên Rank phải cộng thêm 1.
             .Select((row, index) => new LeaderboardEntryViewModel
             {
                 Rank = index + 1,
                 UserId = row.UserId,
                 Username = row.Username,
                 AvatarPath = row.AvatarPath,
-                AvatarInitial = AvatarInitial(row.Username),
+                AvatarInitial = AvatarInitial(row.Username), // Tạo chữ cái đại diện nếu không có ảnh avatar
                 TotalSeconds = row.TotalSeconds,
                 SessionCount = row.SessionCount,
+                // Đánh dấu đây có phải người đang xem hay không
                 IsViewer = !string.IsNullOrWhiteSpace(viewerUserId)
                     && row.UserId == viewerUserId
             })
             .ToList();
+        /*
+        Tìm dòng xếp hạng của người đang xem.
+        Có thể không tìm thấy nếu chưa đăng nhập
+        hoặc không có phiên học hợp lệ.
+         */
 
-        // 5. Gọi `FirstOrDefault` và lưu kết quả vào `viewerEntry`.
+
         LeaderboardEntryViewModel? viewerEntry = ranked
             .FirstOrDefault(entry => entry.IsViewer);
 
-        // 6. Tạo và trả đối tượng kết quả cho nơi gọi.
+        // Trả dữ liệu đã chuẩn bị cho Controller và View.
         return new LeaderboardPageViewModel
         {
             PeriodDays = normalizedPeriod,
-            Entries = ranked.Take(TopEntryLimit).ToList(),
+            Entries = ranked.Take(TopEntryLimit).ToList(), // Chỉ hiển thị 20 người đứng đầu
+            // Vẫn trả vị trí người đang xem,
+            // kể cả khi họ không nằm trong top 20
             ViewerEntry = viewerEntry
         };
     }
 
+    // Lấy chữ cái đầu của username để làm avatar mặc định
     private static string AvatarInitial(string username)
     {
-        // 1. Trả `string.IsNullOrWhiteSpace(username) ? "?" : username.Trim()[0].ToSt...` cho nơi gọi.
         return string.IsNullOrWhiteSpace(username)
             ? "?"
             : username.Trim()[0].ToString().ToUpperInvariant();

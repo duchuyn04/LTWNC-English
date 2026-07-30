@@ -22,11 +22,6 @@ public interface IContentReportService
         AdminContentReportQuery query,
         CancellationToken cancellationToken = default);
 
-    // Đếm báo cáo chờ xử lý lâu hơn khoảng thời gian được chỉ định.
-    Task<int> CountPendingOlderThanAsync(
-        TimeSpan age,
-        CancellationToken cancellationToken = default);
-
     // Bác bỏ một báo cáo và ghi lại lý do xử lý.
     Task<ContentReportOperationResult> DismissAsync(
         DismissContentReportCommand command,

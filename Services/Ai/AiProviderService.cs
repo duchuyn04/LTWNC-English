@@ -9,16 +9,10 @@ namespace ltwnc.Services.Ai;
 
 public class AiProviderService : IAiProviderService
 {
-    private const int DefaultHealthWindowMinutes = 5;
-    private const int DefaultMinimumSampleSize = 20;
-    private const decimal DefaultErrorRateThresholdPercent = 10m;
-    private const int DefaultUnstableFailureThreshold = 3;
-
     private readonly AppDbContext _context;
     private readonly IDataProtector _protector;
     private readonly IReadOnlyDictionary<string, IAiProviderAdapter> _adapters;
     private readonly IAdminAuditService _auditService;
-    private readonly IConfiguration _configuration;
     private readonly TimeProvider _timeProvider;
 
     public AiProviderService(
@@ -26,7 +20,6 @@ public class AiProviderService : IAiProviderService
         IDataProtectionProvider dataProtection,
         IEnumerable<IAiProviderAdapter> adapters,
         IAdminAuditService auditService,
-        IConfiguration configuration,
         TimeProvider? timeProvider = null)
     {
         // 1. Lưu dependency `_context` để các phương thức khác sử dụng.
@@ -37,9 +30,7 @@ public class AiProviderService : IAiProviderService
         _adapters = adapters.ToDictionary(adapter => adapter.AdapterType, StringComparer.OrdinalIgnoreCase);
         // 4. Lưu dependency `_auditService` để các phương thức khác sử dụng.
         _auditService = auditService;
-        // 5. Lưu dependency `_configuration` để các phương thức khác sử dụng.
-        _configuration = configuration;
-        // 6. Lưu dependency `_timeProvider` để các phương thức khác sử dụng.
+        // 5. Lưu dependency `_timeProvider` để các phương thức khác sử dụng.
         _timeProvider = timeProvider ?? TimeProvider.System;
     }
 
@@ -59,102 +50,6 @@ public class AiProviderService : IAiProviderService
     {
         // 1. Trả kết quả từ `FirstOrDefaultAsync` cho nơi gọi.
         return _context.AiProviders.FirstOrDefaultAsync(provider => provider.Id == id, cancellationToken);
-    }
-
-    // Tính trạng thái sức khỏe provider từ bộ đếm test liên tiếp và log vận hành trong cửa sổ cấu hình.
-    public async Task<IReadOnlyList<AiProviderHealthSnapshot>> GetHealthSnapshotsAsync(
-        CancellationToken cancellationToken = default)
-    {
-        // 1. Gọi `ReadHealthWindowMinutes` và lưu kết quả vào `windowMinutes`.
-        int windowMinutes = ReadHealthWindowMinutes();
-        // 2. Gọi `ReadMinimumSampleSize` và lưu kết quả vào `minimumSampleSize`.
-        int minimumSampleSize = ReadMinimumSampleSize();
-        // 3. Gọi `ReadErrorRateThresholdPercent` và lưu kết quả vào `thresholdPercent`.
-        decimal thresholdPercent = ReadErrorRateThresholdPercent();
-        // 4. Gọi `ReadUnstableFailureThreshold` và lưu kết quả vào `unstableFailureThreshold`.
-        int unstableFailureThreshold = ReadUnstableFailureThreshold();
-        // 5. Gọi `AddMinutes` và lưu kết quả vào `windowStartUtc`.
-        DateTime windowStartUtc = _timeProvider.GetUtcNow().UtcDateTime.AddMinutes(-windowMinutes);
-
-        // 6. Gọi `ToListAsync` và lưu kết quả vào `providers`.
-        List<AiProvider> providers = await _context.AiProviders
-            .AsNoTracking()
-            .OrderBy(provider => provider.Id)
-            .ToListAsync(cancellationToken);
-        // 7. Gọi `ToDictionaryAsync` và lưu kết quả vào `aggregates`.
-        Dictionary<int, AiOperationWindowAggregate> aggregates = await _context.AiOperationLogs
-            .AsNoTracking()
-            .Where(log => log.ProviderId != null && log.OccurredAtUtc >= windowStartUtc)
-            .GroupBy(log => log.ProviderId!.Value)
-            .Select(group => new AiOperationWindowAggregate(
-                group.Key,
-                group.Count(),
-                group.Count(log => !log.Succeeded)))
-            .ToDictionaryAsync(item => item.ProviderId, item => item, cancellationToken);
-
-        // 8. Khởi tạo `snapshots` với dữ liệu ban đầu cần thiết.
-        List<AiProviderHealthSnapshot> snapshots = new();
-        // 9. Duyệt từng `provider` trong `providers` để xử lý lần lượt.
-        foreach (AiProvider provider in providers)
-        {
-            // 10. Gọi `TryGetValue` để thực hiện bước nghiệp vụ này.
-            aggregates.TryGetValue(provider.Id, out AiOperationWindowAggregate? aggregate);
-            // 11. Tính giá trị và lưu vào `sampleSize` để dùng ở bước tiếp theo.
-            int sampleSize = 0;
-            // 12. Tính giá trị và lưu vào `failedCount` để dùng ở bước tiếp theo.
-            int failedCount = 0;
-            // 13. Kiểm tra `aggregate != null` để chọn nhánh xử lý phù hợp.
-            if (aggregate != null)
-            {
-                // 14. Cập nhật `sampleSize` bằng giá trị mới.
-                sampleSize = aggregate.SampleSize;
-                // 15. Cập nhật `failedCount` bằng giá trị mới.
-                failedCount = aggregate.FailedCount;
-            }
-
-            // 16. Tính giá trị và lưu vào `errorRatePercent` để dùng ở bước tiếp theo.
-            decimal? errorRatePercent = null;
-            // 17. Tính giá trị và lưu vào `errorRateExceeded` để dùng ở bước tiếp theo.
-            bool errorRateExceeded = false;
-            // 18. Kiểm tra `sampleSize >= minimumSampleSize` để chọn nhánh xử lý phù hợp.
-            if (sampleSize >= minimumSampleSize)
-            {
-                // 19. Tính giá trị và lưu vào `rawRate` để dùng ở bước tiếp theo.
-                decimal rawRate = failedCount * 100m / sampleSize;
-                // 20. Cập nhật `errorRatePercent` bằng giá trị mới.
-                errorRatePercent = decimal.Round(rawRate, 1);
-                // 21. Cập nhật `errorRateExceeded` bằng giá trị mới.
-                errorRateExceeded = errorRatePercent.Value > thresholdPercent;
-            }
-
-            // 22. Tính giá trị và lưu vào `isUnstable` để dùng ở bước tiếp theo.
-            bool isUnstable = false;
-            // 23. Kiểm tra `provider.ConsecutiveFailureCount >= unstableFailureThreshold` để chọn nhánh xử lý phù hợp.
-            if (provider.ConsecutiveFailureCount >= unstableFailureThreshold)
-            {
-                // 24. Cập nhật `isUnstable` bằng giá trị mới.
-                isUnstable = true;
-            }
-
-            // 25. Kiểm tra `errorRateExceeded` để chọn nhánh xử lý phù hợp.
-            if (errorRateExceeded)
-            {
-                // 26. Cập nhật `isUnstable` bằng giá trị mới.
-                isUnstable = true;
-            }
-
-            // 27. Gọi `Add` để thực hiện bước nghiệp vụ này.
-            snapshots.Add(new AiProviderHealthSnapshot(
-                provider.Id,
-                provider.ConsecutiveFailureCount,
-                isUnstable,
-                sampleSize,
-                errorRatePercent,
-                errorRateExceeded));
-        }
-
-        // 28. Trả `snapshots` cho nơi gọi.
-        return snapshots;
     }
 
     // Tạo mới hoặc cập nhật provider, kèm lý do, khóa phiên bản và audit.
@@ -575,18 +470,6 @@ public class AiProviderService : IAiProviderService
         return AiProviderOperationResult.Success($"Đã chọn {provider.Name} làm nhà cung cấp chính.");
     }
 
-    // Gọi endpoint models của provider để Admin kiểm tra danh sách model hiện có.
-    public async Task<IReadOnlyList<string>> DiscoverModelsAsync(int id, CancellationToken cancellationToken = default)
-    {
-        // 1. Gọi `GetRequiredAsync` và lưu kết quả vào `provider`.
-        AiProvider provider = await GetRequiredAsync(id, cancellationToken);
-        // 2. Chỉ giải mã khóa ngay trước khi gọi Adapter.
-        return await GetAdapter(provider).GetModelsAsync(
-            ToConnection(provider),
-            Decrypt(provider),
-            cancellationToken);
-    }
-
     // Thử một completion ngắn để xác nhận provider còn kết nối được.
     public async Task TestAsync(int id, CancellationToken cancellationToken = default)
     {
@@ -761,48 +644,4 @@ public class AiProviderService : IAiProviderService
         throw new AiProviderConfigurationException($"Adapter {adapterType} chưa được đăng ký.");
     }
 
-    // Đọc cửa sổ tính lỗi từ cấu hình hệ thống; giá trị sai sẽ quay về 5 phút.
-    private int ReadHealthWindowMinutes()
-    {
-        // 1. Tính giá trị và lưu vào `value` để dùng ở bước tiếp theo.
-        int value = _configuration.GetValue<int?>("AiProviders:Health:WindowMinutes")
-            ?? DefaultHealthWindowMinutes;
-        // 2. Trả kết quả từ `Clamp` cho nơi gọi.
-        return Math.Clamp(value, 1, 60);
-    }
-
-    // Đọc số mẫu tối thiểu từ cấu hình hệ thống; giá trị sai sẽ quay về 20 request.
-    private int ReadMinimumSampleSize()
-    {
-        // 1. Tính giá trị và lưu vào `value` để dùng ở bước tiếp theo.
-        int value = _configuration.GetValue<int?>("AiProviders:Health:MinimumSampleSize")
-            ?? DefaultMinimumSampleSize;
-        // 2. Trả kết quả từ `Clamp` cho nơi gọi.
-        return Math.Clamp(value, 1, 10_000);
-    }
-
-    // Đọc ngưỡng tỷ lệ lỗi từ cấu hình hệ thống; giá trị sai sẽ quay về 10%.
-    private decimal ReadErrorRateThresholdPercent()
-    {
-        // 1. Tính giá trị và lưu vào `value` để dùng ở bước tiếp theo.
-        decimal value = _configuration.GetValue<decimal?>("AiProviders:Health:ErrorRateThresholdPercent")
-            ?? DefaultErrorRateThresholdPercent;
-        // 2. Trả kết quả từ `Clamp` cho nơi gọi.
-        return Math.Clamp(value, 0m, 100m);
-    }
-
-    // Đọc số lần test fail liên tiếp để xem provider không ổn định.
-    private int ReadUnstableFailureThreshold()
-    {
-        // 1. Tính giá trị và lưu vào `value` để dùng ở bước tiếp theo.
-        int value = _configuration.GetValue<int?>("AiProviders:Health:UnstableFailureThreshold")
-            ?? DefaultUnstableFailureThreshold;
-        // 2. Trả kết quả từ `Clamp` cho nơi gọi.
-        return Math.Clamp(value, 1, 100);
-    }
-
-    private sealed record AiOperationWindowAggregate(
-        int ProviderId,
-        int SampleSize,
-        int FailedCount);
 }

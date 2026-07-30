@@ -5,33 +5,41 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace ltwnc.Controllers;
 
-// Hiển thị bảng xếp hạng công khai theo khoảng thời gian người dùng chọn.
+// Cho phép cả người đã đăng nhập và chưa đăng nhập
+// truy cập các action trong controller này.
 [AllowAnonymous]
+
+//Controller tiếp nhận request liên quan đến trang bảng xếp hạng
 public sealed class LeaderboardController : Controller
 {
-    // Service tạo bảng xếp hạng và thông tin người dùng hiện tại để đánh dấu vị trí cá nhân.
+    //Service chịu trách nhiệm xử lý và lấy dữ liệu bảng xếp hạng
     private readonly ILeaderboardService _leaderboardService;
+
+    //Service cung cấp thông tin về người dùng hiện tại
     private readonly ICurrentUser _currentUser;
 
-    // Nhận các service cần dùng qua dependency injection.
+    // ASP.NET Core Dependency Injection truyền hai dependency vào khi tạo LeaderboardController.
     public LeaderboardController(
         ILeaderboardService leaderboardService,
         ICurrentUser currentUser)
     {
-        // 1. Lưu service bảng xếp hạng và thông tin người dùng hiện tại.
+        // Lưu service để action có thể sử dụng
         _leaderboardService = leaderboardService;
+        // Lưu thông tin người dùng hiện tại
         _currentUser = currentUser;
     }
 
-    // Lấy dữ liệu theo số ngày và hiển thị bảng xếp hạng.
+    // Xử lý HTTP GET tại đường dẫn /Leaderboard
     [HttpGet("/Leaderboard")]
     public async Task<IActionResult> Index(
+        // Khoảng thời gian bảng xếp hạng;
+        // nếu không truyền thì mặc định là 7
         int period = 7,
+        // Cho phép hủy công việc khi request bị hủy
         CancellationToken cancellationToken = default)
     {
-        // 1. Nhận khoảng thời gian cần xếp hạng, mặc định là 7 ngày.
-        // 2. Lấy bảng xếp hạng và vị trí của người dùng hiện tại nếu có.
-        // 3. Hiển thị dữ liệu trong view.
+        // Yêu cầu service tạo dữ liệu trang bảng xếp hạng
+        // dựa trên khoảng thời gian và người đang xem
         var model = await _leaderboardService.GetPageAsync(
             period,
             _currentUser.UserId,

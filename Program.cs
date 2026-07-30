@@ -17,15 +17,11 @@ using ltwnc.Services.FlashcardSets;
 using ltwnc.Services.ContentReports;
 using ltwnc.Services.ContentModeration;
 using ltwnc.Services.AdminDashboard;
-using ltwnc.Services.AdminExports;
-using ltwnc.Services.AdminAuditRetention;
-using ltwnc.Services.AdminAchievements;
-using ltwnc.Services.AdminSearch;
 using ltwnc.Services.AdminUsers;
-using ltwnc.Services.AdminEnglishMissions;
 using ltwnc.Services.Study;
 using ltwnc.Services.StudyEvents;
 using ltwnc.Services.StudyModes;
+using ltwnc.Services.EnglishMission;
 using ltwnc.Services.Profiles;
 using ltwnc.Services.Leaderboard;
 using ltwnc.Services.PublicLibrary;
@@ -121,28 +117,12 @@ builder.Services.Configure<CookieAuthenticationOptions>(
 
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<ltwnc.Services.Audit.IAdminAuditService, ltwnc.Services.Audit.AdminAuditService>();
-builder.Services.AddScoped<IAdminDashboardKpiService, AdminDashboardKpiService>();
-builder.Services.AddScoped<AdminExportService>();
-builder.Services.AddScoped<IAdminExportService>(services =>
-    new AdminExportProtectionProxy(
-        services.GetRequiredService<AdminExportService>(),
-        services.GetRequiredService<IAuthorizationService>(),
-        services.GetRequiredService<IHttpContextAccessor>()));
-builder.Services.AddScoped<IAdminAuditRetentionService, AdminAuditRetentionService>();
-builder.Services.AddSingleton<AdminAchievementSyncCoordinator>();
-builder.Services.AddScoped<IAdminAchievementService, AdminAchievementService>();
-builder.Services.AddScoped<IAdminGlobalSearchService, AdminGlobalSearchService>();
+builder.Services.AddScoped<AdminDashboardService>();
 builder.Services.AddSingleton<AdminUserLockCoordinator>();
 builder.Services.AddScoped<IAdminUserAccountService, AdminUserAccountService>();
-builder.Services.AddScoped<ltwnc.Services.AdminStudyRecords.IAdminStudyRecordService,
-    ltwnc.Services.AdminStudyRecords.AdminStudyRecordService>();
-builder.Services.AddScoped<IAdminEnglishMissionService, AdminEnglishMissionService>();
 if (!builder.Environment.IsEnvironment("Testing"))
 {
-    // Tác vụ nền dọn transcript English Mission theo batch; bỏ qua Testing để test kiểm soát thời gian chủ động.
-    builder.Services.AddHostedService<EnglishMissionConversationCleanupHostedService>();
-    // Tác vụ nền dọn audit quá hạn theo batch; log chỉ chứa trạng thái vận hành và số lượng.
-    builder.Services.AddHostedService<AdminAuditRetentionCleanupHostedService>();
+    builder.Services.AddHostedService<EnglishMissionConversationCleanupService>();
 }
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IProfileService, ProfileService>();
@@ -155,7 +135,7 @@ builder.Services.Configure<RouteOptions>(options =>
 builder.Services.AddScoped<IFlashcardSetService, FlashcardSetService>();
 builder.Services.AddScoped<IPublicLibraryService, PublicLibraryService>();
 builder.Services.AddScoped<IContentReportService, ContentReportService>();
-builder.Services.AddScoped<IContentModerationService, ContentModerationService>();
+builder.Services.AddScoped<IContentModerationService, ContentReportModerationService>();
 builder.Services.AddScoped<IFlashcardImportService, FlashcardImportService>();
 builder.Services.AddScoped<CsvFlashcardFileParser>();
 builder.Services.AddScoped<XlsxFlashcardFileParser>();

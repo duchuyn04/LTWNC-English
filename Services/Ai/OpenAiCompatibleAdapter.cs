@@ -34,37 +34,6 @@ public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
         }
     }
 
-    public async Task<IReadOnlyList<string>> GetModelsAsync(
-        AiProviderConnection connection,
-        string? apiKey,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            OpenAiModelListResponse response = await _client.GetModelsAsync(
-                ToClientConfiguration(connection),
-                apiKey,
-                cancellationToken);
-            if (response.Data == null)
-            {
-                throw new AiProviderUnavailableException(
-                    $"{connection.Name} trả danh sách model không hợp lệ.");
-            }
-
-            return response.Data
-                .Select(model => model.Id)
-                .Where(id => !string.IsNullOrWhiteSpace(id))
-                .Select(id => id!)
-                .Distinct(StringComparer.Ordinal)
-                .OrderBy(id => id, StringComparer.Ordinal)
-                .ToList();
-        }
-        catch (OpenAiClientException exception)
-        {
-            throw ToApplicationException(exception);
-        }
-    }
-
     public async Task<string> CompleteAsync(
         AiProviderConnection connection,
         string? apiKey,

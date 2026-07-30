@@ -62,31 +62,13 @@ test.describe('Admin shell and shared controls', () => {
         }
     });
 
-    test('dashboard workbench prioritizes completion without overflowing mobile', async ({ page }) => {
+    test('essential dashboard cards and chart do not overflow mobile', async ({ page }) => {
         const adminCss = readAdminCss();
-        await page.setViewportSize({ width: 1280, height: 800 });
-        await page.setContent(dashboardHarness(adminCss));
-        const completionWidth = (await page.locator('[data-kpi-index="3"]').boundingBox())?.width ?? 0;
-        const sessionWidth = (await page.locator('[data-kpi-index="2"]').boundingBox())?.width ?? 0;
-        expect(completionWidth).toBeGreaterThan(sessionWidth);
-
         await page.setViewportSize({ width: 320, height: 800 });
+        await page.setContent(dashboardHarness(adminCss));
         expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(320);
-        expect((await page.locator('[data-kpi-index="3"]').boundingBox())?.width)
-            .toBeLessThanOrEqual(280);
-    });
-
-    test('content inventory uses compact rows on desktop and cards on mobile', async ({ page }) => {
-        const adminCss = readAdminCss();
-        await page.setViewportSize({ width: 1280, height: 800 });
-        await page.setContent(contentTableHarness(adminCss));
-        expect((await page.locator('.admin-content-table tbody tr').first().boundingBox())?.height)
-            .toBeLessThan(80);
-
-        await page.setViewportSize({ width: 375, height: 800 });
-        expect(await page.locator('.admin-content-table tbody tr').first().evaluate(element =>
-            getComputedStyle(element).display)).toBe('grid');
-        expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(375);
+        await expect(page.locator('.admin-dashboard-card')).toHaveCount(2);
+        await expect(page.locator('.admin-chart-scroll')).toBeVisible();
     });
 });
 
@@ -109,51 +91,29 @@ function shellHarness(adminCss: string) {
                 <button class="admin-sidebar-backdrop" type="button" data-admin-menu-backdrop hidden aria-label="Đóng menu"></button>
                 <div class="admin-workspace">
                     <header class="admin-topbar"><div><h1>Tổng quan</h1></div></header>
-                    <main class="admin-main"><div class="admin-kpi-grid">${'<article class="admin-kpi-card"><div class="admin-kpi-content"><h3>Chỉ số</h3><strong>12</strong></div></article>'.repeat(6)}</div></main>
+                    <main class="admin-main"><section class="admin-panel"><h2>Tổng quan</h2></section></main>
                 </div>
             </div>
         </body>`;
 }
 
 function dashboardHarness(adminCss: string) {
-    const cards = [3, 2, 0, 1, 4, 5].map(index => `
-        <article class="admin-kpi-card" data-kpi-index="${index}">
-            <div class="admin-kpi-icon">●</div>
-            <div class="admin-kpi-content"><h3>Chỉ số</h3><strong>68.4%</strong><p>Chi tiết</p></div>
-            <a class="admin-kpi-action">Xem chi tiết</a>
-        </article>`).join('');
     return `
         <style>${baseTokens()}${adminCss}</style>
         <body class="admin-body">
             <main class="admin-main">
-                <section class="admin-kpi-section"><div class="admin-kpi-grid">${cards}</div></section>
-            </main>
-        </body>`;
-}
-
-function contentTableHarness(adminCss: string) {
-    const row = `
-        <tr>
-            <td class="admin-content-table-title" data-label="Bộ thẻ"><a class="admin-text-link">Tiếng Anh ở quán cà phê</a><small class="admin-muted-line">#12</small></td>
-            <td data-label="Chủ sở hữu">learner@example.com</td>
-            <td data-label="Hiển thị">Công khai</td>
-            <td data-label="Trạng thái"><span class="admin-status admin-status--success">Đang hoạt động</span></td>
-            <td data-label="Số thẻ">5</td>
-            <td data-label="Báo cáo"><span class="admin-muted-value">0</span></td>
-            <td data-label="Cập nhật">24/07/2026</td>
-            <td class="admin-content-table-action" data-label="Thao tác"><a class="admin-row-action">Xem chi tiết</a></td>
-        </tr>`;
-    return `
-        <style>${baseTokens()}${adminCss}</style>
-        <body class="admin-body">
-            <main class="admin-main">
-                <section class="admin-panel">
-                    <div class="admin-table-wrapper admin-content-table-wrapper">
-                        <table class="admin-table admin-content-table">
-                            <thead><tr><th>Bộ thẻ</th><th>Chủ sở hữu</th><th>Hiển thị</th><th>Trạng thái</th><th>Số thẻ</th><th>Báo cáo</th><th>Cập nhật</th><th>Thao tác</th></tr></thead>
-                            <tbody>${row.repeat(2)}</tbody>
-                        </table>
+                <section class="admin-dashboard">
+                    <div class="admin-dashboard-status-grid">
+                        <section class="admin-dashboard-card"><div><h2>Báo cáo đang chờ</h2><strong>2</strong></div></section>
+                        <section class="admin-dashboard-card"><div><h2>Trạng thái AI</h2><strong>AI hoạt động</strong></div></section>
                     </div>
+                    <section class="admin-dashboard-chart">
+                        <div class="admin-chart-scroll">
+                            <div class="admin-chart">
+                                <div class="admin-chart-day"><div class="admin-chart-bars"><div class="admin-chart-bar completed"></div><div class="admin-chart-bar abandoned"></div></div><time>30/07</time></div>
+                            </div>
+                        </div>
+                    </section>
                 </section>
             </main>
         </body>`;

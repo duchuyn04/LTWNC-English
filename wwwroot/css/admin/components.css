@@ -57,8 +57,7 @@
     white-space: nowrap;
 }
 
-.admin-filter-field input::placeholder,
-.admin-global-search input::placeholder {
+.admin-filter-field input::placeholder {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -88,6 +87,26 @@
     border-color: var(--brass);
     box-shadow: 0 0 0 3px var(--brass-soft);
     outline: 0;
+}
+
+.admin-tab-list {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+}
+
+.admin-tab-list a {
+    padding: 0.55rem 0.8rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    color: var(--ink-soft);
+    text-decoration: none;
+}
+
+.admin-tab-list a.active {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--surface);
 }
 
 /* Nút primary của admin: mực xanh, không xanh lá */
@@ -246,56 +265,6 @@
 
 .admin-table strong {
     font-weight: 600;
-}
-
-.admin-content-table td {
-    vertical-align: middle;
-}
-
-.admin-content-table-title {
-    min-width: 12rem;
-}
-
-.admin-content-table td:nth-child(2) {
-    max-width: 14rem;
-    overflow-wrap: anywhere;
-}
-
-.admin-content-table-action {
-    white-space: nowrap;
-}
-
-.admin-row-action {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    min-height: 2.75rem;
-    color: var(--ink);
-    font-weight: 600;
-    text-decoration: none;
-}
-
-.admin-row-action:hover,
-.admin-row-action:focus {
-    color: var(--brass-deep);
-}
-
-.admin-report-count {
-    display: inline-flex;
-    align-items: center;
-    min-height: 1.75rem;
-    padding: 0.2rem 0.5rem;
-    border-radius: var(--admin-radius-inner);
-    background: var(--admin-warning-bg);
-    color: var(--admin-warning-text);
-    font-size: 0.75rem;
-    font-weight: 700;
-    text-decoration: none;
-    white-space: nowrap;
-}
-
-.admin-muted-value {
-    color: var(--muted-light);
 }
 
 /* Bảng có form inline (báo cáo nội dung) cần canh trên */

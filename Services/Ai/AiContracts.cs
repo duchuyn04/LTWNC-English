@@ -10,14 +10,6 @@ public sealed record AiCompletionResult(
     string ProviderName,
     string ModelId);
 
-public sealed record AiProviderHealthSnapshot(
-    int ProviderId,
-    int ConsecutiveFailureCount,
-    bool IsUnstable,
-    int SampleSize,
-    decimal? ErrorRatePercent,
-    bool ErrorRateExceeded);
-
 public sealed class AiProviderUnavailableException : Exception
 {
     // Tạo lỗi chung khi router không còn provider phù hợp để phục vụ người học.
@@ -135,12 +127,7 @@ public interface IAiProviderService
         AiProviderActorContext actor,
         CancellationToken cancellationToken = default);
 
-    // Đọc danh sách model từ provider để Admin kiểm tra cấu hình.
-    Task<IReadOnlyList<string>> DiscoverModelsAsync(int id, CancellationToken cancellationToken = default);
-
     // Chạy health check thủ công và cập nhật kết quả gần nhất của provider.
     Task TestAsync(int id, CancellationToken cancellationToken = default);
 
-    // Tính snapshot sức khỏe vận hành từ health check và log AI an toàn.
-    Task<IReadOnlyList<AiProviderHealthSnapshot>> GetHealthSnapshotsAsync(CancellationToken cancellationToken = default);
 }

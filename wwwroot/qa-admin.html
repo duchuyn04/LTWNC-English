@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="/css/admin/tokens.css">
+    <link rel="stylesheet" href="/css/admin/shell.css">
+    <link rel="stylesheet" href="/css/admin/dashboard.css">
+    <link rel="stylesheet" href="/css/admin/components.css">
+    <link rel="stylesheet" href="/css/admin/responsive.css">
+    <title>Admin QA</title>
+</head>
+<body class="admin-body">
+<div class="admin-shell">
+    <header class="admin-mobile-bar">
+        <a class="admin-mobile-brand" href="#"><span>LT</span><strong>LTWNC Admin</strong></a>
+        <button type="button" data-admin-menu-toggle aria-expanded="false" aria-controls="admin-sidebar">Menu</button>
+    </header>
+    <aside id="admin-sidebar" class="admin-sidebar" data-admin-menu-panel>
+        <a class="admin-brand" href="#"><span>LT</span><strong>LTWNC</strong><small>ADMIN</small></a>
+        <nav class="admin-navigation">
+            <div class="admin-navigation-group">
+                <a href="#overview">Tổng quan</a>
+                <a href="#reports">Báo cáo cần xử lý</a>
+                <a href="#users">Người dùng</a>
+                <a href="#ai">Cấu hình AI</a>
+                <a href="#audit">Nhật ký quản trị</a>
+            </div>
+        </nav>
+    </aside>
+    <button class="admin-sidebar-backdrop" type="button" data-admin-menu-backdrop hidden aria-label="Đóng menu"></button>
+    <div class="admin-workspace">
+        <header class="admin-topbar"><div class="admin-page-title"><h1>Tổng quan</h1></div></header>
+        <main class="admin-main">
+            <form class="admin-filter-form">
+                <div class="admin-filter-field">
+                    <label for="long-input">Tìm kiếm</label>
+                    <input id="long-input" value="admin-with-a-very-long-email-address-and-reference-code@example.com">
+                </div>
+                <div class="admin-filter-field">
+                    <label for="long-select">Trạng thái</label>
+                    <select id="long-select"><option>Một lựa chọn có nội dung rất dài nhưng không được mở rộng trang</option></select>
+                </div>
+                <button class="admin-filter-submit" type="button">Lọc</button>
+            </form>
+            <section class="admin-dashboard">
+                <div class="admin-dashboard-status-grid">
+                    <section class="admin-dashboard-card"><div><h2>Báo cáo đang chờ</h2><strong>2</strong></div></section>
+                    <section class="admin-dashboard-card"><div><h2>Trạng thái AI</h2><strong>AI hoạt động</strong></div></section>
+                </div>
+                <section class="admin-dashboard-chart">
+                    <div class="admin-chart-scroll">
+                        <div class="admin-chart">
+                            <div class="admin-chart-day">
+                                <div class="admin-chart-bars">
+                                    <div class="admin-chart-bar completed" style="--bar-height:80%"></div>
+                                    <div class="admin-chart-bar abandoned" style="--bar-height:20%"></div>
+                                </div>
+                                <time>30/07</time>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </section>
+        </main>
+    </div>
+</div>
+<script src="/js/admin-shell.js"></script>
+</body>
+</html>

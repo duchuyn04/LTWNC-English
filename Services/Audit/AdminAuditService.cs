@@ -7,7 +7,6 @@ namespace ltwnc.Services.Audit;
 public sealed class AdminAuditService : IAdminAuditService
 {
     public const int DefaultPageSize = 25;
-    public const int MaxPageSize = 100;
 
     private readonly AppDbContext _context;
     private readonly TimeProvider _timeProvider;
@@ -51,20 +50,12 @@ public sealed class AdminAuditService : IAdminAuditService
         // 1. Gọi `Max` và lưu kết quả vào `page`.
         int page = Math.Max(1, query.Page);
         // 2. Gọi `Clamp` và lưu kết quả vào `pageSize`.
-        int pageSize = Math.Clamp(query.PageSize, 1, MaxPageSize);
+        int pageSize = DefaultPageSize;
 
         // 3. Gọi `AsNoTracking` và lưu kết quả vào `logs`.
         IQueryable<AdminAuditLog> logs = _context.AdminAuditLogs.AsNoTracking();
 
         // 4. Kiểm tra `!string.IsNullOrWhiteSpace(query.Action)` để chọn nhánh xử lý phù hợp.
-        if (!string.IsNullOrWhiteSpace(query.Action))
-        {
-            // 5. Gọi `Trim` và lưu kết quả vào `action`.
-            string action = query.Action.Trim();
-            // 6. Cập nhật `logs` bằng giá trị mới.
-            logs = logs.Where(log => log.Action == action);
-        }
-
         // 7. Kiểm tra `!string.IsNullOrWhiteSpace(query.Outcome)` để chọn nhánh xử lý phù hợp.
         if (!string.IsNullOrWhiteSpace(query.Outcome))
         {

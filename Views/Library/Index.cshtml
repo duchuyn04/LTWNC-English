@@ -59,6 +59,7 @@
                     </p>
                 </div>
                 <nav class="library-sort-tabs" aria-label="Sắp xếp">
+                 @* Tạo các tab sắp xếp, giữ nguyên từ khóa tìm kiếm và quay về trang đầu. *@
                     @foreach (var tab in sortTabs)
                     {
                         <a class="@(Model.Sort == tab.Key ? "is-active" : null)"
@@ -69,8 +70,25 @@
                 </nav>
             </header>
 
+
+                @*
+                Chỉ hiển thị danh sách bộ thẻ khi trang hiện tại có ít nhất một phần tử.
+                Model.Items là danh sách các bộ thẻ đã được Service:
+                - lọc theo quyền công khai;
+                - lọc theo từ khóa;
+                - sắp xếp;
+                - phân trang;
+                - chuyển thành ViewModel.
+                *@
             @if (Model.Items.Count > 0)
             {
+                    @*
+                    Khối chứa toàn bộ card bộ thẻ.
+
+                    Class library-card-grid được CSS sử dụng để bố trí các card
+                    thành dạng lưới, chẳng hạn nhiều cột trên màn hình lớn
+                    và một cột trên màn hình nhỏ.
+                    *@
                 <div class="library-card-grid">
                     @for (var i = 0; i < Model.Items.Count; i++)
                     {

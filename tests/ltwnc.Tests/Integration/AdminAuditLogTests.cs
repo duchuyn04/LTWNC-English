@@ -76,7 +76,7 @@ public sealed class AdminAuditLogTests : IClassFixture<AdminWebApplicationFactor
     }
 
     [Fact]
-    public async Task AuditLogs_FilterByActionNarrowsResults()
+    public async Task AuditLogs_SearchNarrowsResults()
     {
         const string email = "admin-audit-filter@example.com";
         await _factory.SeedUserAsync(
@@ -94,7 +94,7 @@ public sealed class AdminAuditLogTests : IClassFixture<AdminWebApplicationFactor
             Reason: "Vi phạm điều khoản"));
 
         HttpResponseMessage response = await client.GetAsync(
-            "/Admin/AuditLogs?action=Users.Lock");
+            "/Admin/AuditLogs?search=seed@example.com");
         string html = WebUtility.HtmlDecode(await response.Content.ReadAsStringAsync());
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -125,14 +125,14 @@ public sealed class AdminAuditLogTests : IClassFixture<AdminWebApplicationFactor
                 Outcome: AdminAuditOutcome.Success));
         }
 
-        HttpResponseMessage pageOne = await client.GetAsync("/Admin/AuditLogs?action=Users.Unlock");
+        HttpResponseMessage pageOne = await client.GetAsync("/Admin/AuditLogs");
         string htmlOne = WebUtility.HtmlDecode(
             await pageOne.Content.ReadAsStringAsync());
         Assert.Contains("seed29@example.com", htmlOne);
         Assert.DoesNotContain("seed00@example.com", htmlOne);
 
         HttpResponseMessage pageTwo = await client.GetAsync(
-            "/Admin/AuditLogs?action=Users.Unlock&page=2");
+            "/Admin/AuditLogs?page=2");
         string htmlTwo = WebUtility.HtmlDecode(
             await pageTwo.Content.ReadAsStringAsync());
         Assert.Contains("seed00@example.com", htmlTwo);

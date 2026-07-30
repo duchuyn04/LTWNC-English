@@ -41,12 +41,8 @@ public enum ContentReportSubmitFailure
 }
 
 public sealed record AdminContentReportQuery(
-    string? Search = null,
     string? Status = null,
-    string? Reason = null,
-    string? Sort = null,
-    int Page = ContentReportService.DefaultPage,
-    int PageSize = ContentReportService.DefaultPageSize);
+    int Page = ContentReportService.DefaultPage);
 
 public sealed record AdminContentReportRow(
     long Id,

@@ -21,19 +21,6 @@
                 <option value="admin" selected="@(Model.Status == "admin")">Quản trị viên</option>
             </select>
         </div>
-        <div class="admin-filter-field">
-            <label for="sort">Sắp xếp</label>
-            <select id="sort" name="sort">
-                <option value="" selected="@(string.IsNullOrEmpty(Model.Sort))">Email A-Z</option>
-                <option value="username" selected="@(Model.Sort == "username")">Tên đăng nhập</option>
-                <option value="created" selected="@(Model.Sort == "created")">Mới tạo gần đây</option>
-                <option value="locked" selected="@(Model.Sort == "locked")">Tài khoản khóa trước</option>
-            </select>
-        </div>
-        <div class="admin-filter-field admin-filter-field--compact">
-            <label for="pageSize">Dòng/trang</label>
-            <input type="number" id="pageSize" name="pageSize" value="@Model.PageSize" min="1" max="100" />
-        </div>
         <button type="submit" class="admin-filter-submit">
             <i class="ph ph-funnel" aria-hidden="true"></i> Lọc
         </button>
@@ -118,11 +105,7 @@
     // Tạo URL phân trang và giữ nguyên các bộ lọc hiện tại.
     private string PageUrl(int page)
     {
-        var query = new List<string>
-        {
-            $"page={page}",
-            $"pageSize={Model.PageSize}"
-        };
+        var query = new List<string> { $"page={page}" };
 
         if (!string.IsNullOrEmpty(Model.Search))
         {
@@ -132,11 +115,6 @@
         if (!string.IsNullOrEmpty(Model.Status))
         {
             query.Add($"status={Uri.EscapeDataString(Model.Status)}");
-        }
-
-        if (!string.IsNullOrEmpty(Model.Sort))
-        {
-            query.Add($"sort={Uri.EscapeDataString(Model.Sort)}");
         }
 
         return $"/Admin/Users?{string.Join("&", query)}";

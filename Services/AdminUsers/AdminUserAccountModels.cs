@@ -3,9 +3,7 @@ namespace ltwnc.Services.AdminUsers;
 public sealed record AdminUserAccountQuery(
     string? Search = null,
     string? Status = null,
-    string? Sort = null,
-    int Page = AdminUserAccountService.DefaultPage,
-    int PageSize = AdminUserAccountService.DefaultPageSize);
+    int Page = AdminUserAccountService.DefaultPage);
 
 public sealed record AdminUserAccountRow(
     string Id,

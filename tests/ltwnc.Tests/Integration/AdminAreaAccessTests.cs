@@ -60,13 +60,13 @@ public sealed class AdminAreaAccessTests : IClassFixture<AdminWebApplicationFact
         Assert.Contains("<h1>Tổng quan</h1>", html);
         Assert.DoesNotContain("Trung tâm quản trị", html);
         Assert.Contains("Báo cáo cần xử lý", html);
-        Assert.Contains("Nội dung học", html);
         Assert.Contains("Người dùng", html);
-        Assert.Contains("Hồ sơ học tập", html);
-        Assert.Contains("Hội thoại AI", html);
-        Assert.Contains("Thành tích", html);
         Assert.Contains("Cấu hình AI", html);
         Assert.Contains("Nhật ký quản trị", html);
+        Assert.DoesNotContain("Nội dung học", html);
+        Assert.DoesNotContain("Hồ sơ học tập", html);
+        Assert.DoesNotContain("Hội thoại AI", html);
+        Assert.DoesNotContain("Thành tích", html);
         Assert.Contains("href=\"/Set\" target=\"_blank\"", html);
         Assert.Contains("/css/site.css", html);
         Assert.Contains("/css/admin/shell.css", html);

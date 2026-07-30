@@ -4,13 +4,6 @@
     // Tên controller cho biết mục menu nào đang được mở.
     string currentController = ViewContext.RouteData.Values["controller"]?.ToString() ?? "Dashboard";
 
-    // Chỉ giữ từ khóa tìm kiếm khi người dùng đang ở trang kết quả.
-    string globalSearchValue = string.Empty;
-    if (Context.Request.Path.StartsWithSegments("/Admin/Search"))
-    {
-        globalSearchValue = Context.Request.Query["q"].ToString();
-    }
-
     // Trả về class active khi menu thuộc controller hiện tại.
     string GetMenuClass(string controllerName)
     {
@@ -79,53 +72,22 @@
 
             <nav class="admin-navigation" aria-label="Chức năng quản trị">
                 <div class="admin-navigation-group">
-                    <p class="admin-navigation-label">Vận hành</p>
                     <a class="@GetMenuClass("Dashboard")" href="/Admin" aria-current="@GetAriaCurrent("Dashboard")">
                         <i class="ph ph-squares-four" aria-hidden="true"></i><span>Tổng quan</span>
                     </a>
                     <a class="@GetMenuClass("ContentReports")" href="/Admin/ContentReports" aria-current="@GetAriaCurrent("ContentReports")">
                         <i class="ph ph-flag" aria-hidden="true"></i><span>Báo cáo cần xử lý</span>
                     </a>
-                    <a class="@GetMenuClass("Content")" href="/Admin/Content" aria-current="@GetAriaCurrent("Content")">
-                        <i class="ph ph-stack" aria-hidden="true"></i><span>Nội dung học</span>
-                    </a>
                     <a class="@GetMenuClass("Users")" href="/Admin/Users" aria-current="@GetAriaCurrent("Users")">
                         <i class="ph ph-users-three" aria-hidden="true"></i><span>Người dùng</span>
                     </a>
+                    <a class="@GetMenuClass("AiProviders")" href="/Admin/AiProviders" aria-current="@GetAriaCurrent("AiProviders")">
+                        <i class="ph ph-plugs-connected" aria-hidden="true"></i><span>Cấu hình AI</span>
+                    </a>
+                    <a class="@GetMenuClass("AuditLogs")" href="/Admin/AuditLogs" aria-current="@GetAriaCurrent("AuditLogs")">
+                        <i class="ph ph-scroll" aria-hidden="true"></i><span>Nhật ký quản trị</span>
+                    </a>
                 </div>
-
-                <details class="admin-navigation-disclosure" open>
-                    <summary>
-                        <span>Hỗ trợ</span>
-                        <i class="ph ph-caret-down" aria-hidden="true"></i>
-                    </summary>
-                    <div class="admin-navigation-group">
-                        <a class="@GetMenuClass(controllerName: "Learning")" href="/Admin/Learning" aria-current="@GetAriaCurrent("Learning")">
-                            <i class="ph ph-graduation-cap" aria-hidden="true"></i><span>Hồ sơ học tập</span>
-                        </a>
-                        <a class="@GetMenuClass(controllerName: "EnglishMissions")" href="/Admin/EnglishMissions" aria-current="@GetAriaCurrent("EnglishMissions")">
-                            <i class="ph ph-chats-circle" aria-hidden="true"></i><span>Hội thoại AI</span>
-                        </a>
-                    </div>
-                </details>
-
-                <details class="admin-navigation-disclosure" open>
-                    <summary>
-                        <span>Hệ thống</span>
-                        <i class="ph ph-caret-down" aria-hidden="true"></i>
-                    </summary>
-                    <div class="admin-navigation-group">
-                        <a class="@GetMenuClass("Achievements")" href="/Admin/Achievements" aria-current="@GetAriaCurrent("Achievements")">
-                            <i class="ph ph-medal" aria-hidden="true"></i><span>Thành tích</span>
-                        </a>
-                        <a class="@GetMenuClass("AiProviders")" href="/Admin/AiProviders" aria-current="@GetAriaCurrent("AiProviders")">
-                            <i class="ph ph-plugs-connected" aria-hidden="true"></i><span>Cấu hình AI</span>
-                        </a>
-                        <a class="@GetMenuClass("AuditLogs")" href="/Admin/AuditLogs" aria-current="@GetAriaCurrent("AuditLogs")">
-                            <i class="ph ph-scroll" aria-hidden="true"></i><span>Nhật ký quản trị</span>
-                        </a>
-                    </div>
-                </details>
             </nav>
 
             <div class="admin-sidebar-footer">
@@ -156,16 +118,6 @@
                 <div class="admin-page-title">
                     <h1>@pageHeading</h1>
                 </div>
-                <form class="admin-global-search" method="get" action="/Admin/Search" role="search">
-                    <label class="visually-hidden" for="admin-global-search-input">Tìm kiếm toàn cục</label>
-                    <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
-                    <input id="admin-global-search-input" name="q" type="search"
-                           value="@globalSearchValue"
-                           placeholder="Email, mã, bộ thẻ hoặc nhiệm vụ" maxlength="100" />
-                    <button type="submit" title="Tìm kiếm" aria-label="Tìm kiếm">
-                        <i class="ph ph-arrow-right" aria-hidden="true"></i>
-                    </button>
-                </form>
             </header>
             <main id="admin-main" class="admin-main" tabindex="-1">
                 @RenderBody()

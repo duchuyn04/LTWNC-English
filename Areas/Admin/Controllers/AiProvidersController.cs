@@ -27,9 +27,7 @@ public sealed class AiProvidersController : Controller
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {
         IReadOnlyList<AiProvider> providers = await _service.GetAllAsync(cancellationToken);
-        IReadOnlyList<AiProviderHealthSnapshot> healthSnapshots =
-            await _service.GetHealthSnapshotsAsync(cancellationToken);
-        return View(ToIndexViewModel(providers, healthSnapshots));
+        return View(ToIndexViewModel(providers));
     }
 
     // Mở form tạo mới; khóa bí mật chỉ có ô nhập mới, không có giá trị cũ.
@@ -122,26 +120,6 @@ public sealed class AiProvidersController : Controller
         return RedirectToAction(nameof(Index));
     }
 
-    // Giữ endpoint cũ để không có thao tác xóa cứng song song; form cũ nếu còn gọi vào đây cũng chỉ disable.
-    [HttpPost("{id:int}/Delete")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Delete(
-        int id,
-        AiProviderLifecycleActionViewModel model,
-        CancellationToken cancellationToken)
-    {
-        AiProviderOperationResult result = await _service.SetEnabledAsync(
-            id,
-            enable: false,
-            model.Version,
-            model.Reason,
-            BuildActorContext(),
-            cancellationToken);
-
-        StoreOperationMessage(result);
-        return RedirectToAction(nameof(Index));
-    }
-
     // Chọn nhà cung cấp chính duy nhất, có antiforgery, lý do và audit.
     [HttpPost("{id:int}/Primary")]
     [ValidateAntiForgeryToken]
@@ -159,26 +137,6 @@ public sealed class AiProvidersController : Controller
 
         StoreOperationMessage(result);
         return RedirectToAction(nameof(Index));
-    }
-
-    // Khám phá danh sách model bằng endpoint bảo vệ sẵn: antiforgery và xử lý lỗi an toàn.
-    [HttpPost("{id:int}/Models")]
-    [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Models(
-        int id,
-        CancellationToken cancellationToken)
-    {
-        try
-        {
-            IReadOnlyList<string> models = await _service.DiscoverModelsAsync(id, cancellationToken);
-            return Json(new { success = true, models });
-        }
-        catch (Exception exception) when (exception is AiProviderUnavailableException
-            or AiProviderConfigurationException
-            or ArgumentException)
-        {
-            return BadRequest(new { success = false, error = exception.Message });
-        }
     }
 
     // Kiểm tra kết nối nhà cung cấp, không nhận hay trả khóa bí mật qua response.
@@ -202,32 +160,16 @@ public sealed class AiProvidersController : Controller
 
     // Chuyển danh sách entity và health snapshot sang view model chỉ đọc cho trang Admin.
     private static AiProviderIndexViewModel ToIndexViewModel(
-        IReadOnlyList<AiProvider> providers,
-        IReadOnlyList<AiProviderHealthSnapshot> healthSnapshots)
+        IReadOnlyList<AiProvider> providers)
     {
-        Dictionary<int, AiProviderHealthSnapshot> healthByProviderId = healthSnapshots
-            .ToDictionary(snapshot => snapshot.ProviderId);
         List<AiProviderRowViewModel> rows = new();
 
         foreach (AiProvider provider in providers)
         {
-            healthByProviderId.TryGetValue(provider.Id, out AiProviderHealthSnapshot? health);
             string apiKeyDisplay = "Không API key";
             if (!string.IsNullOrWhiteSpace(provider.ApiKeyLastFour))
             {
                 apiKeyDisplay = "****" + provider.ApiKeyLastFour;
-            }
-
-            int healthSampleSize = 0;
-            decimal? errorRatePercent = null;
-            bool errorRateExceeded = false;
-            bool isUnstable = false;
-            if (health != null)
-            {
-                healthSampleSize = health.SampleSize;
-                errorRatePercent = health.ErrorRatePercent;
-                errorRateExceeded = health.ErrorRateExceeded;
-                isUnstable = health.IsUnstable;
             }
 
             rows.Add(new AiProviderRowViewModel
@@ -245,11 +187,7 @@ public sealed class AiProvidersController : Controller
                 LastCheckedAt = provider.LastCheckedAt,
                 LastCheckSucceeded = provider.LastCheckSucceeded,
                 LastError = provider.LastError,
-                ConsecutiveFailureCount = provider.ConsecutiveFailureCount,
-                HealthSampleSize = healthSampleSize,
-                ErrorRatePercent = errorRatePercent,
-                ErrorRateExceeded = errorRateExceeded,
-                IsUnstable = isUnstable
+                ConsecutiveFailureCount = provider.ConsecutiveFailureCount
             });
         }
 

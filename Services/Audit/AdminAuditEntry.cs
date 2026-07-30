@@ -6,21 +6,14 @@ public static class AdminAuditActions
     public const string UsersLock = "Users.Lock";
     public const string UsersUnlock = "Users.Unlock";
     public const string UsersRevokeSessions = "Users.RevokeSessions";
-    public const string StudyRecordsViewDetails = "StudyRecords.ViewDetails";
     public const string ContentReportsDismiss = "ContentReports.Dismiss";
     public const string ContentReportsQuarantine = "ContentReports.Quarantine";
-    public const string ContentSetsQuarantine = "ContentSets.Quarantine";
     public const string ContentSetsRestore = "ContentSets.Restore";
-    public const string ContentSetsViewPrivateDetails = "ContentSets.ViewPrivateDetails";
     public const string AiProvidersCreate = "AiProviders.Create";
     public const string AiProvidersUpdate = "AiProviders.Update";
     public const string AiProvidersSetPrimary = "AiProviders.SetPrimary";
     public const string AiProvidersDisable = "AiProviders.Disable";
     public const string AiProvidersEnable = "AiProviders.Enable";
-    public const string EnglishMissionsViewConversation = "EnglishMissions.ViewConversation";
-    public const string AchievementsResyncUser = "Achievements.ResyncUser";
-    public const string AchievementsResyncAll = "Achievements.ResyncAll";
-    public const string AdminExportsCreate = "AdminExports.Create";
 }
 
 public static class AdminAuditOutcome
@@ -44,10 +37,8 @@ public sealed record AdminAuditEntry(
 
 public sealed record AdminAuditQuery(
     string? Search = null,
-    string? Action = null,
     string? Outcome = null,
-    int Page = 1,
-    int PageSize = AdminAuditService.DefaultPageSize);
+    int Page = 1);
 
 public sealed record AdminAuditLogPage(
     IReadOnlyList<ltwnc.Models.Entities.AdminAuditLog> Items,

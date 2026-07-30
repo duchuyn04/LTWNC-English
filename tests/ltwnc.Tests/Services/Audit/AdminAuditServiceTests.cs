@@ -154,7 +154,7 @@ public sealed class AdminAuditServiceTests
     }
 
     [Fact]
-    public async Task Search_FiltersByActionOutcomeAndFreeText()
+    public async Task Search_FiltersByOutcomeAndFreeText()
     {
         await using AppDbContext context = CreateContext();
         var service = new AdminAuditService(context, new AdjustableTimeProvider());
@@ -162,11 +162,6 @@ public sealed class AdminAuditServiceTests
             ("AdminArea.SignIn", "Success", "alice@example.com"),
             ("AdminArea.SignIn", "Failure", "bob@example.com"),
             ("Users.Lock", "Success", "carol@example.com"));
-
-        AdminAuditLogPage byAction = await service.SearchAsync(
-            new AdminAuditQuery(Action: "Users.Lock"));
-        Assert.Single(byAction.Items);
-        Assert.Equal("carol@example.com", byAction.Items[0].ActorDisplay);
 
         AdminAuditLogPage byOutcome = await service.SearchAsync(
             new AdminAuditQuery(Outcome: "Failure"));
@@ -185,7 +180,7 @@ public sealed class AdminAuditServiceTests
     }
 
     [Fact]
-    public async Task Search_OrdersNewestFirstAndPaginates()
+    public async Task Search_OrdersNewestFirstAndUsesFixedPageSize()
     {
         await using AppDbContext context = CreateContext();
         var clock = new AdjustableTimeProvider();
@@ -200,28 +195,19 @@ public sealed class AdminAuditServiceTests
         await service.RecordAsync(new AdminAuditEntry(
             "admin-1", "admin@example.com", "Third", AdminAuditOutcome.Success));
 
-        AdminAuditLogPage pageOne = await service.SearchAsync(
-            new AdminAuditQuery(Page: 1, PageSize: 2));
+        AdminAuditLogPage pageOne = await service.SearchAsync(new AdminAuditQuery());
         Assert.Equal(3, pageOne.TotalCount);
-        Assert.Equal(2, pageOne.Items.Count);
+        Assert.Equal(3, pageOne.Items.Count);
+        Assert.Equal(25, pageOne.PageSize);
         Assert.Equal("Third", pageOne.Items[0].Action);
         Assert.Equal("Second", pageOne.Items[1].Action);
-
-        AdminAuditLogPage pageTwo = await service.SearchAsync(
-            new AdminAuditQuery(Page: 2, PageSize: 2));
-        Assert.Single(pageTwo.Items);
-        Assert.Equal("First", pageTwo.Items[0].Action);
     }
 
     [Fact]
-    public async Task Search_ClampsPageSizeToOneHundredAndDefaultsToTwentyFive()
+    public async Task Search_UsesTwentyFiveRowsPerPage()
     {
         await using AppDbContext context = CreateContext();
         var service = new AdminAuditService(context, new AdjustableTimeProvider());
-
-        AdminAuditLogPage oversized = await service.SearchAsync(
-            new AdminAuditQuery(PageSize: 500));
-        Assert.Equal(100, oversized.PageSize);
 
         AdminAuditLogPage defaulted = await service.SearchAsync(new AdminAuditQuery());
         Assert.Equal(25, defaulted.PageSize);

@@ -23,16 +23,14 @@ public sealed class UsersController : Controller
     public async Task<IActionResult> Index(
         string? search,
         string? status,
-        string? sort,
         int page = AdminUserAccountService.DefaultPage,
-        int pageSize = AdminUserAccountService.DefaultPageSize,
         CancellationToken cancellationToken = default)
     {
         AdminUserAccountPage result = await _accountService.SearchAsync(
-            new AdminUserAccountQuery(search, status, sort, page, pageSize),
+            new AdminUserAccountQuery(search, status, page),
             cancellationToken);
         AdminUserIndexViewModel model =
-            AdminUserViewModelMapper.ToIndexViewModel(result, search, status, sort);
+            AdminUserViewModelMapper.ToIndexViewModel(result, search, status);
 
         return View(model);
     }

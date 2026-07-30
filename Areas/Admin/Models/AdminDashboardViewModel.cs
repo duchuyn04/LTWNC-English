@@ -2,22 +2,23 @@ namespace ltwnc.Areas.Admin.Models;
 
 public sealed class AdminDashboardViewModel
 {
-    public int Days { get; init; }
-    public IReadOnlyList<int> AllowedDays { get; init; } = [7, 30, 90];
-    public DateTimeOffset PeriodStartVietnam { get; init; }
-    public DateTimeOffset PeriodEndVietnam { get; init; }
-    public DateTimeOffset GeneratedAtVietnam { get; init; }
-    public IReadOnlyList<AdminDashboardKpiCardViewModel> Kpis { get; init; } = [];
+    public DateOnly From { get; init; }
+    public DateOnly To { get; init; }
+    public DateOnly Today { get; init; }
+    public string? RangeError { get; init; }
+    public int PendingReportCount { get; init; }
+    public required AdminDashboardAiStatus AiStatus { get; init; }
+    public IReadOnlyList<AdminDashboardActivityDay> Activity { get; init; } = [];
+    public IReadOnlyList<AdminDashboardNewUserDay> NewUsers { get; init; } = [];
+    public IReadOnlyList<AdminDashboardReportDay> Reports { get; init; } = [];
+
+    public bool IsToday => From == Today && To == Today;
 }
 
-public sealed class AdminDashboardKpiCardViewModel
-{
-    public string Label { get; init; } = string.Empty;
-    public string Value { get; init; } = string.Empty;
-    public string Detail { get; init; } = string.Empty;
-    public string Comparison { get; init; } = string.Empty;
-    public string Tone { get; init; } = "neutral";
-    public string Icon { get; init; } = "ph-chart-line-up";
-    public string ActionLabel { get; init; } = string.Empty;
-    public string ActionHref { get; init; } = string.Empty;
-}
+public sealed record AdminDashboardAiStatus(bool IsHealthy, string Title, string Detail);
+
+public sealed record AdminDashboardActivityDay(DateOnly Date, int Completed, int Abandoned);
+
+public sealed record AdminDashboardNewUserDay(DateOnly Date, int Count);
+
+public sealed record AdminDashboardReportDay(DateOnly Date, int Count);

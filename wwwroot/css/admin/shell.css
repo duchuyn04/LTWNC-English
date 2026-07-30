@@ -167,41 +167,6 @@ html {
     gap: 0.125rem;
 }
 
-.admin-navigation-label,
-.admin-navigation-disclosure summary {
-    margin: 0 0.75rem 0.35rem;
-    color: var(--muted-light);
-    font-size: 0.6875rem;
-    font-weight: 600;
-}
-
-.admin-navigation-disclosure summary {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    min-height: 2rem;
-    cursor: pointer;
-    list-style: none;
-}
-
-.admin-navigation-disclosure summary::-webkit-details-marker {
-    display: none;
-}
-
-.admin-navigation-disclosure summary i {
-    font-size: 0.875rem;
-    transition: transform var(--duration-fast) var(--ease-out);
-}
-
-.admin-navigation-disclosure[open] summary i {
-    transform: rotate(180deg);
-}
-
-.admin-navigation-disclosure summary:hover,
-.admin-navigation-disclosure summary:focus-visible {
-    color: var(--surface);
-}
-
 .admin-navigation a,
 .admin-learner-link {
     display: flex;
@@ -365,85 +330,6 @@ html {
     font-weight: 700;
     letter-spacing: -0.02em;
     line-height: 1.15;
-}
-
-.admin-global-search {
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-    width: min(26rem, 40vw);
-    min-width: 15rem;
-    min-height: 2.5rem;
-    padding: 0.3rem 0.4rem 0.3rem 0.75rem;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-control);
-    background: var(--surface);
-    color: var(--muted);
-    transition: border-color var(--duration-fast) var(--ease-out),
-                box-shadow var(--duration-fast) var(--ease-out);
-}
-
-.admin-global-search:focus-within {
-    border-color: var(--brass);
-    box-shadow: 0 0 0 3px var(--brass-soft);
-}
-
-.admin-global-search input {
-    align-self: stretch;
-    width: 100%;
-    min-width: 0;
-    border: 0;
-    background: transparent;
-    color: var(--ink);
-    outline: 0;
-    font: inherit;
-    font-size: 0.875rem;
-    line-height: 1.25;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.admin-global-search input::placeholder {
-    color: var(--muted-light);
-}
-
-.admin-global-search button {
-    display: inline-grid;
-    place-items: center;
-    flex: 0 0 auto;
-    width: 2.75rem;
-    height: 2.75rem;
-    border: 0;
-    border-radius: var(--admin-radius-inner);
-    background: var(--ink);
-    color: var(--paper);
-    cursor: pointer;
-    transition: background-color var(--duration-fast) var(--ease-out),
-                transform var(--duration-fast) var(--ease-out);
-}
-
-.admin-global-search button:hover {
-    background: var(--admin-ink-hover);
-}
-
-.admin-global-search button:active {
-    transform: translateY(1px);
-}
-
-/* Badge phiên: trung tính, không pill xanh lá */
-.admin-role-badge,
-.admin-ready-badge {
-    display: inline-flex;
-    gap: 0.4rem;
-    align-items: center;
-    padding: 0.35rem 0.7rem;
-    border: 1px solid var(--line-strong);
-    border-radius: var(--radius-control);
-    background: var(--surface);
-    color: var(--ink-soft);
-    font-size: 0.75rem;
-    font-weight: 600;
-    white-space: nowrap;
 }
 
 .admin-main {
