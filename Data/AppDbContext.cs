@@ -16,6 +16,9 @@ public class AppDbContext : DbContext
     public DbSet<QuizSessionQuestion> QuizSessionQuestions => Set<QuizSessionQuestion>();
     public DbSet<UserProgress> UserProgresses => Set<UserProgress>();
     public DbSet<UserStudySettings> UserStudySettings => Set<UserStudySettings>();
+    public DbSet<ReviewProgress> ReviewProgresses => Set<ReviewProgress>();
+    public DbSet<ReviewSession> ReviewSessions => Set<ReviewSession>();
+    public DbSet<ReviewSessionItem> ReviewSessionItems => Set<ReviewSessionItem>();
     public DbSet<DictationSessionDetail> DictationSessionDetails => Set<DictationSessionDetail>();
     public DbSet<DictationSessionQuestion> DictationSessionQuestions => Set<DictationSessionQuestion>();
     public DbSet<CardActionLog> CardActionLogs => Set<CardActionLog>();
@@ -159,6 +162,38 @@ public class AppDbContext : DbContext
         builder.Entity<UserStudySettings>(entity =>
         {
             entity.HasIndex(e => e.UserId).IsUnique();
+        });
+
+        builder.Entity<ReviewProgress>(entity =>
+        {
+            entity.HasIndex(e => new { e.UserId, e.FlashcardId }).IsUnique();
+            entity.HasIndex(e => new { e.UserId, e.NextReviewAtUtc });
+            entity.HasOne(e => e.Flashcard)
+                .WithMany()
+                .HasForeignKey(e => e.FlashcardId)
+                .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<ReviewSession>(entity =>
+        {
+            entity.HasIndex(e => new { e.UserId, e.CompletedAtUtc });
+            entity.HasIndex(e => e.UserId)
+                .IsUnique()
+                .HasFilter("[CompletedAtUtc] IS NULL");
+        });
+
+        builder.Entity<ReviewSessionItem>(entity =>
+        {
+            entity.HasIndex(e => new { e.ReviewSessionId, e.OrderIndex }).IsUnique();
+            entity.HasIndex(e => new { e.ReviewSessionId, e.FlashcardId }).IsUnique();
+            entity.HasOne(e => e.ReviewSession)
+                .WithMany(session => session.Items)
+                .HasForeignKey(e => e.ReviewSessionId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(e => e.Flashcard)
+                .WithMany()
+                .HasForeignKey(e => e.FlashcardId)
+                .OnDelete(DeleteBehavior.Restrict);
         });
 
         builder.Entity<CardActionLog>(entity =>

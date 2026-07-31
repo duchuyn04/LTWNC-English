@@ -25,6 +25,7 @@ using ltwnc.Services.EnglishMission;
 using ltwnc.Services.Profiles;
 using ltwnc.Services.Leaderboard;
 using ltwnc.Services.PublicLibrary;
+using ltwnc.Services.Review;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -141,6 +142,8 @@ builder.Services.AddScoped<CsvFlashcardFileParser>();
 builder.Services.AddScoped<XlsxFlashcardFileParser>();
 builder.Services.AddScoped<FlashcardFileParserResolver>();
 builder.Services.AddScoped<IStudyService, StudyService>();
+builder.Services.AddScoped<ReviewStateMachine>();
+builder.Services.AddScoped<IReviewService, ReviewService>();
 // Service xử lý nghe chép chính tả
 builder.Services.AddScoped<IDictationService, DictationService>();
 builder.Services.AddScoped<ICardActionService, CardActionService>();

@@ -1,0 +1,27 @@
+@{
+    ViewData["Title"] = "Ôn tập đến hạn";
+}
+
+<div class="mx-auto" style="max-width: 720px;">
+    <div class="mb-4">
+        <span class="text-uppercase text-muted small fw-semibold">Spaced review</span>
+        <h1 class="display-6 mt-2">Ôn tập đến hạn</h1>
+        <p class="lead">Xem lại từng thẻ và tự chọn mức nhớ để tạo lịch ôn riêng cho bạn.</p>
+    </div>
+
+    @if (TempData["Message"] is string message)
+    {
+        <div class="alert alert-info" role="status">@message</div>
+    }
+
+    <div class="card border-0 shadow-sm">
+        <div class="card-body p-4">
+            <h2 class="h5">Bắt đầu một lượt ngắn</h2>
+            <p class="text-muted">Lượt đầu tiên sẽ đưa một thẻ mới từ thư viện cá nhân vào để bạn làm quen.</p>
+            <form method="post" action="/Review/Start">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-primary">Bắt đầu ôn tập</button>
+            </form>
+        </div>
+    </div>
+</div>

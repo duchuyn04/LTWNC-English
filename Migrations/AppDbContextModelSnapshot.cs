@@ -910,6 +910,131 @@ namespace ltwnc.Migrations
                     b.ToTable("QuizSessionQuestions");
                 });
 
+            modelBuilder.Entity("ltwnc.Models.Entities.ReviewProgress", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("FlashcardId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("LastRatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("LongTermIntervalDays")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("NextReviewAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("Stage")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FlashcardId");
+
+                    b.HasIndex("UserId", "FlashcardId")
+                        .IsUnique();
+
+                    b.HasIndex("UserId", "NextReviewAtUtc");
+
+                    b.ToTable("ReviewProgresses");
+                });
+
+            modelBuilder.Entity("ltwnc.Models.Entities.ReviewSession", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTimeOffset?>("CompletedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<DateTimeOffset>("StartedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "CompletedAtUtc");
+
+                    b.HasIndex("UserId")
+                        .IsUnique()
+                        .HasFilter("[CompletedAtUtc] IS NULL");
+
+                    b.ToTable("ReviewSessions");
+                });
+
+            modelBuilder.Entity("ltwnc.Models.Entities.ReviewSessionItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<int>("FlashcardId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsNewCardAtAssignment")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("NextLongTermIntervalDays")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("NextReviewAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("NextStage")
+                        .HasColumnType("int");
+
+                    b.Property<int>("OrderIndex")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PreviousLongTermIntervalDays")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("PreviousNextReviewAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int>("PreviousStage")
+                        .HasColumnType("int");
+
+                    b.Property<DateTimeOffset?>("RatedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
+                    b.Property<int?>("Rating")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReviewSessionId")
+                        .HasColumnType("int");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FlashcardId");
+
+                    b.HasIndex("ReviewSessionId", "FlashcardId")
+                        .IsUnique();
+
+                    b.HasIndex("ReviewSessionId", "OrderIndex")
+                        .IsUnique();
+
+                    b.ToTable("ReviewSessionItems");
+                });
+
             modelBuilder.Entity("ltwnc.Models.Entities.StudySession", b =>
                 {
                     b.Property<int>("Id")
@@ -1305,6 +1430,36 @@ namespace ltwnc.Migrations
                     b.Navigation("StudySession");
                 });
 
+            modelBuilder.Entity("ltwnc.Models.Entities.ReviewProgress", b =>
+                {
+                    b.HasOne("ltwnc.Models.Entities.Flashcard", "Flashcard")
+                        .WithMany()
+                        .HasForeignKey("FlashcardId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Flashcard");
+                });
+
+            modelBuilder.Entity("ltwnc.Models.Entities.ReviewSessionItem", b =>
+                {
+                    b.HasOne("ltwnc.Models.Entities.Flashcard", "Flashcard")
+                        .WithMany()
+                        .HasForeignKey("FlashcardId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("ltwnc.Models.Entities.ReviewSession", "ReviewSession")
+                        .WithMany("Items")
+                        .HasForeignKey("ReviewSessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Flashcard");
+
+                    b.Navigation("ReviewSession");
+                });
+
             modelBuilder.Entity("ltwnc.Models.Entities.StudySession", b =>
                 {
                     b.HasOne("ltwnc.Models.Entities.FlashcardSet", "FlashcardSet")
@@ -1346,6 +1501,11 @@ namespace ltwnc.Migrations
             modelBuilder.Entity("ltwnc.Models.Entities.FlashcardSet", b =>
                 {
                     b.Navigation("Flashcards");
+                });
+
+            modelBuilder.Entity("ltwnc.Models.Entities.ReviewSession", b =>
+                {
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

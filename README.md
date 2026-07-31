@@ -57,6 +57,12 @@ Project dùng một số mẫu GoF, không phải "có đủ cho đẹp báo cá
 - `DictationModeStrategy` lấy thẻ phù hợp với `DictationContentMode`
 - `EnglishMissionModeStrategy` lấy thẻ cho mission
 
+### 🔁 State
+
+**Vấn đề:** Lịch ôn của cùng một thẻ thay đổi theo giai đoạn ghi nhớ. Một thẻ mới không thể dùng chung công thức với thẻ đang học hoặc đã vào chu kỳ dài hạn.
+
+**Cách làm:** Module `Services/Review` dùng `ReviewStateMachine` làm Context và `NewReviewState` làm State. Service chỉ đọc/lưu `ReviewProgress`; State nhận mức nhớ và trả transition tiếp theo. Ticket đầu tiên triển khai các transition của giai đoạn New, những State còn lại sẽ được bổ sung tại ticket chính sách lịch ôn.
+
 ### ⚡ Command
 
 **Vấn đề:** Thao tác hàng loạt (xóa nhiều, gắn sao, bỏ sao) cần undo. Nếu service gọi thẳng EF theo từng action, logic thực thi, hoàn tác và log dính vào nhau.

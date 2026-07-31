@@ -1,0 +1,100 @@
+@model ReviewSessionViewModel
+@{
+    ViewData["Title"] = "Ôn tập đến hạn";
+    ReviewCardViewModel? card = Model.Cards.FirstOrDefault(value => !value.IsRated)
+        ?? Model.Cards.FirstOrDefault();
+}
+
+<div class="mx-auto" style="max-width: 760px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <span class="text-uppercase text-muted small fw-semibold">Ôn tập đến hạn</span>
+            <h1 class="h2 mt-2 mb-0">Thẻ @(Model.RatedCards + 1) / @Model.TotalCards</h1>
+        </div>
+        <a href="/Review" class="btn btn-outline-secondary">Thoát</a>
+    </div>
+
+    @if (card is not null)
+    {
+        <article class="card border-0 shadow-sm">
+            <div class="card-body p-4 p-md-5">
+                <div class="text-muted small mb-2">@card.SetTitle · @card.Stage</div>
+                @if (Model.Settings.ShowFrontTerm)
+                {
+                    <div class="display-5 fw-semibold">@card.FrontText</div>
+                }
+                @if (Model.Settings.ShowFrontDefinition)
+                {
+                    <div class="display-5 fw-semibold">@card.BackText</div>
+                }
+                @if (Model.Settings.ShowFrontIpa && !string.IsNullOrWhiteSpace(card.Pronunciation))
+                {
+                    <div class="text-muted mt-2">@card.Pronunciation</div>
+                }
+                @if (!Model.Settings.HideImage && Model.Settings.ShowFrontImage
+                    && (!string.IsNullOrWhiteSpace(card.UploadedImagePath)
+                        || !string.IsNullOrWhiteSpace(card.ImageUrl)))
+                {
+                    <img class="img-fluid rounded mt-3 @(Model.Settings.BlurImage ? "opacity-50" : null)"
+                         src="@(card.UploadedImagePath ?? card.ImageUrl)"
+                         alt="Ảnh minh họa cho @card.FrontText" />
+                }
+
+                <div id="review-answer" class="mt-4 p-3 rounded bg-light" hidden>
+                    @if (Model.Settings.ShowBackTerm)
+                    {
+                        <div class="h4 mb-2">@card.FrontText</div>
+                    }
+                    @if (Model.Settings.ShowBackDefinition)
+                    {
+                        <div class="h4 mb-2">@card.BackText</div>
+                    }
+                    @if (Model.Settings.ShowBackIpa && !string.IsNullOrWhiteSpace(card.Pronunciation))
+                    {
+                        <div class="text-muted mb-2">@card.Pronunciation</div>
+                    }
+                    @if (Model.Settings.ShowBackExample && !string.IsNullOrWhiteSpace(card.ExampleSentence))
+                    {
+                        <p class="mb-1">@card.ExampleSentence</p>
+                        <p class="text-muted mb-0">@card.ExampleMeaning</p>
+                    }
+                    @if (!Model.Settings.HideImage && Model.Settings.ShowBackImage
+                        && (!string.IsNullOrWhiteSpace(card.UploadedImagePath)
+                            || !string.IsNullOrWhiteSpace(card.ImageUrl)))
+                    {
+                        <img class="img-fluid rounded mt-3 @(Model.Settings.BlurImage ? "opacity-50" : null)"
+                             src="@(card.UploadedImagePath ?? card.ImageUrl)"
+                             alt="Ảnh minh họa cho @card.FrontText" />
+                    }
+                </div>
+
+                <button id="review-reveal" type="button" class="btn btn-outline-primary mt-4" onclick="revealReviewAnswer()">
+                    Hiện đáp án
+                </button>
+
+                <form method="post" action="/Review/@Model.SessionId/Rate" class="mt-4">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="flashcardId" value="@card.FlashcardId" />
+                    <input id="answer-revealed" type="hidden" name="answerRevealed" value="false" />
+                    <div class="d-flex flex-wrap gap-2" role="group" aria-label="Mức nhớ">
+                        <button class="btn btn-outline-danger" type="submit" name="rating" value="Again" disabled>Quên · Again</button>
+                        <button class="btn btn-outline-warning" type="submit" name="rating" value="Hard" disabled>Khó · Hard</button>
+                        <button class="btn btn-outline-success" type="submit" name="rating" value="Good" disabled>Tốt · Good</button>
+                        <button class="btn btn-outline-primary" type="submit" name="rating" value="Easy" disabled>Dễ · Easy</button>
+                    </div>
+                </form>
+            </div>
+        </article>
+    }
+</div>
+
+@section Scripts {
+    <script>
+        function revealReviewAnswer() {
+            document.getElementById('review-answer').hidden = false;
+            document.getElementById('answer-revealed').value = 'true';
+            document.getElementById('review-reveal').disabled = true;
+            document.querySelectorAll('button[name="rating"]').forEach(button => button.disabled = false);
+        }
+    </script>
+}

@@ -1,0 +1,27 @@
+@model ReviewSessionViewModel
+@{
+    ViewData["Title"] = "Kết quả ôn tập";
+}
+
+<div class="mx-auto" style="max-width: 720px;">
+    <span class="text-uppercase text-muted small fw-semibold">Ôn tập đến hạn</span>
+    <h1 class="display-6 mt-2">Lượt ôn đã hoàn thành</h1>
+    <p class="lead">Bạn đã tự đánh giá @Model.RatedCards / @Model.TotalCards thẻ.</p>
+
+    <div class="card border-0 shadow-sm mb-4">
+        <div class="card-body p-4">
+            @foreach (ReviewCardViewModel card in Model.Cards)
+            {
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="fw-semibold">@card.FrontText</div>
+                        <div class="text-muted small">@card.BackText</div>
+                    </div>
+                    <span class="badge text-bg-light">@card.Stage</span>
+                </div>
+            }
+        </div>
+    </div>
+
+    <a class="btn btn-primary" href="/Review">Ôn lượt tiếp theo</a>
+</div>
