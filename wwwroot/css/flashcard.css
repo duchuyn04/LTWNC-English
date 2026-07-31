@@ -812,17 +812,22 @@ body {
     color: var(--fc-success);
 }
 
-/* Settings uses a true overlay layer while leaving the study surface intact. */
+/* Settings is a compact overlay: short labels, large row targets, progressive grouping. */
+html:has(body.settings-open),
+body.settings-open {
+    overflow: hidden;
+}
+
 .study-settings-drawer {
     position: fixed;
     inset-block: 0;
     right: 0;
     z-index: var(--fc-z-modal);
-    width: min(92%, 26rem);
+    width: min(100%, 38rem);
     overflow-y: auto;
+    overscroll-behavior: contain;
     border-left: 1px solid var(--fc-line-strong);
-    padding: var(--fc-space-lg);
-    background: var(--fc-surface);
+    background: var(--fc-paper);
     color: var(--fc-ink);
     box-shadow: var(--fc-shadow-raised);
 }
@@ -840,57 +845,253 @@ body {
 }
 
 .settings-drawer-header {
+    position: sticky;
+    top: 0;
+    z-index: var(--fc-z-raised);
     display: flex;
     align-items: center;
     justify-content: space-between;
     gap: var(--fc-space-md);
     border-bottom: 1px solid var(--fc-line);
-    padding-bottom: var(--fc-space-md);
+    padding: var(--fc-space-md) var(--fc-space-lg);
+    background: color-mix(in srgb, var(--fc-paper) 94%, transparent);
+    backdrop-filter: blur(12px);
 }
 
 .settings-title {
+    margin: 0;
     font-family: var(--font-body);
-    font-size: 1.5rem;
+    font-size: 1.35rem;
+    font-style: normal;
     font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.settings-subtitle {
+    margin: var(--fc-space-2xs) 0 0;
+    color: var(--fc-muted);
+    font-size: 0.75rem;
+}
+
+.settings-close {
+    border-radius: 50%;
 }
 
 .settings-drawer-body {
     display: grid;
-    gap: var(--fc-space-xl);
-    padding-top: var(--fc-space-lg);
+    gap: var(--fc-space-lg);
+    padding: var(--fc-space-lg);
 }
 
-.settings-drawer-body > div {
+.settings-section {
     display: grid;
+    min-width: 0;
     gap: var(--fc-space-sm);
 }
 
-.settings-group-title {
-    color: var(--fc-accent-deep);
-    font-size: 0.72rem;
-    font-weight: 900;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+.settings-section + .settings-section {
+    border-top: 1px solid var(--fc-line);
+    padding-top: var(--fc-space-lg);
 }
 
-.settings-drawer-body label {
+.settings-section-heading h3 {
+    margin: 0;
+    color: var(--fc-ink);
+    font-family: var(--font-body);
+    font-size: 0.95rem;
+    font-style: normal;
+    font-weight: 800;
+}
+
+.settings-section-heading p {
+    margin: var(--fc-space-2xs) 0 0;
+    color: var(--fc-muted);
+    font-size: 0.75rem;
+}
+
+.settings-language-order {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--fc-space-xs);
+}
+
+.settings-language-order button {
+    min-width: 0;
+    min-height: 48px;
+    border: 1px solid var(--fc-line-strong);
+    border-radius: var(--fc-radius-control);
+    padding-inline: var(--fc-space-sm);
+    background: var(--fc-surface);
+    color: var(--fc-ink-soft);
+    font: 700 0.85rem var(--font-body);
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.settings-language-order button.is-active {
+    border-color: var(--fc-accent-deep);
+    background: var(--fc-accent-soft);
+    color: var(--fc-accent-deep);
+    box-shadow: inset 0 0 0 1px var(--fc-accent-deep);
+}
+
+.settings-language-order button:active {
+    transform: translateY(1px);
+}
+
+.settings-advanced {
+    border-top: 1px solid var(--fc-line);
+    padding-top: var(--fc-space-xs);
+}
+
+.settings-advanced summary {
     display: flex;
     min-height: 44px;
     align-items: center;
-    gap: var(--fc-space-xs);
+    justify-content: space-between;
+    gap: var(--fc-space-sm);
     color: var(--fc-ink-soft);
-    font-size: 0.88rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    list-style: none;
 }
 
-.settings-drawer-body input[type="checkbox"] {
-    width: 18px;
-    height: 18px;
+.settings-advanced summary::-webkit-details-marker {
+    display: none;
+}
+
+.settings-advanced summary::after {
+    content: "+";
+    color: var(--fc-accent-deep);
+    font-size: 1.1rem;
+}
+
+.settings-advanced[open] summary::after {
+    content: "−";
+}
+
+.settings-advanced .settings-side-grid {
+    margin-top: var(--fc-space-xs);
+}
+
+.settings-options,
+.settings-side-grid,
+.settings-card,
+.settings-audio-grid {
+    display: grid;
+    min-width: 0;
+    gap: var(--fc-space-xs);
+}
+
+.settings-side-grid {
+    align-items: start;
+}
+
+.settings-card {
+    margin: 0;
+    border: 1px solid var(--fc-line);
+    border-radius: var(--fc-radius-card);
+    padding: var(--fc-space-xs);
+    background: var(--fc-surface);
+}
+
+.settings-card legend {
+    margin-left: var(--fc-space-xs);
+    padding-inline: var(--fc-space-xs);
+    color: var(--fc-accent-deep);
+    font-size: 0.72rem;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.settings-option {
+    display: flex;
+    min-width: 0;
+    min-height: 44px;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--fc-space-md);
+    border-radius: var(--fc-radius-control);
+    padding: var(--fc-space-xs) var(--fc-space-sm);
+    background: var(--fc-sunken);
+    color: var(--fc-ink-soft);
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.settings-option span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.settings-option input[type="checkbox"] {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
+    margin: 0;
     accent-color: var(--fc-accent-deep);
+    cursor: pointer;
+}
+
+.settings-option:has(input:checked) {
+    background: var(--fc-accent-soft);
+    color: var(--fc-ink);
+}
+
+.settings-option:has(input:focus-visible) {
+    outline: 2px solid var(--fc-accent);
+    outline-offset: 2px;
+}
+
+.settings-option input:focus-visible {
+    outline: 0;
+}
+
+.settings-audio-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(7rem, 0.45fr);
 }
 
 .tts-row {
     display: grid;
-    gap: var(--fc-space-xs);
+    min-width: 0;
+    gap: var(--fc-space-2xs);
+}
+
+.tts-row label {
+    color: var(--fc-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.tts-row select {
+    width: 100%;
+    min-height: 44px;
+    border-color: var(--fc-line-strong);
+    border-radius: var(--fc-radius-control);
+    background-color: var(--fc-surface);
+    color: var(--fc-ink);
+    font-size: 0.82rem;
+}
+
+.settings-autoplay {
+    margin-top: var(--fc-space-2xs);
+}
+
+@media (min-width: 32rem) {
+    .settings-options-compact,
+    .settings-side-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .settings-language-order button:hover,
+    .settings-option:hover {
+        background: var(--fc-accent-soft);
+    }
 }
 
 /* Completion remains in the route and replaces the workspace when JS finishes. */

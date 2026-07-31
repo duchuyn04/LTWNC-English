@@ -34,6 +34,9 @@ public class QuizViewTests
         Assert.Contains("data-quiz-timing=\"untimed\"", QuizSetupView);
         Assert.Contains("asp-validation-summary=\"All\"", QuizSetupView);
         Assert.Contains("asp-validation-for=\"TimingMode\"", QuizSetupView);
+        Assert.Contains("asp-for=\"QuestionCount\"", QuizSetupView);
+        Assert.Contains("Tất cả câu", QuizSetupView);
+        Assert.Contains("50 câu", QuizSetupView);
         Assert.Contains("data-quiz-preset", QuizSetupView);
         Assert.Contains("data-quiz-custom", QuizSetupView);
         Assert.Contains("data-quiz-submit-label", QuizSetupView);

@@ -32,6 +32,25 @@ public class QuizServiceTests
     }
 
     [Fact]
+    public async Task StartNew_limits_the_session_to_the_requested_question_count()
+    {
+        await using var database = await QuizTestDatabase.CreateAsync();
+        FlashcardSet set = await SeedQuestionPoolAsync(database.Context);
+        QuizService service = CreateService(database.Context, new RecordingStudyEventPublisher());
+
+        StudySession session = await service.StartNewAsync(
+            set.Id,
+            set.UserId,
+            new UserStudySettings(),
+            null,
+            2);
+
+        Assert.Equal(2, session.PlannedItemCount);
+        Assert.Equal(2, await database.Context.QuizSessionQuestions.CountAsync(question =>
+            question.StudySessionId == session.Id));
+    }
+
+    [Fact]
     public async Task StartNew_abandons_active_attempt_and_creates_fresh_timed_session()
     {
         await using var database = await QuizTestDatabase.CreateAsync();

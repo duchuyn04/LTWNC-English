@@ -60,6 +60,19 @@ public class FlashcardStudyUxTests
     }
 
     [Fact]
+    public void LanguageOrder_RendersTheSelectedLanguageAsPrimaryText()
+    {
+        string view = Read("Views/Study/Flashcard.cshtml");
+
+        Assert.Contains("data-language-order=\"en-vi\"", view);
+        Assert.Contains("data-language-order=\"vi-en\"", view);
+        Assert.Contains("frontTextElem.textContent = frontUsesEnglish ? currentCard.FrontText : currentCard.BackText", view);
+        Assert.Contains("backDefElem.textContent = backUsesVietnamese ? currentCard.BackText : currentCard.FrontText", view);
+        Assert.Contains("id=\"card-front-badge\"", view);
+        Assert.Contains("id=\"card-back-badge\"", view);
+    }
+
+    [Fact]
     public void StudyNavigation_CommunicatesBoundaryAndCompletionStates()
     {
         string view = Read("Views/Study/Flashcard.cshtml");

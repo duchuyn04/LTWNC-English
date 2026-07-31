@@ -13,7 +13,8 @@ public interface IQuizService
         int setId,
         string userId,
         UserStudySettings settings,
-        int? timeLimitMinutes);
+        int? timeLimitMinutes,
+        int? questionCount = null);
 
     // Tiếp tục phiên đang hoạt động hoặc tạo phiên mới nếu chưa có.
     Task<StudySession> StartOrResumeAsync(

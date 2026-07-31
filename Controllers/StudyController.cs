@@ -434,6 +434,13 @@ public class StudyController : Controller
             QuizTimingMode.Untimed => null,
             _ => null
         };
+        if (input.QuestionCount is not (null or 10 or 20 or 30 or 50))
+        {
+            ModelState.AddModelError(
+                nameof(QuizSetupViewModel.QuestionCount),
+                "Số câu đã chọn không hợp lệ.");
+        }
+
         if (!hasValidTimingSelection)
         {
             string validationKey = input.TimingMode == QuizTimingMode.Custom
@@ -458,7 +465,8 @@ public class StudyController : Controller
                 setId,
                 userId,
                 settings,
-                timeLimitMinutes);
+                timeLimitMinutes,
+                input.QuestionCount);
             return RedirectToAction(nameof(Quiz), new { setId, sessionId = session.Id });
         }
         catch (QuizUnavailableException exception)

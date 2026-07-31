@@ -82,14 +82,15 @@ public class StudyControllerQuizTests
         UserStudySettings settings = new() { StarredOnly = true };
         _studyService.Setup(service => service.GetSettingsAsync("user-1"))
             .ReturnsAsync(settings);
-        _quizService.Setup(service => service.StartNewAsync(7, "user-1", settings, 15))
+        _quizService.Setup(service => service.StartNewAsync(7, "user-1", settings, 15, 20))
             .ReturnsAsync(new StudySession { Id = 42 });
         StudyController controller = CreateController("user-1");
 
         IActionResult result = await controller.QuizStart(7, new QuizSetupViewModel
         {
             TimingMode = QuizTimingMode.Preset,
-            SelectedPresetMinutes = 15
+            SelectedPresetMinutes = 15,
+            QuestionCount = 20
         });
 
         AssertQuizSessionRedirect(result, setId: 7, sessionId: 42);

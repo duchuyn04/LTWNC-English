@@ -55,6 +55,21 @@
                     <div asp-validation-summary="All" role="alert"></div>
                     <span asp-validation-for="TimingMode" class="quiz-validation-message"></span>
 
+                    <div class="quiz-count-field">
+                        <div>
+                            <label asp-for="QuestionCount">Số câu</label>
+                            <small>Chọn số câu cho lượt làm bài này</small>
+                        </div>
+                        <select asp-for="QuestionCount" class="form-select quiz-count-select">
+                            <option value="">Tất cả câu</option>
+                            <option value="10">10 câu</option>
+                            <option value="20">20 câu</option>
+                            <option value="30">30 câu</option>
+                            <option value="50">50 câu</option>
+                        </select>
+                        <span asp-validation-for="QuestionCount" class="quiz-validation-message"></span>
+                    </div>
+
                     <fieldset class="quiz-timing-fieldset">
                         <legend id="quiz-timing-title">Thời lượng</legend>
                         <div class="quiz-timing-grid">

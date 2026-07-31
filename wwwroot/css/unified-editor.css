@@ -672,7 +672,7 @@ body {
     margin-bottom: var(--ue-space-md);
 }
 
-.form-group:last-child {
+.card-body > .form-group:last-child {
     margin-bottom: 0;
 }
 

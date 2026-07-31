@@ -35,7 +35,7 @@
                         <i class="ph ph-pencil-simple" aria-hidden="true"></i>
                         <span>Chỉnh sửa bộ từ</span>
                     </a>
-                    <button type="button" class="icon-button study-settings-button" onclick="toggleSettingsDrawer(event)" title="Cài đặt học" aria-label="Mở cài đặt học">
+                    <button type="button" class="icon-button study-settings-button" onclick="toggleSettingsDrawer(event)" title="Cài đặt học" aria-label="Mở cài đặt học" aria-expanded="false" aria-controls="study-settings-drawer">
                         <i class="ph ph-sliders-horizontal" aria-hidden="true"></i>
                     </button>
                 </div>
@@ -69,7 +69,7 @@
                             <i class="ph ph-star" aria-hidden="true"></i>
                         </button>
                         <div class="card-topline">
-                            <span class="badge badge-blue">English</span>
+                            <span id="card-front-badge" class="badge badge-blue">English</span>
                         </div>
                         <div class="card-content">
                             <span id="card-front-text" class="card-word card-word-front">Loading...</span>
@@ -89,7 +89,7 @@
                             <i class="ph ph-star" aria-hidden="true"></i>
                         </button>
                         <div class="card-topline">
-                            <span class="badge badge-green">Nghĩa Việt</span>
+                            <span id="card-back-badge" class="badge badge-green">Nghĩa Việt</span>
                         </div>
                         <div class="card-content">
                             <span id="card-back-text" class="card-word card-word-back">Loading...</span>
@@ -185,60 +185,93 @@
         </section>
     </section>
 
-    <aside id="study-settings-drawer" class="study-settings-drawer" hidden>
+    <aside id="study-settings-drawer" class="study-settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
         <div class="settings-drawer-header">
-            <span class="settings-title">Cài đặt học</span>
-            <button type="button" class="icon-button" onclick="toggleSettingsDrawer(event)" title="Đóng">
+            <div>
+                <h2 id="settings-title" class="settings-title">Cài đặt học</h2>
+                <p class="settings-subtitle">Thay đổi được lưu tự động</p>
+            </div>
+            <button type="button" class="icon-button settings-close" onclick="toggleSettingsDrawer(event)" title="Đóng" aria-label="Đóng cài đặt học">
                 <i class="ph ph-x" aria-hidden="true"></i>
             </button>
         </div>
+
         <div class="settings-drawer-body">
-            <div>
-                <div class="settings-group-title">Bộ lọc</div>
-                <label><input type="checkbox" data-setting="StarredOnly"> Chỉ học từ đánh dấu sao</label>
-                <label><input type="checkbox" data-setting="UnlearnedOnly"> Chỉ học từ chưa thuộc</label>
-            </div>
-
-            <div>
-                <div class="settings-group-title">Mặt trước</div>
-                <label><input type="checkbox" data-setting="ShowFrontTerm"> Hiển thị thuật ngữ</label>
-                <label><input type="checkbox" data-setting="ShowFrontDefinition"> Hiển thị định nghĩa</label>
-                <label><input type="checkbox" data-setting="ShowFrontIpa"> Hiển thị IPA</label>
-                <label><input type="checkbox" data-setting="ShowFrontImage"> Hiển thị ảnh</label>
-            </div>
-
-            <div>
-                <div class="settings-group-title">Mặt sau</div>
-                <label><input type="checkbox" data-setting="ShowBackTerm"> Hiển thị thuật ngữ</label>
-                <label><input type="checkbox" data-setting="ShowBackDefinition"> Hiển thị định nghĩa</label>
-                <label><input type="checkbox" data-setting="ShowBackIpa"> Hiển thị IPA</label>
-                <label><input type="checkbox" data-setting="ShowBackExample"> Hiển thị ví dụ</label>
-                <label><input type="checkbox" data-setting="ShowBackImage"> Hiển thị ảnh</label>
-            </div>
-
-            <div>
-                <div class="settings-group-title">Ảnh</div>
-                <label><input type="checkbox" data-setting="HideImage"> Ẩn ảnh</label>
-                <label><input type="checkbox" data-setting="BlurImage"> Che mờ ảnh</label>
-                <label><input type="checkbox" data-setting="LargeImage"> Ảnh lớn</label>
-            </div>
-
-            <div>
-                <div class="settings-group-title">Giọng đọc</div>
-                <div class="tts-row">
-                    <label for="tts-voice-select">Giọng EN</label>
-                    <select id="tts-voice-select" class="form-select premium-select"></select>
+            <section class="settings-section" aria-labelledby="settings-filter-title">
+                <div class="settings-section-heading">
+                    <h3 id="settings-filter-title">Chọn thẻ để học</h3>
+                    <p>Để trống để học toàn bộ thẻ</p>
                 </div>
-                <div class="tts-row">
-                    <label for="tts-speed">Tốc độ</label>
-                    <select id="tts-speed" class="form-select premium-select">
-                        <option value="0.8">0.8x</option>
-                        <option value="1.0" selected>1.0x</option>
-                        <option value="1.2">1.2x</option>
-                    </select>
+                <div class="settings-options settings-options-compact">
+                    <label class="settings-option"><span>Chỉ thẻ đánh dấu sao</span><input type="checkbox" data-setting="StarredOnly"></label>
+                    <label class="settings-option"><span>Chỉ thẻ chưa thuộc</span><input type="checkbox" data-setting="UnlearnedOnly"></label>
                 </div>
-                <label><input type="checkbox" id="tts-autoplay" checked> Tự động phát khi lật</label>
-            </div>
+            </section>
+
+            <section class="settings-section" aria-labelledby="settings-content-title">
+                <div class="settings-section-heading">
+                    <h3 id="settings-content-title">Thứ tự ngôn ngữ</h3>
+                    <p>Chọn ngôn ngữ bạn muốn thấy trước</p>
+                </div>
+                <div class="settings-language-order" role="group" aria-label="Thứ tự ngôn ngữ trên thẻ">
+                    <button type="button" data-language-order="en-vi" onclick="applyLanguageOrder('en-vi')" aria-pressed="false">Anh → Việt</button>
+                    <button type="button" data-language-order="vi-en" onclick="applyLanguageOrder('vi-en')" aria-pressed="false">Việt → Anh</button>
+                </div>
+
+                <details class="settings-advanced">
+                    <summary>Tùy chỉnh nội dung từng mặt</summary>
+                    <div class="settings-side-grid">
+                        <fieldset class="settings-card">
+                            <legend id="settings-front-title">Mặt trước</legend>
+                            <label class="settings-option"><span>Tiếng Anh</span><input type="checkbox" data-setting="ShowFrontTerm"></label>
+                            <label class="settings-option"><span>Tiếng Việt</span><input type="checkbox" data-setting="ShowFrontDefinition"></label>
+                            <label class="settings-option"><span>Phiên âm IPA</span><input type="checkbox" data-setting="ShowFrontIpa"></label>
+                            <label class="settings-option"><span>Hình ảnh</span><input type="checkbox" data-setting="ShowFrontImage"></label>
+                        </fieldset>
+
+                        <fieldset class="settings-card">
+                            <legend id="settings-back-title">Mặt sau</legend>
+                            <label class="settings-option"><span>Tiếng Anh</span><input type="checkbox" data-setting="ShowBackTerm"></label>
+                            <label class="settings-option"><span>Tiếng Việt</span><input type="checkbox" data-setting="ShowBackDefinition"></label>
+                            <label class="settings-option"><span>Phiên âm IPA</span><input type="checkbox" data-setting="ShowBackIpa"></label>
+                            <label class="settings-option"><span>Hình ảnh</span><input type="checkbox" data-setting="ShowBackImage"></label>
+                            <label class="settings-option"><span>Ví dụ</span><input type="checkbox" data-setting="ShowBackExample"></label>
+                        </fieldset>
+                    </div>
+                </details>
+            </section>
+
+            <section class="settings-section" aria-labelledby="settings-image-title">
+                <div class="settings-section-heading">
+                    <h3 id="settings-image-title">Hình ảnh</h3>
+                </div>
+                <div class="settings-options settings-options-compact">
+                    <label class="settings-option"><span>Tắt toàn bộ ảnh</span><input type="checkbox" data-setting="HideImage"></label>
+                    <label class="settings-option"><span>Che mờ ảnh</span><input type="checkbox" data-setting="BlurImage"></label>
+                    <label class="settings-option"><span>Hiển thị ảnh lớn</span><input type="checkbox" data-setting="LargeImage"></label>
+                </div>
+            </section>
+
+            <section class="settings-section" aria-labelledby="settings-audio-title">
+                <div class="settings-section-heading">
+                    <h3 id="settings-audio-title">Giọng đọc</h3>
+                </div>
+                <div class="settings-audio-grid">
+                    <div class="tts-row">
+                        <label for="tts-voice-select">Giọng tiếng Anh</label>
+                        <select id="tts-voice-select" class="form-select premium-select"></select>
+                    </div>
+                    <div class="tts-row">
+                        <label for="tts-speed">Tốc độ</label>
+                        <select id="tts-speed" class="form-select premium-select">
+                            <option value="0.8">0.8x</option>
+                            <option value="1.0" selected>1.0x</option>
+                            <option value="1.2">1.2x</option>
+                        </select>
+                    </div>
+                </div>
+                <label class="settings-option settings-autoplay"><span>Tự phát khi lật thẻ</span><input type="checkbox" id="tts-autoplay" checked></label>
+            </section>
         </div>
     </aside>
     <div id="settings-drawer-backdrop" class="settings-drawer-backdrop" hidden onclick="toggleSettingsDrawer(event)"></div>
@@ -516,26 +549,38 @@
             enforceVisibleSide('front');
             enforceVisibleSide('back');
             syncSettingsInputs();
-            // Front face rendering
+            // The selected language is always the prominent text; a second selected language becomes detail text.
+            const frontUsesEnglish = settings.ShowFrontTerm;
             const frontTextElem = document.getElementById('card-front-text');
-            frontTextElem.hidden = !settings.ShowFrontTerm;
-            frontTextElem.textContent = currentCard.FrontText;
+            frontTextElem.hidden = !settings.ShowFrontTerm && !settings.ShowFrontDefinition;
+            frontTextElem.textContent = frontUsesEnglish ? currentCard.FrontText : currentCard.BackText;
+
+            const frontBadge = document.getElementById('card-front-badge');
+            frontBadge.textContent = frontUsesEnglish ? 'English' : 'Nghĩa Việt';
+            frontBadge.classList.toggle('badge-blue', frontUsesEnglish);
+            frontBadge.classList.toggle('badge-green', !frontUsesEnglish);
 
             const frontIpaElem = document.getElementById('card-front-ipa');
             frontIpaElem.hidden = !settings.ShowFrontIpa || !currentCard.Pronunciation;
             frontIpaElem.textContent = currentCard.Pronunciation || '';
 
             const frontDefElem = document.getElementById('card-front-definition');
-            frontDefElem.hidden = !settings.ShowFrontDefinition;
+            frontDefElem.hidden = !settings.ShowFrontTerm || !settings.ShowFrontDefinition;
             frontDefElem.textContent = currentCard.BackText || '';
 
             // Back face rendering
+            const backUsesVietnamese = settings.ShowBackDefinition;
             const backDefElem = document.getElementById('card-back-text');
-            backDefElem.hidden = !settings.ShowBackDefinition;
-            backDefElem.textContent = currentCard.BackText;
+            backDefElem.hidden = !settings.ShowBackDefinition && !settings.ShowBackTerm;
+            backDefElem.textContent = backUsesVietnamese ? currentCard.BackText : currentCard.FrontText;
+
+            const backBadge = document.getElementById('card-back-badge');
+            backBadge.textContent = backUsesVietnamese ? 'Nghĩa Việt' : 'English';
+            backBadge.classList.toggle('badge-green', backUsesVietnamese);
+            backBadge.classList.toggle('badge-blue', !backUsesVietnamese);
 
             const backTermElem = document.getElementById('card-back-term');
-            backTermElem.hidden = !settings.ShowBackTerm;
+            backTermElem.hidden = !settings.ShowBackDefinition || !settings.ShowBackTerm;
             backTermElem.textContent = currentCard.FrontText || '';
 
             const backIpaElem = document.getElementById('card-back-ipa');
@@ -841,6 +886,13 @@
         }
 
         document.addEventListener('keydown', function(e) {
+            const settingsDrawer = document.getElementById('study-settings-drawer');
+            if (e.key === 'Escape' && settingsDrawer && !settingsDrawer.hidden) {
+                e.preventDefault();
+                toggleSettingsDrawer();
+                return;
+            }
+
             const tagName = e.target.tagName;
             if (tagName === 'INPUT' || tagName === 'SELECT' || tagName === 'TEXTAREA' || tagName === 'BUTTON' || tagName === 'A' || e.target.isContentEditable) return;
 
@@ -885,9 +937,19 @@
             if (event) event.stopPropagation();
             const drawer = document.getElementById('study-settings-drawer');
             const backdrop = document.getElementById('settings-drawer-backdrop');
-            const isOpen = !drawer.hidden;
-            drawer.hidden = isOpen;
-            backdrop.hidden = isOpen;
+            const trigger = document.querySelector('.study-settings-button');
+            const willOpen = drawer.hidden;
+
+            drawer.hidden = !willOpen;
+            backdrop.hidden = !willOpen;
+            trigger?.setAttribute('aria-expanded', String(willOpen));
+            document.body.classList.toggle('settings-open', willOpen);
+
+            if (willOpen) {
+                drawer.querySelector('.settings-drawer-body input, .settings-drawer-body select')?.focus();
+            } else {
+                trigger?.focus();
+            }
         }
 
         function bindSettingsInputs() {
@@ -896,6 +958,7 @@
                 input.checked = !!settings[key];
                 input.addEventListener('change', () => {
                     settings[key] = input.checked;
+                    syncLanguageOrder();
                     if (key === 'StarredOnly' || key === 'UnlearnedOnly') {
                         saveSettings().finally(() => {
                             reloadWithFilters();
@@ -909,6 +972,8 @@
                 });
             });
 
+            syncLanguageOrder();
+
             document.addEventListener('click', (e) => {
                 const drawer = document.getElementById('study-settings-drawer');
                 const btn = document.querySelector('.study-settings-button');
@@ -916,6 +981,39 @@
                     toggleSettingsDrawer();
                 }
             });
+        }
+
+        function applyLanguageOrder(order) {
+            const vietnameseFirst = order === 'vi-en';
+            settings.ShowFrontTerm = !vietnameseFirst;
+            settings.ShowFrontDefinition = vietnameseFirst;
+            settings.ShowBackTerm = vietnameseFirst;
+            settings.ShowBackDefinition = !vietnameseFirst;
+
+            syncSettingsInputs();
+            syncLanguageOrder();
+            document.querySelector('.settings-advanced')?.removeAttribute('open');
+            saveSettings();
+            updateUI();
+        }
+
+        function syncLanguageOrder() {
+            const order = settings.ShowFrontTerm && !settings.ShowFrontDefinition && !settings.ShowBackTerm && settings.ShowBackDefinition
+                ? 'en-vi'
+                : !settings.ShowFrontTerm && settings.ShowFrontDefinition && settings.ShowBackTerm && !settings.ShowBackDefinition
+                    ? 'vi-en'
+                    : null;
+
+            document.querySelectorAll('[data-language-order]').forEach(button => {
+                const isActive = button.dataset.languageOrder === order;
+                button.classList.toggle('is-active', isActive);
+                button.setAttribute('aria-pressed', String(isActive));
+            });
+
+            document.getElementById('settings-front-title').textContent = order === 'vi-en' ? 'Mặt trước · Tiếng Việt' : order === 'en-vi' ? 'Mặt trước · Tiếng Anh' : 'Mặt trước';
+            document.getElementById('settings-back-title').textContent = order === 'vi-en' ? 'Mặt sau · Tiếng Anh' : order === 'en-vi' ? 'Mặt sau · Tiếng Việt' : 'Mặt sau';
+
+            if (!order) document.querySelector('.settings-advanced')?.setAttribute('open', '');
         }
 
         function sideHasImage(side) {

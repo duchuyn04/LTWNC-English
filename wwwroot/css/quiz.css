@@ -42,6 +42,10 @@ body > header {
     font-family: var(--font-body);
 }
 
+.quiz-shell :is(button, input, select, textarea, a, h1, h2, h3, p, span, strong, small, label, legend, li, dt, dd) {
+    font-family: var(--font-body);
+}
+
 .quiz-shell-question {
     padding-bottom: calc(3rem + env(safe-area-inset-bottom));
 }
@@ -217,6 +221,43 @@ body > header {
     font-family: var(--font-body);
     font-size: 0.95rem;
     font-weight: 700;
+}
+
+.quiz-count-field {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(9rem, auto);
+    align-items: center;
+    gap: 0.75rem 1rem;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--quiz-line);
+}
+
+.quiz-count-field label,
+.quiz-count-field small {
+    display: block;
+}
+
+.quiz-count-field label {
+    color: var(--quiz-ink);
+    font-weight: 800;
+}
+
+.quiz-count-field small {
+    margin-top: 0.2rem;
+    color: var(--quiz-muted);
+}
+
+.quiz-count-select {
+    min-height: 44px;
+    border-color: var(--quiz-line-strong);
+    border-radius: var(--radius-control);
+    background-color: var(--quiz-paper);
+    color: var(--quiz-ink);
+}
+
+.quiz-count-field .quiz-validation-message {
+    grid-column: 1 / -1;
 }
 
 .quiz-timing-fieldset {
@@ -884,6 +925,76 @@ body > header {
     .quiz-steps li + li,
     .quiz-steps li:last-child {
         justify-content: flex-start;
+    }
+
+    /* Keep one complete question and its next action inside a laptop viewport. */
+    .quiz-shell-question {
+        padding-top: 1.25rem;
+        padding-bottom: 1.25rem;
+    }
+
+    .quiz-shell-question .quiz-header {
+        padding-bottom: 0.75rem;
+    }
+
+    .quiz-page-intro-question {
+        margin: 0.75rem 0 1rem;
+    }
+
+    .quiz-page-intro-question h1 {
+        font-size: clamp(1.65rem, 2.5vw, 2rem);
+    }
+
+    .quiz-workspace-question {
+        gap: 1.25rem;
+    }
+
+    .quiz-shell-question .quiz-context-panel {
+        padding: 1.25rem;
+    }
+
+    .quiz-shell-question .quiz-question-index strong {
+        font-size: 3rem;
+    }
+
+    .quiz-shell-question .quiz-steps {
+        margin-top: 1rem;
+    }
+
+    .quiz-shell-question .quiz-steps li {
+        padding-top: 0.65rem;
+    }
+
+    .quiz-shell-question .quiz-card {
+        min-height: auto;
+        padding: 1.5rem;
+    }
+
+    .quiz-shell-question .quiz-direction {
+        margin-bottom: 0.5rem;
+    }
+
+    .quiz-shell-question .quiz-prompt {
+        margin-bottom: 1.25rem;
+        font-size: clamp(2.25rem, 4vw, 3.25rem);
+    }
+
+    .quiz-shell-question .quiz-choices {
+        gap: 0.65rem;
+    }
+
+    .quiz-shell-question .quiz-choice {
+        min-height: 60px;
+        padding: 0.75rem;
+    }
+
+    .quiz-shell-question .quiz-feedback {
+        margin-top: 0.75rem;
+    }
+
+    .quiz-shell-question .quiz-actions:has(a:not([hidden])) {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
     }
 }
 

@@ -55,7 +55,8 @@ public class QuizService : IQuizService
         int setId,
         string userId,
         UserStudySettings settings,
-        int? timeLimitMinutes)
+        int? timeLimitMinutes,
+        int? questionCount = null)
     {
         // 1. Kiểm tra `timeLimitMinutes.HasValue && timeLimitMinutes is < MinimumQuizMinut...` để chọn nhánh xử lý phù hợp.
         if (timeLimitMinutes.HasValue
@@ -63,6 +64,10 @@ public class QuizService : IQuizService
         {
             // 2. Dừng xử lý và phát sinh lỗi `new ArgumentOutOfRangeException(nameof(timeLimitMinutes))`.
             throw new ArgumentOutOfRangeException(nameof(timeLimitMinutes));
+        }
+        if (questionCount is <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(questionCount));
         }
 
         // 3. Gọi `GetOwnedSetAsync` để thực hiện bước nghiệp vụ này.
@@ -121,6 +126,10 @@ public class QuizService : IQuizService
                 setId,
                 userId,
                 sourceCards);
+            if (questionCount.HasValue)
+            {
+                questions = questions.Take(questionCount.Value).ToList();
+            }
             // 16. Cập nhật `session.PlannedItemCount` bằng giá trị mới.
             session.PlannedItemCount = questions.Count;
             // 17. Duyệt từng `question` trong `questions` để xử lý lần lượt.
