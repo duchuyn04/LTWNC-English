@@ -7,6 +7,8 @@ public sealed class ProfileStatisticsViewModel
     public int TotalFlashcardCount { get; init; }
     public int LearnedFlashcardCount { get; init; }
     public int CompletedSessionCount { get; init; }
+    public int CompletedReviewSessionCount { get; init; }
+    public int ReviewActivityDayCount { get; init; }
     public int UnlockedBadgeCount { get; init; }
     public int CurrentStreak { get; init; }
 }

@@ -11,6 +11,8 @@ public sealed class ProfileService : IProfileService
     private readonly AppDbContext _db;
     private readonly IAuthService _authService;
     private readonly TimeProvider _timeProvider;
+    private static readonly TimeZoneInfo VietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById(
+        OperatingSystem.IsWindows() ? "SE Asia Standard Time" : "Asia/Ho_Chi_Minh");
 
     public ProfileService(
         AppDbContext db,
@@ -76,9 +78,13 @@ public sealed class ProfileService : IProfileService
         // 13. Tính giá trị và lưu vào `showPublicSets` để dùng ở bước tiếp theo.
         bool showPublicSets = isOwner || profile.ShowPublicSets;
 
+        ReviewActivityStatistics? reviewActivity = showStats || showActivity
+            ? await LoadReviewActivityStatisticsAsync(user.Id, cancellationToken)
+            : null;
+
         // 14. Tính giá trị và lưu vào `statistics` để dùng ở bước tiếp theo.
         ProfileStatisticsViewModel? statistics = showStats
-            ? await BuildStatisticsAsync(user.Id, cancellationToken)
+            ? await BuildStatisticsAsync(user.Id, reviewActivity!, cancellationToken)
             : null;
         // 15. Tính giá trị và lưu vào `badges` để dùng ở bước tiếp theo.
         IReadOnlyList<ProfileBadgeViewModel> badges = showBadges
@@ -86,7 +92,7 @@ public sealed class ProfileService : IProfileService
             : [];
         // 16. Tính giá trị và lưu vào `timeline` để dùng ở bước tiếp theo.
         IReadOnlyList<ProfileTimelineItemViewModel> timeline = showActivity
-            ? await LoadTimelineAsync(user.Id, cancellationToken)
+            ? await LoadTimelineAsync(user.Id, reviewActivity!.Sessions, cancellationToken)
             : [];
         // 17. Tính giá trị và lưu vào `publicSets` để dùng ở bước tiếp theo.
         IReadOnlyList<ProfilePublicSetViewModel> publicSets = showPublicSets
@@ -314,6 +320,7 @@ public sealed class ProfileService : IProfileService
 
     private async Task<ProfileStatisticsViewModel> BuildStatisticsAsync(
         string userId,
+        ReviewActivityStatistics reviewStatistics,
         CancellationToken cancellationToken)
     {
         // 1. Gọi `ToListAsync` và lưu kết quả vào `setIds`.
@@ -323,11 +330,21 @@ public sealed class ProfileService : IProfileService
             .ToListAsync(cancellationToken);
 
         // 2. Tính giá trị và lưu vào `now` để dùng ở bước tiếp theo.
-        DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
+        DateTimeOffset now = _timeProvider.GetUtcNow();
         // 3. Gọi `LoadActiveDatesAsync` và lưu kết quả vào `activeDates`.
-        List<DateTime> activeDates = await LoadActiveDatesAsync(userId, cancellationToken);
+        List<DateTime> activeDates = await LoadActiveDatesAsync(
+            userId,
+            reviewStatistics.ActivityDates,
+            cancellationToken);
+        DateTime streakToday = reviewStatistics.ActivityDates.Count > 0
+            ? ToVietnamDate(now)
+            : now.UtcDateTime.Date;
 
         // 4. Tạo và trả đối tượng kết quả cho nơi gọi.
+        int completedStudySessionCount = await _db.StudySessions.CountAsync(
+            session => session.UserId == userId && session.CompletedAt.HasValue,
+            cancellationToken);
+
         return new ProfileStatisticsViewModel
         {
             OwnedSetCount = setIds.Count,
@@ -341,11 +358,12 @@ public sealed class ProfileService : IProfileService
                 card => setIds.Contains(card.FlashcardSetId), cancellationToken),
             LearnedFlashcardCount = await _db.UserProgresses.CountAsync(
                 progress => progress.UserId == userId && progress.IsLearned, cancellationToken),
-            CompletedSessionCount = await _db.StudySessions.CountAsync(
-                session => session.UserId == userId && session.CompletedAt.HasValue, cancellationToken),
+            CompletedSessionCount = completedStudySessionCount + reviewStatistics.CompletedReviewSessionCount,
+            CompletedReviewSessionCount = reviewStatistics.CompletedReviewSessionCount,
+            ReviewActivityDayCount = reviewStatistics.ActivityDates.Count,
             UnlockedBadgeCount = await _db.UserAchievements.CountAsync(
                 achievement => achievement.UserId == userId, cancellationToken),
-            CurrentStreak = CalculateStreak(activeDates, now.Date)
+            CurrentStreak = CalculateStreak(activeDates, streakToday)
         };
     }
 
@@ -393,6 +411,7 @@ public sealed class ProfileService : IProfileService
 
     private async Task<IReadOnlyList<ProfileTimelineItemViewModel>> LoadTimelineAsync(
         string userId,
+        IReadOnlyList<ReviewSession> reviewSessions,
         CancellationToken cancellationToken)
     {
         // 1. Khởi tạo `items` với dữ liệu ban đầu cần thiết.
@@ -439,6 +458,32 @@ public sealed class ProfileService : IProfileService
             })
             .ToListAsync(cancellationToken));
 
+        items.AddRange(reviewSessions
+            .Where(session => session.Items.Any(item => item.Rating.HasValue))
+            .Select(session =>
+            {
+                int ratedCount = session.Items.Count(item => item.Rating.HasValue);
+                DateTime timestamp = session.Items
+                    .Where(item => item.RatedAtUtc.HasValue)
+                    .Select(item => item.RatedAtUtc!.Value.UtcDateTime)
+                    .DefaultIfEmpty(session.CompletedAtUtc?.UtcDateTime
+                        ?? session.EndedAtUtc?.UtcDateTime
+                        ?? session.StartedAtUtc.UtcDateTime)
+                    .Max();
+                string title = session.CompletedAtUtc.HasValue
+                    ? "Hoàn thành lượt ôn"
+                    : session.EndedAtUtc.HasValue
+                        ? "Kết thúc lượt ôn"
+                        : "Ôn tập đến hạn";
+                return new ProfileTimelineItemViewModel
+                {
+                    Kind = "review",
+                    Title = title,
+                    Detail = $"{ratedCount} thẻ đã đánh giá",
+                    Timestamp = timestamp
+                };
+            }));
+
         // 5. Trả kết quả từ `ToList` cho nơi gọi.
         return items
             .OrderByDescending(item => item.Timestamp)
@@ -448,6 +493,7 @@ public sealed class ProfileService : IProfileService
 
     private async Task<List<DateTime>> LoadActiveDatesAsync(
         string userId,
+        IReadOnlyList<DateTime> reviewActivityDates,
         CancellationToken cancellationToken)
     {
         // 1. Gọi `ToListAsync` và lưu kết quả vào `dates`.
@@ -468,8 +514,38 @@ public sealed class ProfileService : IProfileService
                 && set.ModerationStatus == FlashcardSetModerationStatus.Active)
             .Select(set => set.CreatedAt)
             .ToListAsync(cancellationToken));
+
+        bool useVietnamCalendar = reviewActivityDates.Count > 0;
+        dates = dates
+            .Select(date => useVietnamCalendar ? ToVietnamDate(date) : date.Date)
+            .ToList();
+
+        dates.AddRange(reviewActivityDates);
+
         // 4. Trả kết quả từ `ToList` cho nơi gọi.
-        return dates.Select(date => date.Date).Distinct().ToList();
+        return dates.Distinct().ToList();
+    }
+
+    private async Task<ReviewActivityStatistics> LoadReviewActivityStatisticsAsync(
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        List<ReviewSession> sessions = await _db.ReviewSessions
+            .AsNoTracking()
+            .Include(session => session.Items)
+            .Where(session => session.UserId == userId)
+            .ToListAsync(cancellationToken);
+        List<DateTime> activityDates = sessions
+            .SelectMany(session => session.Items)
+            .Where(item => item.Rating.HasValue && item.RatedAtUtc.HasValue)
+            .Select(item => ToVietnamDate(item.RatedAtUtc!.Value))
+            .Distinct()
+            .ToList();
+
+        return new ReviewActivityStatistics(
+            sessions.Count(session => session.CompletedAtUtc.HasValue),
+            activityDates,
+            sessions);
     }
 
     private static int CalculateStreak(IEnumerable<DateTime> activeDates, DateTime today)
@@ -492,6 +568,21 @@ public sealed class ProfileService : IProfileService
         // 7. Trả `streak` cho nơi gọi.
         return streak;
     }
+
+    private static DateTime ToVietnamDate(DateTime utc)
+    {
+        return ToVietnamDate(new DateTimeOffset(DateTime.SpecifyKind(utc, DateTimeKind.Utc)));
+    }
+
+    private static DateTime ToVietnamDate(DateTimeOffset utc)
+    {
+        return TimeZoneInfo.ConvertTime(utc, VietnamTimeZone).Date;
+    }
+
+    private sealed record ReviewActivityStatistics(
+        int CompletedReviewSessionCount,
+        IReadOnlyList<DateTime> ActivityDates,
+        IReadOnlyList<ReviewSession> Sessions);
 
     private static string AvatarInitial(string username)
     {

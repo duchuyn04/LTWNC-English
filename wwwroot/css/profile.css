@@ -135,7 +135,7 @@
 
 .profile-stats {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(6, 1fr);
     margin: 0 0 30px;
     overflow: hidden;
     border: 1px solid var(--line);
@@ -964,11 +964,11 @@
         grid-template-columns: repeat(2, 1fr);
     }
 
-    .profile-stats div:nth-child(2) {
+    .profile-stats div:nth-child(2n) {
         border-right: 0;
     }
 
-    .profile-stats div:nth-child(-n + 2) {
+    .profile-stats div:nth-child(-n + 4) {
         border-bottom: 1px solid var(--line);
     }
 
