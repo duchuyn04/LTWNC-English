@@ -62,7 +62,7 @@ public sealed class EnglishMissionServiceTests
         await context.SaveChangesAsync();
 
         var router = new QueueRouter(
-            "{\"title\":\"At the airport\",\"situation\":\"Lost bag\",\"npcName\":\"Alex\",\"npcRole\":\"Staff\",\"openingLine\":\"How can I help?\",\"goals\":[{\"id\":\"report\",\"descriptionVi\":\"Báo sự cố\"}]}");
+            "{\"title\":\"At the airport\",\"situation\":\"Lost bag\",\"npcName\":\"Alex\",\"npcRole\":\"Staff\",\"openingLine\":\"How can I help?\",\"suggestedReplyEn\":\"I lost my bag.\",\"suggestedReplyVi\":\"Tôi bị thất lạc hành lý.\",\"goals\":[{\"id\":\"report\",\"descriptionVi\":\"Báo sự cố\"}]}");
         EnglishMissionService service = CreateService(context, router);
         EnglishMissionStartResult started = await service.StartAsync("learner", 1, "airport");
 
@@ -139,17 +139,21 @@ public sealed class EnglishMissionServiceTests
         await context.SaveChangesAsync();
 
         var router = new QueueRouter(
-            "{\"title\":\"At the airport\",\"situation\":\"Lost bag\",\"npcName\":\"Alex\",\"npcRole\":\"Staff\",\"openingLine\":\"How can I help?\",\"goals\":[{\"id\":\"report\",\"descriptionVi\":\"Báo sự cố\"}]}",
-            "{\"npcReply\":\"What color is it?\",\"feedbackVi\":\"Rõ ý\",\"correctionEn\":null,\"correctionExplanationVi\":null,\"usedTargetWords\":[\"word1\"],\"achievedGoalIds\":[\"report\"],\"missionCompleted\":true}");
+            "{\"title\":\"At the airport\",\"situation\":\"Lost bag\",\"npcName\":\"Alex\",\"npcRole\":\"Staff\",\"openingLine\":\"How can I help?\",\"suggestedReplyEn\":\"I lost my bag.\",\"suggestedReplyVi\":\"Tôi bị thất lạc hành lý.\",\"goals\":[{\"id\":\"report\",\"descriptionVi\":\"Báo sự cố\"}]}",
+            "{\"npcReply\":\"What color is it?\",\"suggestedReplyEn\":\"It is a black suitcase.\",\"suggestedReplyVi\":\"Đó là một chiếc vali màu đen.\",\"feedbackVi\":\"Rõ ý\",\"correctionEn\":null,\"correctionExplanationVi\":null,\"usedTargetWords\":[\"word1\"],\"achievedGoalIds\":[\"report\"],\"missionCompleted\":true}");
         EnglishMissionService service = CreateService(context, router);
 
         EnglishMissionStartResult started = await service.StartAsync("user", 1, "airport");
+        Assert.Equal("I lost my bag.", started.Mission.SuggestedReplyEn);
+        Assert.Equal("Tôi bị thất lạc hành lý.", started.Mission.SuggestedReplyVi);
         EnglishMissionRespondResult response = await service.RespondAsync("user", 1, started.Mission.StudySessionId, "turn-1", "I lost word1");
 
         Assert.Equal(3, started.TargetWords.Count);
         Assert.Equal(3, started.Mission.StudySession!.PlannedItemCount);
         Assert.True(response.TargetWords.Single(word => word.Term == "word1").IsUsed);
         Assert.Equal("What color is it?", response.Turn.NpcText);
+        Assert.Equal("It is a black suitcase.", response.Mission.SuggestedReplyEn);
+        Assert.Equal("Đó là một chiếc vali màu đen.", response.Mission.SuggestedReplyVi);
         Assert.Equal("Completed", response.Mission.Status);
         Assert.Single(await context.EnglishMissionTurns.ToListAsync());
 
@@ -157,6 +161,35 @@ public sealed class EnglishMissionServiceTests
             "user", 1, started.Mission.StudySessionId, "turn-1", "I lost word1");
         Assert.Equal(response.Turn.Id, retried.Turn.Id);
         Assert.Single(await context.EnglishMissionTurns.ToListAsync());
+    }
+
+    [Fact]
+    public async Task StartAndRespond_PromptsRequireSimpleA1A2Conversation()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedPublicSetAsync(context);
+        var router = new QueueRouter(StartPayload, TurnPayload);
+        EnglishMissionService service = CreateService(context, router);
+
+        EnglishMissionStartResult started = await service.StartAsync("learner", 1, "airport");
+        await service.RespondAsync(
+            "learner",
+            1,
+            started.Mission.StudySessionId,
+            "simple-a1-a2-turn",
+            "I lost my bag.");
+
+        Assert.Equal(2, router.Requests.Count);
+        Assert.All(router.Requests, request =>
+            Assert.Contains("CEFR A1-A2", request.SystemPrompt, StringComparison.Ordinal));
+        Assert.Contains("no more than 15 words", router.Requests[0].SystemPrompt, StringComparison.Ordinal);
+        Assert.Contains("at most one simple question", router.Requests[1].SystemPrompt, StringComparison.Ordinal);
+        Assert.All(router.Requests, request =>
+        {
+            Assert.Contains("exactly one simple sentence", request.SystemPrompt, StringComparison.Ordinal);
+            Assert.Contains("no more than 12 words", request.SystemPrompt, StringComparison.Ordinal);
+            Assert.Contains("at most one target word", request.SystemPrompt, StringComparison.Ordinal);
+        });
     }
 
     [Fact]
@@ -264,8 +297,11 @@ public sealed class EnglishMissionServiceTests
     private sealed class QueueRouter(params string[] responses) : IAiCompletionRouter
     {
         private readonly Queue<string> _responses = new(responses);
+        public List<AiCompletionRequest> Requests { get; } = [];
+
         public Task<AiCompletionResult> CompleteAsync(AiCompletionRequest request, Func<string, bool>? responseValidator = null, CancellationToken cancellationToken = default)
         {
+            Requests.Add(request);
             string content = _responses.Dequeue();
             Assert.True(responseValidator?.Invoke(content) ?? true);
             return Task.FromResult(new AiCompletionResult(content, 1, "Fake", "fake-model"));
@@ -273,10 +309,10 @@ public sealed class EnglishMissionServiceTests
     }
 
     private const string StartPayload =
-        "{\"title\":\"At the airport\",\"situation\":\"Lost bag\",\"npcName\":\"Alex\",\"npcRole\":\"Staff\",\"openingLine\":\"How can I help?\",\"goals\":[{\"id\":\"report\",\"descriptionVi\":\"Báo sự cố\"}]}";
+        "{\"title\":\"At the airport\",\"situation\":\"Lost bag\",\"npcName\":\"Alex\",\"npcRole\":\"Staff\",\"openingLine\":\"How can I help?\",\"suggestedReplyEn\":\"I lost my bag.\",\"suggestedReplyVi\":\"Tôi bị thất lạc hành lý.\",\"goals\":[{\"id\":\"report\",\"descriptionVi\":\"Báo sự cố\"}]}";
 
     private const string TurnPayload =
-        "{\"npcReply\":\"What color is it?\",\"feedbackVi\":\"Rõ ý\",\"correctionEn\":null,\"correctionExplanationVi\":null,\"usedTargetWords\":[\"word1\"],\"achievedGoalIds\":[\"report\"],\"missionCompleted\":false}";
+        "{\"npcReply\":\"What color is it?\",\"suggestedReplyEn\":\"It is a black suitcase.\",\"suggestedReplyVi\":\"Đó là một chiếc vali màu đen.\",\"feedbackVi\":\"Rõ ý\",\"correctionEn\":null,\"correctionExplanationVi\":null,\"usedTargetWords\":[\"word1\"],\"achievedGoalIds\":[\"report\"],\"missionCompleted\":false}";
 
     // Cách ly bộ thẻ ngay trước phản hồi AI thứ hai để mô phỏng thao tác Admin đồng thời.
     private sealed class QuarantineOnSecondRequestRouter(

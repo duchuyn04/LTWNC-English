@@ -40,13 +40,15 @@ public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
         AiCompletionRequest request,
         CancellationToken cancellationToken)
     {
+        bool isXiaomiMimo = IsXiaomiMimo(connection.BaseUrl);
         var openAiRequest = new OpenAiChatRequest(
             connection.ModelId,
             [
                 new OpenAiChatMessage("system", request.SystemPrompt),
                 new OpenAiChatMessage("user", request.UserPrompt)
             ],
-            request.MaxTokens,
+            isXiaomiMimo ? null : request.MaxTokens,
+            isXiaomiMimo ? request.MaxTokens : null,
             0.3m);
 
         try
@@ -69,6 +71,13 @@ public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
         {
             throw ToApplicationException(exception);
         }
+    }
+
+    private static bool IsXiaomiMimo(string baseUrl)
+    {
+        return Uri.TryCreate(baseUrl, UriKind.Absolute, out Uri? uri)
+            && (uri.Host.Equals("xiaomimimo.com", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.EndsWith(".xiaomimimo.com", StringComparison.OrdinalIgnoreCase));
     }
 
     // Chuyển Target configuration sang cấu hình riêng của Adaptee, không mang theo API key.

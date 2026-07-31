@@ -42,7 +42,7 @@ public sealed class AiProviderEditViewModel
     public bool HasApiKey { get; set; }
     public string? ApiKeyLastFour { get; set; }
     public bool IsEnabled { get; set; } = true;
-    [Range(0, 10000)] public int Priority { get; set; }
+    [Range(1, 10000)] public int Priority { get; set; } = 1;
     [Range(5, 300)] public int TimeoutSeconds { get; set; } = 60;
 
     [Required, MaxLength(500)]

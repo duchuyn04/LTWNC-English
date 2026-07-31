@@ -31,7 +31,7 @@ public class AiProvider
     // Đánh dấu nhà cung cấp chính; toàn hệ thống chỉ có tối đa một nhà cung cấp chính.
     public bool IsPrimary { get; set; }
 
-    public int Priority { get; set; }
+    public int Priority { get; set; } = 1;
     public int TimeoutSeconds { get; set; } = 60;
     public DateTime? LastCheckedAt { get; set; }
     public bool? LastCheckSucceeded { get; set; }

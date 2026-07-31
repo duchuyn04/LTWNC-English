@@ -1,5 +1,13 @@
 [
   {
+    "date": "2026-07-30",
+    "macrostructure": "Index-First",
+    "theme": "LTWNC warm editorial",
+    "enrichment": "none",
+    "brief": "Remove redundant reason fields and compact AI provider lifecycle actions",
+    "scope": "single-page"
+  },
+  {
     "date": "2026-07-29",
     "macrostructure": "Split Studio",
     "theme": "LTWNC warm editorial",

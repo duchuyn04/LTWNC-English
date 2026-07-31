@@ -1,6 +1,7 @@
 @model ltwnc.Models.ViewModels.EnglishMission.EnglishMissionChatViewModel
 @{
     ViewData["Title"] = Model.Mission.Title;
+    ViewData["HideLayoutChrome"] = true;
 }
 
 @section Styles {
@@ -11,6 +12,7 @@
      data-set-id="@Model.SetId"
      data-session-id="@Model.Mission.StudySessionId"
      data-npc-name="@Model.Mission.NpcName"
+     data-opening-line="@Model.Mission.OpeningLine"
      data-max-turns="8"
      aria-busy="false">
     @Html.AntiForgeryToken()
@@ -22,7 +24,7 @@
         </div>
     }
     <aside class="mission-rail">
-        <a class="mission-rail-brand" href="/Study/@Model.SetId"><i class="ph ph-compass"></i><span>ENGLISH<br>MISSION</span></a>
+        <a class="mission-rail-brand" href="/Study/@Model.SetId" aria-label="Rời mission và quay lại Study Hub"><i class="ph ph-arrow-left" aria-hidden="true"></i><span>ENGLISH<br>MISSION</span></a>
         <div class="mission-rail-progress">
             <span class="mission-label">Tiến độ</span>
             <strong><span id="mission-turn-count" aria-live="polite">@Model.Mission.TurnCount</span> <small>/ 8 lượt</small></strong>
@@ -40,7 +42,7 @@
         <div class="mission-rail-words"><span class="mission-label">Từ mục tiêu</span>
             @foreach (var word in Model.TargetWords)
             {
-                <span class="mission-word-chip @(word.IsUsed ? "is-used" : "")" data-word="@word.Term"><span>@word.Term</span>@if(word.IsUsed){<i class="ph ph-check"></i>}</span>
+                <span class="mission-word-chip @(word.IsUsed ? "is-used" : "")" data-word="@word.Term"><span><strong>@word.Term</strong><small>@word.Definition</small></span>@if(word.IsUsed){<i class="ph ph-check"></i>}</span>
             }
         </div>
         <div class="mission-situation"><span class="mission-label">Tình huống</span><p>@Model.Mission.Situation</p></div>
@@ -48,7 +50,7 @@
     </aside>
 
     <section class="mission-chat-main">
-        <header class="mission-chat-header"><div><span class="mission-eyebrow">English Mission / @Model.SetTitle</span><h1>@Model.Mission.Title</h1></div><span class="mission-live"><i></i> Đang diễn ra</span></header>
+        <header class="mission-chat-header"><div><span class="mission-eyebrow">English Mission / @Model.SetTitle</span><h1>@Model.Mission.Title</h1><p>Luyện phản xạ bằng cách trả lời tự nhiên và đưa từ mục tiêu vào hội thoại.</p></div><span class="mission-live" aria-label="Mission đang diễn ra"><i aria-hidden="true"></i> Đang diễn ra</span></header>
         <div id="mission-transcript"
              class="mission-chat-stage"
              role="log"
@@ -64,11 +66,20 @@
             }
         </div>
         <div id="mission-error" class="mission-request-error" role="alert" hidden><i class="ph ph-warning-circle" aria-hidden="true"></i><div><strong>Không thể kết nối gia sư AI</strong><p></p></div><button type="button" id="mission-retry">Thử lại</button></div>
-        <form id="mission-composer" class="mission-composer" onsubmit="return false">
-            <label class="mission-composer-label" for="mission-answer">Câu trả lời bằng tiếng Anh</label>
-            <textarea id="mission-answer" rows="2" maxlength="1000" placeholder="Ví dụ: I would like to report a missing bag." aria-describedby="mission-composer-hint" lang="en"></textarea>
-            <div class="mission-composer-actions"><span id="mission-composer-hint">Nhấn <kbd>Enter</kbd> để gửi · Shift + Enter để xuống dòng</span><button id="mission-send" class="mission-send" type="button" aria-label="Gửi câu trả lời"><i class="ph ph-arrow-up" aria-hidden="true"></i></button></div>
-        </form>
+        <div class="mission-response-dock">
+            <section class="mission-suggestion @(string.IsNullOrWhiteSpace(Model.Mission.SuggestedReplyEn) ? "is-empty" : "")" data-mission-suggestion aria-label="Gợi ý câu trả lời mẫu">
+                <div class="mission-suggestion-heading"><span><i class="ph ph-lightbulb" aria-hidden="true"></i> Gợi ý trả lời</span><small>Nhấn để dùng câu mẫu</small></div>
+                <button class="mission-suggestion-copy" type="button">
+                    <strong data-suggestion-en lang="en">@Model.Mission.SuggestedReplyEn</strong>
+                    <span data-suggestion-vi lang="vi">@Model.Mission.SuggestedReplyVi</span>
+                </button>
+            </section>
+            <form id="mission-composer" class="mission-composer" onsubmit="return false">
+                <label class="mission-composer-label" for="mission-answer">Câu trả lời bằng tiếng Anh</label>
+                <textarea id="mission-answer" rows="2" maxlength="1000" placeholder="Viết câu trả lời của bạn..." aria-describedby="mission-composer-hint" lang="en"></textarea>
+                <div class="mission-composer-actions"><span id="mission-composer-hint">Nhấn <kbd>Enter</kbd> để gửi · Shift + Enter để xuống dòng</span><button id="mission-send" class="mission-send" type="button" aria-label="Gửi câu trả lời"><i class="ph ph-arrow-up" aria-hidden="true"></i></button></div>
+            </form>
+        </div>
     </section>
 </div>
 

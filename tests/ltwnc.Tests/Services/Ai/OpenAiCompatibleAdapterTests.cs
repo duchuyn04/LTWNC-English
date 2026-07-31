@@ -71,6 +71,41 @@ public sealed class OpenAiCompatibleAdapterTests
         Assert.Equal("learner-message", messages[1].GetProperty("content").GetString());
     }
 
+    [Fact]
+    public async Task CompleteAsync_XiaomiMimo_UsesDocumentedCompletionTokenField()
+    {
+        string? requestBody = null;
+        var handler = new StubHttpMessageHandler(async (request, cancellationToken) =>
+        {
+            requestBody = await request.Content!.ReadAsStringAsync(cancellationToken);
+            return new HttpResponseMessage(HttpStatusCode.OK)
+            {
+                Content = new StringContent(
+                    "{\"choices\":[{\"message\":{\"content\":\"mimo-ok\"}}]}",
+                    Encoding.UTF8,
+                    "application/json")
+            };
+        });
+        IAiProviderAdapter adapter = CreateAdapter(handler);
+        var connection = new AiProviderConnection(
+            "MiMo",
+            "https://api.xiaomimimo.com/v1",
+            "mimo-v2.5-pro",
+            30);
+
+        string result = await adapter.CompleteAsync(
+            connection,
+            "sk-test",
+            new AiCompletionRequest("system", "user", 321),
+            CancellationToken.None);
+
+        Assert.Equal("mimo-ok", result);
+        using JsonDocument document = JsonDocument.Parse(requestBody!);
+        JsonElement root = document.RootElement;
+        Assert.Equal(321, root.GetProperty("max_completion_tokens").GetInt32());
+        Assert.False(root.TryGetProperty("max_tokens", out _));
+    }
+
     [Theory]
     [InlineData(HttpStatusCode.BadRequest)]
     [InlineData(HttpStatusCode.Unauthorized)]

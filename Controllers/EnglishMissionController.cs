@@ -123,6 +123,8 @@ public sealed class EnglishMissionController : Controller
                     correctionExplanationVi = result.Turn.CorrectionExplanationVi
                 },
                 targetWords = result.TargetWords.Select(word => new { word.Term, word.IsUsed }),
+                suggestedReplyEn = result.Mission.SuggestedReplyEn,
+                suggestedReplyVi = result.Mission.SuggestedReplyVi,
                 completed = result.Mission.Status == "Completed",
                 score = result.Mission.Score,
                 resultUrl = Url.Action(nameof(Result), new { setId, sessionId })

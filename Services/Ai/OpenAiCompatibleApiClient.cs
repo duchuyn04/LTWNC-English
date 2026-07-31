@@ -108,9 +108,10 @@ public sealed class OpenAiCompatibleApiClient
                 ? OpenAiClientFailureKind.Configuration
                 : OpenAiClientFailureKind.Unavailable;
 
-        throw new OpenAiClientException(
-            failureKind,
-            $"{configuration.Name} trả HTTP {(int)response.StatusCode}.");
+        string message = response.StatusCode == HttpStatusCode.NotFound
+            ? $"{configuration.Name} trả HTTP 404. Kiểm tra Base URL và model ID."
+            : $"{configuration.Name} trả HTTP {(int)response.StatusCode}.";
+        throw new OpenAiClientException(failureKind, message);
     }
 
     internal static Uri BuildEndpoint(

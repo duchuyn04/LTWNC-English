@@ -41,7 +41,7 @@ public sealed class AiProviderInput
     public string? ApiKey { get; set; }
     public bool ClearApiKey { get; set; }
     public bool IsEnabled { get; set; } = true;
-    public int Priority { get; set; }
+    public int Priority { get; set; } = 1;
     public int TimeoutSeconds { get; set; } = 60;
 
     // Lý do thay đổi, bắt buộc để ghi vào Bản ghi kiểm toán quản trị.

@@ -27,11 +27,11 @@
 
     <form method="post"
           action="/Admin/AiProviders/Save"
-          class="provider-form"
-          onsubmit="return confirm('Lưu thay đổi cấu hình nhà cung cấp này?');">
+          class="provider-form">
         @Html.AntiForgeryToken()
         <input asp-for="Id" type="hidden" />
         <input asp-for="Version" type="hidden" />
+        <input type="hidden" name="Reason" value="Lưu cấu hình qua giao diện quản trị." />
         <div asp-validation-summary="ModelOnly" class="provider-validation"></div>
 
         @if (Model.IsPrimary)
@@ -44,7 +44,7 @@
 
         <label>
             <span>Tên nhà cung cấp</span>
-            <input asp-for="Name" placeholder="9Router Local" />
+            <input asp-for="Name" placeholder="Tên hiển thị" />
         </label>
         <label>
             <span>Bộ chuyển đổi</span>
@@ -54,17 +54,18 @@
         </label>
         <label class="wide">
             <span>URL gốc</span>
-            <input asp-for="BaseUrl" placeholder="http://localhost:20128/v1" />
+            <input asp-for="BaseUrl" placeholder="https://api.example.com/v1" />
         </label>
         <label class="wide">
             <span>Mã mô hình</span>
-            <input asp-for="ModelId" placeholder="cx/gpt-5.6-luna" />
+            <input asp-for="ModelId" placeholder="Mã mô hình" />
         </label>
         <label class="wide">
             <span>Khóa API @ApiKeyStatus()</span>
             <input asp-for="ApiKey"
                    autocomplete="new-password"
-                   placeholder="Để trống để giữ nguyên hoặc không dùng khóa" />
+                   placeholder="API key của nhà cung cấp" />
+            <small class="provider-field-hint">Với Xiaomi MiMo backend, dùng pay-as-you-go URL và khóa dạng sk-...; Token Plan không hỗ trợ application backend.</small>
         </label>
         @if (Model.HasApiKey)
         {
@@ -83,14 +84,6 @@
         <label class="provider-checkbox wide">
             <input asp-for="IsEnabled" /> Bật nhà cung cấp
         </label>
-        <label class="wide">
-            <span>Lý do thay đổi</span>
-            <textarea asp-for="Reason"
-                      maxlength="500"
-                      required
-                      placeholder="Ví dụ: đổi mô hình mặc định sau khi kiểm tra thành công"></textarea>
-        </label>
-
         <div class="provider-form-actions wide">
             <a href="/Admin/AiProviders">Hủy</a>
             <button type="submit">Lưu nhà cung cấp</button>

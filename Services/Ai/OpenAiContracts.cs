@@ -15,7 +15,10 @@ internal sealed record OpenAiChatMessage(
 internal sealed record OpenAiChatRequest(
     [property: JsonPropertyName("model")] string Model,
     [property: JsonPropertyName("messages")] IReadOnlyList<OpenAiChatMessage> Messages,
-    [property: JsonPropertyName("max_tokens")] int MaxTokens,
+    [property: JsonPropertyName("max_tokens"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? MaxTokens,
+    [property: JsonPropertyName("max_completion_tokens"),
+     JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? MaxCompletionTokens,
     [property: JsonPropertyName("temperature")] decimal Temperature);
 
 internal sealed class OpenAiChatResponse

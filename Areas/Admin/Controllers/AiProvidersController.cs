@@ -182,7 +182,7 @@ public sealed class AiProvidersController : Controller
                 ApiKeyDisplay = apiKeyDisplay,
                 IsEnabled = provider.IsEnabled,
                 IsPrimary = provider.IsPrimary,
-                Priority = provider.Priority,
+                Priority = rows.Count + 1,
                 TimeoutSeconds = provider.TimeoutSeconds,
                 LastCheckedAt = provider.LastCheckedAt,
                 LastCheckSucceeded = provider.LastCheckSucceeded,

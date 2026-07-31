@@ -118,37 +118,51 @@
     @if (!hideLayoutChrome)
     {
     <footer class="app-footer">
-        <div class="container py-5">
-            <div class="row g-4">
-                <div class="col-lg-5">
-                    <div class="app-footer-brand"><i class="ph ph-book-open"></i> LTWNC</div>
-                    <p class="app-footer-tagline">Học từ vựng bằng flashcard, nghe chép và hội thoại tình huống.</p>
+        <div class="container app-footer-inner">
+            <div class="app-footer-main">
+                <div class="app-footer-intro">
+                    <a class="app-footer-brand" href="/" aria-label="LTWNC English - Trang chủ">
+                        <span class="app-footer-brand-mark"><i class="ph ph-book-open" aria-hidden="true"></i></span>
+                        <span>LTWNC <small>English</small></span>
+                    </a>
+                    <p class="app-footer-tagline">Biến từ mới thành vốn từ bạn thực sự sử dụng, qua những buổi học ngắn và đều đặn.</p>
+                    <a class="app-footer-cta" href="@(signedIn ? "/Set/Create" : "/Account/Register")">
+                        @(signedIn ? "Tạo bộ thẻ mới" : "Bắt đầu học miễn phí")
+                        <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                    </a>
                 </div>
-                <div class="col-lg-3 col-6">
-                    <div class="app-footer-heading">Điều hướng</div>
-                    <ul class="app-footer-links">
-                        <li><a href="/">Trang chủ</a></li>
-                        <li><a href="/Leaderboard">Bảng xếp hạng</a></li>
-                        <li><a href="/Library">Thư viện</a></li>
-                        @if (signedIn)
-                        {
-                            <li><a href="/Set">Bộ thẻ của tôi</a></li>
-                            <li><a href="/Achievements">Thành tích</a></li>
-                        }
-                        else
-                        {
-                            <li><a href="/Account/Login">Đăng nhập</a></li>
-                            <li><a href="/Account/Register">Đăng ký</a></li>
-                        }
-                    </ul>
-                </div>
-                <div class="col-lg-4 col-6">
-                    <div class="app-footer-heading">LTWNC English</div>
-                    <p class="app-footer-quote">Flashcard · Nghe chép · English Mission</p>
+
+                <div class="app-footer-navs">
+                    <nav aria-label="Khám phá">
+                        <div class="app-footer-heading">Khám phá</div>
+                        <ul class="app-footer-links">
+                            <li><a href="/Library">Thư viện bộ từ</a></li>
+                            <li><a href="/Leaderboard">Bảng xếp hạng</a></li>
+                            <li><a href="/#services">Phương pháp học</a></li>
+                        </ul>
+                    </nav>
+                    <nav aria-label="Tài khoản">
+                        <div class="app-footer-heading">Tài khoản</div>
+                        <ul class="app-footer-links">
+                            @if (signedIn)
+                            {
+                                <li><a href="/Set">Bộ thẻ của tôi</a></li>
+                                <li><a href="/Achievements">Thành tích</a></li>
+                                <li><a href="/Account/Profile/Edit">Chỉnh sửa hồ sơ</a></li>
+                            }
+                            else
+                            {
+                                <li><a href="/Account/Login">Đăng nhập</a></li>
+                                <li><a href="/Account/Register">Tạo tài khoản</a></li>
+                            }
+                        </ul>
+                    </nav>
                 </div>
             </div>
             <div class="app-footer-bottom">
-                &copy; @DateTime.Now.Year LTWNC English. Học tiếng Anh theo nhiều cách.
+                <span>&copy; @DateTime.Now.Year LTWNC English</span>
+                <span class="app-footer-signature">Flashcard <i aria-hidden="true"></i> Nghe chép <i aria-hidden="true"></i> Hội thoại AI</span>
+                <a asp-controller="Home" asp-action="Privacy">Quyền riêng tư</a>
             </div>
         </div>
     </footer>

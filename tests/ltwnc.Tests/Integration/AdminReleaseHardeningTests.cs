@@ -32,6 +32,35 @@ public sealed class AdminReleaseHardeningTests
         Assert.DoesNotContain("Chưa có provider", html);
     }
 
+    [Fact]
+    public void AiProviders_ReasonAuditFieldsStayHiddenFromTheInterface()
+    {
+        string viewsDirectory = Path.Combine(RepositoryRoot, "Areas", "Admin", "Views", "AiProviders");
+        string indexView = File.ReadAllText(Path.Combine(viewsDirectory, "Index.cshtml"));
+        string editView = File.ReadAllText(Path.Combine(viewsDirectory, "Edit.cshtml"));
+
+        Assert.DoesNotContain("Lý do đặt chính", indexView);
+        Assert.DoesNotContain("Lý do vô hiệu hóa", indexView);
+        Assert.DoesNotContain("Lý do bật lại", indexView);
+        Assert.DoesNotContain("Lý do thay đổi", editView);
+        Assert.Contains("type=\"hidden\" name=\"Reason\"", indexView);
+        Assert.Contains("type=\"hidden\" name=\"Reason\"", editView);
+    }
+
+    [Fact]
+    public void AiProviders_TestFeedbackUsesInlineNoticeInsteadOfBrowserAlert()
+    {
+        string indexView = File.ReadAllText(Path.Combine(
+            RepositoryRoot, "Areas", "Admin", "Views", "AiProviders", "Index.cshtml"));
+        string script = File.ReadAllText(Path.Combine(
+            RepositoryRoot, "wwwroot", "js", "ai-providers.js"));
+
+        Assert.Contains("data-provider-notice", indexView);
+        Assert.Contains("aria-live=\"polite\"", indexView);
+        Assert.Contains("function showNotice", script);
+        Assert.DoesNotContain("alert(", script);
+    }
+
     // Biểu đồ server-rendered phải có nhãn cho công nghệ hỗ trợ mà không cần JavaScript.
     [Fact]
     public async Task Dashboard_RendersAccessibleServerSideChart()

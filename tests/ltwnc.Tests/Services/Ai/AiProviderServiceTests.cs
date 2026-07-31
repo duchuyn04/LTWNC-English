@@ -71,6 +71,47 @@ public sealed class AiProviderServiceTests
         Assert.Equal("Model ID là bắt buộc.", result.Message);
     }
 
+    [Fact]
+    public async Task Save_RejectsXiaomiMimoWithoutApiKey()
+    {
+        var handler = new RecordingHandler("{}");
+        await using AppDbContext context = CreateContext();
+        AiProviderService service = CreateService(context, handler, allowPrivateNetworks: true);
+
+        AiProviderOperationResult result = await service.SaveAsync(null, new AiProviderInput
+        {
+            Name = "MiMo",
+            BaseUrl = "https://api.xiaomimimo.com/v1",
+            ModelId = "mimo-v2.5-pro",
+            Reason = "Xác nhận MiMo bắt buộc có khóa"
+        }, Actor());
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("API key", result.Message);
+        Assert.Empty(context.AiProviders);
+    }
+
+    [Fact]
+    public async Task Save_RejectsXiaomiMimoTokenPlanForApplicationBackend()
+    {
+        var handler = new RecordingHandler("{}");
+        await using AppDbContext context = CreateContext();
+        AiProviderService service = CreateService(context, handler, allowPrivateNetworks: true);
+
+        AiProviderOperationResult result = await service.SaveAsync(null, new AiProviderInput
+        {
+            Name = "MiMo Token Plan",
+            BaseUrl = "https://token-plan-sgp.xiaomimimo.com/v1",
+            ModelId = "mimo-v2.5-pro",
+            ApiKey = "tp-test-key",
+            Reason = "Không dùng gói công cụ lập trình cho backend"
+        }, Actor());
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("pay-as-you-go", result.Message);
+        Assert.Empty(context.AiProviders);
+    }
+
     [Theory]
     [InlineData(4)]
     [InlineData(301)]
@@ -91,6 +132,36 @@ public sealed class AiProviderServiceTests
 
         Assert.False(result.Succeeded);
         Assert.Equal("Timeout phải từ 5 đến 300 giây.", result.Message);
+    }
+
+    [Fact]
+    public async Task Save_RejectsPriorityAlreadyUsedByAnotherProvider()
+    {
+        var handler = new RecordingHandler("{}");
+        await using AppDbContext context = CreateContext();
+        AiProviderService service = CreateService(context, handler, allowPrivateNetworks: true);
+        context.AiProviders.Add(new AiProvider
+        {
+            Name = "Existing",
+            AdapterType = "OpenAICompatible",
+            BaseUrl = "https://existing.test/v1",
+            ModelId = "model-existing",
+            Priority = 1
+        });
+        await context.SaveChangesAsync();
+
+        AiProviderOperationResult result = await service.SaveAsync(null, new AiProviderInput
+        {
+            Name = "Duplicate priority",
+            BaseUrl = "https://example.test/v1",
+            ModelId = "model-a",
+            Priority = 1,
+            Reason = "Kiểm tra thứ tự ưu tiên không trùng"
+        }, Actor());
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("provider khác sử dụng", result.Message);
+        Assert.Single(context.AiProviders);
     }
 
     [Fact]
@@ -253,6 +324,48 @@ public sealed class AiProviderServiceTests
     }
 
     [Fact]
+    public async Task SetPrimary_ReplacesCurrentPrimaryWithoutViolatingUniqueIndex()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        DbContextOptions<AppDbContext> options = new DbContextOptionsBuilder<AppDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var context = new AppDbContext(options);
+        await context.Database.EnsureCreatedAsync();
+        var currentPrimary = new AiProvider
+        {
+            Name = "Current primary",
+            BaseUrl = "https://primary.test/v1",
+            ModelId = "model-primary",
+            IsPrimary = true,
+            Priority = 1
+        };
+        var replacement = new AiProvider
+        {
+            Name = "Replacement",
+            BaseUrl = "https://replacement.test/v1",
+            ModelId = "model-replacement",
+            Priority = 2
+        };
+        context.AiProviders.AddRange(currentPrimary, replacement);
+        await context.SaveChangesAsync();
+        context.ChangeTracker.Clear();
+        var service = CreateService(context, new RecordingHandler("{}"), allowPrivateNetworks: true);
+
+        AiProviderOperationResult result = await service.SetPrimaryAsync(
+            replacement.Id,
+            replacement.Version,
+            "Thay nhà cung cấp chính",
+            Actor());
+
+        Assert.True(result.Succeeded);
+        List<AiProvider> providers = await context.AiProviders.OrderBy(provider => provider.Id).ToListAsync();
+        Assert.False(providers[0].IsPrimary);
+        Assert.True(providers[1].IsPrimary);
+    }
+
+    [Fact]
     public async Task Disable_ReplacesHardDeleteAndWritesAudit()
     {
         var handler = new RecordingHandler("{}");
@@ -325,6 +438,30 @@ public sealed class AiProviderServiceTests
         Assert.Equal(3, failureCountBeforeSuccess);
         Assert.Equal(0, afterSuccess.ConsecutiveFailureCount);
         Assert.True(afterSuccess.LastCheckSucceeded);
+    }
+
+    [Fact]
+    public async Task TestAsync_XiaomiMimoWithoutApiKey_ReturnsConfigurationError()
+    {
+        var handler = new RecordingHandler("{}");
+        await using AppDbContext context = CreateContext();
+        AiProviderService service = CreateService(context, handler, allowPrivateNetworks: true);
+        var provider = new AiProvider
+        {
+            Name = "MiMo",
+            AdapterType = "OpenAICompatible",
+            BaseUrl = "https://api.xiaomimimo.com/v1",
+            ModelId = "mimo-v2.5-pro"
+        };
+        context.AiProviders.Add(provider);
+        await context.SaveChangesAsync();
+
+        AiProviderConfigurationException exception =
+            await Assert.ThrowsAsync<AiProviderConfigurationException>(() => service.TestAsync(provider.Id));
+
+        Assert.Contains("API key", exception.Message);
+        Assert.False(provider.LastCheckSucceeded);
+        Assert.Contains("API key", provider.LastError);
     }
 
     private static AiProviderActorContext Actor()

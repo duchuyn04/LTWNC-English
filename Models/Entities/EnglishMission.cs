@@ -13,6 +13,8 @@ public class EnglishMission
     [Required, MaxLength(120)] public string NpcName { get; set; } = string.Empty;
     [Required, MaxLength(200)] public string NpcRole { get; set; } = string.Empty;
     [Required] public string OpeningLine { get; set; } = string.Empty;
+    [MaxLength(1000)] public string? SuggestedReplyEn { get; set; }
+    [MaxLength(1000)] public string? SuggestedReplyVi { get; set; }
     [Required] public string GoalsJson { get; set; } = "[]";
     [Required, MaxLength(40)] public string Status { get; set; } = "Active";
     public int TurnCount { get; set; }

@@ -132,6 +132,8 @@ public sealed class EnglishMissionService : IEnglishMissionService
             NpcName = Limit(payload.NpcName, 120),
             NpcRole = Limit(payload.NpcRole ?? "Đối tác hội thoại", 200),
             OpeningLine = Limit(payload.OpeningLine, 2000),
+            SuggestedReplyEn = LimitNullable(payload.SuggestedReplyEn, 1000),
+            SuggestedReplyVi = LimitNullable(payload.SuggestedReplyVi, 1000),
             GoalsJson = JsonSerializer.Serialize(goals),
             Status = "Active"
         };
@@ -258,6 +260,8 @@ public sealed class EnglishMissionService : IEnglishMissionService
             ProviderName = ai.ProviderName,
             ModelId = ai.ModelId
         };
+        mission.SuggestedReplyEn = LimitNullable(payload.SuggestedReplyEn, 1000);
+        mission.SuggestedReplyVi = LimitNullable(payload.SuggestedReplyVi, 1000);
         // 22. Gọi `Add` để thực hiện bước nghiệp vụ này.
         _context.EnglishMissionTurns.Add(turn);
         // 23. Duyệt từng `word` trong `mission.TargetWords.Where(word => usedWords.Contains(word.Term))` để xử lý lần lượt.
@@ -593,6 +597,8 @@ public sealed class EnglishMissionService : IEnglishMissionService
                 && !string.IsNullOrWhiteSpace(payload.Situation)
                 && !string.IsNullOrWhiteSpace(payload.NpcName)
                 && !string.IsNullOrWhiteSpace(payload.OpeningLine)
+                && !string.IsNullOrWhiteSpace(payload.SuggestedReplyEn)
+                && !string.IsNullOrWhiteSpace(payload.SuggestedReplyVi)
                 && payload.Goals?.Any(goal => !string.IsNullOrWhiteSpace(goal.Id)) == true;
         }
         catch (AiProviderUnavailableException) { return false; }
@@ -602,7 +608,13 @@ public sealed class EnglishMissionService : IEnglishMissionService
     private static bool IsValidTurnPayload(string content)
     {
         // 1. Thực hiện khối nghiệp vụ và chuyển lỗi sang nhánh xử lý tương ứng.
-        try { return !string.IsNullOrWhiteSpace(Parse<TurnPayload>(content, "invalid").NpcReply); }
+        try
+        {
+            TurnPayload payload = Parse<TurnPayload>(content, "invalid");
+            return !string.IsNullOrWhiteSpace(payload.NpcReply)
+                && !string.IsNullOrWhiteSpace(payload.SuggestedReplyEn)
+                && !string.IsNullOrWhiteSpace(payload.SuggestedReplyVi);
+        }
         catch (AiProviderUnavailableException) { return false; }
     }
 
@@ -677,14 +689,14 @@ public sealed class EnglishMissionService : IEnglishMissionService
     private static string BuildStartSystemPrompt()
     {
         // 1. Trả `"Bạn là biên kịch English Mission. Chỉ trả về JSON hợp lệ, không ma...` cho nơi gọi.
-        return "Bạn là biên kịch English Mission. Chỉ trả về JSON hợp lệ, không markdown, theo schema: {title:string,situation:string,npcName:string,npcRole:string,openingLine:string,goals:[{id:string,descriptionVi:string}]}. Viết openingLine bằng tiếng Anh, các trường còn lại bằng tiếng Việt trừ title nếu tự nhiên. Không thêm trường khác.";
+        return "Bạn là biên kịch English Mission. Chỉ trả về JSON hợp lệ, không markdown, theo schema: {title:string,situation:string,npcName:string,npcRole:string,openingLine:string,suggestedReplyEn:string,suggestedReplyVi:string,goals:[{id:string,descriptionVi:string}]}. Viết openingLine và suggestedReplyEn bằng tiếng Anh; suggestedReplyVi là bản dịch tiếng Việt tự nhiên của suggestedReplyEn. Các trường còn lại bằng tiếng Việt trừ title nếu tự nhiên. Câu gợi ý phải phù hợp ngữ cảnh và giúp người học dùng từ mục tiêu. Required level: CEFR A1-A2. Use only common A1-A2 vocabulary and grammar, except the provided target words. openingLine must be one short question of no more than 15 words. suggestedReplyEn must be exactly one simple sentence with no more than 12 words and use at most one target word. Prefer a basic subject + verb + object pattern. Avoid commas, idioms, slang, long clauses, and advanced synonyms. Không thêm trường khác.";
     }
 
     // Tạo system prompt cố định cho từng lượt hội thoại.
     private static string BuildTurnSystemPrompt()
     {
         // 1. Trả `"Bạn là gia sư hội thoại tiếng Anh. Chỉ trả JSON hợp lệ theo schema...` cho nơi gọi.
-        return "Bạn là gia sư hội thoại tiếng Anh. Chỉ trả JSON hợp lệ theo schema: {npcReply:string,feedbackVi:string,correctionEn:string|null,correctionExplanationVi:string|null,usedTargetWords:string[],achievedGoalIds:string[],missionCompleted:boolean}. npcReply bằng tiếng Anh, phản hồi và giải thích bằng tiếng Việt. Không tự tạo goal hoặc từ không có trong danh sách.";
+        return "Bạn là gia sư hội thoại tiếng Anh. Chỉ trả JSON hợp lệ theo schema: {npcReply:string,suggestedReplyEn:string,suggestedReplyVi:string,feedbackVi:string,correctionEn:string|null,correctionExplanationVi:string|null,usedTargetWords:string[],achievedGoalIds:string[],missionCompleted:boolean}. npcReply và suggestedReplyEn bằng tiếng Anh; suggestedReplyVi là bản dịch tiếng Việt tự nhiên của suggestedReplyEn. Câu gợi ý phải trả lời trực tiếp npcReply và ưu tiên từ mục tiêu chưa dùng. Required level: CEFR A1-A2. Use only common A1-A2 vocabulary and grammar, except the provided target words. npcReply must be one or two short sentences, ask at most one simple question, and use no more than 20 words total. suggestedReplyEn must be exactly one simple sentence with no more than 12 words and use at most one target word. Prefer a basic subject + verb + object pattern. Avoid commas, idioms, slang, long clauses, and advanced synonyms. Phản hồi và giải thích bằng tiếng Việt, ngắn gọn và dễ hiểu. Không tự tạo goal hoặc từ không có trong danh sách.";
     }
 
     private sealed class StartPayload
@@ -694,12 +706,16 @@ public sealed class EnglishMissionService : IEnglishMissionService
         public string NpcName { get; set; } = string.Empty;
         public string? NpcRole { get; set; }
         public string OpeningLine { get; set; } = string.Empty;
+        public string SuggestedReplyEn { get; set; } = string.Empty;
+        public string SuggestedReplyVi { get; set; } = string.Empty;
         public List<GoalPayload>? Goals { get; set; }
     }
     private sealed class GoalPayload { public string Id { get; set; } = string.Empty; public string DescriptionVi { get; set; } = string.Empty; }
     private sealed class TurnPayload
     {
         public string NpcReply { get; set; } = string.Empty;
+        public string SuggestedReplyEn { get; set; } = string.Empty;
+        public string SuggestedReplyVi { get; set; } = string.Empty;
         public string? FeedbackVi { get; set; }
         public string? CorrectionEn { get; set; }
         public string? CorrectionExplanationVi { get; set; }

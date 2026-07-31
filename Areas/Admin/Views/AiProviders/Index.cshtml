@@ -31,6 +31,19 @@
         <div class="provider-error" role="alert">@error</div>
     }
 
+    <div class="provider-notice"
+         data-provider-notice
+         role="status"
+         aria-live="polite"
+         tabindex="-1"
+         hidden>
+        <i class="ph ph-info" data-provider-notice-icon aria-hidden="true"></i>
+        <span data-provider-notice-text></span>
+        <button type="button" data-provider-notice-dismiss aria-label="Đóng thông báo">
+            <i class="ph ph-x" aria-hidden="true"></i>
+        </button>
+    </div>
+
     @Html.AntiForgeryToken()
 
     <div class="provider-list">
@@ -87,42 +100,31 @@
                 <div class="provider-actions">
                     <button class="provider-test" type="button">Kiểm tra</button>
                     <a href="/Admin/AiProviders/@provider.Id/Edit">Sửa</a>
-                </div>
-                <div class="provider-lifecycle">
                     @if (!provider.IsPrimary && provider.IsEnabled)
                     {
-                        <form method="post"
-                              action="/Admin/AiProviders/@provider.Id/Primary"
-                              onsubmit="return confirm('Chọn nhà cung cấp này làm nhà cung cấp chính?');">
+                        <form method="post" action="/Admin/AiProviders/@provider.Id/Primary">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="Version" value="@provider.Version" />
-                            <label for="primary-reason-@provider.Id">Lý do đặt chính</label>
-                            <input id="primary-reason-@provider.Id" name="Reason" maxlength="500" required />
+                            <input type="hidden" name="Reason" value="Đặt làm nhà cung cấp chính qua giao diện quản trị." />
                             <button type="submit">Đặt chính</button>
                         </form>
                     }
 
                     @if (provider.IsEnabled)
                     {
-                        <form method="post"
-                              action="/Admin/AiProviders/@provider.Id/Disable"
-                              onsubmit="return confirm('Vô hiệu hóa nhà cung cấp này?');">
+                        <form method="post" action="/Admin/AiProviders/@provider.Id/Disable">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="Version" value="@provider.Version" />
-                            <label for="disable-reason-@provider.Id">Lý do vô hiệu hóa</label>
-                            <input id="disable-reason-@provider.Id" name="Reason" maxlength="500" required />
+                            <input type="hidden" name="Reason" value="Vô hiệu hóa qua giao diện quản trị." />
                             <button type="submit" class="danger">Vô hiệu hóa</button>
                         </form>
                     }
                     else
                     {
-                        <form method="post"
-                              action="/Admin/AiProviders/@provider.Id/Enable"
-                              onsubmit="return confirm('Bật lại nhà cung cấp này?');">
+                        <form method="post" action="/Admin/AiProviders/@provider.Id/Enable">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="Version" value="@provider.Version" />
-                            <label for="enable-reason-@provider.Id">Lý do bật lại</label>
-                            <input id="enable-reason-@provider.Id" name="Reason" maxlength="500" required />
+                            <input type="hidden" name="Reason" value="Bật lại qua giao diện quản trị." />
                             <button type="submit">Bật lại</button>
                         </form>
                     }

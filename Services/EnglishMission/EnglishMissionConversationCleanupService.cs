@@ -80,6 +80,8 @@ public sealed class EnglishMissionConversationCleanupService : BackgroundService
 
                 mission.Situation = string.Empty;
                 mission.OpeningLine = string.Empty;
+                mission.SuggestedReplyEn = null;
+                mission.SuggestedReplyVi = null;
                 mission.ConversationContentDeletedAtUtc = nowUtc;
             }
 

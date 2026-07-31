@@ -7,7 +7,11 @@
     <link rel="stylesheet" href="~/css/english-mission.css" asp-append-version="true" />
 }
 
-<div class="mission-topic-page">
+@section Scripts {
+    <script src="~/js/english-mission.js" asp-append-version="true"></script>
+}
+
+<div class="mission-topic-page" data-mission-topic-page aria-busy="false">
     <header class="mission-topic-header">
         <a class="mission-back" href="/Study/@Model.SetId" aria-label="Quay lại Study Hub">
             <i class="ph ph-arrow-left" aria-hidden="true"></i>
@@ -23,14 +27,40 @@
     <div class="mission-topic-grid">
         @foreach (var topic in Model.Topics)
         {
-            <form method="post" action="/Study/@Model.SetId/Mission/Start" class="mission-topic-card">
+            <form method="post" action="/Study/@Model.SetId/Mission/Start" class="mission-topic-card" data-mission-start-form>
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="topic" value="@topic.Id" />
                 <div class="mission-topic-icon" aria-hidden="true"><i class="ph @(topic.Id switch { "airport" => "ph-airplane-tilt", "restaurant" => "ph-fork-knife", "hotel" => "ph-bed", "interview" => "ph-briefcase", _ => "ph-shopping-bag" })"></i></div>
                 <div><h2>@topic.Name</h2><p>@topic.Description</p></div>
-                <button type="submit">Bắt đầu <i class="ph ph-arrow-right"></i></button>
+                <button type="submit"><span>Bắt đầu</span> <i class="ph ph-arrow-right" aria-hidden="true"></i></button>
             </form>
         }
     </div>
+    <div class="mission-topic-status" data-mission-start-status role="status" aria-live="polite" hidden>
+        <i class="ph ph-circle-notch" aria-hidden="true"></i>
+        <span>AI đang tạo tình huống. Quá trình này có thể mất vài giây.</span>
+    </div>
     <p class="mission-privacy-note"><i class="ph ph-info"></i> Nội dung hội thoại được gửi tới AI provider do quản trị viên cấu hình.</p>
+
+    <div class="mission-start-skeleton" data-mission-start-skeleton aria-hidden="true" hidden>
+        <aside class="mission-skeleton-rail">
+            <span class="mission-skeleton-block mission-skeleton-brand"></span>
+            <span class="mission-skeleton-block mission-skeleton-stat"></span>
+            <span class="mission-skeleton-block mission-skeleton-chip"></span>
+            <span class="mission-skeleton-block mission-skeleton-chip"></span>
+            <span class="mission-skeleton-block mission-skeleton-chip"></span>
+        </aside>
+        <div class="mission-skeleton-chat">
+            <span class="mission-skeleton-block mission-skeleton-title"></span>
+            <div class="mission-skeleton-message">
+                <span class="mission-skeleton-block mission-skeleton-avatar"></span>
+                <span class="mission-skeleton-block mission-skeleton-bubble"></span>
+            </div>
+            <div class="mission-skeleton-message is-user">
+                <span class="mission-skeleton-block mission-skeleton-bubble is-short"></span>
+                <span class="mission-skeleton-block mission-skeleton-avatar"></span>
+            </div>
+            <span class="mission-skeleton-block mission-skeleton-composer"></span>
+        </div>
+    </div>
 </div>

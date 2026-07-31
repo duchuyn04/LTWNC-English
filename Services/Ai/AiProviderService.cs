@@ -9,6 +9,12 @@ namespace ltwnc.Services.Ai;
 
 public class AiProviderService : IAiProviderService
 {
+    private const string XiaomiMimoApiKeyRequiredMessage =
+        "Xiaomi MiMo pay-as-you-go yêu cầu API key có tiền tố sk-.";
+    private const string XiaomiMimoTokenPlanNotSupportedMessage =
+        "Xiaomi MiMo Token Plan chỉ dành cho công cụ lập trình, không dùng cho application backend. "
+        + "Hãy dùng https://api.xiaomimimo.com/v1 và API key pay-as-you-go có tiền tố sk-.";
+
     private readonly AppDbContext _context;
     private readonly IDataProtector _protector;
     private readonly IReadOnlyDictionary<string, IAiProviderAdapter> _adapters;
@@ -127,6 +133,29 @@ public class AiProviderService : IAiProviderService
             _context.AiProviders.Add(provider);
             // 20. Cập nhật `isCreate` bằng giá trị mới.
             isCreate = true;
+        }
+
+        if (IsXiaomiMimoTokenPlan(input.BaseUrl))
+        {
+            return AiProviderOperationResult.Failure(XiaomiMimoTokenPlanNotSupportedMessage);
+        }
+
+        bool hasApiKeyAfterSave = !input.ClearApiKey
+            && (!string.IsNullOrWhiteSpace(input.ApiKey)
+                || !string.IsNullOrWhiteSpace(provider.EncryptedApiKey));
+        if (RequiresXiaomiMimoApiKey(input.BaseUrl) && !hasApiKeyAfterSave)
+        {
+            return AiProviderOperationResult.Failure(XiaomiMimoApiKeyRequiredMessage);
+        }
+
+        bool priorityInUse = await _context.AiProviders
+            .AsNoTracking()
+            .AnyAsync(candidate => candidate.Id != (id ?? 0)
+                && candidate.Priority == input.Priority, cancellationToken);
+        if (priorityInUse)
+        {
+            return AiProviderOperationResult.Failure(
+                $"Thứ tự ưu tiên {input.Priority} đã được provider khác sử dụng.");
         }
 
         // 21. Cập nhật `provider.Name` bằng giá trị mới.
@@ -432,6 +461,10 @@ public class AiProviderService : IAiProviderService
             return AiProviderOperationResult.Failure("Provider này đã là nhà cung cấp chính.");
         }
 
+        await using IDbContextTransaction? transaction = _context.Database.IsRelational()
+            ? await _context.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+
         // Gỡ cờ chính khỏi mọi nhà cung cấp khác để toàn hệ thống
         // chỉ còn đúng một nhà cung cấp chính.
         // 14. Gọi `ToListAsync` và lưu kết quả vào `currentPrimaries`.
@@ -447,6 +480,13 @@ public class AiProviderService : IAiProviderService
             currentPrimary.UpdatedAt = DateTime.UtcNow;
             // 18. Cập nhật `currentPrimary.Version` bằng giá trị mới.
             currentPrimary.Version = currentPrimary.Version + 1;
+        }
+
+        // Unique index chỉ cho phép một IsPrimary = true. Ghi trạng thái bỏ chính trước
+        // để database không thấy hai provider chính trong cùng một batch UPDATE.
+        if (transaction != null && currentPrimaries.Count > 0)
+        {
+            await _context.SaveChangesAsync(cancellationToken);
         }
 
         // 19. Cập nhật `provider.IsPrimary` bằng giá trị mới.
@@ -465,6 +505,10 @@ public class AiProviderService : IAiProviderService
             reason));
         // 23. Gọi `SaveChangesAsync` để thực hiện bước nghiệp vụ này.
         await _context.SaveChangesAsync(cancellationToken);
+        if (transaction != null)
+        {
+            await transaction.CommitAsync(cancellationToken);
+        }
 
         // 24. Trả kết quả từ `Success` cho nơi gọi.
         return AiProviderOperationResult.Success($"Đã chọn {provider.Name} làm nhà cung cấp chính.");
@@ -478,6 +522,17 @@ public class AiProviderService : IAiProviderService
         // 2. Thực hiện khối nghiệp vụ và chuyển lỗi sang nhánh xử lý tương ứng.
         try
         {
+            if (IsXiaomiMimoTokenPlan(provider.BaseUrl))
+            {
+                throw new AiProviderConfigurationException(XiaomiMimoTokenPlanNotSupportedMessage);
+            }
+
+            if (RequiresXiaomiMimoApiKey(provider.BaseUrl)
+                && string.IsNullOrWhiteSpace(provider.EncryptedApiKey))
+            {
+                throw new AiProviderConfigurationException(XiaomiMimoApiKeyRequiredMessage);
+            }
+
             // 3. Chỉ giải mã khóa ngay trước khi gọi Adapter.
             await GetAdapter(provider).CompleteAsync(
                 ToConnection(provider),
@@ -583,6 +638,20 @@ public class AiProviderService : IAiProviderService
         {
             return exception.Message;
         }
+    }
+
+    private static bool RequiresXiaomiMimoApiKey(string baseUrl)
+    {
+        return Uri.TryCreate(baseUrl, UriKind.Absolute, out Uri? uri)
+            && (uri.Host.Equals("xiaomimimo.com", StringComparison.OrdinalIgnoreCase)
+                || uri.Host.EndsWith(".xiaomimimo.com", StringComparison.OrdinalIgnoreCase));
+    }
+
+    private static bool IsXiaomiMimoTokenPlan(string baseUrl)
+    {
+        return Uri.TryCreate(baseUrl, UriKind.Absolute, out Uri? uri)
+            && uri.Host.StartsWith("token-plan-", StringComparison.OrdinalIgnoreCase)
+            && uri.Host.EndsWith(".xiaomimimo.com", StringComparison.OrdinalIgnoreCase);
     }
 
     // Dựng payload audit đã lọc; metadata chỉ chứa thông tin cấu hình công khai,
