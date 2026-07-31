@@ -596,6 +596,7 @@ public class FlashcardSetService : IFlashcardSetService
         {
             // 18. Gọi `Add` để thực hiện bước nghiệp vụ này.
             _context.FlashcardSets.Add(copy);
+            _context.ReviewSettings.Add(CreateDefaultReviewSettings(copy, learnerId));
             // 19. Gọi `SaveChangesAsync` để thực hiện bước nghiệp vụ này.
             await _context.SaveChangesAsync();
             // 20. Gọi `CommitAsync` để thực hiện bước nghiệp vụ này.
@@ -660,10 +661,21 @@ public class FlashcardSetService : IFlashcardSetService
 
         // 2. Gọi `AddAsync` để thực hiện bước nghiệp vụ này.
         await _context.FlashcardSets.AddAsync(set);
+        await _context.ReviewSettings.AddAsync(CreateDefaultReviewSettings(set, userId));
         // 3. Gọi `SaveChangesAsync` để thực hiện bước nghiệp vụ này.
         await _context.SaveChangesAsync();
         // 4. Trả `set` cho nơi gọi.
         return set;
+    }
+
+    private static ReviewSettings CreateDefaultReviewSettings(FlashcardSet set, string userId)
+    {
+        ReviewSettings settings = ReviewSettings.CreateDefault(
+            userId,
+            set.Id,
+            set.NewCardQuota);
+        settings.FlashcardSet = set;
+        return settings;
     }
 
     // Cập nhật thông tin bộ thẻ

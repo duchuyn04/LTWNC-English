@@ -11,12 +11,17 @@ namespace ltwnc.Controllers;
 public sealed class ReviewController : Controller
 {
     private readonly IReviewService _reviewService;
+    private readonly IReviewSettingsService? _reviewSettingsService;
     private readonly ICurrentUser _currentUser;
 
-    public ReviewController(IReviewService reviewService, ICurrentUser currentUser)
+    public ReviewController(
+        IReviewService reviewService,
+        ICurrentUser currentUser,
+        IReviewSettingsService? reviewSettingsService = null)
     {
         _reviewService = reviewService;
         _currentUser = currentUser;
+        _reviewSettingsService = reviewSettingsService;
     }
 
     [HttpGet]
@@ -54,6 +59,54 @@ public sealed class ReviewController : Controller
         }
 
         return RedirectToAction(nameof(Session), new { sessionId = session.SessionId });
+    }
+
+    [HttpGet]
+    [Route("/Review/Set/{setId:int}/Settings")]
+    public async Task<IActionResult> Settings(int setId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        if (_reviewSettingsService == null)
+        {
+            return NotFound();
+        }
+
+        ReviewSettingsViewModel? settings = await _reviewSettingsService
+            .GetOrCreateAsync(userId, setId);
+        return settings == null ? NotFound() : Ok(settings);
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Route("/Review/Set/{setId:int}/Settings")]
+    public async Task<IActionResult> SaveSettings(
+        int setId,
+        ReviewSettingsViewModel input)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(ModelState);
+        }
+
+        if (_reviewSettingsService == null)
+        {
+            return NotFound();
+        }
+
+        ReviewSettingsViewModel? saved = await _reviewSettingsService
+            .SaveAsync(userId, setId, input);
+        return saved == null ? NotFound() : Ok(saved);
     }
 
     [HttpGet]

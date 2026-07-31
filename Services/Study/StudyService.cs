@@ -124,8 +124,8 @@ public class StudyService : IStudyService
         }
 
         // Cập nhật bộ lọc và cài đặt hiển thị flashcard
-        settings.ReviewSessionSize = ReviewSettingsPolicy.ValidateSessionSize(input.ReviewSessionSize);
-        settings.ReviewMaxIntervalDays = ReviewSettingsPolicy.ValidateMaxIntervalDays(input.ReviewMaxIntervalDays);
+        // Review settings now live in ReviewSettings per set.
+        // Legacy fields remain only as migration and lazy-fallback input.
         // 5. Cập nhật `settings.StarredOnly` bằng giá trị mới.
         settings.StarredOnly = input.StarredOnly;
         // 6. Cập nhật `settings.UnlearnedOnly` bằng giá trị mới.

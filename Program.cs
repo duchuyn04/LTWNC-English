@@ -144,6 +144,7 @@ builder.Services.AddScoped<FlashcardFileParserResolver>();
 builder.Services.AddScoped<IStudyService, StudyService>();
 builder.Services.AddScoped<ReviewStateMachine>();
 builder.Services.AddScoped<IReviewService, ReviewService>();
+builder.Services.AddScoped<IReviewSettingsService, ReviewSettingsService>();
 // Service xử lý nghe chép chính tả
 builder.Services.AddScoped<IDictationService, DictationService>();
 builder.Services.AddScoped<ICardActionService, CardActionService>();

@@ -23,6 +23,8 @@
     const setTitleInput = document.getElementById('set-title');
     const setDescriptionInput = document.getElementById('set-description');
     const setIsPublicInput = document.getElementById('set-is-public');
+    const setNewCardQuotaInput = document.getElementById('set-new-card-quota');
+    const setReviewPausedInput = document.getElementById('set-review-paused');
     const saveStatus = document.getElementById('save-status');
     const cardCountLabel = document.getElementById('card-count');
     const btnFinish = document.getElementById('btn-finish');
@@ -38,7 +40,9 @@
 
     let pendingSaves = new Map(); // cardId -> timeoutId
     const dirtyCards = new Set(); // card dataset ids with unsaved changes
-    let isTitleDirty = false;
+    let isMetadataDirty = false;
+    let metadataRevision = 0;
+    let metadataSavePromise = Promise.resolve(null);
 
     let tempIdCounter = 0;
 
@@ -154,16 +158,30 @@
         dirtyCards.add(card.dataset.id);
     }
 
-    function markTitleDirty() {
-        isTitleDirty = true;
+    function markMetadataDirty() {
+        isMetadataDirty = true;
+        metadataRevision += 1;
     }
 
     function getSetMetadata() {
+        const quotaText = setNewCardQuotaInput.value.trim();
         return {
             title: setTitleInput.value.trim(),
             description: setDescriptionInput.value.trim(),
-            isPublic: setIsPublicInput.checked
+            isPublic: setIsPublicInput.checked,
+            newCardQuota: quotaText === '' ? null : Number(quotaText),
+            reviewPaused: setReviewPausedInput.checked
         };
+    }
+
+    function validateSetMetadata(metadata) {
+        if (!metadata.title) return 'Tên bộ từ không được để trống.';
+        if (!Number.isInteger(metadata.newCardQuota)
+            || metadata.newCardQuota < 0
+            || metadata.newCardQuota > 20) {
+            return 'Hạn mức thẻ mới phải là số nguyên từ 0 đến 20.';
+        }
+        return '';
     }
 
     function getCardData(card) {
@@ -199,7 +217,11 @@
         if (setCreationPromise) return setCreationPromise;
 
         const metadata = getSetMetadata();
-        if (!metadata.title) return null;
+        const validationError = validateSetMetadata(metadata);
+        if (validationError) {
+            setSaveStatus(validationError, 'error');
+            return null;
+        }
 
         setSaveStatus('Đang lưu...', 'saving');
         setCreationPromise = (async () => {
@@ -219,6 +241,8 @@
                 editor.dataset.setId = set.id;
                 editor.dataset.description = metadata.description;
                 editor.dataset.isPublic = metadata.isPublic.toString();
+                editor.dataset.newCardQuota = metadata.newCardQuota.toString();
+                editor.dataset.reviewPaused = metadata.reviewPaused.toString();
                 history.replaceState(null, '', `/flashcardset/editor/${set.id}`);
                 return set.id;
             } finally {
@@ -228,17 +252,29 @@
         return setCreationPromise;
     }
 
-    async function saveSetMetadata() {
+    function saveSetMetadata() {
         const metadata = getSetMetadata();
-        if (!metadata.title) return null;
+        const validationError = validateSetMetadata(metadata);
+        if (validationError) {
+            setSaveStatus(validationError, 'error');
+            return Promise.resolve(null);
+        }
 
-        // Set mới: tạo qua ensureSetCreated (đã serialize) rồi PUT metadata mới nhất.
-        const setId = getSetId() || await ensureSetCreated();
-        if (!setId) return null;
+        const revision = metadataRevision;
+        metadataSavePromise = metadataSavePromise
+            .catch(() => null)
+            .then(() => persistSetMetadata(metadata, revision));
+        return metadataSavePromise;
+    }
 
-        setSaveStatus('Đang lưu...', 'saving');
-
+    async function persistSetMetadata(metadata, revision) {
         try {
+            // Set mới: tạo qua ensureSetCreated (đã serialize) rồi PUT metadata mới nhất.
+            const setId = getSetId() || await ensureSetCreated();
+            if (!setId) return null;
+
+            setSaveStatus('Đang lưu...', 'saving');
+
             const response = await apiFetch(`/api/flashcards/flashcard-sets/${setId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
@@ -252,7 +288,11 @@
 
             editor.dataset.description = metadata.description;
             editor.dataset.isPublic = metadata.isPublic.toString();
-            isTitleDirty = false;
+            editor.dataset.newCardQuota = metadata.newCardQuota.toString();
+            editor.dataset.reviewPaused = metadata.reviewPaused.toString();
+            if (revision === metadataRevision) {
+                isMetadataDirty = false;
+            }
             setSaveStatus('Đã lưu', 'saved');
             return getSetId();
         } catch (err) {
@@ -560,12 +600,24 @@
 
     setTitleInput.addEventListener('input', () => {
         syncFinishButtons();
-        markTitleDirty();
+        markMetadataDirty();
     });
     setTitleInput.addEventListener('blur', async () => {
         if (setTitleInput.value.trim()) {
             await saveSetMetadata();
         }
+    });
+    setDescriptionInput.addEventListener('input', markMetadataDirty);
+    setDescriptionInput.addEventListener('blur', saveSetMetadata);
+    setIsPublicInput.addEventListener('change', () => {
+        markMetadataDirty();
+        saveSetMetadata();
+    });
+    setNewCardQuotaInput.addEventListener('input', markMetadataDirty);
+    setNewCardQuotaInput.addEventListener('blur', saveSetMetadata);
+    setReviewPausedInput.addEventListener('change', () => {
+        markMetadataDirty();
+        saveSetMetadata();
     });
 
     cardSearch.addEventListener('input', applyCardFilters);
@@ -620,12 +672,14 @@
         const cards = Array.from(container.querySelectorAll('.flashcard-card'));
         await Promise.all(cards.map(card => saveCard(card)));
 
-        if (isTitleDirty) {
+        await metadataSavePromise.catch(() => null);
+        if (isMetadataDirty) {
             await saveSetMetadata();
+            await metadataSavePromise.catch(() => null);
         }
 
         const hasCardSaveErrors = cards.some(card => card.classList.contains('card-error'));
-        if (hasCardSaveErrors || isTitleDirty) {
+        if (hasCardSaveErrors || isMetadataDirty) {
             isFinishing = false;
             syncFinishButtons();
             setSaveStatus('Chưa thể hoàn tất. Kiểm tra lại trạng thái lưu.', 'error');
@@ -940,7 +994,7 @@
     syncFinishButtons();
 
     window.addEventListener('beforeunload', (e) => {
-        if (dirtyCards.size > 0 || isTitleDirty) {
+        if (dirtyCards.size > 0 || isMetadataDirty) {
             e.preventDefault();
             e.returnValue = '';
         }

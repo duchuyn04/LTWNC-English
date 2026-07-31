@@ -1,57 +1,102 @@
 @model DictationHistoryViewModel
 @{
     ViewData["Title"] = "Lịch sử câu nghe chép sai";
+    var itemCount = Model.Items.Count;
 }
 
 <link rel="stylesheet" href="~/css/flashcard.css" asp-append-version="true" />
 <link rel="stylesheet" href="~/css/dictation-result.css" asp-append-version="true" />
 
-<div class="result-shell">
-    <div class="result-container">
-        <header class="result-header">
-            <a class="study-button" href="/Study/@Model.SetId/Dictation">
+<div class="result-shell history-shell">
+    <main class="result-container history-container">
+        <nav class="history-toolbar" aria-label="Điều hướng lịch sử">
+            <a class="history-toolbar-link" href="/Study/@Model.SetId">
                 <i class="ph ph-arrow-left" aria-hidden="true"></i>
-                Quay lại nghe chép
+                <span>Về trang học</span>
             </a>
-            <span class="badge badge-green">Lịch sử luyện tập</span>
-            <h1 class="result-title">Các câu cần luyện lại</h1>
-            <p class="result-subtitle">@Model.SetTitle · tối đa 100 câu gần nhất</p>
+            <a class="history-toolbar-link is-primary" href="/Study/@Model.SetId/Dictation">
+                <span>Luyện lại ngay</span>
+                <i class="ph ph-arrow-up-right" aria-hidden="true"></i>
+            </a>
+        </nav>
+
+        <header class="history-hero">
+            <div class="history-hero-copy">
+                <span class="history-kicker">Lịch sử luyện tập</span>
+                <h1 class="history-title">Những câu cần nghe lại</h1>
+                <p class="history-intro">
+                    Xem lại phần bạn đã nhập, đối chiếu đáp án và tập trung vào những chỗ còn nhầm.
+                </p>
+                <p class="history-set-name">
+                    <i class="ph ph-stack" aria-hidden="true"></i>
+                    @Model.SetTitle
+                </p>
+            </div>
+
+            <aside class="history-summary" aria-label="Tóm tắt lịch sử">
+                <span class="history-summary-value">@itemCount</span>
+                <span class="history-summary-label">câu cần luyện</span>
+                <span class="history-summary-note">Hiển thị tối đa 100 câu gần nhất</span>
+            </aside>
         </header>
 
         @if (Model.Items.Any())
         {
-            <section class="result-table-card result-card" aria-label="Lịch sử câu nghe chép sai">
-                <table class="result-table">
-                    <thead>
-                        <tr>
-                            <th scope="col">Thời gian</th>
-                            <th scope="col">Bạn đã nhập</th>
-                            <th scope="col">Đáp án đúng</th>
-                            <th scope="col">Nghĩa</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (DictationHistoryItemViewModel item in Model.Items)
-                        {
-                            <tr>
-                                <td class="result-table-meta">@item.AnsweredAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                                <td class="result-table-meta">@(string.IsNullOrWhiteSpace(item.AnsweredText) ? "Không có câu trả lời" : item.AnsweredText)</td>
-                                <td class="result-table-term">@item.CorrectAnswer</td>
-                                <td class="result-table-meta">@item.Definition</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+            <section class="history-section" aria-labelledby="history-list-heading">
+                <div class="history-section-heading">
+                    <div>
+                        <h2 id="history-list-heading">Gần đây</h2>
+                        <p>Ưu tiên luyện lại từ trên xuống dưới.</p>
+                    </div>
+                </div>
+
+                <ol class="history-list">
+                    @foreach (DictationHistoryItemViewModel item in Model.Items)
+                    {
+                        var answeredAt = item.AnsweredAt.ToLocalTime();
+                        var hasAnswer = !string.IsNullOrWhiteSpace(item.AnsweredText);
+
+                        <li class="history-entry">
+                            <article>
+                                <time class="history-time" datetime="@item.AnsweredAt.ToString("O")">
+                                    <span class="history-time-date">@answeredAt.ToString("dd/MM/yyyy")</span>
+                                    <span class="history-time-hour">@answeredAt.ToString("HH:mm")</span>
+                                </time>
+
+                                <div class="history-answer is-user">
+                                    <span class="history-answer-label">Bạn đã nhập</span>
+                                    <p class="@(hasAnswer ? null : "is-empty")">
+                                        @(hasAnswer ? item.AnsweredText : "Không có câu trả lời")
+                                    </p>
+                                </div>
+
+                                <div class="history-answer is-correct">
+                                    <span class="history-answer-label">Đáp án đúng</span>
+                                    <p>@item.CorrectAnswer</p>
+                                </div>
+
+                                <div class="history-meaning">
+                                    <span class="history-answer-label">Nghĩa</span>
+                                    <p>@item.Definition</p>
+                                </div>
+                            </article>
+                        </li>
+                    }
+                </ol>
             </section>
         }
         else
         {
-            <section class="result-table-card result-card">
-                <div class="result-empty">
-                    <i class="ph ph-check-circle" aria-hidden="true"></i>
-                    Chưa có câu nghe chép sai nào.
+            <section class="history-empty" aria-labelledby="history-empty-title">
+                <span class="history-empty-icon" aria-hidden="true">
+                    <i class="ph ph-check-circle"></i>
+                </span>
+                <div>
+                    <h2 id="history-empty-title">Chưa có câu nào cần luyện lại</h2>
+                    <p>Các câu trả lời sai sẽ xuất hiện ở đây để bạn xem lại sau buổi học.</p>
                 </div>
+                <a class="study-button" href="/Study/@Model.SetId/Dictation">Bắt đầu nghe chép</a>
             </section>
         }
-    </div>
+    </main>
 </div>

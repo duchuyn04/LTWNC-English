@@ -44,7 +44,9 @@ public class FlashcardsApiController : ControllerBase
             request.Title,
             request.Description,
             request.IsPublic,
-            UserId);
+            UserId,
+            request.NewCardQuota,
+            request.ReviewPaused);
 
         return CreatedAtAction(nameof(GetSet), new { id = set.Id }, MapToResponse(set));
     }
@@ -78,7 +80,9 @@ public class FlashcardsApiController : ControllerBase
             request.Title,
             request.Description,
             request.IsPublic,
-            UserId);
+            UserId,
+            request.NewCardQuota,
+            request.ReviewPaused);
 
         return NoContent();
     }
@@ -232,6 +236,8 @@ public class FlashcardsApiController : ControllerBase
             Title = set.Title,
             Description = set.Description,
             IsPublic = set.IsPublic,
+            NewCardQuota = set.NewCardQuota,
+            ReviewPaused = set.ReviewPaused,
             CreatedAt = set.CreatedAt,
             UpdatedAt = set.UpdatedAt
         };

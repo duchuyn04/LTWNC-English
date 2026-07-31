@@ -1,3 +1,5 @@
+using ltwnc.Models.Entities;
+
 namespace ltwnc.Models.ViewModels.FlashcardSet;
 
 public class EditorViewModel
@@ -6,6 +8,8 @@ public class EditorViewModel
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public bool IsPublic { get; set; }
+    public int NewCardQuota { get; set; } = ReviewSettingsPolicy.DefaultNewCardQuota;
+    public bool ReviewPaused { get; set; }
     public bool IsQuarantined { get; set; }
     public string? ModerationPublicReason { get; set; }
     public DateTime? ModeratedAtUtc { get; set; }

@@ -1,373 +1,287 @@
-using System.Security.Claims;
 using System.Text.Json;
 using ltwnc.Controllers;
-using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Study;
 using ltwnc.Services.Auth;
 using ltwnc.Services.FlashcardSets;
 using ltwnc.Services.Study;
-using ltwnc.Services.StudyModes;
-using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Routing;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
-using Microsoft.EntityFrameworkCore;
-using Moq;
 
 namespace ltwnc.Tests.Controllers;
 
-// Fake IUrlHelper đơn giản để test không cần routing thật
-public class FakeUrlHelper : IUrlHelper
+public sealed class StudyControllerDictationTests
 {
-    public string Action(UrlActionContext actionContext) => "/Study/1/Dictation/Result/1?action=DictationResult";
-
-    public string? Content(string? contentPath) => contentPath;
-
-    public bool IsLocalUrl(string? url) => true;
-
-    public string RouteUrl(UrlRouteContext routeContext) => "/";
-
-    public string? Link(string? routeName, object? values) => "/";
-
-    public ActionContext ActionContext { get; } = new ActionContext();
-}
-
-// Kiểm tra StudyController: các action liên quan đến chế độ học nghe chép
-public class StudyControllerDictationTests
-{
-    private ClaimsPrincipal CreateUser(string userId)
+    [Fact]
+    public async Task DictationCheck_Unauthenticated_Returns401()
     {
-        return new ClaimsPrincipal(new ClaimsIdentity(new[]
-        {
-            new Claim(ClaimTypes.NameIdentifier, userId)
-        }, "TestAuth"));
+        StudyController controller = CreateController(userId: null);
+
+        IActionResult actual = await controller.DictationCheck(1, 2, 3, "answer");
+
+        Assert.IsType<UnauthorizedResult>(actual);
     }
 
-    // Khởi tạo controller với dependency giả lập (in-memory database, mock ICurrentUser, fake URL helper)
-    private StudyController CreateController(AppDbContext context, string userId)
+    [Fact]
+    public async Task DictationCheck_UnknownSessionOrCard_Returns404()
     {
-        var currentUser = new Mock<ICurrentUser>();
-        currentUser.Setup(c => c.UserId).Returns(userId);
-        currentUser.Setup(c => c.IsAuthenticated).Returns(true);
+        var dictation = new Mock<IDictationService>();
+        dictation.Setup(service => service.CheckAnswerAsync(2, 1, 3, "answer", "user-1", true))
+            .ThrowsAsync(new KeyNotFoundException());
+        StudyController controller = CreateController("user-1", dictation: dictation);
 
-        // Mock IWebHostEnvironment để FlashcardSetService không cần web root thật
-        var environment = new Mock<IWebHostEnvironment>();
-        environment.Setup(e => e.WebRootPath).Returns(Path.Combine(Path.GetTempPath(), "ltwnc-tests"));
+        IActionResult actual = await controller.DictationCheck(1, 2, 3, "answer");
 
-        var queryService = new StudyCardQueryService(context);
-        var strategies = new List<IStudyModeStrategy>
-        {
-            new FlashcardModeStrategy(queryService),
-            new DictationModeStrategy(queryService)
-        };
-        var resolver = new StudyModeStrategyResolver(strategies);
+        Assert.IsType<NotFoundResult>(actual);
+    }
 
-        var setService = new FlashcardSetService(context, environment.Object);
-        var studyService = new StudyService(context, strategies, resolver, TestStudyEvents.NoOpPublisher());
-        var dictationService = new DictationService(context, resolver, TestStudyEvents.NoOpPublisher());
+    [Fact]
+    public async Task DictationCheck_ForbiddenSession_Returns403()
+    {
+        var dictation = new Mock<IDictationService>();
+        dictation.Setup(service => service.CheckAnswerAsync(2, 1, 3, "answer", "user-1", true))
+            .ThrowsAsync(new UnauthorizedAccessException());
+        StudyController controller = CreateController("user-1", dictation: dictation);
 
-        var controller = new StudyController(
-            studyService,
-            dictationService,
-            Mock.Of<IQuizService>(),
-            setService,
-            currentUser.Object)
-        {
-            ControllerContext = new ControllerContext
+        IActionResult actual = await controller.DictationCheck(1, 2, 3, "answer");
+
+        Assert.IsType<ForbidResult>(actual);
+    }
+
+    [Fact]
+    public async Task DictationCheck_CompletedSession_Returns409()
+    {
+        var dictation = new Mock<IDictationService>();
+        dictation.Setup(service => service.CheckAnswerAsync(2, 1, 3, "answer", "user-1", true))
+            .ThrowsAsync(new InvalidOperationException("Phiên nghe chép đã hoàn thành."));
+        StudyController controller = CreateController("user-1", dictation: dictation);
+
+        IActionResult actual = await controller.DictationCheck(1, 2, 3, "answer");
+
+        var conflict = Assert.IsType<ObjectResult>(actual);
+        Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
+        using JsonDocument json = ToJsonDocument(conflict.Value);
+        Assert.False(json.RootElement.GetProperty("success").GetBoolean());
+        Assert.Equal("Phiên nghe chép đã hoàn thành.", json.RootElement.GetProperty("message").GetString());
+    }
+
+    [Fact]
+    public async Task DictationCheck_ValidAnswer_ReturnsExpectedJsonContract()
+    {
+        var dictation = new Mock<IDictationService>();
+        dictation.Setup(service => service.CheckAnswerAsync(2, 1, 3, "I like fruit", "user-1", true))
+            .ReturnsAsync(new DictationCheckResult
             {
-                HttpContext = new DefaultHttpContext { User = CreateUser(userId) }
-            },
-            Url = new FakeUrlHelper(),
-            TempData = new TempDataDictionary(new DefaultHttpContext(), new Mock<ITempDataProvider>().Object)
-        };
-        return controller;
-    }
+                IsCorrect = false,
+                CorrectAnswer = "I like apples",
+                Hint = "Nghĩa: Tôi thích táo",
+                ExampleMeaning = "Tôi thích táo",
+                WordComparison =
+                {
+                    new DictationWordComparison
+                    {
+                        Status = DictationWordStatus.Incorrect,
+                        AnsweredWord = "fruit",
+                        CorrectWord = "apples"
+                    }
+                }
+            });
+        StudyController controller = CreateController("user-1", dictation: dictation);
 
-    private AppDbContext CreateContext()
-    {
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseInMemoryDatabase(Guid.NewGuid().ToString())
-            .Options;
-        return new AppDbContext(options);
-    }
+        IActionResult actual = await controller.DictationCheck(1, 2, 3, "I like fruit");
 
-    private async Task SeedSetAndCardAsync(AppDbContext context)
-    {
-        var set = new FlashcardSet
-        {
-            Id = 1,
-            Title = "Test Set",
-            UserId = "user-1",
-            IsPublic = true
-        };
-        await context.FlashcardSets.AddAsync(set);
-
-        var card = new Flashcard
-        {
-            Id = 1,
-            FlashcardSetId = 1,
-            FrontText = "hello",
-            BackText = "xin chào",
-            Pronunciation = "/həˈloʊ/",
-            PartOfSpeech = "exclamation",
-            ExampleSentence = "Hello, world!",
-            ExampleMeaning = "Xin chào, thế giới!",
-            OrderIndex = 0
-        };
-        await context.Flashcards.AddAsync(card);
-        await context.SaveChangesAsync();
+        var result = Assert.IsType<JsonResult>(actual);
+        using JsonDocument json = ToJsonDocument(result.Value);
+        Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+        Assert.False(json.RootElement.GetProperty("isCorrect").GetBoolean());
+        Assert.Equal("I like apples", json.RootElement.GetProperty("correctAnswer").GetString());
+        JsonElement comparison = Assert.Single(json.RootElement.GetProperty("wordComparison").EnumerateArray());
+        Assert.Equal("Incorrect", comparison.GetProperty("status").GetString());
+        Assert.Equal("fruit", comparison.GetProperty("answeredWord").GetString());
+        Assert.Equal("apples", comparison.GetProperty("correctWord").GetString());
     }
 
     [Fact]
-    // GET Dictation trả về view với model học nghe chép
-    public async Task Dictation_Get_ReturnsViewWithModel()
+    public async Task DictationComplete_Unauthenticated_Returns401()
     {
-        await using var context = CreateContext();
-        await SeedSetAndCardAsync(context);
+        StudyController controller = CreateController(userId: null);
 
-        var controller = CreateController(context, "user-1");
-        var result = await controller.Dictation(1);
+        IActionResult actual = await controller.DictationComplete(1, 2);
 
-        var viewResult = Assert.IsType<ViewResult>(result);
-        Assert.IsType<DictationStudyViewModel>(viewResult.Model);
+        Assert.IsType<UnauthorizedResult>(actual);
     }
 
     [Fact]
-    // Kiểm tra đáp án đúng trả về success và isCorrect = true
-    public async Task DictationCheck_Post_CorrectAnswer_ReturnsSuccess()
+    public async Task DictationComplete_UnansweredQuestions_Returns409()
     {
-        await using var context = CreateContext();
-        await SeedSetAndCardAsync(context);
+        var dictation = new Mock<IDictationService>();
+        dictation.Setup(service => service.CompleteSessionAsync(2, 1, "user-1"))
+            .ThrowsAsync(new InvalidOperationException("Bạn cần hoàn thành tất cả câu hỏi."));
+        StudyController controller = CreateController("user-1", dictation: dictation);
 
-        var controller = CreateController(context, "user-1");
-        var dictationResult = await controller.Dictation(1);
-        var viewModel = Assert.IsType<DictationStudyViewModel>(Assert.IsType<ViewResult>(dictationResult).Model);
+        IActionResult actual = await controller.DictationComplete(1, 2);
 
-        var result = await controller.DictationCheck(1, viewModel.SessionId, 1, "hello");
-
-        var jsonResult = Assert.IsType<JsonResult>(result);
-        var element = JsonSerializer.SerializeToElement(jsonResult.Value);
-        Assert.True(element.GetProperty("success").GetBoolean());
-        Assert.True(element.GetProperty("isCorrect").GetBoolean());
-    }
-
-    [Fact]
-    // Hoàn thành phiên Dictation trả về URL redirect đến trang kết quả
-    public async Task DictationComplete_Post_ReturnsRedirectUrl()
-    {
-        await using var context = CreateContext();
-        await SeedSetAndCardAsync(context);
-
-        var controller = CreateController(context, "user-1");
-        var dictationResult = await controller.Dictation(1);
-        var viewModel = Assert.IsType<DictationStudyViewModel>(Assert.IsType<ViewResult>(dictationResult).Model);
-        await controller.DictationCheck(1, viewModel.SessionId, 1, "hello");
-
-        var result = await controller.DictationComplete(1, viewModel.SessionId);
-
-        var jsonResult = Assert.IsType<JsonResult>(result);
-        var element = JsonSerializer.SerializeToElement(jsonResult.Value);
-        Assert.True(element.GetProperty("success").GetBoolean());
-        Assert.Contains("DictationResult", element.GetProperty("redirectUrl").GetString());
-    }
-
-    [Fact]
-    public async Task DictationComplete_Post_BeforeAllAnswers_ReturnsConflict()
-    {
-        await using var context = CreateContext();
-        await SeedSetAndCardAsync(context);
-
-        var controller = CreateController(context, "user-1");
-        var dictationResult = await controller.Dictation(1);
-        var viewModel = Assert.IsType<DictationStudyViewModel>(
-            Assert.IsType<ViewResult>(dictationResult).Model);
-
-        var result = await controller.DictationComplete(1, viewModel.SessionId);
-
-        var conflict = Assert.IsType<ObjectResult>(result);
+        var conflict = Assert.IsType<ObjectResult>(actual);
         Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
     }
 
     [Fact]
-    // GET DictationResult trả về kết quả phiên học
-    public async Task DictationResult_Get_ReturnsViewWithModel()
+    public async Task DictationComplete_CompletedSuccessfully_ReturnsResultRedirectUrl()
     {
-        await using var context = CreateContext();
-        await SeedSetAndCardAsync(context);
+        var dictation = new Mock<IDictationService>();
+        dictation.Setup(service => service.CompleteSessionAsync(2, 1, "user-1"))
+            .ReturnsAsync(new StudySession { Id = 2 });
+        StudyController controller = CreateController("user-1", dictation: dictation);
 
-        var controller = CreateController(context, "user-1");
-        var dictationResult = await controller.Dictation(1);
-        var viewModel = Assert.IsType<DictationStudyViewModel>(Assert.IsType<ViewResult>(dictationResult).Model);
-        await controller.DictationCheck(1, viewModel.SessionId, 1, "hello");
-        await controller.DictationComplete(1, viewModel.SessionId);
+        IActionResult actual = await controller.DictationComplete(1, 2);
 
-        var result = await controller.DictationResult(1, viewModel.SessionId);
-
-        var viewResult = Assert.IsType<ViewResult>(result);
-        var model = Assert.IsType<DictationResultViewModel>(viewResult.Model);
-        Assert.Equal(1, model.TotalCards);
-        Assert.Equal(1, model.CorrectCount);
+        var result = Assert.IsType<JsonResult>(actual);
+        using JsonDocument json = ToJsonDocument(result.Value);
+        Assert.True(json.RootElement.GetProperty("success").GetBoolean());
+        Assert.Equal("/Study/1/Dictation/Result/2", json.RootElement.GetProperty("redirectUrl").GetString());
     }
 
     [Fact]
-    public async Task DictationHistory_Get_ReturnsWrongAnswerHistory()
+    public async Task Dictation_ExampleSentenceModeWithoutSentences_RedirectsWithMissingSentenceMessage()
     {
-        await using var context = CreateContext();
-        await SeedSetAndCardAsync(context);
+        var study = new Mock<IStudyService>();
+        study.Setup(service => service.GetSettingsAsync("user-1"))
+            .ReturnsAsync(new UserStudySettings
+            {
+                DictationContentMode = DictationContentMode.ExampleSentence
+            });
+        var dictation = new Mock<IDictationService>();
+        dictation.Setup(service => service.GetCardsForDictationAsync(
+                1, "user-1", It.IsAny<UserStudySettings>()))
+            .ReturnsAsync(new List<Flashcard>());
+        dictation.Setup(service => service.AnyCardHasExampleSentenceAsync(1)).ReturnsAsync(false);
+        StudyController controller = CreateController("user-1", study, dictation);
 
-        var controller = CreateController(context, "user-1");
-        var dictationResult = await controller.Dictation(1);
-        var studyModel = Assert.IsType<DictationStudyViewModel>(
-            Assert.IsType<ViewResult>(dictationResult).Model);
-        await controller.DictationCheck(1, studyModel.SessionId, 1, "wrong");
-        await controller.DictationComplete(1, studyModel.SessionId);
+        IActionResult actual = await controller.Dictation(1);
 
-        var result = await controller.DictationHistory(1);
-
-        var viewResult = Assert.IsType<ViewResult>(result);
-        var model = Assert.IsType<DictationHistoryViewModel>(viewResult.Model);
-        Assert.Single(model.Items);
-        Assert.Equal("hello", model.Items[0].CorrectAnswer);
+        var redirect = Assert.IsType<RedirectToActionResult>(actual);
+        Assert.Equal("Index", redirect.ActionName);
+        Assert.Equal("Bộ thẻ chưa có câu ví dụ để nghe chép.", controller.TempData["Message"]);
     }
 
     [Fact]
-    // Chế độ câu ví dụ: PromptText là câu ví dụ và session ghi nhận đúng mode
-    public async Task Dictation_Get_ExampleSentenceMode_UsesSentencePromptAndSnapshotsMode()
+    public async Task Dictation_FilterRemovesAllCards_RedirectsWithFilterMessage()
     {
-        await using var context = CreateContext();
-        await SeedSetAndCardAsync(context);
-        context.UserStudySettings.Add(new UserStudySettings
-        {
-            UserId = "user-1",
-            DictationContentMode = DictationContentMode.ExampleSentence
-        });
-        await context.SaveChangesAsync();
+        var study = new Mock<IStudyService>();
+        study.Setup(service => service.GetSettingsAsync("user-1"))
+            .ReturnsAsync(new UserStudySettings { StarredOnly = true });
+        var dictation = new Mock<IDictationService>();
+        dictation.Setup(service => service.GetCardsForDictationAsync(
+                1, "user-1", It.IsAny<UserStudySettings>()))
+            .ReturnsAsync(new List<Flashcard>());
+        StudyController controller = CreateController("user-1", study, dictation);
 
-        var controller = CreateController(context, "user-1");
-        var result = await controller.Dictation(1);
+        IActionResult actual = await controller.Dictation(1);
 
-        var model = Assert.IsType<DictationStudyViewModel>(Assert.IsType<ViewResult>(result).Model);
-        Assert.Equal("Hello, world!", Assert.Single(model.Cards).PromptText);
-        Assert.Equal(DictationContentMode.ExampleSentence, model.ContentMode);
-
-        var session = await context.StudySessions.FindAsync(model.SessionId);
-        Assert.Equal(DictationContentMode.ExampleSentence, session!.DictationContentMode);
-    }
-
-    [Fact]
-    // Sau khi đổi cài đặt, session Dictation vẫn dùng mode đã snapshot khi kiểm tra đáp án
-    public async Task DictationCheck_ExampleSentenceSession_UsesSnapshotAfterSettingChanges()
-    {
-        await using var context = CreateContext();
-        await SeedSetAndCardAsync(context);
-        var settings = new UserStudySettings
-        {
-            UserId = "user-1",
-            DictationContentMode = DictationContentMode.ExampleSentence
-        };
-        context.UserStudySettings.Add(settings);
-        await context.SaveChangesAsync();
-
-        var controller = CreateController(context, "user-1");
-        var dictation = await controller.Dictation(1);
-        var model = Assert.IsType<DictationStudyViewModel>(Assert.IsType<ViewResult>(dictation).Model);
-
-        settings.DictationContentMode = DictationContentMode.Vocabulary;
-        await context.SaveChangesAsync();
-
-        var result = await controller.DictationCheck(1, model.SessionId, 1, "hello world");
-
-        var json = JsonSerializer.SerializeToElement(Assert.IsType<JsonResult>(result).Value);
-        Assert.True(json.GetProperty("isCorrect").GetBoolean());
-        Assert.Equal("Hello, world!", json.GetProperty("correctAnswer").GetString());
-        Assert.Equal("Xin chào, thế giới!", json.GetProperty("exampleMeaning").GetString());
-        Assert.Equal(2, json.GetProperty("wordComparison").GetArrayLength());
-    }
-
-    [Fact]
-    // Sau khi đổi cài đặt, trang kết quả vẫn hiển thị đúng mode đã snapshot
-    public async Task DictationResult_ExampleSentenceSession_UsesSnapshotAfterSettingChanges()
-    {
-        await using var context = CreateContext();
-        await SeedSetAndCardAsync(context);
-        var settings = new UserStudySettings
-        {
-            UserId = "user-1",
-            DictationContentMode = DictationContentMode.ExampleSentence
-        };
-        context.UserStudySettings.Add(settings);
-        await context.SaveChangesAsync();
-
-        var controller = CreateController(context, "user-1");
-        var dictation = await controller.Dictation(1);
-        var studyModel = Assert.IsType<DictationStudyViewModel>(Assert.IsType<ViewResult>(dictation).Model);
-        await controller.DictationCheck(1, studyModel.SessionId, 1, "wrong answer");
-        await controller.DictationComplete(1, studyModel.SessionId);
-
-        settings.DictationContentMode = DictationContentMode.Vocabulary;
-        await context.SaveChangesAsync();
-
-        var result = await controller.DictationResult(1, studyModel.SessionId);
-
-        var model = Assert.IsType<DictationResultViewModel>(Assert.IsType<ViewResult>(result).Model);
-        Assert.Equal(DictationContentMode.ExampleSentence, model.ContentMode);
-        var wrongCard = Assert.Single(model.WrongCards);
-        Assert.Equal("Hello, world!", wrongCard.ExampleSentence);
-        Assert.Equal("Xin chào, thế giới!", wrongCard.ExampleMeaning);
-        Assert.Equal("hello", wrongCard.Term);
-    }
-
-    [Fact]
-    // Khi bộ lọc khiến không có thẻ phù hợp, ưu tiên thông báo lỗi bộ lọc
-    public async Task Dictation_Get_ExampleSentenceMode_WithFilters_ShowsFilterMessageNotMissingSentenceMessage()
-    {
-        await using var context = CreateContext();
-        await SeedSetAndCardAsync(context);
-        context.UserStudySettings.Add(new UserStudySettings
-        {
-            UserId = "user-1",
-            DictationContentMode = DictationContentMode.ExampleSentence,
-            StarredOnly = true
-        });
-        await context.SaveChangesAsync();
-
-        // Card has example sentence but is not starred
-        var card = await context.Flashcards.FindAsync(1);
-        card!.IsStarred = false;
-        await context.SaveChangesAsync();
-
-        var controller = CreateController(context, "user-1");
-        var result = await controller.Dictation(1);
-
-        var redirect = Assert.IsType<RedirectToActionResult>(result);
+        var redirect = Assert.IsType<RedirectToActionResult>(actual);
         Assert.Equal("Index", redirect.ActionName);
         Assert.Equal("Không có thẻ phù hợp với bộ lọc hiện tại.", controller.TempData["Message"]);
     }
 
     [Fact]
-    // Khi bộ thẻ không có câu ví dụ, hiển thị thông báo thiếu câu ví dụ
-    public async Task Dictation_Get_ExampleSentenceMode_NoSentences_ShowsMissingSentenceMessage()
+    public async Task Dictation_RetryHasNoAvailableWrongCards_RedirectsToSourceResult()
     {
-        await using var context = CreateContext();
-        await SeedSetAndCardAsync(context);
-        context.UserStudySettings.Add(new UserStudySettings
+        var dictation = new Mock<IDictationService>();
+        dictation.Setup(service => service.GetRetryPlanAsync(9, 1, "user-1"))
+            .ReturnsAsync(new DictationRetryPlan());
+        StudyController controller = CreateController("user-1", dictation: dictation);
+
+        IActionResult actual = await controller.Dictation(1, retrySessionId: 9);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(actual);
+        Assert.Equal("DictationResult", redirect.ActionName);
+        Assert.Equal("Không còn thẻ sai khả dụng để ôn lại.", controller.TempData["Message"]);
+    }
+
+    [Fact]
+    public async Task Dictation_ValidCards_CreatesSessionAndMapsUploadedImageFirst()
+    {
+        var card = new Flashcard
         {
-            UserId = "user-1",
-            DictationContentMode = DictationContentMode.ExampleSentence
-        });
-        await context.SaveChangesAsync();
+            Id = 3,
+            FrontText = "hello",
+            BackText = "xin chào",
+            Pronunciation = "/həˈləʊ/",
+            ExampleSentence = "Hello there.",
+            ExampleMeaning = "Xin chào.",
+            ImageUrl = "https://example.test/external.png",
+            UploadedImagePath = "/uploads/local.png"
+        };
+        var study = new Mock<IStudyService>();
+        study.Setup(service => service.GetSettingsAsync("user-1")).ReturnsAsync(new UserStudySettings());
+        var dictation = new Mock<IDictationService>();
+        dictation.Setup(service => service.GetCardsForDictationAsync(
+                1, "user-1", It.IsAny<UserStudySettings>()))
+            .ReturnsAsync(new List<Flashcard> { card });
+        dictation.Setup(service => service.CreateSessionAsync(
+                "user-1", 1, DictationContentMode.Vocabulary, 1,
+                It.Is<IReadOnlyList<Flashcard>>(cards => cards.Count == 1 && cards[0].Id == 3)))
+            .ReturnsAsync(new StudySession
+            {
+                Id = 7,
+                DictationContentMode = DictationContentMode.Vocabulary
+            });
+        StudyController controller = CreateController("user-1", study, dictation);
 
-        var card = await context.Flashcards.FindAsync(1);
-        card!.ExampleSentence = "";
-        await context.SaveChangesAsync();
+        IActionResult actual = await controller.Dictation(1);
 
-        var controller = CreateController(context, "user-1");
-        var result = await controller.Dictation(1);
+        var view = Assert.IsType<ViewResult>(actual);
+        var model = Assert.IsType<DictationStudyViewModel>(view.Model);
+        Assert.Equal(7, model.SessionId);
+        Assert.Equal("/uploads/local.png", Assert.Single(model.Cards).ImageUrl);
+    }
 
-        var redirect = Assert.IsType<RedirectToActionResult>(result);
-        Assert.Equal("Index", redirect.ActionName);
-        Assert.Equal("Bộ thẻ chưa có câu ví dụ để nghe chép.", controller.TempData["Message"]);
+    private static StudyController CreateController(
+        string? userId,
+        Mock<IStudyService>? study = null,
+        Mock<IDictationService>? dictation = null)
+    {
+        if (study == null)
+        {
+            study = new Mock<IStudyService>();
+            study.Setup(service => service.GetSettingsAsync(userId)).ReturnsAsync(new UserStudySettings());
+        }
+
+        dictation ??= new Mock<IDictationService>();
+        var sets = new Mock<IFlashcardSetService>();
+        sets.Setup(service => service.GetOwnedSetAsync(1, "user-1"))
+            .ReturnsAsync(new FlashcardSet { Id = 1, UserId = "user-1", Title = "Set" });
+        var currentUser = new Mock<ICurrentUser>();
+        currentUser.SetupGet(value => value.UserId).Returns(userId);
+
+        var controller = new StudyController(
+            study.Object,
+            dictation.Object,
+            Mock.Of<IQuizService>(),
+            sets.Object,
+            currentUser.Object)
+        {
+            ControllerContext = new ControllerContext { HttpContext = new DefaultHttpContext() },
+            TempData = new TempDataDictionary(
+                new DefaultHttpContext(),
+                Mock.Of<ITempDataProvider>()),
+            Url = new FakeUrlHelper()
+        };
+        return controller;
+    }
+
+    private static JsonDocument ToJsonDocument(object? value) =>
+        JsonDocument.Parse(JsonSerializer.Serialize(value));
+
+    private sealed class FakeUrlHelper : IUrlHelper
+    {
+        public ActionContext ActionContext { get; } = new();
+        public string? Action(UrlActionContext actionContext) => "/Study/1/Dictation/Result/2";
+        public string? Content(string? contentPath) => contentPath;
+        public bool IsLocalUrl(string? url) => true;
+        public string? Link(string? routeName, object? values) => "/";
+        public string? RouteUrl(UrlRouteContext routeContext) => "/";
     }
 }

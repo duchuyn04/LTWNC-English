@@ -8,8 +8,8 @@
     --auth-brass-deep: #8f6115;
     --auth-error: #a33b3b;
     --auth-error-bg: #f7e9e5;
-    --auth-display: "Newsreader", Georgia, serif;
-    --auth-body: "Be Vietnam Pro", "Segoe UI", sans-serif;
+    --auth-body: "Be Vietnam Pro", sans-serif;
+    --auth-display: var(--auth-body);
 }
 
 * { box-sizing: border-box; }

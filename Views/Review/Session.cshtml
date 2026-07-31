@@ -1,107 +1,241 @@
 @model ReviewSessionViewModel
+
 @{
     ViewData["Title"] = "Ôn tập đến hạn";
+    ViewData["HideLayoutChrome"] = true;
+
     ReviewCardViewModel? card = Model.Cards.FirstOrDefault(value => !value.IsRated)
         ?? Model.Cards.FirstOrDefault();
     ReviewRatingPreviewViewModel? againPreview = card?.RatingPreviews.FirstOrDefault(value => value.Rating == ReviewRating.Again);
     ReviewRatingPreviewViewModel? hardPreview = card?.RatingPreviews.FirstOrDefault(value => value.Rating == ReviewRating.Hard);
     ReviewRatingPreviewViewModel? goodPreview = card?.RatingPreviews.FirstOrDefault(value => value.Rating == ReviewRating.Good);
     ReviewRatingPreviewViewModel? easyPreview = card?.RatingPreviews.FirstOrDefault(value => value.Rating == ReviewRating.Easy);
+
+    int currentNumber = Model.TotalCards == 0
+        ? 0
+        : Math.Min(Model.RatedCards + 1, Model.TotalCards);
+    int progressPercent = Model.TotalCards == 0
+        ? 0
+        : (int)Math.Round(Model.RatedCards * 100d / Model.TotalCards);
+
+    string StageLabel(ReviewStage stage) => stage switch
+    {
+        ReviewStage.New => "Thẻ mới",
+        ReviewStage.Learning => "Đang học",
+        ReviewStage.Relearning => "Học lại",
+        _ => "Đang ôn"
+    };
 }
 
-<div class="mx-auto" style="max-width: 760px;">
-    <div class="d-flex justify-content-between align-items-center mb-4">
-        <div>
-            <span class="text-uppercase text-muted small fw-semibold">Ôn tập đến hạn</span>
-            <h1 class="h2 mt-2 mb-0">Thẻ @(Model.RatedCards + 1) / @Model.TotalCards</h1>
-        </div>
-        <form method="post" action="/Review/@Model.SessionId/End" onsubmit="return confirm('Kết thúc sớm lượt ôn?');">
-            @Html.AntiForgeryToken()
-            <button type="submit" class="btn btn-outline-secondary">Kết thúc sớm</button>
-        </form>
-    </div>
+@section Styles {
+    <link rel="stylesheet" href="~/css/review.css" asp-append-version="true" />
+}
 
-    @if (card is not null)
-    {
-        <article class="card border-0 shadow-sm">
-            <div class="card-body p-4 p-md-5">
-                <div class="text-muted small mb-2">@card.SetTitle · @card.Stage</div>
-                @if (Model.Settings.ShowFrontTerm)
-                {
-                    <div class="display-5 fw-semibold">@card.FrontText</div>
-                }
-                @if (Model.Settings.ShowFrontDefinition)
-                {
-                    <div class="display-5 fw-semibold">@card.BackText</div>
-                }
-                @if (Model.Settings.ShowFrontIpa && !string.IsNullOrWhiteSpace(card.Pronunciation))
-                {
-                    <div class="text-muted mt-2">@card.Pronunciation</div>
-                }
+@section FullWidth {
+<div class="review-focus">
+    <div class="review-focus__shell">
+        <header class="review-focus__session-header">
+            <span class="review-focus__eyebrow">Ôn tập ngắt quãng</span>
+            <h1 class="review-focus__session-title">Phiên ôn tập</h1>
+            <div class="review-focus__session-header-end">
+                <form method="post"
+                      action="/Review/@Model.SessionId/End"
+                      onsubmit="return confirm('Kết thúc sớm lượt ôn?');">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="review-focus__header-action">
+                        <i class="ph ph-sign-out" aria-hidden="true"></i>
+                        <span>Kết thúc sớm</span>
+                    </button>
+                </form>
+            </div>
+        </header>
+
+        <div class="review-focus__progress" aria-label="Tiến độ lượt ôn">
+            <div class="review-focus__progress-label">
+                <span>Tiến độ</span>
+                <span>@currentNumber / @Model.TotalCards</span>
+            </div>
+            <div class="review-focus__progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@progressPercent">
+                <span class="review-focus__progress-value" style="width: @(progressPercent)%"></span>
+            </div>
+        </div>
+
+        @if (card is not null)
+        {
+            <article class="review-focus__card" data-review-session>
+                <div class="review-focus__card-topline">
+                    <div class="review-focus__card-context">
+                        <span class="review-focus__tag">@card.SetTitle</span>
+                        <span class="review-focus__stage">@StageLabel(card.Stage)</span>
+                    </div>
+                    <span class="review-focus__session-count" aria-label="Thẻ đã đánh giá">
+                        @Model.RatedCards.ToString("00")<span>/@Model.TotalCards.ToString("00")</span>
+                    </span>
+                </div>
+
+                <div class="review-focus__prompt">
+                    <span class="review-focus__label">Mặt trước</span>
+                    @if (Model.Settings.ShowFrontTerm)
+                    {
+                        <h2 class="review-focus__prompt-text">@card.FrontText</h2>
+                    }
+                    @if (Model.Settings.ShowFrontDefinition)
+                    {
+                        <p class="review-focus__prompt-text">@card.BackText</p>
+                    }
+                    @if (Model.Settings.ShowFrontIpa && !string.IsNullOrWhiteSpace(card.Pronunciation))
+                    {
+                        <p class="review-focus__pronunciation">
+                            <span>@card.Pronunciation</span>
+                            <button type="button" class="review-focus__icon-button" aria-label="Nghe phát âm">
+                                <i class="ph ph-speaker-high" aria-hidden="true"></i>
+                            </button>
+                        </p>
+                    }
+                </div>
+
                 @if (!Model.Settings.HideImage && Model.Settings.ShowFrontImage
                     && (!string.IsNullOrWhiteSpace(card.UploadedImagePath)
                         || !string.IsNullOrWhiteSpace(card.ImageUrl)))
                 {
-                    <img class="img-fluid rounded mt-3 @(Model.Settings.BlurImage ? "opacity-50" : null)"
+                    <img class="review-focus__card-image @(Model.Settings.BlurImage ? "review-focus__card-image--blurred" : null)"
                          src="@(card.UploadedImagePath ?? card.ImageUrl)"
                          alt="Ảnh minh họa cho @card.FrontText" />
                 }
 
-                <div id="review-answer" class="mt-4 p-3 rounded bg-light" hidden>
+                <div class="review-focus__divider">
+                    <span>Tự nhớ trước khi xem đáp án</span>
+                </div>
+
+                <div id="review-answer" class="review-focus__answer" hidden>
+                    <span class="review-focus__label">Đáp án</span>
                     @if (Model.Settings.ShowBackTerm)
                     {
-                        <div class="h4 mb-2">@card.FrontText</div>
+                        <strong class="review-focus__answer-main">@card.FrontText</strong>
                     }
                     @if (Model.Settings.ShowBackDefinition)
                     {
-                        <div class="h4 mb-2">@card.BackText</div>
+                        <strong class="review-focus__answer-main">@card.BackText</strong>
                     }
                     @if (Model.Settings.ShowBackIpa && !string.IsNullOrWhiteSpace(card.Pronunciation))
                     {
-                        <div class="text-muted mb-2">@card.Pronunciation</div>
+                        <p class="review-focus__answer-meaning">@card.Pronunciation</p>
                     }
                     @if (Model.Settings.ShowBackExample && !string.IsNullOrWhiteSpace(card.ExampleSentence))
                     {
-                        <p class="mb-1">@card.ExampleSentence</p>
-                        <p class="text-muted mb-0">@card.ExampleMeaning</p>
+                        <p class="review-focus__answer-example">@card.ExampleSentence</p>
+                        <p class="review-focus__answer-meaning">@card.ExampleMeaning</p>
                     }
                     @if (!Model.Settings.HideImage && Model.Settings.ShowBackImage
                         && (!string.IsNullOrWhiteSpace(card.UploadedImagePath)
                             || !string.IsNullOrWhiteSpace(card.ImageUrl)))
                     {
-                        <img class="img-fluid rounded mt-3 @(Model.Settings.BlurImage ? "opacity-50" : null)"
+                        <img class="review-focus__card-image @(Model.Settings.BlurImage ? "review-focus__card-image--blurred" : null)"
                              src="@(card.UploadedImagePath ?? card.ImageUrl)"
                              alt="Ảnh minh họa cho @card.FrontText" />
                     }
                 </div>
 
-                <button id="review-reveal" type="button" class="btn btn-outline-primary mt-4" onclick="revealReviewAnswer()">
-                    Hiện đáp án
+                <button id="review-reveal" type="button" class="review-focus__reveal">
+                    <i class="ph ph-eye" aria-hidden="true"></i>
+                    <span>Hiện đáp án</span>
                 </button>
 
-                <form method="post" action="/Review/@Model.SessionId/Rate" class="mt-4">
+                <form method="post" action="/Review/@Model.SessionId/Rate" class="js-rate-form">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="flashcardId" value="@card.FlashcardId" />
                     <input id="answer-revealed" type="hidden" name="answerRevealed" value="false" />
-                    <div class="d-flex flex-wrap gap-2" role="group" aria-label="Mức nhớ">
-                        <button class="btn btn-outline-danger" type="submit" name="rating" value="Again" disabled>Quên · Again · @againPreview?.DelayLabel</button>
-                        <button class="btn btn-outline-warning" type="submit" name="rating" value="Hard" disabled>Khó · Hard · @hardPreview?.DelayLabel</button>
-                        <button class="btn btn-outline-success" type="submit" name="rating" value="Good" disabled>Tốt · Good · @goodPreview?.DelayLabel</button>
-                        <button class="btn btn-outline-primary" type="submit" name="rating" value="Easy" disabled>Dễ · Easy · @easyPreview?.DelayLabel</button>
+                    <div class="review-focus__ratings" role="group" aria-label="Chọn mức nhớ">
+                        <button class="review-focus__rating review-focus__rating--again js-rating"
+                                type="submit" name="rating" value="Again" data-shortcut="1" disabled>
+                            <span><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>Quên</span>
+                            <small>@againPreview?.DelayLabel</small>
+                        </button>
+                        <button class="review-focus__rating review-focus__rating--hard js-rating"
+                                type="submit" name="rating" value="Hard" data-shortcut="2" disabled>
+                            <span><i class="ph ph-minus-circle" aria-hidden="true"></i>Khó</span>
+                            <small>@hardPreview?.DelayLabel</small>
+                        </button>
+                        <button class="review-focus__rating review-focus__rating--good js-rating"
+                                type="submit" name="rating" value="Good" data-shortcut="3" disabled>
+                            <span><i class="ph ph-check-circle" aria-hidden="true"></i>Tốt</span>
+                            <small>@goodPreview?.DelayLabel</small>
+                        </button>
+                        <button class="review-focus__rating review-focus__rating--easy js-rating"
+                                type="submit" name="rating" value="Easy" data-shortcut="4" disabled>
+                            <span><i class="ph ph-lightning" aria-hidden="true"></i>Dễ</span>
+                            <small>@easyPreview?.DelayLabel</small>
+                        </button>
                     </div>
                 </form>
+
+                <p class="review-focus__status-message" id="review-status" aria-live="polite">
+                    <i class="ph ph-info" aria-hidden="true"></i>
+                    <span>Hiện đáp án để chọn mức nhớ.</span>
+                </p>
+                <p class="review-focus__hint">
+                    <i class="ph ph-keyboard" aria-hidden="true"></i>
+                    Space để hiện đáp án · 1 đến 4 để chọn mức nhớ
+                </p>
+            </article>
+        }
+        else
+        {
+            <div class="review-focus__card review-focus__empty" role="status">
+                Chưa có thẻ nào trong lượt ôn này.
             </div>
-        </article>
-    }
+        }
+    </div>
 </div>
+}
 
 @section Scripts {
-    <script>
-        function revealReviewAnswer() {
-            document.getElementById('review-answer').hidden = false;
-            document.getElementById('answer-revealed').value = 'true';
-            document.getElementById('review-reveal').disabled = true;
-            document.querySelectorAll('button[name="rating"]').forEach(button => button.disabled = false);
+<script>
+(() => {
+    const root = document.querySelector('[data-review-session]');
+    if (!root) return;
+
+    const answer = root.querySelector('#review-answer');
+    const reveal = root.querySelector('#review-reveal');
+    const answerRevealed = root.querySelector('#answer-revealed');
+    const rateForm = root.querySelector('.js-rate-form');
+    const ratingButtons = Array.from(root.querySelectorAll('.js-rating'));
+    const status = root.querySelector('#review-status span');
+    const shortcutKeys = ['1', '2', '3', '4'];
+    let revealed = false;
+
+    function revealAnswer() {
+        if (revealed || !answer || !reveal || !answerRevealed) return;
+
+        revealed = true;
+        answer.hidden = false;
+        answerRevealed.value = 'true';
+        reveal.disabled = true;
+        reveal.classList.add('is-revealed');
+        reveal.querySelector('span').textContent = 'Đáp án đã hiện';
+        ratingButtons.forEach((button) => button.disabled = false);
+        if (status) status.textContent = 'Đáp án đã hiện. Chọn mức nhớ phù hợp.';
+    }
+
+    reveal.addEventListener('click', revealAnswer);
+
+    window.addEventListener('keydown', (event) => {
+        const target = event.target;
+        if (target instanceof HTMLElement && target.matches('input, textarea, select, [contenteditable="true"]')) return;
+
+        if (event.code === 'Space') {
+            event.preventDefault();
+            revealAnswer();
+            return;
         }
-    </script>
+
+        const shortcutIndex = shortcutKeys.indexOf(event.key);
+        if (shortcutIndex === -1 || !revealed || !rateForm) return;
+
+        event.preventDefault();
+        const button = ratingButtons[shortcutIndex];
+        if (button) rateForm.requestSubmit(button);
+    });
+})();
+</script>
 }

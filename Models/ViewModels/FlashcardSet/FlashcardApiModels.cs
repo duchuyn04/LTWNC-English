@@ -1,4 +1,5 @@
 using System.ComponentModel.DataAnnotations;
+using ltwnc.Models.Entities;
 
 namespace ltwnc.Models.ViewModels.FlashcardSet;
 
@@ -12,6 +13,11 @@ public class CreateSetRequest
     public string? Description { get; set; }
 
     public bool IsPublic { get; set; }
+
+    [Range(ReviewSettingsPolicy.MinimumNewCardQuota, ReviewSettingsPolicy.MaximumNewCardQuota)]
+    public int NewCardQuota { get; set; } = ReviewSettingsPolicy.DefaultNewCardQuota;
+
+    public bool ReviewPaused { get; set; }
 }
 
 public class UpdateSetRequest
@@ -24,6 +30,11 @@ public class UpdateSetRequest
     public string? Description { get; set; }
 
     public bool IsPublic { get; set; }
+
+    [Range(ReviewSettingsPolicy.MinimumNewCardQuota, ReviewSettingsPolicy.MaximumNewCardQuota)]
+    public int? NewCardQuota { get; set; }
+
+    public bool? ReviewPaused { get; set; }
 }
 
 // DTO trả về cho API bộ thẻ — không trả entity EF ra ngoài.
@@ -33,6 +44,8 @@ public class SetResponse
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public bool IsPublic { get; set; }
+    public int NewCardQuota { get; set; } = ReviewSettingsPolicy.DefaultNewCardQuota;
+    public bool ReviewPaused { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

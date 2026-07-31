@@ -7,7 +7,7 @@
     <meta name="description" content="LTWNC English giúp bạn học từ vựng bằng flashcard, nghe chép, hội thoại tình huống và theo dõi tiến độ." />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Newsreader:ital,opsz,wght@0,6..72,500..800;1,6..72,500..800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="https://unpkg.com/phosphor-icons@1.4.2/src/css/icons.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -17,88 +17,130 @@
     @{
         var hideLayoutChrome = ViewData["HideLayoutChrome"] as bool? == true;
         var signedIn = User.Identity?.IsAuthenticated == true;
+        var currentPath = Context.Request.Path.Value ?? "/";
     }
     @if (!hideLayoutChrome)
     {
-    <header>
-        <nav class="navbar navbar-expand-lg app-nav">
-            <div class="container">
-                <a class="navbar-brand app-nav-brand" href="/">
-                    <i class="ph ph-book-open"></i> LTWNC
+    <header class="app-header">
+        <nav class="app-nav" aria-label="Điều hướng chính">
+            <div class="container app-nav-shell">
+                <a class="app-nav-brand" href="/" aria-label="LTWNC - Trang chủ">
+                    <span class="app-nav-brand-mark" aria-hidden="true">
+                        <i class="ph ph-book-open"></i>
+                    </span>
+                    <span>LTWNC</span>
                 </a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-label="Mở menu điều hướng">
-                    <span class="navbar-toggler-icon"></span>
-                </button>
-                <div class="collapse navbar-collapse" id="navbarNav">
-                    <ul class="navbar-nav me-auto">
-                        <li class="nav-item">
-                            <a class="nav-link" href="/">Trang chủ</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/Leaderboard">Bảng xếp hạng</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="/Library">Thư viện</a>
-                        </li>
-                        @if (signedIn)
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" href="/Set">Bộ thẻ của tôi</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link" href="/Achievements">Thành tích</a>
-                            </li>
-                            @if (User.HasClaim(ltwnc.Services.Auth.AppClaimTypes.IsAdmin, "true"))
-                            {
-                                <li class="nav-item">
-                                    <a class="nav-link" href="/Admin">Quản trị</a>
-                                </li>
-                            }
-                        }
-                    </ul>
-                    <ul class="navbar-nav align-items-lg-center">
-                        @if (signedIn)
-                        {
-                            <li class="nav-item dropdown">
-                                <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">
-                                    <i class="ph ph-user-circle"></i> @User.Identity?.Name
-                                </a>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li>
-                                        <a class="dropdown-item"
-                                           asp-route="PublicProfile"
-                                           asp-route-username="@User.Identity?.Name">
-                                            <i class="ph ph-user"></i> Profile
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <a class="dropdown-item" href="/Account/Profile/Edit">
-                                            <i class="ph ph-pencil-simple"></i> Chỉnh sửa profile
-                                        </a>
-                                    </li>
-                                    <li>
-                                        <form asp-controller="Account" asp-action="Logout" method="post" class="dropdown-item p-0">
-                                            <button type="submit" class="dropdown-item">
-                                                <i class="ph ph-sign-out"></i> Đăng xuất
-                                            </button>
-                                        </form>
-                                    </li>
-                                </ul>
-                            </li>
-                        }
-                        else
-                        {
-                            <li class="nav-item">
-                                <a class="nav-link" href="/Account/Login">Đăng nhập</a>
-                            </li>
-                            <li class="nav-item ms-lg-2">
-                                <a class="btn-primary-custom app-nav-cta" href="/Account/Register">Đăng ký</a>
-                            </li>
-                        }
-                    </ul>
+
+                <div class="app-nav-actions">
+                    @if (signedIn)
+                    {
+                        <a class="app-nav-account"
+                           asp-route="PublicProfile"
+                           asp-route-username="@User.Identity?.Name"
+                           aria-label="Mở hồ sơ @User.Identity?.Name">
+                            <i class="ph ph-user-circle" aria-hidden="true"></i>
+                            <span>@User.Identity?.Name</span>
+                        </a>
+                    }
+                    else
+                    {
+                        <a class="app-nav-login" href="/Account/Login">Đăng nhập</a>
+                    }
+
+                    <button class="app-nav-menu" type="button"
+                            data-bs-toggle="offcanvas"
+                            data-bs-target="#appNavigation"
+                            aria-controls="appNavigation"
+                            aria-label="Mở menu điều hướng">
+                        <span>Menu</span>
+                        <i class="ph ph-list" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
         </nav>
+
+        <aside class="offcanvas offcanvas-end app-nav-drawer" tabindex="-1"
+               id="appNavigation" aria-labelledby="appNavigationTitle">
+            <div class="offcanvas-header app-drawer-header">
+                <div>
+                    <span class="app-drawer-context">LTWNC English</span>
+                    <h2 class="offcanvas-title" id="appNavigationTitle">Bạn muốn đi đâu?</h2>
+                </div>
+                <button type="button" class="app-drawer-close" data-bs-dismiss="offcanvas" aria-label="Đóng menu">
+                    <i class="ph ph-x" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div class="offcanvas-body app-drawer-body">
+                <nav class="app-drawer-nav" aria-label="Các khu vực trong ứng dụng">
+                    <a class="app-drawer-link @(currentPath == "/" ? "is-active" : null)" href="/">
+                        <i class="ph ph-house" aria-hidden="true"></i>
+                        <span>Trang chủ</span>
+                    </a>
+                    <a class="app-drawer-link @(currentPath.StartsWith("/Library") ? "is-active" : null)" href="/Library">
+                        <i class="ph ph-books" aria-hidden="true"></i>
+                        <span>Thư viện</span>
+                    </a>
+                    <a class="app-drawer-link @(currentPath.StartsWith("/Leaderboard") ? "is-active" : null)" href="/Leaderboard">
+                        <i class="ph ph-trophy" aria-hidden="true"></i>
+                        <span>Bảng xếp hạng</span>
+                    </a>
+                    @if (signedIn)
+                    {
+                        <a class="app-drawer-link @(currentPath.StartsWith("/Set") || currentPath.StartsWith("/Study") ? "is-active" : null)" href="/Set">
+                            <i class="ph ph-stack" aria-hidden="true"></i>
+                            <span>Bộ thẻ của tôi</span>
+                        </a>
+                        <a class="app-drawer-link @(currentPath.StartsWith("/Review") ? "is-active" : null)" href="/Review">
+                            <i class="ph ph-clock-countdown" aria-hidden="true"></i>
+                            <span>Ôn tập đến hạn</span>
+                        </a>
+                        <a class="app-drawer-link @(currentPath.StartsWith("/Achievements") ? "is-active" : null)" href="/Achievements">
+                            <i class="ph ph-medal" aria-hidden="true"></i>
+                            <span>Thành tích</span>
+                        </a>
+                    }
+                </nav>
+
+                <div class="app-drawer-divider"></div>
+
+                @if (signedIn)
+                {
+                    <section class="app-drawer-account" aria-labelledby="drawerAccountTitle">
+                        <h3 id="drawerAccountTitle">Tài khoản</h3>
+                        <a asp-route="PublicProfile" asp-route-username="@User.Identity?.Name">
+                            <i class="ph ph-user" aria-hidden="true"></i>
+                            Xem hồ sơ
+                        </a>
+                        <a href="/Account/Profile/Edit">
+                            <i class="ph ph-pencil-simple" aria-hidden="true"></i>
+                            Chỉnh sửa hồ sơ
+                        </a>
+                        @if (User.HasClaim(ltwnc.Services.Auth.AppClaimTypes.IsAdmin, "true"))
+                        {
+                            <a href="/Admin">
+                                <i class="ph ph-gear-six" aria-hidden="true"></i>
+                                Quản trị
+                            </a>
+                        }
+                    </section>
+
+                    <form asp-controller="Account" asp-action="Logout" method="post" class="app-drawer-logout">
+                        <button type="submit">
+                            <span>Đăng xuất</span>
+                            <i class="ph ph-sign-out" aria-hidden="true"></i>
+                        </button>
+                    </form>
+                }
+                else
+                {
+                    <div class="app-drawer-guest">
+                        <p>Lưu tiến độ học và xây dựng thư viện từ vựng của riêng bạn.</p>
+                        <a class="app-drawer-register" href="/Account/Register">Tạo tài khoản</a>
+                    </div>
+                }
+            </div>
+        </aside>
     </header>
     }
 

@@ -1,27 +1,64 @@
 @{
     ViewData["Title"] = "Ôn tập đến hạn";
+    ViewData["HideLayoutChrome"] = true;
 }
 
-<div class="mx-auto" style="max-width: 720px;">
-    <div class="mb-4">
-        <span class="text-uppercase text-muted small fw-semibold">Spaced review</span>
-        <h1 class="display-6 mt-2">Ôn tập đến hạn</h1>
-        <p class="lead">Xem lại từng thẻ và tự chọn mức nhớ để tạo lịch ôn riêng cho bạn.</p>
-    </div>
+@section Styles {
+    <link rel="stylesheet" href="~/css/review.css" asp-append-version="true" />
+}
 
-    @if (TempData["Message"] is string message)
-    {
-        <div class="alert alert-info" role="status">@message</div>
-    }
+@section FullWidth {
+<div class="review-focus">
+    <div class="review-focus__shell">
+        <header class="review-focus__header">
+            <a class="review-focus__back" href="/Set">
+                <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                <span>Quay lại bộ thẻ</span>
+            </a>
+            <span class="review-focus__brand">Ôn tập ngắt quãng</span>
+            <span class="review-focus__status">
+                <span class="review-focus__status-dot" aria-hidden="true"></span>
+                Sẵn sàng
+            </span>
+        </header>
 
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-4">
-            <h2 class="h5">Bắt đầu lượt ôn</h2>
-            <p class="text-muted">Lượt mới ưu tiên thẻ đến hạn trước, rồi thêm thẻ mới khi còn chỗ (tối đa 20 thẻ).</p>
-            <form method="post" action="/Review/Start">
-                @Html.AntiForgeryToken()
-                <button type="submit" class="btn btn-primary">Bắt đầu ôn tập</button>
-            </form>
-        </div>
+        <section class="review-focus__intro" aria-labelledby="review-intro-title">
+            <div>
+                <p class="review-focus__eyebrow">Spaced review · Focus Deck</p>
+                <h1 class="review-focus__intro-title" id="review-intro-title">Ôn lại trước khi quên.</h1>
+                <p class="review-focus__intro-lede">
+                    Một lượt ôn ngắn, tập trung vào những thẻ đã đến hạn trước rồi mới thêm thẻ mới khi còn chỗ.
+                </p>
+            </div>
+            <div class="review-focus__intro-card">
+                <span class="review-focus__intro-card-icon" aria-hidden="true">
+                    <i class="ph ph-clock-countdown"></i>
+                </span>
+                <strong>Nhịp ôn của bạn</strong>
+                <p>Đánh giá mức nhớ sau khi hiện đáp án để hệ thống tự lập lịch cho lần gặp lại tiếp theo.</p>
+            </div>
+        </section>
+
+        @if (TempData["Message"] is string message)
+        {
+            <div class="review-focus__notice" role="status">@message</div>
+        }
+
+        <section class="review-focus__start-card" aria-labelledby="review-start-title">
+            <div>
+                <h2 id="review-start-title">Bắt đầu lượt ôn</h2>
+                <p>Thẻ đến hạn được ưu tiên trước, sau đó thêm thẻ mới theo giới hạn của từng bộ thẻ.</p>
+            </div>
+            <div class="review-focus__start-card-actions">
+                <form method="post" action="/Review/Start">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="review-focus__primary">
+                        <span>Bắt đầu ôn tập</span>
+                        <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                    </button>
+                </form>
+            </div>
+        </section>
     </div>
 </div>
+}

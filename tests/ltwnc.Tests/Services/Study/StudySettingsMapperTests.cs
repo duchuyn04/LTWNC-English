@@ -24,11 +24,31 @@ public sealed class StudySettingsMapperTests
     }
 
     [Theory]
+    [InlineData(5)]
+    [InlineData(100)]
+    public void ValidateSessionSize_BoundaryValues_ReturnsValue(int value)
+    {
+        int actual = ReviewSettingsPolicy.ValidateSessionSize(value);
+
+        Assert.Equal(value, actual);
+    }
+
+    [Theory]
     [InlineData(4)]
     [InlineData(101)]
     public void ValidateSessionSize_RejectsValuesOutsideTheAgreedRange(int value)
     {
         Assert.Throws<ArgumentOutOfRangeException>(() => ReviewSettingsPolicy.ValidateSessionSize(value));
+    }
+
+    [Theory]
+    [InlineData(30)]
+    [InlineData(365)]
+    public void ValidateMaxIntervalDays_BoundaryValues_ReturnsValue(int value)
+    {
+        int actual = ReviewSettingsPolicy.ValidateMaxIntervalDays(value);
+
+        Assert.Equal(value, actual);
     }
 
     [Theory]

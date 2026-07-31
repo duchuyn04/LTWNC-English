@@ -466,8 +466,322 @@ public sealed class ReviewServiceTests
         Assert.Equal(2, await context.ReviewSessionItems.CountAsync(item => item.Rating == null));
     }
 
-    private static ReviewService CreateService(AppDbContext context) =>
-        new(context, new ReviewStateMachine(), new FixedTimeProvider(FixedNow));
+    [Fact]
+    public async Task StartAsync_AppliesPerSetQuotaAndRoundRobinSelection()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedSetCardsAsync(context, 1, 1, 4, newCardQuota: 2);
+        await SeedSetCardsAsync(context, 2, 101, 4, newCardQuota: 2);
+        context.UserStudySettings.Add(new UserStudySettings
+        {
+            UserId = "user-1",
+            ReviewSessionSize = 20
+        });
+        await context.SaveChangesAsync();
+
+        ReviewSessionViewModel session = (await CreateService(context).StartAsync("user-1"))!;
+        ReviewSession persisted = await context.ReviewSessions
+            .Include(value => value.Items)
+            .ThenInclude(value => value.Flashcard)
+            .SingleAsync();
+        int[] selectedSetIds = persisted.Items
+            .OrderBy(item => item.OrderIndex)
+            .Select(item => item.Flashcard!.FlashcardSetId)
+            .ToArray();
+
+        Assert.Equal(4, session.TotalCards);
+        Assert.Equal(2, selectedSetIds.Count(id => id == 1));
+        Assert.Equal(2, selectedSetIds.Count(id => id == 2));
+        Assert.NotEqual(selectedSetIds[0], selectedSetIds[1]);
+    }
+
+    [Fact]
+    public async Task StartAsync_QuotaZeroStillIncludesDueCardsButNoNewCards()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedSetCardsAsync(context, 1, 1, 2, newCardQuota: 0);
+        context.ReviewProgresses.Add(new ReviewProgress
+        {
+            UserId = "user-1",
+            FlashcardId = 1,
+            Stage = ReviewStage.Reviewing,
+            NextReviewAtUtc = FixedNow.AddMinutes(-1),
+            LongTermIntervalDays = 2
+        });
+        await context.SaveChangesAsync();
+
+        ReviewSessionViewModel session = (await CreateService(context).StartAsync("user-1"))!;
+
+        Assert.Equal(new[] { 1 }, session.Cards.Select(card => card.FlashcardId));
+        Assert.False(session.Cards[0].IsNewCard);
+    }
+
+    [Fact]
+    public async Task StartAsync_CountsLegacyDuplicateAssignmentsOncePerCard()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedSetCardsAsync(context, 1, 1, 2, newCardQuota: 2);
+        Flashcard card = await context.Flashcards.SingleAsync(value => value.Id == 1);
+        ReviewSession completedSession = new()
+        {
+            UserId = "user-1",
+            StartedAtUtc = FixedNow,
+            CompletedAtUtc = FixedNow
+        };
+        ReviewSession endedSession = new()
+        {
+            UserId = "user-1",
+            StartedAtUtc = FixedNow,
+            EndedAtUtc = FixedNow
+        };
+        completedSession.Items.Add(new ReviewSessionItem
+        {
+            Flashcard = card,
+            OrderIndex = 0,
+            IsNewCardAtAssignment = true
+        });
+        endedSession.Items.Add(new ReviewSessionItem
+        {
+            Flashcard = card,
+            OrderIndex = 0,
+            IsNewCardAtAssignment = true
+        });
+        context.ReviewSessions.AddRange(completedSession, endedSession);
+        await context.SaveChangesAsync();
+
+        ReviewSessionViewModel session = (await CreateService(context).StartAsync("user-1"))!;
+
+        Assert.Equal(new[] { 2 }, session.Cards.Select(value => value.FlashcardId));
+    }
+
+    [Fact]
+    public async Task StartAsync_PausedSetSuppliesNeitherDueNorNewCards()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedSetCardsAsync(context, 1, 1, 2, newCardQuota: 5, reviewPaused: true);
+        await SeedSetCardsAsync(context, 2, 101, 1, newCardQuota: 5);
+        context.UserStudySettings.Add(new UserStudySettings { UserId = "user-1", ReviewSessionSize = 5 });
+        context.ReviewProgresses.Add(new ReviewProgress
+        {
+            UserId = "user-1",
+            FlashcardId = 1,
+            Stage = ReviewStage.Reviewing,
+            NextReviewAtUtc = FixedNow.AddMinutes(-1),
+            LongTermIntervalDays = 2
+        });
+        await context.SaveChangesAsync();
+
+        ReviewSessionViewModel session = (await CreateService(context).StartAsync("user-1"))!;
+
+        Assert.All(session.Cards, card => Assert.True(card.FlashcardId >= 101));
+        Assert.DoesNotContain(session.Cards, card => card.FlashcardId == 1);
+
+        await CreateService(context).EndAsync("user-1", (await context.ReviewSessions.SingleAsync()).Id);
+        (await context.FlashcardSets.SingleAsync(set => set.Id == 1)).ReviewPaused = false;
+        await context.SaveChangesAsync();
+        ReviewSessionViewModel resumed = (await CreateService(context).StartAsync("user-1"))!;
+
+        Assert.Contains(resumed.Cards, card => card.FlashcardId == 1);
+    }
+
+    [Fact]
+    public async Task StartAsync_ReservesNewCardsForVietnameseDayAndResetsNextDay()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedSetCardsAsync(context, 1, 1, 2, newCardQuota: 5);
+        await SeedSetCardsAsync(context, 2, 101, 5, newCardQuota: 5);
+        context.UserStudySettings.Add(new UserStudySettings { UserId = "user-1", ReviewSessionSize = 5 });
+        await context.SaveChangesAsync();
+        MutableTimeProvider clock = new(FixedNow);
+        ReviewService service = CreateService(context, clock);
+
+        ReviewSessionViewModel first = (await service.StartAsync("user-1"))!;
+        await service.EndAsync("user-1", first.SessionId);
+        ReviewSessionViewModel second = (await service.StartAsync("user-1"))!;
+        await service.EndAsync("user-1", second.SessionId);
+
+        int[] firstIds = first.Cards.Select(card => card.FlashcardId).ToArray();
+        int[] secondIds = second.Cards.Select(card => card.FlashcardId).ToArray();
+        Assert.Empty(firstIds.Intersect(secondIds));
+        Assert.Equal(2, secondIds.Length);
+
+        clock.UtcNowValue = FixedNow.AddDays(1);
+        ReviewSessionViewModel nextDay = (await service.StartAsync("user-1"))!;
+
+        Assert.Equal(5, nextDay.TotalCards);
+        Assert.Contains(nextDay.Cards, card => firstIds.Contains(card.FlashcardId));
+    }
+
+    [Fact]
+    public async Task GetSessionAsync_MissingSession_ReturnsNull()
+    {
+        await using AppDbContext context = CreateContext();
+        ReviewService service = CreateService(context);
+
+        ReviewSessionViewModel? actual = await service.GetSessionAsync(17, "user-1");
+
+        Assert.Null(actual);
+    }
+
+    [Fact]
+    public async Task GetSessionAsync_ForeignSession_ReturnsNull()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedCardAsync(context);
+        ReviewService service = CreateService(context);
+        ReviewSessionViewModel session = (await service.StartAsync("user-1"))!;
+
+        ReviewSessionViewModel? actual = await service.GetSessionAsync(session.SessionId, "user-2");
+
+        Assert.Null(actual);
+    }
+
+    [Fact]
+    public async Task GetActiveSessionAsync_CompletedSession_ReturnsNull()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedCardAsync(context);
+        ReviewService service = CreateService(context);
+        await service.StartAsync("user-1");
+        ReviewSession session = await context.ReviewSessions.SingleAsync();
+        session.CompletedAtUtc = FixedNow;
+        await context.SaveChangesAsync();
+
+        ReviewSessionViewModel? actual = await service.GetActiveSessionAsync("user-1");
+
+        Assert.Null(actual);
+    }
+
+    [Fact]
+    public async Task GetActiveSessionAsync_EndedSession_ReturnsNull()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedCardAsync(context);
+        ReviewService service = CreateService(context);
+        await service.StartAsync("user-1");
+        ReviewSession session = await context.ReviewSessions.SingleAsync();
+        session.EndedAtUtc = FixedNow;
+        await context.SaveChangesAsync();
+
+        ReviewSessionViewModel? actual = await service.GetActiveSessionAsync("user-1");
+
+        Assert.Null(actual);
+    }
+
+    [Fact]
+    public async Task RateAsync_InvalidRating_ThrowsArgumentOutOfRangeException()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedCardAsync(context);
+        ReviewService service = CreateService(context);
+        ReviewSessionViewModel session = (await service.StartAsync("user-1"))!;
+
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => service.RateAsync(
+            "user-1",
+            session.SessionId,
+            session.Cards[0].FlashcardId,
+            (ReviewRating)99,
+            answerRevealed: true));
+
+        Assert.Empty(await context.ReviewProgresses.ToListAsync());
+    }
+
+    [Fact]
+    public async Task RateAsync_UnknownSession_ThrowsKeyNotFoundException()
+    {
+        await using AppDbContext context = CreateContext();
+        ReviewService service = CreateService(context);
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.RateAsync(
+            "user-1", 17, 3, ReviewRating.Good, answerRevealed: true));
+    }
+
+    [Fact]
+    public async Task RateAsync_CardOutsideSession_ThrowsKeyNotFoundException()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedCardAsync(context);
+        ReviewService service = CreateService(context);
+        ReviewSessionViewModel session = (await service.StartAsync("user-1"))!;
+
+        await Assert.ThrowsAsync<KeyNotFoundException>(() => service.RateAsync(
+            "user-1", session.SessionId, 999, ReviewRating.Good, answerRevealed: true));
+
+        Assert.Empty(await context.ReviewProgresses.ToListAsync());
+    }
+
+    [Fact]
+    public async Task RateAsync_EndedSession_RejectsUnratedCard()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedCardAsync(context);
+        ReviewService service = CreateService(context);
+        ReviewSessionViewModel session = (await service.StartAsync("user-1"))!;
+        ReviewSession persistedSession = await context.ReviewSessions.SingleAsync();
+        persistedSession.EndedAtUtc = FixedNow;
+        await context.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RateAsync(
+            "user-1", session.SessionId, session.Cards[0].FlashcardId, ReviewRating.Good, true));
+
+        Assert.Empty(await context.ReviewProgresses.ToListAsync());
+    }
+
+    [Fact]
+    public async Task RateAsync_CompletedSession_RejectsUnratedCard()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedCardAsync(context);
+        ReviewService service = CreateService(context);
+        ReviewSessionViewModel session = (await service.StartAsync("user-1"))!;
+        ReviewSession persistedSession = await context.ReviewSessions.SingleAsync();
+        persistedSession.CompletedAtUtc = FixedNow;
+        await context.SaveChangesAsync();
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.RateAsync(
+            "user-1", session.SessionId, session.Cards[0].FlashcardId, ReviewRating.Good, true));
+
+        Assert.Empty(await context.ReviewProgresses.ToListAsync());
+    }
+
+    [Fact]
+    public async Task EndAsync_MissingSession_ReturnsNull()
+    {
+        await using AppDbContext context = CreateContext();
+        ReviewService service = CreateService(context);
+
+        ReviewSessionViewModel? actual = await service.EndAsync("user-1", 17);
+
+        Assert.Null(actual);
+    }
+
+    [Fact]
+    public async Task GetSessionAsync_MapsRatedAndUnratedCardsWithCounts()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedCardsAsync(context, 2);
+        ReviewService service = CreateService(context);
+        ReviewSessionViewModel session = (await service.StartAsync("user-1"))!;
+        int ratedCardId = session.Cards[0].FlashcardId;
+
+        await service.RateAsync("user-1", session.SessionId, ratedCardId, ReviewRating.Good, true);
+
+        ReviewSessionViewModel actual = (await service.GetSessionAsync(session.SessionId, "user-1"))!;
+        ReviewCardViewModel ratedCard = actual.Cards.Single(card => card.FlashcardId == ratedCardId);
+        ReviewCardViewModel unratedCard = actual.Cards.Single(card => card.FlashcardId != ratedCardId);
+
+        Assert.Equal(2, actual.TotalCards);
+        Assert.Equal(1, actual.RatedCards);
+        Assert.Equal(ReviewRating.Good, ratedCard.Rating);
+        Assert.True(ratedCard.IsRated);
+        Assert.Empty(ratedCard.RatingPreviews);
+        Assert.Null(unratedCard.Rating);
+        Assert.False(unratedCard.IsRated);
+        Assert.Equal(4, unratedCard.RatingPreviews.Count);
+    }
+
+    private static ReviewService CreateService(AppDbContext context, TimeProvider? timeProvider = null) =>
+        new(context, new ReviewStateMachine(), timeProvider ?? new FixedTimeProvider(FixedNow));
 
     private static AppDbContext CreateContext()
         => CreateContext(Guid.NewGuid().ToString());
@@ -530,8 +844,47 @@ public sealed class ReviewServiceTests
         await context.SaveChangesAsync();
     }
 
+    private static async Task SeedSetCardsAsync(
+        AppDbContext context,
+        int setId,
+        int firstCardId,
+        int count,
+        int newCardQuota,
+        bool reviewPaused = false)
+    {
+        FlashcardSet set = new()
+        {
+            Id = setId,
+            UserId = "user-1",
+            Title = $"Set {setId}",
+            NewCardQuota = newCardQuota,
+            ReviewPaused = reviewPaused
+        };
+        context.FlashcardSets.Add(set);
+        for (int index = 0; index < count; index++)
+        {
+            context.Flashcards.Add(new Flashcard
+            {
+                Id = firstCardId + index,
+                FlashcardSetId = setId,
+                FrontText = $"word-{firstCardId + index}",
+                BackText = $"meaning-{firstCardId + index}",
+                OrderIndex = index
+            });
+        }
+
+        await context.SaveChangesAsync();
+    }
+
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => value;
+    }
+
+    private sealed class MutableTimeProvider(DateTimeOffset value) : TimeProvider
+    {
+        public DateTimeOffset UtcNowValue { get; set; } = value;
+
+        public override DateTimeOffset GetUtcNow() => UtcNowValue;
     }
 }

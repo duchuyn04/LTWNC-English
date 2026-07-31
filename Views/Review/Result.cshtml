@@ -1,34 +1,111 @@
 @model ReviewSessionViewModel
+
 @{
     ViewData["Title"] = "Kết quả ôn tập";
+    ViewData["HideLayoutChrome"] = true;
+
+    int progressPercent = Model.TotalCards == 0
+        ? 0
+        : (int)Math.Round(Model.RatedCards * 100d / Model.TotalCards);
+
+    string StageLabel(ReviewStage stage) => stage switch
+    {
+        ReviewStage.New => "Thẻ mới",
+        ReviewStage.Learning => "Đang học",
+        ReviewStage.Relearning => "Học lại",
+        _ => "Đang ôn"
+    };
+
+    string RatingLabel(ReviewRating? rating) => rating switch
+    {
+        ReviewRating.Again => "Quên",
+        ReviewRating.Hard => "Khó",
+        ReviewRating.Good => "Tốt",
+        ReviewRating.Easy => "Dễ",
+        _ => "Chưa đánh giá"
+    };
 }
 
-<div class="mx-auto" style="max-width: 720px;">
-    <span class="text-uppercase text-muted small fw-semibold">Ôn tập đến hạn</span>
-    <h1 class="display-6 mt-2">@(Model.IsEnded ? "Lượt ôn đã kết thúc" : "Lượt ôn đã hoàn thành")</h1>
-    <p class="lead">Bạn đã tự đánh giá @Model.RatedCards / @Model.TotalCards thẻ.</p>
+@section Styles {
+    <link rel="stylesheet" href="~/css/review.css" asp-append-version="true" />
+}
 
-    <div class="d-flex flex-wrap gap-2 mb-4" aria-label="Tổng kết mức nhớ">
-        <span class="badge text-bg-danger">Quên: @Model.Cards.Count(card => card.Rating == ReviewRating.Again)</span>
-        <span class="badge text-bg-warning">Khó: @Model.Cards.Count(card => card.Rating == ReviewRating.Hard)</span>
-        <span class="badge text-bg-success">Tốt: @Model.Cards.Count(card => card.Rating == ReviewRating.Good)</span>
-        <span class="badge text-bg-primary">Dễ: @Model.Cards.Count(card => card.Rating == ReviewRating.Easy)</span>
-    </div>
+@section FullWidth {
+<div class="review-focus">
+    <div class="review-focus__shell review-focus__result">
+        <header class="review-focus__header">
+            <a class="review-focus__back" href="/Review">
+                <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                <span>Ôn tập ngắt quãng</span>
+            </a>
+            <span class="review-focus__brand">Kết quả lượt ôn</span>
+            <span class="review-focus__status">
+                <span class="review-focus__status-dot" aria-hidden="true"></span>
+                Đã lưu
+            </span>
+        </header>
 
-    <div class="card border-0 shadow-sm mb-4">
-        <div class="card-body p-4">
+        <section aria-labelledby="review-result-title">
+            <p class="review-focus__eyebrow">Spaced review · Tổng kết</p>
+            <h1 class="review-focus__result-title" id="review-result-title">
+                @(Model.IsEnded ? "Lượt ôn đã kết thúc sớm." : "Lượt ôn đã hoàn thành.")
+            </h1>
+            <p class="review-focus__result-lede">
+                Bạn đã tự đánh giá @Model.RatedCards / @Model.TotalCards thẻ.
+            </p>
+        </section>
+
+        <div class="review-focus__progress review-focus__result-progress" aria-label="Tiến độ lượt ôn">
+            <div class="review-focus__progress-label">
+                <span>Tiến độ</span>
+                <span>@progressPercent%</span>
+            </div>
+            <div class="review-focus__progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="@progressPercent">
+                <span class="review-focus__progress-value" style="width: @(progressPercent)%"></span>
+            </div>
+        </div>
+
+        <section class="review-focus__result-stats" aria-label="Tổng kết mức nhớ">
+            <div class="review-focus__result-stat review-focus__result-stat--again">
+                <span class="review-focus__result-value">@Model.Cards.Count(card => card.Rating == ReviewRating.Again)</span>
+                <span class="review-focus__result-label">Quên · Again</span>
+            </div>
+            <div class="review-focus__result-stat review-focus__result-stat--hard">
+                <span class="review-focus__result-value">@Model.Cards.Count(card => card.Rating == ReviewRating.Hard)</span>
+                <span class="review-focus__result-label">Khó · Hard</span>
+            </div>
+            <div class="review-focus__result-stat review-focus__result-stat--good">
+                <span class="review-focus__result-value">@Model.Cards.Count(card => card.Rating == ReviewRating.Good)</span>
+                <span class="review-focus__result-label">Tốt · Good</span>
+            </div>
+            <div class="review-focus__result-stat review-focus__result-stat--easy">
+                <span class="review-focus__result-value">@Model.Cards.Count(card => card.Rating == ReviewRating.Easy)</span>
+                <span class="review-focus__result-label">Dễ · Easy</span>
+            </div>
+        </section>
+
+        <section class="review-focus__result-list" aria-label="Danh sách thẻ đã ôn">
             @foreach (ReviewCardViewModel card in Model.Cards)
             {
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <div class="fw-semibold">@card.FrontText</div>
-                        <div class="text-muted small">@card.BackText</div>
+                <article class="review-focus__result-item">
+                    <div class="review-focus__result-item-main">
+                        <div class="review-focus__result-item-term">@card.FrontText</div>
+                        <div class="review-focus__result-item-definition">@card.BackText</div>
                     </div>
-                    <span class="badge text-bg-light">@card.Stage</span>
-                </div>
+                    <div class="review-focus__result-item-meta">
+                        <span class="review-focus__result-item-badge">@StageLabel(card.Stage)</span>
+                        <span class="review-focus__result-item-badge">@RatingLabel(card.Rating)</span>
+                    </div>
+                </article>
             }
+        </section>
+
+        <div class="review-focus__cta-row">
+            <a class="review-focus__primary" href="/Review">
+                <span>Ôn lượt tiếp theo</span>
+                <i class="ph ph-arrow-right" aria-hidden="true"></i>
+            </a>
         </div>
     </div>
-
-    <a class="btn btn-primary" href="/Review">Ôn lượt tiếp theo</a>
 </div>
+}

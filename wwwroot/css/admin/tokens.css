@@ -30,8 +30,8 @@
     --color-ink-underline: oklch(29% 0.025 140 / 0.3);
     --color-backdrop: oklch(22% 0.025 140 / 0.48);
 
-    --font-display: "Newsreader", Georgia, serif;
-    --font-body: "Be Vietnam Pro", "Helvetica Neue", "Segoe UI", sans-serif;
+    --font-body: "Be Vietnam Pro", sans-serif;
+    --font-display: var(--font-body);
 
     --space-3xs: 0.125rem;
     --space-2xs: 0.25rem;

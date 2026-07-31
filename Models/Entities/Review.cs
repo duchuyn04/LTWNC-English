@@ -80,6 +80,10 @@ public class ReviewSessionItem
 
     public bool IsNewCardAtAssignment { get; set; }
 
+    // Ngày lịch Asia/Ho_Chi_Minh tại thời điểm phân thẻ mới; dùng để giữ quota
+    // ngay cả khi người học kết thúc lượt trước khi đánh giá hết thẻ.
+    public DateTime? NewCardAssignedDate { get; set; }
+
     public ReviewRating? Rating { get; set; }
 
     public DateTimeOffset? RatedAtUtc { get; set; }

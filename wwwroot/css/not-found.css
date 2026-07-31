@@ -20,8 +20,8 @@
     --shadow-card: 0 2px 10px rgba(41, 50, 38, 0.05);
     --shadow-lift: 0 16px 40px rgba(41, 50, 38, 0.10);
     --shadow-offset: 5px 5px 0 rgba(41, 50, 38, 0.14);
-    --font-body: "Be Vietnam Pro", "Helvetica Neue", "Segoe UI", sans-serif;
-    --font-display: "Newsreader", Georgia, serif;
+    --font-body: "Be Vietnam Pro", sans-serif;
+    --font-display: var(--font-body);
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 

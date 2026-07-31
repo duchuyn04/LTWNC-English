@@ -1,15 +1,106 @@
+using System.Reflection;
 using ltwnc.Controllers;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Review;
 using ltwnc.Services.Auth;
 using ltwnc.Services.Review;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.ViewFeatures;
 
 namespace ltwnc.Tests.Controllers;
 
 public sealed class ReviewControllerTests
 {
+    [Fact]
+    public void ReviewController_HasAuthorizeAttribute()
+    {
+        Assert.NotEmpty(typeof(ReviewController).GetCustomAttributes<AuthorizeAttribute>(inherit: true));
+    }
+
+    [Theory]
+    [InlineData(nameof(ReviewController.Start))]
+    [InlineData(nameof(ReviewController.Rate))]
+    [InlineData(nameof(ReviewController.End))]
+    public void ReviewController_WriteAction_HasPostAndAntiforgery(string actionName)
+    {
+        var method = typeof(ReviewController).GetMethod(actionName);
+
+        Assert.NotNull(method);
+        Assert.NotEmpty(method!.GetCustomAttributes<HttpPostAttribute>(inherit: true));
+        Assert.NotEmpty(method.GetCustomAttributes<ValidateAntiForgeryTokenAttribute>(inherit: true));
+    }
+
+    [Fact]
+    public async Task Index_AnonymousUser_ReturnsChallenge()
+    {
+        var review = new Mock<IReviewService>();
+        ReviewController controller = CreateController(null, review);
+
+        IActionResult actual = await controller.Index();
+
+        Assert.IsType<ChallengeResult>(actual);
+        review.Verify(service => service.GetActiveSessionAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Index_ActiveSession_RedirectsToSession()
+    {
+        var review = new Mock<IReviewService>();
+        review.Setup(service => service.GetActiveSessionAsync("user-1"))
+            .ReturnsAsync(new ReviewSessionViewModel { SessionId = 17 });
+        ReviewController controller = CreateController("user-1", review);
+
+        IActionResult actual = await controller.Index();
+
+        var redirect = Assert.IsType<RedirectToActionResult>(actual);
+        Assert.Equal(nameof(ReviewController.Session), redirect.ActionName);
+        Assert.Equal(17, redirect.RouteValues!["sessionId"]);
+    }
+
+    [Fact]
+    public async Task Index_WithoutActiveSession_ReturnsIndexView()
+    {
+        var review = new Mock<IReviewService>();
+        review.Setup(service => service.GetActiveSessionAsync("user-1"))
+            .ReturnsAsync((ReviewSessionViewModel?)null);
+        ReviewController controller = CreateController("user-1", review);
+
+        IActionResult actual = await controller.Index();
+
+        Assert.IsType<ViewResult>(actual);
+    }
+
+    [Fact]
+    public async Task Start_AnonymousUser_ReturnsUnauthorized()
+    {
+        var review = new Mock<IReviewService>();
+        ReviewController controller = CreateController(null, review);
+
+        IActionResult actual = await controller.Start();
+
+        Assert.IsType<UnauthorizedResult>(actual);
+        review.Verify(service => service.StartAsync(It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Start_WithoutEligibleCards_SetsMessageAndRedirectsIndex()
+    {
+        var review = new Mock<IReviewService>();
+        review.Setup(service => service.StartAsync("user-1"))
+            .ReturnsAsync((ReviewSessionViewModel?)null);
+        ReviewController controller = CreateController("user-1", review);
+
+        IActionResult actual = await controller.Start();
+
+        var redirect = Assert.IsType<RedirectToActionResult>(actual);
+        Assert.Equal(nameof(ReviewController.Index), redirect.ActionName);
+        Assert.Equal(
+            "Ch\u01b0a c\u00f3 th\u1ebb m\u1edbi ph\u00f9 h\u1ee3p \u0111\u1ec3 b\u1eaft \u0111\u1ea7u \u00f4n t\u1eadp.",
+            controller.TempData["Message"]);
+    }
+
     [Fact]
     public async Task Start_AuthenticatedUser_RedirectsToCreatedSession()
     {
@@ -68,6 +159,31 @@ public sealed class ReviewControllerTests
     }
 
     [Fact]
+    public async Task Session_AnonymousUser_ReturnsChallenge()
+    {
+        var review = new Mock<IReviewService>();
+        ReviewController controller = CreateController(null, review);
+
+        IActionResult actual = await controller.Session(17);
+
+        Assert.IsType<ChallengeResult>(actual);
+        review.Verify(service => service.GetSessionAsync(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Session_MissingSession_ReturnsNotFound()
+    {
+        var review = new Mock<IReviewService>();
+        review.Setup(service => service.GetSessionAsync(17, "user-1"))
+            .ReturnsAsync((ReviewSessionViewModel?)null);
+        ReviewController controller = CreateController("user-1", review);
+
+        IActionResult actual = await controller.Session(17);
+
+        Assert.IsType<NotFoundResult>(actual);
+    }
+
+    [Fact]
     public async Task Result_EndedSession_ReturnsSummaryView()
     {
         var review = new Mock<IReviewService>();
@@ -94,6 +210,38 @@ public sealed class ReviewControllerTests
 
         var conflict = Assert.IsType<ConflictObjectResult>(actual);
         Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
+    }
+
+    [Fact]
+    public async Task Rate_AnonymousUser_ReturnsUnauthorized()
+    {
+        var review = new Mock<IReviewService>();
+        ReviewController controller = CreateController(null, review);
+
+        IActionResult actual = await controller.Rate(17, 3, ReviewRating.Good, true);
+
+        Assert.IsType<UnauthorizedResult>(actual);
+        review.Verify(
+            service => service.RateAsync(
+                It.IsAny<string>(),
+                It.IsAny<int>(),
+                It.IsAny<int>(),
+                It.IsAny<ReviewRating>(),
+                It.IsAny<bool>()),
+            Times.Never);
+    }
+
+    [Fact]
+    public async Task Rate_UnknownSession_ReturnsNotFound()
+    {
+        var review = new Mock<IReviewService>();
+        review.Setup(service => service.RateAsync("user-1", 17, 3, ReviewRating.Good, true))
+            .ThrowsAsync(new KeyNotFoundException());
+        ReviewController controller = CreateController("user-1", review);
+
+        IActionResult actual = await controller.Rate(17, 3, ReviewRating.Good, true);
+
+        Assert.IsType<NotFoundResult>(actual);
     }
 
     [Fact]
@@ -151,6 +299,71 @@ public sealed class ReviewControllerTests
         Assert.Equal(17, redirect.RouteValues!["sessionId"]);
     }
 
+    [Fact]
+    public async Task End_AnonymousUser_ReturnsUnauthorized()
+    {
+        var review = new Mock<IReviewService>();
+        ReviewController controller = CreateController(null, review);
+
+        IActionResult actual = await controller.End(17);
+
+        Assert.IsType<UnauthorizedResult>(actual);
+        review.Verify(service => service.EndAsync(It.IsAny<string>(), It.IsAny<int>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task End_MissingSession_ReturnsNotFound()
+    {
+        var review = new Mock<IReviewService>();
+        review.Setup(service => service.EndAsync("user-1", 17))
+            .ReturnsAsync((ReviewSessionViewModel?)null);
+        ReviewController controller = CreateController("user-1", review);
+
+        IActionResult actual = await controller.End(17);
+
+        Assert.IsType<NotFoundResult>(actual);
+    }
+
+    [Fact]
+    public async Task Result_AnonymousUser_ReturnsChallenge()
+    {
+        var review = new Mock<IReviewService>();
+        ReviewController controller = CreateController(null, review);
+
+        IActionResult actual = await controller.Result(17);
+
+        Assert.IsType<ChallengeResult>(actual);
+        review.Verify(service => service.GetSessionAsync(It.IsAny<int>(), It.IsAny<string>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task Result_MissingSession_ReturnsNotFound()
+    {
+        var review = new Mock<IReviewService>();
+        review.Setup(service => service.GetSessionAsync(17, "user-1"))
+            .ReturnsAsync((ReviewSessionViewModel?)null);
+        ReviewController controller = CreateController("user-1", review);
+
+        IActionResult actual = await controller.Result(17);
+
+        Assert.IsType<NotFoundResult>(actual);
+    }
+
+    [Fact]
+    public async Task Result_UnfinishedSession_RedirectsToSession()
+    {
+        var review = new Mock<IReviewService>();
+        review.Setup(service => service.GetSessionAsync(17, "user-1"))
+            .ReturnsAsync(new ReviewSessionViewModel { SessionId = 17 });
+        ReviewController controller = CreateController("user-1", review);
+
+        IActionResult actual = await controller.Result(17);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(actual);
+        Assert.Equal(nameof(ReviewController.Session), redirect.ActionName);
+        Assert.Equal(17, redirect.RouteValues!["sessionId"]);
+    }
+
     private static ReviewController CreateController(
         string? userId,
         Mock<IReviewService> review)
@@ -162,7 +375,10 @@ public sealed class ReviewControllerTests
             ControllerContext = new ControllerContext
             {
                 HttpContext = new DefaultHttpContext()
-            }
+            },
+            TempData = new TempDataDictionary(
+                new DefaultHttpContext(),
+                Mock.Of<ITempDataProvider>())
         };
     }
 }

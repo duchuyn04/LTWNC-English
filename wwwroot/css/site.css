@@ -2,7 +2,7 @@
    LTWNC English — Warm Editorial
    Single source of truth: design tokens + shared components.
    Palette: cream paper, forest ink, brass accent.
-   Type: Newsreader (display) + Be Vietnam Pro (body).
+   Type: Be Vietnam Pro throughout.
    Shape lock: cards 16px, controls 10px, tags pill.
    ============================================================ */
 
@@ -48,8 +48,8 @@
     --shadow-offset: 5px 5px 0 rgba(41, 50, 38, 0.14);
 
     /* Type */
-    --font-display: 'Newsreader', Georgia, serif;
-    --font-body: 'Be Vietnam Pro', 'Helvetica Neue', 'Segoe UI', sans-serif;
+    --font-body: 'Be Vietnam Pro', sans-serif;
+    --font-display: var(--font-body);
 
     /* Motion */
     --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
@@ -165,15 +165,395 @@ a:hover {
     background: var(--paper);
 }
 
-.app-nav {
+.app-header {
     position: sticky;
     top: 0;
-    z-index: 1020;
-    min-height: 64px;
-    background: rgba(247, 243, 233, 0.88);
-    backdrop-filter: blur(12px) saturate(1.1);
-    -webkit-backdrop-filter: blur(12px) saturate(1.1);
+    z-index: 1030;
+}
+
+.app-nav {
+    min-height: 68px;
     border-bottom: 1px solid var(--line);
+    background: rgba(247, 243, 233, 0.9);
+    backdrop-filter: blur(14px) saturate(1.08);
+    -webkit-backdrop-filter: blur(14px) saturate(1.08);
+}
+
+.app-nav-shell {
+    min-height: 68px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+}
+
+.app-nav-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.65rem;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    text-decoration: none;
+}
+
+.app-nav-brand:hover {
+    color: var(--ink);
+}
+
+.app-nav-brand-mark {
+    width: 34px;
+    height: 34px;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    color: var(--brass-deep);
+    background: var(--surface);
+}
+
+.app-nav-brand-mark i {
+    font-size: 1rem;
+}
+
+.app-nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+}
+
+.app-nav-account,
+.app-nav-login {
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.55rem 0.8rem;
+    border-radius: var(--radius-control);
+    color: var(--ink-soft);
+    font-size: 0.86rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
+}
+
+.app-nav-account i {
+    font-size: 1.15rem;
+}
+
+.app-nav-account:hover,
+.app-nav-login:hover {
+    color: var(--ink);
+    background: var(--sage-soft);
+}
+
+.app-nav-menu {
+    min-width: 96px;
+    min-height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.55rem;
+    padding: 0.55rem 0.85rem;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius-control);
+    color: var(--paper);
+    background: var(--ink);
+    font: 750 0.86rem/1 var(--font-body);
+    transition: background-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+}
+
+.app-nav-menu i {
+    font-size: 1.15rem;
+}
+
+.app-nav-menu:hover {
+    background: var(--ink-soft);
+}
+
+.app-nav-menu:active {
+    transform: translateY(1px);
+}
+
+.app-nav-account:focus-visible,
+.app-nav-login:focus-visible,
+.app-nav-menu:focus-visible,
+.app-nav-brand:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--success) 34%, transparent);
+    outline-offset: 3px;
+}
+
+.app-nav-drawer {
+    width: min(420px, 100vw) !important;
+    border-left: 1px solid var(--line) !important;
+    color: var(--ink);
+    background: var(--paper);
+    box-shadow: -20px 0 60px rgba(41, 50, 38, 0.12);
+}
+
+.app-drawer-header {
+    min-height: 116px;
+    align-items: flex-start;
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.app-drawer-context {
+    display: block;
+    margin-bottom: 0.35rem;
+    color: var(--success);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+
+.app-drawer-header .offcanvas-title {
+    margin: 0;
+    color: var(--ink);
+    font-family: var(--font-body);
+    font-size: 1.55rem;
+    font-weight: 800;
+    letter-spacing: -0.035em;
+}
+
+.app-drawer-close {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    color: var(--ink);
+    background: var(--surface);
+    transition: border-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+}
+
+.app-drawer-close:hover {
+    border-color: var(--ink);
+}
+
+.app-drawer-close:active {
+    transform: scale(0.97);
+}
+
+.app-drawer-close:focus-visible,
+.app-drawer-link:focus-visible,
+.app-drawer-account a:focus-visible,
+.app-drawer-logout button:focus-visible,
+.app-drawer-register:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--success) 34%, transparent);
+    outline-offset: 3px;
+}
+
+.app-drawer-body {
+    display: flex;
+    flex-direction: column;
+    padding: 1rem 1.25rem 1.25rem;
+}
+
+.app-drawer-nav {
+    display: grid;
+    gap: 0.35rem;
+}
+
+.app-drawer-link {
+    min-height: 54px;
+    display: grid;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+    gap: 0.75rem;
+    align-items: center;
+    padding: 0.55rem 0.7rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius-control);
+    color: var(--ink-soft);
+    font-size: 0.94rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: color var(--duration-fast) var(--ease-out),
+                border-color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out),
+                transform var(--duration-fast) var(--ease-out);
+}
+
+.app-drawer-link i {
+    width: 36px;
+    height: 36px;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    color: var(--muted);
+    background: var(--surface);
+    font-size: 1.05rem;
+}
+
+.app-drawer-link::after {
+    content: '\2197';
+    color: var(--muted-light);
+    font-size: 0.84rem;
+}
+
+.app-drawer-link:hover {
+    border-color: var(--line);
+    color: var(--ink);
+    background: var(--surface);
+    transform: translateX(2px);
+}
+
+.app-drawer-link.is-active {
+    border-color: var(--line-strong);
+    color: var(--ink);
+    background: var(--sage-soft);
+}
+
+.app-drawer-link.is-active i {
+    border-color: color-mix(in srgb, var(--success) 28%, var(--line));
+    color: var(--success);
+    background: var(--success-bg);
+}
+
+.app-drawer-divider {
+    height: 1px;
+    margin: 1.25rem 0;
+    background: var(--line);
+}
+
+.app-drawer-account {
+    display: grid;
+    gap: 0.25rem;
+}
+
+.app-drawer-account h3 {
+    margin: 0 0 0.55rem;
+    color: var(--muted);
+    font-family: var(--font-body);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+}
+
+.app-drawer-account a {
+    min-height: 42px;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: var(--radius-control);
+    color: var(--ink-soft);
+    font-size: 0.88rem;
+    font-weight: 650;
+    text-decoration: none;
+}
+
+.app-drawer-account a:hover {
+    color: var(--ink);
+    background: var(--surface-sunken);
+}
+
+.app-drawer-account i {
+    color: var(--muted);
+    font-size: 1rem;
+}
+
+.app-drawer-logout {
+    margin-top: auto;
+    padding-top: 1.5rem;
+}
+
+.app-drawer-logout button {
+    width: 100%;
+    min-height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 0.8rem;
+    border: 1px solid color-mix(in srgb, var(--error) 28%, var(--line));
+    border-radius: var(--radius-control);
+    color: var(--error);
+    background: color-mix(in srgb, var(--error-bg) 45%, var(--surface));
+    font: 750 0.88rem/1 var(--font-body);
+}
+
+.app-drawer-guest {
+    margin-top: auto;
+    padding: 1rem;
+    border-radius: var(--radius-card);
+    background: var(--surface-sunken);
+}
+
+.app-drawer-guest p {
+    margin: 0 0 1rem;
+    color: var(--muted);
+    font-size: 0.88rem;
+    line-height: 1.65;
+}
+
+.app-drawer-register {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.6rem 1rem;
+    border-radius: var(--radius-control);
+    color: var(--paper);
+    background: var(--ink);
+    font-size: 0.88rem;
+    font-weight: 750;
+    text-decoration: none;
+}
+
+.app-drawer-register:hover {
+    color: var(--paper);
+    background: var(--ink-soft);
+}
+
+@media (max-width: 575px) {
+    .app-nav {
+        min-height: 62px;
+    }
+
+    .app-nav-shell {
+        min-height: 62px;
+        padding-inline: 0.75rem;
+    }
+
+    .app-nav-brand {
+        font-size: 1.15rem;
+    }
+
+    .app-nav-brand-mark {
+        width: 32px;
+        height: 32px;
+    }
+
+    .app-nav-account span {
+        display: none;
+    }
+
+    .app-nav-account {
+        width: 42px;
+        padding: 0;
+        justify-content: center;
+    }
+
+    .app-nav-account i {
+        font-size: 1.3rem;
+    }
+
+    .app-nav-menu {
+        min-width: 82px;
+    }
+
+    .app-drawer-header {
+        min-height: 104px;
+        padding: 1.25rem;
+    }
 }
 
 @media (prefers-reduced-transparency: reduce) {
@@ -184,80 +564,19 @@ a:hover {
     }
 }
 
-.app-nav-brand {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-family: var(--font-body);
-    font-size: 1.375rem;
-    font-weight: 700;
-    letter-spacing: -0.01em;
-    color: var(--ink) !important;
-}
+@media (prefers-reduced-motion: reduce) {
+    .app-nav-account,
+    .app-nav-login,
+    .app-nav-menu,
+    .app-drawer-close,
+    .app-drawer-link {
+        transition: none;
+    }
 
-.app-nav-brand i {
-    color: var(--brass);
-    font-size: 1.25rem;
-}
-
-.app-nav .nav-link {
-    color: var(--muted);
-    font-weight: 500;
-    font-size: 0.9375rem;
-    padding: 0.5rem 0.875rem;
-    border-radius: var(--radius-control);
-    transition: color var(--duration-fast) var(--ease-out),
-                background-color var(--duration-fast) var(--ease-out);
-}
-
-.app-nav .nav-link:hover,
-.app-nav .nav-link:focus {
-    color: var(--ink);
-    background-color: var(--sage-soft);
-}
-
-.app-nav .navbar-toggler {
-    min-width: 44px;
-    min-height: 44px;
-    border-color: var(--line-strong);
-    color: var(--ink);
-}
-
-.app-nav .navbar-toggler:focus {
-    box-shadow: 0 0 0 3px rgba(41, 50, 38, 0.12);
-}
-
-.app-nav .dropdown-menu {
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: 12px;
-    box-shadow: var(--shadow-lift);
-    padding: 0.375rem;
-}
-
-.app-nav .dropdown-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.5rem 0.75rem;
-    border-radius: 8px;
-    color: var(--ink-soft);
-    font-size: 0.9375rem;
-}
-
-.app-nav .dropdown-item:hover,
-.app-nav .dropdown-item:focus {
-    background: var(--sage-soft);
-    color: var(--ink);
-}
-
-.app-nav-cta {
-    padding: 8px 18px;
-}
-
-@media (max-width: 991px) {
-    .app-nav .navbar-collapse {
-        padding: 0.5rem 0 1rem;
+    .app-nav-menu:active,
+    .app-drawer-close:active,
+    .app-drawer-link:hover {
+        transform: none;
     }
 }
 

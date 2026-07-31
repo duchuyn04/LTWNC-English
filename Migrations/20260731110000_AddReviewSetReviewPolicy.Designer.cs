@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ltwnc.Data;
 
@@ -11,9 +12,11 @@ using ltwnc.Data;
 namespace ltwnc.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260731110000_AddReviewSetReviewPolicy")]
+    partial class AddReviewSetReviewPolicy
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -1030,7 +1033,6 @@ namespace ltwnc.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTimeOffset?>("RatedAtUtc")
-                        .IsConcurrencyToken()
                         .HasColumnType("datetimeoffset");
 
                     b.Property<int?>("Rating")
@@ -1052,89 +1054,6 @@ namespace ltwnc.Migrations
                         .IsUnique();
 
                     b.ToTable("ReviewSessionItems");
-                });
-
-            modelBuilder.Entity("ltwnc.Models.Entities.ReviewSettings", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<bool>("BlurImage")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("FlashcardSetId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("HideImage")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("LargeImage")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("NewCardQuota")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(5);
-
-                    b.Property<bool>("PronounceBack")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("PronounceFront")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("ReviewMaxIntervalDays")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(30);
-
-                    b.Property<int>("ReviewSessionSize")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(20);
-
-                    b.Property<bool>("ShowBackDefinition")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ShowBackExample")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ShowBackImage")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ShowBackIpa")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ShowBackTerm")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ShowFrontDefinition")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ShowFrontImage")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ShowFrontIpa")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("ShowFrontTerm")
-                        .HasColumnType("bit");
-
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(450)
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FlashcardSetId");
-
-                    b.HasIndex("UserId", "FlashcardSetId")
-                        .IsUnique();
-
-                    b.ToTable("ReviewSettings");
                 });
 
             modelBuilder.Entity("ltwnc.Models.Entities.StudySession", b =>
@@ -1570,17 +1489,6 @@ namespace ltwnc.Migrations
                     b.Navigation("Flashcard");
 
                     b.Navigation("ReviewSession");
-                });
-
-            modelBuilder.Entity("ltwnc.Models.Entities.ReviewSettings", b =>
-                {
-                    b.HasOne("ltwnc.Models.Entities.FlashcardSet", "FlashcardSet")
-                        .WithMany()
-                        .HasForeignKey("FlashcardSetId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("FlashcardSet");
                 });
 
             modelBuilder.Entity("ltwnc.Models.Entities.StudySession", b =>

@@ -56,6 +56,14 @@ public class FlashcardSet : IPrototype<FlashcardSet>
     // Không cấu hình foreign key để bản sao vẫn tồn tại nếu bộ nguồn bị xóa.
     public int? SourceSetId { get; set; }
 
+    // Số thẻ mới tối đa của bộ được đưa vào một ngày ôn (theo lịch Asia/Ho_Chi_Minh).
+    // Giá trị 0 tắt thẻ mới của riêng bộ này nhưng không tắt thẻ đến hạn.
+    public int NewCardQuota { get; set; } = ReviewSettingsPolicy.DefaultNewCardQuota;
+
+    // Khi bật, cả thẻ mới và thẻ đến hạn của bộ đều bị loại khỏi các lượt ôn mới.
+    // Tiến độ ReviewProgress hiện có vẫn được giữ nguyên để dùng tiếp khi bỏ tạm dừng.
+    public bool ReviewPaused { get; set; }
+
     // Thời gian tạo bộ thẻ
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

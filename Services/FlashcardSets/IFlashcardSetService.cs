@@ -36,14 +36,18 @@ public interface IFlashcardSetService
         string title,
         string? description,
         bool isPublic,
-        string userId);
+        string userId,
+        int? newCardQuota = null,
+        bool? reviewPaused = null);
 
     Task UpdateSetAsync(
         int id,
         string title,
         string? description,
         bool isPublic,
-        string userId);
+        string userId,
+        int? newCardQuota = null,
+        bool? reviewPaused = null);
 
     Task DeleteSetAsync(int id, string userId);
 

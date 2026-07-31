@@ -16,6 +16,7 @@ public class AppDbContext : DbContext
     public DbSet<QuizSessionQuestion> QuizSessionQuestions => Set<QuizSessionQuestion>();
     public DbSet<UserProgress> UserProgresses => Set<UserProgress>();
     public DbSet<UserStudySettings> UserStudySettings => Set<UserStudySettings>();
+    public DbSet<ReviewSettings> ReviewSettings => Set<ReviewSettings>();
     public DbSet<ReviewProgress> ReviewProgresses => Set<ReviewProgress>();
     public DbSet<ReviewSession> ReviewSessions => Set<ReviewSession>();
     public DbSet<ReviewSessionItem> ReviewSessionItems => Set<ReviewSessionItem>();
@@ -170,6 +171,23 @@ public class AppDbContext : DbContext
                 .HasDefaultValue(ReviewSettingsPolicy.DefaultSessionSize);
             entity.Property(e => e.ReviewMaxIntervalDays)
                 .HasDefaultValue(ReviewSettingsPolicy.DefaultMaxIntervalDays);
+        });
+
+        builder.Entity<ReviewSettings>(entity =>
+        {
+            entity.Property(e => e.UserId).HasMaxLength(450).IsRequired();
+            entity.HasIndex(e => new { e.UserId, e.FlashcardSetId })
+                .IsUnique();
+            entity.Property(e => e.ReviewSessionSize)
+                .HasDefaultValue(ReviewSettingsPolicy.DefaultSessionSize);
+            entity.Property(e => e.NewCardQuota)
+                .HasDefaultValue(ReviewSettingsPolicy.DefaultNewCardQuota);
+            entity.Property(e => e.ReviewMaxIntervalDays)
+                .HasDefaultValue(ReviewSettingsPolicy.DefaultMaxIntervalDays);
+            entity.HasOne(e => e.FlashcardSet)
+                .WithMany()
+                .HasForeignKey(e => e.FlashcardSetId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         builder.Entity<ReviewProgress>(entity =>

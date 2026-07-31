@@ -118,6 +118,9 @@ public static class ReviewSettingsPolicy
     public const int DefaultMaxIntervalDays = 30;
     public const int MinimumMaxIntervalDays = 30;
     public const int MaximumMaxIntervalDays = 365;
+    public const int DefaultNewCardQuota = 5;
+    public const int MinimumNewCardQuota = 0;
+    public const int MaximumNewCardQuota = 20;
 
     public static int ValidateSessionSize(int value)
     {
@@ -140,6 +143,19 @@ public static class ReviewSettingsPolicy
                 nameof(value),
                 value,
                 $"Khoảng ôn tối đa phải từ {MinimumMaxIntervalDays} đến {MaximumMaxIntervalDays} ngày.");
+        }
+
+        return value;
+    }
+
+    public static int ValidateNewCardQuota(int value)
+    {
+        if (value < MinimumNewCardQuota || value > MaximumNewCardQuota)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(value),
+                value,
+                $"Hạn mức thẻ mới phải từ {MinimumNewCardQuota} đến {MaximumNewCardQuota} thẻ mỗi ngày.");
         }
 
         return value;
