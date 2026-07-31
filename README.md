@@ -1,263 +1,171 @@
-# 📚 LTWNC English
+# LTWNC English
 
-Ứng dụng học từ vựng tiếng Anh bằng flashcard. Tạo bộ thẻ, thêm từ vựng kèm IPA và ví dụ, chia sẻ công khai, rồi học theo tiến độ cá nhân qua Flashcard, Nghe chép, hoặc hội thoại với AI.
+Ứng dụng web học từ vựng tiếng Anh bằng flashcard, xây dựng với ASP.NET Core MVC và Entity Framework Core. Người dùng có thể tạo bộ thẻ, nhập dữ liệu từ tệp, học theo nhiều chế độ, ôn tập ngắt quãng và luyện hội thoại với AI.
 
-## ✨ Tính năng chính
+## Tính năng
 
-- 🔐 Đăng ký, đăng nhập, đăng xuất (auth tự quản, cookie)
-- 👤 Profile cá nhân/công khai tại `/{username}`, thống kê học tập, timeline, quyền riêng tư
-- 🖼️ Avatar upload JPG/PNG/WebP tối đa 5 MB, crop theo khung tròn
-- 🔀 Trang 404 tương tác concept Wrong Turn với vocabulary card
-- 📝 Tạo, sửa, xóa bộ thẻ công khai hoặc riêng tư
-- 🃏 Thẻ có thuật ngữ, định nghĩa, IPA, loại từ, ví dụ tiếng Anh, nghĩa tiếng Việt, từ đồng nghĩa
-- 📸 Upload ảnh JPG/PNG/WebP tối đa 2 MB hoặc dùng URL
-- ⭐ Đánh dấu sao thẻ để học riêng
-- 🎯 Study Hub: chọn chế độ học, xem tiến độ, gợi ý mode phù hợp, lọc nhanh đã sao/chưa thuộc
-- 🔄 Học flashcard với lật thẻ, trộn thẻ, lọc thẻ đã sao hoặc chưa thuộc
-- 🎧 Nghe chép chính tả: học theo từ vựng hoặc câu ví dụ, chấm đáp án từng từ, phát âm qua Web Speech API
-- 🤖 English Mission: chọn chủ đề, dùng từ trong bộ thẻ để hội thoại thích ứng với gia sư AI
-- 💾 Lưu tiến trình học qua `UserProgress`
-- 🔊 Text-to-speech, phím tắt, cài đặt hiển thị mặt trước/mặt sau
+- Đăng ký, đăng nhập và phân quyền bằng cookie authentication.
+- Hồ sơ cá nhân/công khai, thống kê học tập, timeline và bảng xếp hạng.
+- Tạo, chỉnh sửa, sao chép và chia sẻ bộ flashcard công khai hoặc riêng tư.
+- Hỗ trợ thuật ngữ, định nghĩa, IPA, loại từ, ví dụ, từ đồng nghĩa và hình ảnh.
+- Nhập thẻ từ CSV/XLSX, kiểm tra định dạng và báo lỗi theo từng dòng.
+- Study Hub với Flashcard, Quiz, Dictation, English Mission và Review.
+- Ôn tập ngắt quãng theo từng bộ thẻ, hạn mức thẻ mới và khoảng ôn tối đa.
+- Thao tác hàng loạt xóa, đánh sao, bỏ sao và hoàn tác từ lịch sử.
+- Thành tích, tiến độ học và thông báo sự kiện sau mỗi hoạt động.
+- Quản trị người dùng, báo cáo nội dung, audit log và AI provider.
+- AI provider tương thích OpenAI, hỗ trợ mã hóa API key, kiểm tra kết nối và fallback theo độ ưu tiên.
 
-## 📥 Nhập thẻ từ tệp
+## Công nghệ
 
-Từ trang chỉnh sửa bộ thẻ tại `/Set/{id}/Edit` (chỉ chủ sở hữu), chọn tệp `.csv` hoặc `.xlsx`. XLSX chỉ đọc worksheet đầu tiên. Kích thước tối đa **10 MB**, định dạng khác bị từ chối.
+| Thành phần | Công nghệ |
+| --- | --- |
+| Backend | ASP.NET Core MVC, .NET 10 |
+| ORM | Entity Framework Core 10 |
+| Database | SQL Server |
+| Giao diện | Razor Views, Bootstrap, CSS và JavaScript |
+| Xác thực | Cookie authentication, ASP.NET Core PasswordHasher |
+| AI | OpenAI-compatible HTTP API |
+| Import | CsvHelper, ClosedXML |
+| Xử lý ảnh | ImageSharp |
+| Kiểm thử | xUnit, Moq, EF Core InMemory |
 
-Hàng đầu tiên phải có đúng các cột bắt buộc (không phân biệt hoa thường): `Thuật ngữ`, `Định nghĩa`, `IPA`, `Loại từ`, `Ví dụ tiếng Anh`, `Nghĩa ví dụ tiếng Việt`. Hai cột tùy chọn: `Từ đồng nghĩa` và `URL ẢNH`.
+## Kiến trúc
 
-Mẫu CSV tối thiểu:
+Project tổ chức theo domain thay vì gom các implementation vào thư mục `Patterns`:
+
+```text
+ltwnc/
+├── Areas/Admin/                 # Khu vực quản trị
+├── Controllers/                # MVC controllers
+├── Data/                        # AppDbContext
+├── Models/
+│   ├── Entities/               # Entity và domain state
+│   ├── Enums/
+│   └── ViewModels/
+├── Services/
+│   ├── Achievements/           # Thành tích và observer
+│   ├── Ai/                     # Provider, router và adapter
+│   ├── CardActions/            # Command, Memento, Factory Method
+│   ├── FlashcardSets/          # CRUD, copy và import
+│   ├── PublicLibrary/          # Thư viện công khai và cache decorator
+│   ├── Review/                 # Spaced review và state machine
+│   ├── Study/                  # Các dịch vụ học
+│   ├── StudyEvents/            # Publisher và observer
+│   └── StudyModes/             # Các strategy chế độ học
+├── Views/                      # Razor Views
+├── wwwroot/                    # CSS, JavaScript, ảnh và upload
+├── Migrations/                 # EF Core migrations
+├── explain/                    # Tài liệu giải thích design pattern
+└── tests/ltwnc.Tests/          # Unit và integration tests
+```
+
+Controller phụ thuộc vào interface của application service. Dependency Injection trong `Program.cs` chịu trách nhiệm ghép implementation, decorator, strategy, observer và command creator.
+
+## 9 mẫu thiết kế GoF
+
+| Nhóm | Mẫu | Vị trí áp dụng |
+| --- | --- | --- |
+| Khởi tạo | Prototype | Sao chép bộ thẻ và flashcard |
+| Khởi tạo | Factory Method | Tạo command theo loại thao tác |
+| Cấu trúc | Adapter | Chuyển contract ứng dụng sang OpenAI-compatible API |
+| Cấu trúc | Decorator | Bổ sung cache cho thư viện công khai |
+| Hành vi | Strategy | Chọn cách lấy thẻ theo chế độ học |
+| Hành vi | State | Xử lý lịch ôn theo giai đoạn ghi nhớ |
+| Hành vi | Command | Đóng gói thao tác hàng loạt trên thẻ |
+| Hành vi | Memento | Lưu trạng thái để hoàn tác command |
+| Hành vi | Observer | Phát sự kiện học cho thành tích và logging |
+
+### Prototype
+
+`FlashcardSet` và `Flashcard` triển khai `IPrototype<T>`. `FlashcardSet.Clone()` tạo deep copy các thẻ, giữ nội dung học nhưng reset identity, owner, trạng thái công khai và dữ liệu cá nhân. `FlashcardSetService` gán owner mới trước khi lưu bản sao.
+
+### Factory Method
+
+`CardActionCommandCreator` định nghĩa Factory Method `CreateCommand()`. Các concrete creator `DeleteCardsCommandCreator`, `StarCardsCommandCreator` và `UnstarCardsCommandCreator` override method này để tạo đúng concrete command.
+
+`CardActionCommandFactory` chỉ resolve creator theo `ActionType`; controller và service không chứa nhánh khởi tạo concrete product. Khi thêm loại command, chỉ cần thêm creator và đăng ký nó vào DI.
+
+### Adapter
+
+`IAiProviderAdapter` là Target mà application sử dụng. `OpenAiCompatibleAdapter` chuyển request, response, cấu hình và exception giữa contract nội bộ với `OpenAiCompatibleApiClient`.
+
+```mermaid
+flowchart LR
+    Application --> IAiProviderAdapter
+    IAiProviderAdapter --> OpenAiCompatibleAdapter
+    OpenAiCompatibleAdapter --> OpenAiCompatibleApiClient
+    OpenAiCompatibleApiClient --> Provider[OpenAI-compatible provider]
+```
+
+### Decorator
+
+`CachedPublicLibraryServiceDecorator` triển khai cùng contract `IPublicLibraryService`, bọc `PublicLibraryService` và bổ sung cache cho các truy vấn phổ biến. Truy vấn không đủ điều kiện cache vẫn được chuyển nguyên vẹn tới service gốc.
+
+### Strategy
+
+Mỗi chế độ học triển khai `IStudyModeStrategy`, ví dụ `FlashcardModeStrategy`, `DictationModeStrategy`, `QuizModeStrategy`, `EnglishMissionModeStrategy` và `ReviewModeStrategy`. `StudyModeStrategyResolver` chọn strategy từ tập implementation được đăng ký trong DI.
+
+### State
+
+`ReviewStateMachine` là Context. Bốn concrete state `NewReviewState`, `LearningReviewState`, `ReviewingReviewState` và `RelearningReviewState` xử lý rating và quyết định transition tiếp theo mà không đưa toàn bộ điều kiện nghiệp vụ vào `ReviewService`.
+
+### Command
+
+`DeleteCardsCommand`, `StarCardsCommand` và `UnstarCardsCommand` triển khai `ICardActionCommand`. `CardActionService` thực thi mọi command qua cùng một contract, ghi lịch sử và hỗ trợ Undo.
+
+### Memento
+
+Command chụp trạng thái trước khi thay đổi và trả về `CardActionMemento`. `CardActionService` đóng vai trò Caretaker, lưu memento trong `CardActionLog.SnapshotJson` và truyền lại cho command khi hoàn tác.
+
+```mermaid
+flowchart LR
+    Service[CardActionService] --> Command[ICardActionCommand]
+    Command --> Memento[CardActionMemento]
+    Service --> Log[CardActionLog]
+    Log --> Memento
+```
+
+### Observer
+
+`StudyEventPublisher` phát sự kiện tới các implementation của `IStudyEventObserver`. `AchievementStudyObserver` cập nhật thành tích, còn `LoggingStudyObserver` ghi log. Lỗi ở một observer được cô lập để không chặn observer khác hoặc làm hỏng buổi học đã lưu.
+
+Các bài giải thích bổ sung về design pattern nằm trong [`explain/`](explain/README.md).
+
+## Nhập flashcard
+
+Tại `/Set/{id}/Edit`, chủ sở hữu có thể nhập tệp `.csv` hoặc `.xlsx` tối đa 10 MB. XLSX sử dụng worksheet đầu tiên.
+
+Các cột bắt buộc, không phân biệt hoa thường:
+
+- `Thuật ngữ`
+- `Định nghĩa`
+- `IPA`
+- `Loại từ`
+- `Ví dụ tiếng Anh`
+- `Nghĩa ví dụ tiếng Việt`
+
+Các cột tùy chọn là `Từ đồng nghĩa` và `URL ẢNH`.
 
 ```csv
 Thuật ngữ,Định nghĩa,IPA,Loại từ,Ví dụ tiếng Anh,Nghĩa ví dụ tiếng Việt,Từ đồng nghĩa,URL ẢNH
 ```
 
-Dòng trống bị bỏ qua. Dòng hợp lệ vẫn được nhập nếu tệp có dòng lỗi. Thiếu cột bắt buộc hoặc sai định dạng thì toàn bộ tệp bị từ chối.
-
-## 🏗️ Các mẫu thiết kế GoF
-
-Project dùng một số mẫu GoF, không phải "có đủ cho đẹp báo cáo" mà vì chỗ cụ thể trong code cần chúng. Không gom code theo thư mục `Patterns/` hay `GoF/`, mỗi pattern nằm trong domain dùng nó.
-
-### 🔄 Prototype
-
-**Vấn đề:** Copy bộ thẻ công khai vào thư viện riêng. Bản sao phải giữ nội dung học nhưng là bản ghi mới, khác id, khác owner, reset trạng thái cá nhân.
-
-**Cách làm:** `FlashcardSet` và `Flashcard` implement `IPrototype<T>`. Logic "cái gì giữ, cái gì reset" nằm trên entity, không rải trong service.
-
-- `FlashcardSet.Clone()` giữ tiêu đề, mô tả, deep-clone danh sách thẻ. Reset `Id`, `UserId`, `SourceSetId`, đặt `IsPublic = false`.
-- `Flashcard.Clone()` giữ nội dung học, reset `IsStarred = false`, `UploadedImagePath = null`.
-- `FlashcardSetService.CopyPublicSetAsync` load bộ nguồn, gọi `Clone()`, gán owner mới.
-
-### 🎯 Strategy
-
-**Vấn đề:** Study Hub có nhiều chế độ học (Flashcard, Nghe chép, English Mission). Mỗi mode lấy thẻ khác nhau, build option khác nhau. Nếu `StudyService` tự switch theo mode, mỗi mode mới buộc mở service lõi.
-
-**Cách làm:** Mỗi chế độ là một class implement `IStudyModeStrategy`. `StudyService` iterate các strategy đã đăng ký trong DI, không chứa chi tiết mode.
-
-- `FlashcardModeStrategy` lấy tất cả thẻ đã qua bộ lọc
-- `DictationModeStrategy` lấy thẻ phù hợp với `DictationContentMode`
-- `EnglishMissionModeStrategy` lấy thẻ cho mission
-
-### 🔁 State
-
-**Vấn đề:** Lịch ôn của cùng một thẻ thay đổi theo giai đoạn ghi nhớ. Một thẻ mới không thể dùng chung công thức với thẻ đang học hoặc đã vào chu kỳ dài hạn.
-
-**Cách làm:** Module `Services/Review` dùng `ReviewStateMachine` làm Context và bốn State `NewReviewState`, `LearningReviewState`, `ReviewingReviewState`, `RelearningReviewState`. Service chỉ đọc/lưu `ReviewProgress`; State nhận mức nhớ, thiết lập khoảng ôn tối đa và trả transition tiếp theo. Người học có thể cấu hình kích thước lượt ôn và giới hạn khoảng ôn trong `UserStudySettings`.
-
-### ⚡ Command
-
-**Vấn đề:** Thao tác hàng loạt (xóa nhiều, gắn sao, bỏ sao) cần undo. Nếu service gọi thẳng EF theo từng action, logic thực thi, hoàn tác và log dính vào nhau.
-
-**Cách làm:** Gói thao tác thành object có `Execute` / `Undo`. `CardActionService` chạy command và lưu trạng thái hoàn tác vào `CardActionLog`.
-
-- `DeleteCardsCommand`, `StarCardsCommand`, `UnstarCardsCommand`
-- Mỗi command mang setId, userId, danh sách cardId và biết cách thực hiện thao tác
-
-### 💾 Memento
-
-**Vấn đề:** Undo cần giữ trạng thái trước khi thay đổi. Nếu việc chạy command, lấy snapshot và nạp lại snapshot là các lời gọi rời nhau, caller có thể gọi thiếu bước hoặc dùng nhầm trạng thái tạm.
-
-**Cách làm:** Mỗi Command tự chụp trạng thái rồi trả `CardActionMemento` từ `ExecuteAsync()`. `CardActionService` là Caretaker: lưu nguyên `StateJson` vào `CardActionLog.SnapshotJson` và truyền Memento lại cho Command khi Undo.
-
-```mermaid
-flowchart LR
-    Caretaker["Caretaker<br/>CardActionService"] --> Originator["Originator<br/>Card Action Command"]
-    Originator --> Memento["Memento<br/>CardActionMemento"]
-    Caretaker --> Store["Persistent store<br/>CardActionLog.SnapshotJson"]
-```
-
-Định dạng JSON và database không đổi nên log cũ vẫn Undo được. Memento rỗng hoặc hỏng bị từ chối trước khi khôi phục; transaction không commit và `UndoneAt` không được cập nhật.
-
-### 🏭 Factory Method
-
-**Vấn đề:** Controller nhận chuỗi action type từ form. Nếu tự `new` từng command, thêm action mới là sửa controller.
-
-**Cách làm:** `CardActionCommandFactory.Create(...)` map "tên action → object command". Switch khởi tạo nằm trong factory, không ở controller.
-
-### 👀 Observer
-
-**Vấn đề:** Sau khi đánh dấu thẻ đã thuộc hoặc xong buổi học, hệ thống còn việc phụ (mở huy hiệu, ghi log). Nếu service học gọi thẳng các service phụ, nó bị phụ thuộc; thêm phản ứng mới lại sửa service học.
-
-**Cách làm:** Service học chỉ phát sự kiện qua `StudyEventPublisher`. Ai cần phản ứng thì đăng ký. Subject không biết concrete observer nào đang có.
-
-- `AchievementStudyObserver` gọi `AchievementUnlockService` mở huy hiệu
-- `LoggingStudyObserver` ghi log hệ thống
-- Sự kiện: `CardProgressChangedEvent`, `StudySessionCompletedEvent`, `DictationAnswerCheckedEvent`
-- Observer lỗi thì bắt exception, log, observer khác vẫn nhận tin
-
-### 🔌 Adapter
-
-**Vấn đề:** Gọi AI provider bên ngoài qua HTTP. Nếu service học/service mission biết chi tiết HTTP, đổi provider là sửa khắp nơi.
-
-**Cách làm:** Router và dịch vụ quản trị chỉ gọi Target `IAiProviderAdapter`. `OpenAiCompatibleAdapter` chuyển request, response và lỗi giữa contract ứng dụng với contract OpenAI-compatible. Chỉ `OpenAiCompatibleApiClient` gửi HTTP.
-
-```mermaid
-flowchart LR
-    Client["Client<br/>AiCompletionRouter<br/>AiProviderService"] --> Target["Target<br/>IAiProviderAdapter<br/>AiProviderConnection"]
-    Target --> Adapter["Adapter<br/>OpenAiCompatibleAdapter"]
-    Adapter --> Adaptee["Adaptee<br/>OpenAiCompatibleApiClient"]
-```
-
-`AiProviderConnection` chỉ mang tên, base URL, model và timeout. API key được giải mã ngay trước lời gọi Adapter rồi truyền bằng tham số riêng; khóa không nằm trong record, debug output hoặc operation log. Router fallback theo provider chính và `Priority` khi gặp lỗi có thể thử lại.
-
-MVC policy vẫn là lớp bảo vệ HTTP để giữ nguyên phản hồi 401/403. Proxy là lớp defense-in-depth tại service seam; caller không đạt policy hoặc khai actor khác danh tính hiện tại sẽ bị từ chối trước khi tạo CSV.
-
-### 📦 Application service interfaces
-
-Các application service (`FlashcardSetService`, `StudyService`, `DictationService`...) đều có contract `I*` tương ứng. Controllers inject interface, `Program.cs` đăng ký `AddScoped<IService, Service>()`. Mục đích: thay implementation hoặc bọc decorator mà không sửa call site.
-
-## 🛠️ Công nghệ
-
-| Thành phần | Công nghệ |
-|------------|-----------|
-| 🖥️ Framework | ASP.NET Core MVC (.NET 10.0) |
-| 🗄️ Database | SQL Server |
-| ⚙️ ORM | Entity Framework Core |
-| 🔑 Xác thực | Cookie authentication tự quản (PasswordHasher của ASP.NET Core) |
-| 🎨 UI | Razor Views, Bootstrap, CSS riêng |
-| 🔷 Icons | Phosphor Icons |
-| 🔊 TTS | Web Speech API |
-| 🤖 AI | Custom OpenAI-compatible providers |
-
-## 🤖 AI providers và English Mission
-
-English Mission gọi AI qua backend. Provider quản lý tại `/Admin/AiProviders`, hỗ trợ API key tùy chọn, kiểm tra kết nối và fallback theo `Priority`. API key mã hóa bằng ASP.NET Core Data Protection.
-
-Cấu hình provider phụ thuộc vào từng môi trường và không nên ghi giá trị nội bộ vào repository. Tạo provider qua `/Admin/AiProviders` với các giá trị phù hợp:
-
-```text
-Name: <provider-name>
-Base URL: <openai-compatible-base-url>
-Model: <model-id>
-API key: <optional-api-key>
-```
-
-### Tạo tài khoản Admin
-
-Auth tự quản không có cơ chế bootstrap. Sau khi đăng ký tài khoản qua UI, cấp quyền admin bằng SQL:
-
-```sql
-UPDATE AppUsers SET IsAdmin = 1 WHERE NormalizedEmail = 'EMAIL@EXAMPLE.COM';
-```
-
-Khu vực `/Admin` yêu cầu claim `IsAdmin` — đăng xuất rồi đăng nhập lại sau khi cấp quyền để cookie mới có claim.
-
-Provider từ xa bắt buộc HTTPS. HTTP chỉ được phép cho localhost/loopback. Timeout, lỗi mạng, 429/5xx hoặc output sai schema thì thử provider tiếp theo. 400/401/403 là lỗi cấu hình, không fallback.
-
-## 📁 Cấu trúc thư mục
-
-```text
-ltwnc/
-├── Areas/
-│   └── Admin/                        # Khu vực quản trị tách biệt
-│       ├── Controllers/              # Dashboard, ContentReports, Users, AiProviders, AuditLogs
-│       ├── Models/                   # ViewModels riêng cho admin
-│       └── Views/                    # Razor views admin
-├── Controllers/                      # MVC chính: Home, Account, Study, FlashcardSet, Profile...
-├── Services/                         # Nghiệp vụ, tổ chức theo domain
-│   ├── Achievements/                 # Catalog, progress, unlock + observer thành tích
-│   ├── AdminDashboard/               # Báo cáo chờ, trạng thái AI, biểu đồ phiên học
-│   ├── AdminUsers/                   # Admin quản lý tài khoản + khóa
-│   ├── Ai/                           # AI completion router, adapter, provider
-│   ├── Audit/                        # Ghi audit log cho hành động admin
-│   ├── Auth/                         # AuthService tự quản, CurrentUser
-│   ├── CardActions/                  # Command: batch delete/star/unstar + undo
-│   ├── ContentModeration/            # Cách ly/khôi phục bộ thẻ từ báo cáo
-│   ├── ContentReports/               # Xử lý báo cáo nội dung từ user
-│   ├── EnglishMission/               # Mission service, contracts, dọn nội dung hội thoại cũ
-│   ├── FlashcardSets/                # CRUD bộ thẻ / thẻ / copy / import CSV-XLSX
-│   ├── Leaderboard/                  # Bảng xếp hạng
-│   ├── Profiles/                     # Profile, avatar, thống kê, timeline
-│   ├── Study/                        # Study hub, flashcard session, dictation
-│   ├── StudyEvents/                  # Observer: publisher + sự kiện học
-│   └── StudyModes/                   # Strategy: lọc thẻ theo chế độ học
-├── Data/                             # AppDbContext (EF Core)
-├── Models/
-│   ├── Entities/                     # FlashcardSet, Flashcard, UserProgress, StudySession...
-│   ├── Enums/                        # BatchActionType...
-│   └── ViewModels/                   # Group theo feature (Account, Study, Profile, FlashcardSet...)
-├── Views/                            # Razor views chính
-│   ├── Account/                      # Login, Register
-│   ├── Achievements/                 # Trang huy hiệu
-│   ├── EnglishMission/               # Giao diện mission
-│   ├── FlashcardSet/                 # CRUD bộ thẻ
-│   ├── Home/                         # Trang chủ
-│   ├── Leaderboard/                  # Bảng xếp hạng
-│   ├── Profile/                      # Profile công khai / chỉnh sửa
-│   ├── Study/                        # Flashcard, Dictation, Study Hub
-│   └── Shared/                       # Layout, partial view chung
-├── wwwroot/
-│   ├── css/                          # Stylesheet tùy chỉnh
-│   ├── js/                           # JavaScript tùy chỉnh
-│   ├── images/                       # Ảnh tĩnh
-│   ├── lib/                          # Bootstrap, jQuery, jQuery Validation
-│   └── uploads/                      # File user upload (avatar...)
-├── Migrations/                       # EF Core migrations
-├── docs/                             # ADR, quyết định thiết kế
-├── Properties/                       # launchSettings.json
-├── tests/
-│   └── ltwnc.Tests/                  # Unit + integration tests
-│       ├── Controllers/
-│       ├── Data/
-│       ├── Infrastructure/
-│       ├── Integration/
-│       ├── Services/                 # Mirror Services/ theo domain
-│       ├── Views/
-│       └── e2e/                      # Playwright end-to-end tests
-├── Program.cs                        # Entry point, DI, middleware
-└── ltwnc.csproj
-```
-
-Folder theo **domain**, không theo tên pattern. Pattern nằm trong domain liên quan.
-
-## ⚙️ Cài đặt
+## Cài đặt
 
 Yêu cầu:
-- .NET 10 SDK
-- SQL Server hoặc SQL Server Express
-- `dotnet-ef` nếu cần chạy migration
 
-Clone repo:
+- .NET 10 SDK
+- SQL Server, SQL Server Express hoặc LocalDB
+- `dotnet-ef` nếu cần quản lý migration
 
 ```bash
 git clone https://github.com/duchuyn04/LTWNC-English.git
 cd LTWNC-English
-```
-
-Cài EF tool nếu chưa có:
-
-```bash
-dotnet tool install --global dotnet-ef
-```
-
-Restore package:
-
-```bash
 dotnet restore
 ```
 
-## 🗄️ Cấu hình database
-
-Mở `appsettings.json` chỉnh connection string:
+Cấu hình connection string trong `appsettings.json` hoặc User Secrets:
 
 ```json
 {
@@ -267,28 +175,41 @@ Mở `appsettings.json` chỉnh connection string:
 }
 ```
 
-Một số giá trị `Server` thường dùng:
-
-| SQL Server | Server |
-|------------|--------|
-| SQL Server Express | `localhost\\SQLEXPRESS` hoặc `.\\SQLEXPRESS` |
-| LocalDB | `(localdb)\\mssqllocaldb` |
-| Default instance | `localhost` hoặc `.` |
-
-Tạo/cập nhật database:
+Tạo hoặc cập nhật database, sau đó chạy ứng dụng:
 
 ```bash
 dotnet ef database update
-```
-
-## ▶️ Chạy ứng dụng
-
-```bash
 dotnet run
 ```
 
-Mở URL trong terminal, thường là `https://localhost:5001` hoặc `http://localhost:5000`.
+## AI provider
 
-## 📄 License
+Provider được quản lý tại `/Admin/AiProviders`. API key là tùy chọn và được mã hóa bằng ASP.NET Core Data Protection. Provider từ xa phải dùng HTTPS; HTTP chỉ được chấp nhận cho localhost hoặc loopback.
 
-Dự án học tập cho môn LTWNC.
+Để cấp quyền admin cho tài khoản đã đăng ký:
+
+```sql
+UPDATE AppUsers
+SET IsAdmin = 1
+WHERE NormalizedEmail = 'EMAIL@EXAMPLE.COM';
+```
+
+Đăng xuất và đăng nhập lại để cookie nhận claim admin mới.
+
+## Kiểm thử
+
+Chạy toàn bộ test suite:
+
+```bash
+dotnet test tests/ltwnc.Tests/ltwnc.Tests.csproj
+```
+
+Build project:
+
+```bash
+dotnet build ltwnc.csproj
+```
+
+## License
+
+Dự án học tập cho môn Lập trình Web Nâng cao.

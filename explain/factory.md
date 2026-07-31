@@ -1,8 +1,8 @@
-# Simple Factory, gom việc tạo Command vào một chỗ
+# Factory Method, để concrete creator quyết định Command cần tạo
 
 ## Chỉ cần nhớ một ý
 
-Factory nhận tên một loại object rồi tạo đúng object đó.
+Factory Method định nghĩa điểm tạo object ở Creator và để các Concrete Creator override điểm đó.
 
 Trong project này:
 
@@ -12,15 +12,13 @@ Trong project này:
 "Unstar" -> UnstarCardsCommand
 ```
 
-Class làm việc này là `CardActionCommandFactory`.
+`CardActionCommandFactory` chọn creator theo action type; creator được chọn mới tạo command.
 
-## Lưu ý về tên mẫu
+## Vì sao đây là Factory Method GoF?
 
-Cách triển khai hiện tại là Simple Factory, không phải Factory Method chuẩn trong sách GoF.
+`CardActionCommandCreator` là Creator. Method `Create()` giữ quy trình gọi chung và chuyển việc khởi tạo cho Factory Method `CreateCommand()`. Ba Concrete Creator override method này để trả về ba Concrete Product khác nhau.
 
-Factory Method chuẩn thường dùng một method có thể được class con override để quyết định sản phẩm cần tạo. `CardActionCommandFactory` không có hệ thống class con như vậy. Nó dùng các nhánh `if` trong một method `Create()`.
-
-Simple Factory vẫn hữu ích, nhưng gọi đúng tên giúp tránh nhầm khi học GoF.
+`CardActionCommandFactory` chỉ làm nhiệm vụ tìm creator phù hợp từ danh sách DI. Nó không trực tiếp `new` command và không phải nơi cài đặt Factory Method.
 
 ## Trước khi có Factory, code triển khai ra sao?
 
@@ -76,31 +74,28 @@ Cả hai yêu cầu Factory tạo ICardActionCommand.
 
 | Thành phần | Code |
 | --- | --- |
-| Contract | [`ICardActionCommandFactory`](../Services/CardActions/ICardActionCommandFactory.cs) |
-| Factory | [`CardActionCommandFactory`](../Services/CardActions/CardActionCommandFactory.cs) |
+| Resolver contract | [`ICardActionCommandFactory`](../Services/CardActions/ICardActionCommandFactory.cs) |
+| Resolver | [`CardActionCommandFactory`](../Services/CardActions/CardActionCommandFactory.cs) |
+| Creator | [`CardActionCommandCreator`](../Services/CardActions/CardActionCommandCreators.cs) |
+| Concrete Creator | `DeleteCardsCommandCreator`, `StarCardsCommandCreator`, `UnstarCardsCommandCreator` |
 | Sản phẩm chung | [`ICardActionCommand`](../Services/CardActions/ICardActionCommand.cs) |
 | Các sản phẩm cụ thể | `DeleteCardsCommand`, `StarCardsCommand`, `UnstarCardsCommand` |
 | Nơi sử dụng | [`CardActionsController`](../Controllers/CardActionsController.cs), [`CardActionService`](../Services/CardActions/CardActionService.cs) |
 
-Method `Create()` hiện tại hoạt động như sau:
+Creator định nghĩa Factory Method như sau:
 
 ```csharp
-if (actionType == "Delete")
-{
-    return new DeleteCardsCommand(_context, setId, userId, cardIds);
-}
+public ICardActionCommand Create(...)
+    => CreateCommand(...);
 
-if (actionType == "Star")
-{
-    return new StarCardsCommand(_context, setId, userId, cardIds);
-}
+protected abstract ICardActionCommand CreateCommand(...);
+```
 
-if (actionType == "Unstar")
-{
-    return new UnstarCardsCommand(_context, setId, userId, cardIds);
-}
+Mỗi Concrete Creator quyết định sản phẩm:
 
-throw new InvalidOperationException();
+```csharp
+protected override ICardActionCommand CreateCommand(...)
+    => new StarCardsCommand(Context, setId, userId, cardIds);
 ```
 
 ## Vì sao Factory trả về interface?
@@ -139,25 +134,25 @@ Sau đó snapshot được nạp vào command mới trước khi gọi `UndoAsyn
 Giả sử thêm `MoveCardsCommand`. Các bước chính là:
 
 1. Tạo class `MoveCardsCommand` triển khai `ICardActionCommand`.
-2. Thêm một nhánh tạo object trong Factory.
-3. Thêm giá trị hành động mà giao diện có thể gửi.
+2. Tạo `MoveCardsCommandCreator` và override `CreateCommand()`.
+3. Đăng ký creator mới vào DI và thêm giá trị hành động mà giao diện có thể gửi.
 
 Controller không cần biết constructor của command mới.
 
-Simple Factory vẫn phải sửa khi có sản phẩm mới. Nó không loại bỏ hoàn toàn thay đổi, chỉ gom thay đổi khởi tạo vào một chỗ.
+Resolver không cần thêm nhánh lựa chọn mới vì creator được tìm từ tập implementation do DI cung cấp.
 
 ## Tự kiểm tra
 
 1. Trước Factory, controller phải biết điều gì?
 2. Vì sao quá trình Undo cũng cần Factory?
-3. Đây có phải Factory Method chuẩn GoF không?
+3. Factory Method nằm ở class nào?
 
 Đáp án:
 
 1. Tên class và cách gọi constructor của từng command.
 2. Vì service phải tạo lại command từ `ActionType` đã lưu trong log.
-3. Không. Đây là Simple Factory dùng một method `Create()` có các nhánh lựa chọn.
+3. `CreateCommand()` trên `CardActionCommandCreator`, được override bởi các Concrete Creator.
 
 ## Kết luận ngắn
 
-`CardActionCommandFactory` là một Simple Factory. Nó gom quy tắc chuyển `Delete`, `Star`, `Unstar` thành object Command vào một chỗ để controller và service không lặp lại việc khởi tạo.
+Project dùng Factory Method GoF: resolver chọn Creator theo action type, còn mỗi Concrete Creator quyết định Concrete Command cần khởi tạo.

@@ -16,12 +16,10 @@ Các tài liệu trong thư mục này dành cho người mới học lập trì
 | Strategy | Chọn cách lấy thẻ và hiển thị từng chế độ học | [Đọc Strategy](strategy.md) |
 | Command | Đóng gói thao tác hàng loạt trên thẻ | [Đọc Command](command.md) |
 | Memento | Giữ trạng thái cũ để hoàn tác thao tác trên thẻ | [Đọc Memento](memento.md) |
-| Simple Factory | Tạo đúng Command từ loại thao tác | [Đọc Simple Factory](factory.md) |
+| Factory Method | Tạo đúng Command từ loại thao tác | [Đọc Factory Method](factory.md) |
 | Observer | Phát sự kiện học cho thành tích và logging | [Đọc Observer](observer.md) |
 | Adapter | Chuyển đổi giữa contract ứng dụng và API OpenAI | [Đọc Adapter](adapter.md) |
 
 ## Thứ tự đọc gợi ý
 
-Đọc `Prototype` trước vì mẫu này ít thành phần nhất. Sau đó đọc `Strategy`, `Command`, `Memento` và `Simple Factory`. Hai tài liệu cuối là `Observer` và `Adapter` vì chúng liên quan nhiều object phối hợp với nhau hơn.
-
-`Simple Factory` trong project không phải Factory Method chuẩn GoF. Tài liệu riêng giải thích sự khác nhau để tránh học nhầm tên.
+Đọc `Prototype` trước vì mẫu này ít thành phần nhất. Sau đó đọc `Strategy`, `Command`, `Memento` và `Factory Method`. Hai tài liệu cuối là `Observer` và `Adapter` vì chúng liên quan nhiều object phối hợp với nhau hơn.

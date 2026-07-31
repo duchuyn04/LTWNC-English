@@ -134,7 +134,14 @@ builder.Services.Configure<RouteOptions>(options =>
 
 // Application services — inject qua interface (swap/decorator sau này không sửa controller)
 builder.Services.AddScoped<IFlashcardSetService, FlashcardSetService>();
-builder.Services.AddScoped<IPublicLibraryService, PublicLibraryService>();
+builder.Services.AddMemoryCache();
+builder.Services.AddScoped<PublicLibraryService>();
+// IPublicLibraryService được resolve thành Decorator; Concrete Component được
+// resolve riêng để tránh Decorator phụ thuộc vòng lại chính interface của nó.
+builder.Services.AddScoped<IPublicLibraryService>(provider =>
+    new CachedPublicLibraryServiceDecorator(
+        provider.GetRequiredService<PublicLibraryService>(),
+        provider.GetRequiredService<Microsoft.Extensions.Caching.Memory.IMemoryCache>()));
 builder.Services.AddScoped<IContentReportService, ContentReportService>();
 builder.Services.AddScoped<IContentModerationService, ContentReportModerationService>();
 builder.Services.AddScoped<IFlashcardImportService, FlashcardImportService>();
@@ -149,6 +156,9 @@ builder.Services.AddScoped<IReviewSettingsService, ReviewSettingsService>();
 builder.Services.AddScoped<IDictationService, DictationService>();
 builder.Services.AddScoped<ICardActionService, CardActionService>();
 builder.Services.AddScoped<ICardActionCommandFactory, CardActionCommandFactory>();
+builder.Services.AddScoped<CardActionCommandCreator, DeleteCardsCommandCreator>();
+builder.Services.AddScoped<CardActionCommandCreator, StarCardsCommandCreator>();
+builder.Services.AddScoped<CardActionCommandCreator, UnstarCardsCommandCreator>();
 
 // Study mode strategies
 builder.Services.AddScoped<IStudyCardQueryService, StudyCardQueryService>();

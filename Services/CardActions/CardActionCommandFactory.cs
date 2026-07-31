@@ -1,50 +1,36 @@
-using ltwnc.Data;
-
 namespace ltwnc.Services.CardActions;
 
-// Map chuỗi action type từ form/API sang command concrete.
-// Controller không new trực tiếp Delete/Star/Unstar.
+// Chọn Concrete Creator theo action type rồi gọi Factory Method của creator đó.
 public class CardActionCommandFactory : ICardActionCommandFactory
 {
-    // Truyền vào constructor từng command (cần DbContext)
-    private readonly AppDbContext _context;
+    private readonly IReadOnlyList<CardActionCommandCreator> _creators;
 
-    // Inject DbContext dùng chung cho mọi command tạo ra
-    public CardActionCommandFactory(AppDbContext context)
+    public CardActionCommandFactory(IEnumerable<CardActionCommandCreator> creators)
     {
-        // 1. Lưu dependency `_context` để các phương thức khác sử dụng.
-        _context = context;
+        _creators = creators.ToList();
     }
 
-    // actionType: "Delete" | "Star" | "Unstar". Sai type thì throw.
     public ICardActionCommand Create(
         string actionType,
         int setId,
         string userId,
         IReadOnlyList<int> cardIds)
     {
-        // 1. Kiểm tra `actionType == "Delete"` để chọn nhánh xử lý phù hợp.
-        if (actionType == "Delete")
+        List<CardActionCommandCreator> matches = _creators
+            .Where(creator => creator.ActionType == actionType)
+            .ToList();
+
+        if (matches.Count == 0)
         {
-            // 2. Tạo và trả đối tượng kết quả cho nơi gọi.
-            return new DeleteCardsCommand(_context, setId, userId, cardIds);
+            throw new InvalidOperationException($"Unknown action type: {actionType}.");
         }
 
-        // 3. Kiểm tra `actionType == "Star"` để chọn nhánh xử lý phù hợp.
-        if (actionType == "Star")
+        if (matches.Count > 1)
         {
-            // 4. Tạo và trả đối tượng kết quả cho nơi gọi.
-            return new StarCardsCommand(_context, setId, userId, cardIds);
+            throw new InvalidOperationException(
+                $"Multiple command creators are registered for action type: {actionType}.");
         }
 
-        // 5. Kiểm tra `actionType == "Unstar"` để chọn nhánh xử lý phù hợp.
-        if (actionType == "Unstar")
-        {
-            // 6. Tạo và trả đối tượng kết quả cho nơi gọi.
-            return new UnstarCardsCommand(_context, setId, userId, cardIds);
-        }
-
-        // 7. Dừng xử lý và phát sinh lỗi `new InvalidOperationException($"Unknown action type: {actionType}.")`.
-        throw new InvalidOperationException($"Unknown action type: {actionType}.");
+        return matches[0].Create(setId, userId, cardIds);
     }
 }
