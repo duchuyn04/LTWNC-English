@@ -44,7 +44,8 @@ public sealed class ReviewService : IReviewService
         List<Flashcard> cards = await _context.Flashcards
             .Include(value => value.FlashcardSet)
             .Where(value => value.FlashcardSet != null
-                && value.FlashcardSet.UserId == userId)
+                && value.FlashcardSet.UserId == userId
+                && !value.FlashcardSet.ReviewPaused)
             .OrderBy(value => value.FlashcardSetId)
             .ThenBy(value => value.OrderIndex)
             .ThenBy(value => value.Id)
@@ -58,6 +59,7 @@ public sealed class ReviewService : IReviewService
         DateTimeOffset now = _timeProvider.GetUtcNow();
         UserStudySettings settings = await GetSettingsAsync(userId);
         int batchSize = ReviewSettingsPolicy.ValidateSessionSize(settings.ReviewSessionSize);
+        DateTime reviewDate = GetVietnamDate(now);
         Dictionary<int, ReviewProgress> progressByCardId = await _context.ReviewProgresses
             .Where(value => value.UserId == userId && cards.Select(card => card.Id).Contains(value.FlashcardId))
             .ToDictionaryAsync(value => value.FlashcardId);
@@ -70,10 +72,55 @@ public sealed class ReviewService : IReviewService
             .SelectMany(group => Shuffle(group))
             .Take(batchSize)
             .ToList();
-        List<Flashcard> newCards = cards
-            .Where(card => !progressByCardId.ContainsKey(card.Id))
-            .Take(Math.Max(0, batchSize - dueCards.Count))
+        int newCardSlots = Math.Max(0, batchSize - dueCards.Count);
+        List<NewCardAssignment> assignedNewCardsToday = await _context.ReviewSessionItems
+            .Where(item => item.IsNewCardAtAssignment
+                && item.ReviewSession != null
+                && item.ReviewSession.UserId == userId
+                && (item.NewCardAssignedDate == reviewDate || item.NewCardAssignedDate == null))
+            .Select(item => new NewCardAssignment
+            {
+                FlashcardId = item.FlashcardId,
+                SetId = item.Flashcard!.FlashcardSetId,
+                AssignedDate = item.NewCardAssignedDate,
+                SessionStartedAtUtc = item.ReviewSession!.StartedAtUtc
+            })
+            .ToListAsync();
+        assignedNewCardsToday = assignedNewCardsToday
+            .Where(value => value.AssignedDate == reviewDate
+                || (value.AssignedDate == null
+                    && GetVietnamDate(value.SessionStartedAtUtc) == reviewDate))
             .ToList();
+        HashSet<int> reservedNewCardIds = assignedNewCardsToday
+            .Select(value => value.FlashcardId)
+            .ToHashSet();
+        Dictionary<int, int> usedQuotaBySet = assignedNewCardsToday
+            .GroupBy(value => value.SetId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Select(value => value.FlashcardId).Distinct().Count());
+
+        Dictionary<int, List<Flashcard>> newCardsBySet = cards
+            .Where(card => !progressByCardId.ContainsKey(card.Id)
+                && !reservedNewCardIds.Contains(card.Id))
+            .GroupBy(card => card.FlashcardSetId)
+            .Select(group =>
+            {
+                FlashcardSet set = group.First().FlashcardSet!;
+                int quota = ReviewSettingsPolicy.ValidateNewCardQuota(set.NewCardQuota);
+                int remainingQuota = Math.Max(
+                    0,
+                    quota - usedQuotaBySet.GetValueOrDefault(set.Id));
+                return new
+                {
+                    SetId = set.Id,
+                    Cards = Shuffle(group).Take(remainingQuota).ToList()
+                };
+            })
+            .Where(value => value.Cards.Count > 0)
+            .ToDictionary(value => value.SetId, value => value.Cards);
+
+        List<Flashcard> newCards = SelectNewCardsRoundRobin(newCardsBySet, newCardSlots);
         List<Flashcard> assignedCards = dueCards
             .Concat(newCards)
             .ToList();
@@ -98,6 +145,7 @@ public sealed class ReviewService : IReviewService
                         Flashcard = card,
                         OrderIndex = index,
                         IsNewCardAtAssignment = progress == null,
+                        NewCardAssignedDate = progress == null ? reviewDate : null,
                         PreviousStage = stage,
                         NextStage = stage,
                         PreviousNextReviewAtUtc = progress?.NextReviewAtUtc,
@@ -110,7 +158,24 @@ public sealed class ReviewService : IReviewService
         };
 
         _context.ReviewSessions.Add(session);
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // The active-session unique index is the final arbiter for two
+            // near-simultaneous starts. Return the winner instead of leaking a
+            // duplicate-session error; unrelated failures are rethrown.
+            _context.ChangeTracker.Clear();
+            ReviewSessionViewModel? activeAfterRace = await GetActiveSessionAsync(userId);
+            if (activeAfterRace != null)
+            {
+                return activeAfterRace;
+            }
+
+            throw;
+        }
 
         return await GetSessionAsync(session.Id, userId);
     }
@@ -148,11 +213,6 @@ public sealed class ReviewService : IReviewService
             throw new KeyNotFoundException("Không tìm thấy lượt ôn.");
         }
 
-        if (session.CompletedAtUtc != null || session.EndedAtUtc != null)
-        {
-            throw new InvalidOperationException("Lượt ôn đã kết thúc.");
-        }
-
         ReviewSessionItem? item = session.Items
             .SingleOrDefault(value => value.FlashcardId == flashcardId);
         if (item == null || item.Flashcard == null)
@@ -162,7 +222,12 @@ public sealed class ReviewService : IReviewService
 
         if (item.Rating != null)
         {
-            throw new InvalidOperationException("Thẻ này đã được đánh giá.");
+            return await BuildPersistedRatingResultAsync(userId, sessionId, flashcardId);
+        }
+
+        if (session.CompletedAtUtc != null || session.EndedAtUtc != null)
+        {
+            throw new InvalidOperationException("Lượt ôn đã kết thúc.");
         }
 
         ReviewProgress? progress = await _context.ReviewProgresses
@@ -210,7 +275,28 @@ public sealed class ReviewService : IReviewService
         {
             session.CompletedAtUtc = now;
         }
-        await _context.SaveChangesAsync();
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            // A concurrent request may have committed the first rating while this
+            // request still held the original null RatedAtUtc value. Reload the
+            // persisted item and return that result instead of applying a second
+            // transition; unrelated persistence errors still bubble up.
+            _context.ChangeTracker.Clear();
+            ReviewSession? persistedSession = await QuerySessions()
+                .SingleOrDefaultAsync(value => value.Id == sessionId && value.UserId == userId);
+            ReviewSessionItem? persistedItem = persistedSession?.Items
+                .SingleOrDefault(value => value.FlashcardId == flashcardId);
+            if (persistedItem?.Rating != null)
+            {
+                return await BuildPersistedRatingResultAsync(userId, sessionId, flashcardId);
+            }
+
+            throw;
+        }
 
         ReviewSessionViewModel updatedSession =
             (await GetSessionAsync(session.Id, userId))!;
@@ -300,6 +386,42 @@ public sealed class ReviewService : IReviewService
         };
     }
 
+    private async Task<ReviewRatingResult> BuildPersistedRatingResultAsync(
+        string userId,
+        int sessionId,
+        int flashcardId)
+    {
+        ReviewSession? session = await QuerySessions()
+            .SingleOrDefaultAsync(value => value.Id == sessionId && value.UserId == userId);
+        ReviewSessionItem? item = session?.Items
+            .SingleOrDefault(value => value.FlashcardId == flashcardId);
+        if (session == null || item?.Rating == null)
+        {
+            throw new InvalidOperationException("Không thể tải lại kết quả đánh giá đã lưu.");
+        }
+
+        ReviewProgress? progress = await _context.ReviewProgresses
+            .AsNoTracking()
+            .SingleOrDefaultAsync(value =>
+                value.UserId == userId && value.FlashcardId == flashcardId);
+        if (progress == null || progress.NextReviewAtUtc == null || progress.LastRatedAtUtc == null)
+        {
+            throw new InvalidOperationException("Lịch ôn của thẻ không còn nhất quán.");
+        }
+
+        return new ReviewRatingResult
+        {
+            Session = (await GetSessionAsync(sessionId, userId))!,
+            Progress = new ReviewProgressViewModel
+            {
+                Stage = progress.Stage,
+                NextReviewAtUtc = progress.NextReviewAtUtc.Value,
+                LongTermIntervalDays = progress.LongTermIntervalDays,
+                LastRatedAtUtc = progress.LastRatedAtUtc.Value
+            }
+        };
+    }
+
     private IQueryable<ReviewSession> QuerySessions() => _context.ReviewSessions
         .Include(value => value.Items)
             .ThenInclude(value => value.Flashcard)
@@ -364,5 +486,76 @@ public sealed class ReviewService : IReviewService
         }
 
         return list;
+    }
+
+    private static List<Flashcard> SelectNewCardsRoundRobin(
+        IReadOnlyDictionary<int, List<Flashcard>> cardsBySet,
+        int maximumCount)
+    {
+        List<Flashcard> selected = new();
+        if (maximumCount <= 0)
+        {
+            return selected;
+        }
+
+        Dictionary<int, int> offsets = cardsBySet.Keys.ToDictionary(key => key, _ => 0);
+        while (selected.Count < maximumCount)
+        {
+            bool selectedInRound = false;
+            foreach (int setId in cardsBySet.Keys.OrderBy(value => value))
+            {
+                List<Flashcard> cards = cardsBySet[setId];
+                int offset = offsets[setId];
+                if (offset >= cards.Count)
+                {
+                    continue;
+                }
+
+                selected.Add(cards[offset]);
+                offsets[setId] = offset + 1;
+                selectedInRound = true;
+                if (selected.Count == maximumCount)
+                {
+                    break;
+                }
+            }
+
+            if (!selectedInRound)
+            {
+                break;
+            }
+        }
+
+        return selected;
+    }
+
+    private static DateTime GetVietnamDate(DateTimeOffset utcNow)
+    {
+        TimeZoneInfo vietnamTimeZone;
+        try
+        {
+            vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+        }
+        catch (TimeZoneNotFoundException)
+        {
+            vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        }
+        catch (InvalidTimeZoneException)
+        {
+            vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+        }
+
+        return TimeZoneInfo.ConvertTime(utcNow, vietnamTimeZone).Date;
+    }
+
+    private sealed class NewCardAssignment
+    {
+        public int FlashcardId { get; init; }
+
+        public int SetId { get; init; }
+
+        public DateTime? AssignedDate { get; init; }
+
+        public DateTimeOffset SessionStartedAtUtc { get; init; }
     }
 }

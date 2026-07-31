@@ -813,6 +813,16 @@ namespace ltwnc.Migrations
                         .IsConcurrencyToken()
                         .HasColumnType("int");
 
+                    b.Property<int>("NewCardQuota")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(5);
+
+                    b.Property<bool>("ReviewPaused")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(false);
+
                     b.Property<int?>("SourceSetId")
                         .HasColumnType("int");
 
@@ -972,11 +982,11 @@ namespace ltwnc.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("UserId", "CompletedAtUtc");
-
                     b.HasIndex("UserId")
                         .IsUnique()
                         .HasFilter("[CompletedAtUtc] IS NULL AND [EndedAtUtc] IS NULL");
+
+                    b.HasIndex("UserId", "CompletedAtUtc");
 
                     b.ToTable("ReviewSessions");
                 });
@@ -994,6 +1004,9 @@ namespace ltwnc.Migrations
 
                     b.Property<bool>("IsNewCardAtAssignment")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("NewCardAssignedDate")
+                        .HasColumnType("datetime2");
 
                     b.Property<int>("NextLongTermIntervalDays")
                         .HasColumnType("int");
@@ -1017,6 +1030,7 @@ namespace ltwnc.Migrations
                         .HasColumnType("int");
 
                     b.Property<DateTimeOffset?>("RatedAtUtc")
+                        .IsConcurrencyToken()
                         .HasColumnType("datetimeoffset");
 
                     b.Property<int?>("Rating")
@@ -1028,6 +1042,8 @@ namespace ltwnc.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("FlashcardId");
+
+                    b.HasIndex("NewCardAssignedDate");
 
                     b.HasIndex("ReviewSessionId", "FlashcardId")
                         .IsUnique();
@@ -1284,6 +1300,16 @@ namespace ltwnc.Migrations
                     b.Property<bool>("PronounceFront")
                         .HasColumnType("bit");
 
+                    b.Property<int>("ReviewMaxIntervalDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(30);
+
+                    b.Property<int>("ReviewSessionSize")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(20);
+
                     b.Property<bool>("ShowBackDefinition")
                         .HasColumnType("bit");
 
@@ -1316,16 +1342,6 @@ namespace ltwnc.Migrations
 
                     b.Property<bool>("UnlearnedOnly")
                         .HasColumnType("bit");
-
-                    b.Property<int>("ReviewMaxIntervalDays")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(30);
-
-                    b.Property<int>("ReviewSessionSize")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int")
-                        .HasDefaultValue(20);
 
                     b.Property<string>("UserId")
                         .IsRequired()

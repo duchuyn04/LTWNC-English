@@ -90,6 +90,10 @@ public class AppDbContext : DbContext
             entity.Property(e => e.ModerationEvidence).HasMaxLength(1000);
             entity.Property(e => e.ModeratedByUserId).HasMaxLength(450);
             entity.Property(e => e.ModerationVersion).IsConcurrencyToken();
+            entity.Property(e => e.NewCardQuota)
+                .HasDefaultValue(ReviewSettingsPolicy.DefaultNewCardQuota);
+            entity.Property(e => e.ReviewPaused)
+                .HasDefaultValue(false);
         });
 
         // Cấu hình bảng Flashcards
@@ -188,8 +192,10 @@ public class AppDbContext : DbContext
 
         builder.Entity<ReviewSessionItem>(entity =>
         {
+            entity.HasIndex(e => e.NewCardAssignedDate);
             entity.HasIndex(e => new { e.ReviewSessionId, e.OrderIndex }).IsUnique();
             entity.HasIndex(e => new { e.ReviewSessionId, e.FlashcardId }).IsUnique();
+            entity.Property(e => e.RatedAtUtc).IsConcurrencyToken();
             entity.HasOne(e => e.ReviewSession)
                 .WithMany(session => session.Items)
                 .HasForeignKey(e => e.ReviewSessionId)

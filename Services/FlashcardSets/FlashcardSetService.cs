@@ -586,8 +586,10 @@ public class FlashcardSetService : IFlashcardSetService
         copy.IsPublic = false;
 
         // 16. Gọi `BeginTransactionAsync` và lưu kết quả vào `transaction`.
-        await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction =
-            await _context.Database.BeginTransactionAsync();
+        await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction =
+            _context.Database.IsRelational()
+                ? await _context.Database.BeginTransactionAsync()
+                : null;
 
         // 17. Thực hiện khối nghiệp vụ và chuyển lỗi sang nhánh xử lý tương ứng.
         try
@@ -597,22 +599,23 @@ public class FlashcardSetService : IFlashcardSetService
             // 19. Gọi `SaveChangesAsync` để thực hiện bước nghiệp vụ này.
             await _context.SaveChangesAsync();
             // 20. Gọi `CommitAsync` để thực hiện bước nghiệp vụ này.
-            await transaction.CommitAsync();
+            if (transaction != null)
+            {
+                await transaction.CommitAsync();
+            }
             // 21. Trả `copy` cho nơi gọi.
             return copy;
         }
         catch (DbUpdateException)
         {
             // 22. Gọi `RollbackAsync` để thực hiện bước nghiệp vụ này.
-            await transaction.RollbackAsync();
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync();
+            }
 
             // 23. Duyệt từng `entry` trong `_context.ChangeTracker.Entries().ToList()` để xử lý lần lượt.
-            foreach (Microsoft.EntityFrameworkCore.ChangeTracking.EntityEntry entry
-                     in _context.ChangeTracker.Entries().ToList())
-            {
-                // 24. Cập nhật `entry.State` bằng giá trị mới.
-                entry.State = EntityState.Detached;
-            }
+            _context.ChangeTracker.Clear();
 
             // 25. Gọi `FirstOrDefaultAsync` và lưu kết quả vào `recovered`.
             FlashcardSet? recovered = await _context.FlashcardSets
@@ -637,7 +640,9 @@ public class FlashcardSetService : IFlashcardSetService
         string title,
         string? description,
         bool isPublic,
-        string userId)
+        string userId,
+        int? newCardQuota = null,
+        bool? reviewPaused = null)
     {
         // 1. Khởi tạo `set` với dữ liệu ban đầu cần thiết.
         FlashcardSet set = new FlashcardSet
@@ -646,6 +651,9 @@ public class FlashcardSetService : IFlashcardSetService
             Description = description,
             IsPublic = isPublic,
             UserId = userId,
+            NewCardQuota = ReviewSettingsPolicy.ValidateNewCardQuota(
+                newCardQuota ?? ReviewSettingsPolicy.DefaultNewCardQuota),
+            ReviewPaused = reviewPaused ?? false,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -664,7 +672,9 @@ public class FlashcardSetService : IFlashcardSetService
         string title,
         string? description,
         bool isPublic,
-        string userId)
+        string userId,
+        int? newCardQuota = null,
+        bool? reviewPaused = null)
     {
         // 1. Gọi `FindAsync` và lưu kết quả vào `set`.
         FlashcardSet? set = await _context.FlashcardSets.FindAsync(id);
@@ -682,6 +692,15 @@ public class FlashcardSetService : IFlashcardSetService
         set.Description = description;
         // 6. Cập nhật `set.IsPublic` bằng giá trị mới.
         set.IsPublic = isPublic;
+        if (newCardQuota.HasValue)
+        {
+            set.NewCardQuota = ReviewSettingsPolicy.ValidateNewCardQuota(newCardQuota.Value);
+        }
+
+        if (reviewPaused.HasValue)
+        {
+            set.ReviewPaused = reviewPaused.Value;
+        }
         // 7. Cập nhật `set.UpdatedAt` bằng giá trị mới.
         set.UpdatedAt = DateTime.UtcNow;
 
@@ -705,30 +724,55 @@ public class FlashcardSetService : IFlashcardSetService
         }
 
         // 4. Gọi `ToListAsync` và lưu kết quả vào `uploadedImagePaths`.
-        List<string> uploadedImagePaths = await _context.Flashcards
-            .Where(card => card.FlashcardSetId == id && card.UploadedImagePath != null)
-            .Select(card => card.UploadedImagePath!)
+        List<Flashcard> cardsToDelete = await _context.Flashcards
+            .Where(card => card.FlashcardSetId == id)
             .ToListAsync();
+        List<string> uploadedImagePaths = cardsToDelete
+            .Where(card => card.UploadedImagePath != null)
+            .Select(card => card.UploadedImagePath!)
+            .ToList();
+        List<int> cardIds = cardsToDelete.Select(card => card.Id).ToList();
 
-        // 5. Gọi `ExecuteDeleteAsync` để thực hiện bước nghiệp vụ này.
-        await _context.UserProgresses
-            .Where(progress => progress.Flashcard!.FlashcardSetId == id)
-            .ExecuteDeleteAsync();
+        await using Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction =
+            _context.Database.IsRelational()
+                ? await _context.Database.BeginTransactionAsync()
+                : null;
 
-        // 6. Gọi `ExecuteDeleteAsync` để thực hiện bước nghiệp vụ này.
-        await _context.StudySessions
-            .Where(session => session.FlashcardSetId == id)
-            .ExecuteDeleteAsync();
-
-        // 7. Gọi `Remove` để thực hiện bước nghiệp vụ này.
-        _context.FlashcardSets.Remove(set);
-        // 8. Gọi `SaveChangesAsync` để thực hiện bước nghiệp vụ này.
-        await _context.SaveChangesAsync();
-        // 9. Duyệt từng `path` trong `uploadedImagePaths` để xử lý lần lượt.
-        foreach (string path in uploadedImagePaths)
+        try
         {
-            // 10. Gọi `DeleteUploadedImage` để thực hiện bước nghiệp vụ này.
-            DeleteUploadedImage(path);
+            await RemoveReviewDataForCardsAsync(cardIds);
+
+            List<UserProgress> progresses = await _context.UserProgresses
+                .Where(progress => progress.Flashcard!.FlashcardSetId == id)
+                .ToListAsync();
+            _context.UserProgresses.RemoveRange(progresses);
+
+            List<StudySession> studySessions = await _context.StudySessions
+                .Where(session => session.FlashcardSetId == id)
+                .ToListAsync();
+            _context.StudySessions.RemoveRange(studySessions);
+
+            _context.Flashcards.RemoveRange(cardsToDelete);
+            _context.FlashcardSets.Remove(set);
+            await _context.SaveChangesAsync();
+            if (transaction != null)
+            {
+                await transaction.CommitAsync();
+            }
+
+            foreach (string path in uploadedImagePaths)
+            {
+                DeleteUploadedImage(path);
+            }
+        }
+        catch
+        {
+            if (transaction != null)
+            {
+                await transaction.RollbackAsync();
+            }
+
+            throw;
         }
     }
 
@@ -959,20 +1003,25 @@ public class FlashcardSetService : IFlashcardSetService
         // 9. Thực hiện khối nghiệp vụ và chuyển lỗi sang nhánh xử lý tương ứng.
         try
         {
+            await RemoveReviewDataForCardsAsync([cardId]);
+
             // 10. Gọi `ExecuteDeleteAsync` để thực hiện bước nghiệp vụ này.
-            await _context.UserProgresses
+            List<UserProgress> progresses = await _context.UserProgresses
                 .Where(progress => progress.FlashcardId == cardId)
-                .ExecuteDeleteAsync();
+                .ToListAsync();
+            _context.UserProgresses.RemoveRange(progresses);
 
-            // 11. Gọi `ExecuteDeleteAsync` để thực hiện bước nghiệp vụ này.
-            await _context.DictationSessionDetails
+            // 11. Gọi `ToListAsync` và lưu kết quả vào `details`.
+            List<DictationSessionDetail> details = await _context.DictationSessionDetails
                 .Where(detail => detail.FlashcardId == cardId)
-                .ExecuteDeleteAsync();
+                .ToListAsync();
+            _context.DictationSessionDetails.RemoveRange(details);
 
-            // 12. Gọi `ExecuteDeleteAsync` để thực hiện bước nghiệp vụ này.
-            await _context.EnglishMissionTargetWords
+            // 12. Gọi `ToListAsync` và lưu kết quả vào `missionWords`.
+            List<EnglishMissionTargetWord> missionWords = await _context.EnglishMissionTargetWords
                 .Where(word => word.FlashcardId == cardId)
-                .ExecuteDeleteAsync();
+                .ToListAsync();
+            _context.EnglishMissionTargetWords.RemoveRange(missionWords);
 
             // 13. Tính giá trị và lưu vào `uploadedImagePath` để dùng ở bước tiếp theo.
             string? uploadedImagePath = card.UploadedImagePath;
@@ -1060,6 +1109,7 @@ public class FlashcardSetService : IFlashcardSetService
         List<Flashcard> cards = await _context.Flashcards
             .Where(card => card.FlashcardSetId == setId)
             .ToListAsync();
+        await RemoveReviewDataForCardsAsync(cards.Select(card => card.Id).ToArray());
         // 8. Gọi `RemoveRange` để thực hiện bước nghiệp vụ này.
         _context.Flashcards.RemoveRange(cards);
         // 9. Trả kết quả từ `ToList` cho nơi gọi.
@@ -1068,6 +1118,50 @@ public class FlashcardSetService : IFlashcardSetService
             .Where(path => !string.IsNullOrWhiteSpace(path))
             .Select(path => path!)
             .ToList();
+    }
+
+    private async Task RemoveReviewDataForCardsAsync(IReadOnlyCollection<int> cardIds)
+    {
+        if (cardIds.Count == 0)
+        {
+            return;
+        }
+
+        List<ReviewProgress> progresses = await _context.ReviewProgresses
+            .Where(progress => cardIds.Contains(progress.FlashcardId))
+            .ToListAsync();
+        _context.ReviewProgresses.RemoveRange(progresses);
+
+        List<ReviewSessionItem> items = await _context.ReviewSessionItems
+            .Where(item => cardIds.Contains(item.FlashcardId))
+            .ToListAsync();
+        _context.ReviewSessionItems.RemoveRange(items);
+
+        int[] affectedSessionIds = items
+            .Select(item => item.ReviewSessionId)
+            .Distinct()
+            .ToArray();
+        if (affectedSessionIds.Length == 0)
+        {
+            return;
+        }
+
+        List<ReviewSession> sessions = await _context.ReviewSessions
+            .Include(session => session.Items)
+            .Where(session => affectedSessionIds.Contains(session.Id))
+            .ToListAsync();
+        foreach (ReviewSession session in sessions)
+        {
+            bool hasRemainingItem = session.Items.Any(item =>
+                !cardIds.Contains(item.FlashcardId)
+                && _context.Entry(item).State != EntityState.Deleted);
+            if (!hasRemainingItem
+                && session.CompletedAtUtc == null
+                && session.EndedAtUtc == null)
+            {
+                _context.ReviewSessions.Remove(session);
+            }
+        }
     }
 
     // Import hàng loạt thẻ một cách nguyên tử:
