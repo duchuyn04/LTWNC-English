@@ -61,7 +61,7 @@ Project dùng một số mẫu GoF, không phải "có đủ cho đẹp báo cá
 
 **Vấn đề:** Lịch ôn của cùng một thẻ thay đổi theo giai đoạn ghi nhớ. Một thẻ mới không thể dùng chung công thức với thẻ đang học hoặc đã vào chu kỳ dài hạn.
 
-**Cách làm:** Module `Services/Review` dùng `ReviewStateMachine` làm Context và `NewReviewState` làm State. Service chỉ đọc/lưu `ReviewProgress`; State nhận mức nhớ và trả transition tiếp theo. Ticket đầu tiên triển khai các transition của giai đoạn New, những State còn lại sẽ được bổ sung tại ticket chính sách lịch ôn.
+**Cách làm:** Module `Services/Review` dùng `ReviewStateMachine` làm Context và bốn State `NewReviewState`, `LearningReviewState`, `ReviewingReviewState`, `RelearningReviewState`. Service chỉ đọc/lưu `ReviewProgress`; State nhận mức nhớ, thiết lập khoảng ôn tối đa và trả transition tiếp theo. Người học có thể cấu hình kích thước lượt ôn và giới hạn khoảng ôn trong `UserStudySettings`.
 
 ### ⚡ Command
 

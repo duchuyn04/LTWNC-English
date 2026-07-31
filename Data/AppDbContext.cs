@@ -162,6 +162,10 @@ public class AppDbContext : DbContext
         builder.Entity<UserStudySettings>(entity =>
         {
             entity.HasIndex(e => e.UserId).IsUnique();
+            entity.Property(e => e.ReviewSessionSize)
+                .HasDefaultValue(ReviewSettingsPolicy.DefaultSessionSize);
+            entity.Property(e => e.ReviewMaxIntervalDays)
+                .HasDefaultValue(ReviewSettingsPolicy.DefaultMaxIntervalDays);
         });
 
         builder.Entity<ReviewProgress>(entity =>

@@ -27,7 +27,75 @@ public sealed class ReviewServiceTests
         Assert.Equal(card.Id, Assert.Single(session.Cards).FlashcardId);
         Assert.Equal("hello", session.Cards[0].FrontText);
         Assert.Equal("xin chào", session.Cards[0].BackText);
+        Assert.Equal(4, session.Cards[0].RatingPreviews.Count);
+        Assert.Equal(TimeSpan.FromMinutes(10),
+            session.Cards[0].RatingPreviews.Single(value => value.Rating == ReviewRating.Again).Delay);
         Assert.Empty(await context.ReviewProgresses.ToListAsync());
+    }
+
+    [Fact]
+    public async Task StartAsync_UsesConfiguredReviewBatchSize()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedCardsAsync(context, 7);
+        context.UserStudySettings.Add(new UserStudySettings
+        {
+            UserId = "user-1",
+            ReviewSessionSize = 5,
+            ReviewMaxIntervalDays = 30
+        });
+        await context.SaveChangesAsync();
+        ReviewService service = CreateService(context);
+
+        ReviewSessionViewModel session = (await service.StartAsync("user-1"))!;
+
+        Assert.Equal(5, session.TotalCards);
+    }
+
+    [Fact]
+    public async Task StartAsync_UsesConfiguredMaximumForRatingPreviews()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedCardAsync(context);
+        context.UserStudySettings.Add(new UserStudySettings
+        {
+            UserId = "user-1",
+            ReviewSessionSize = 20,
+            ReviewMaxIntervalDays = 30
+        });
+        await context.SaveChangesAsync();
+        ReviewService service = CreateService(context);
+
+        ReviewSessionViewModel session = (await service.StartAsync("user-1"))!;
+
+        Assert.Equal(2, session.Cards[0].RatingPreviews
+            .Single(value => value.Rating == ReviewRating.Good).LongTermIntervalDays);
+        Assert.Equal(4, session.Cards[0].RatingPreviews
+            .Single(value => value.Rating == ReviewRating.Easy).LongTermIntervalDays);
+    }
+
+    [Fact]
+    public async Task StartAsync_RelearningHardPreviewShowsItsOneDayDelay()
+    {
+        await using AppDbContext context = CreateContext();
+        Flashcard card = await SeedCardAsync(context);
+        context.ReviewProgresses.Add(new ReviewProgress
+        {
+            UserId = "user-1",
+            FlashcardId = card.Id,
+            Stage = ReviewStage.Relearning,
+            NextReviewAtUtc = FixedNow.AddMinutes(-1),
+            LongTermIntervalDays = 10
+        });
+        await context.SaveChangesAsync();
+        ReviewSessionViewModel session = (await CreateService(context).StartAsync("user-1"))!;
+
+        ReviewRatingPreviewViewModel preview = session.Cards[0].RatingPreviews
+            .Single(value => value.Rating == ReviewRating.Hard);
+
+        Assert.Equal(TimeSpan.FromDays(1), preview.Delay);
+        Assert.Equal("1 ngày", preview.DelayLabel);
+        Assert.Equal(10, preview.LongTermIntervalDays);
     }
 
     [Fact]
@@ -149,6 +217,76 @@ public sealed class ReviewServiceTests
         Assert.Equal(3, progress.CorrectCount);
         Assert.Equal(2, progress.WrongCount);
         Assert.Equal(FixedNow.UtcDateTime, progress.LastReviewed);
+    }
+
+    [Fact]
+    public async Task RateAsync_RespectsConfiguredMaximumIntervalForLongTermReview()
+    {
+        await using AppDbContext context = CreateContext();
+        Flashcard card = await SeedCardAsync(context);
+        context.UserStudySettings.Add(new UserStudySettings
+        {
+            UserId = "user-1",
+            ReviewSessionSize = 20,
+            ReviewMaxIntervalDays = 30
+        });
+        context.ReviewProgresses.Add(new ReviewProgress
+        {
+            UserId = "user-1",
+            FlashcardId = card.Id,
+            Stage = ReviewStage.Reviewing,
+            NextReviewAtUtc = FixedNow.AddDays(-1),
+            LongTermIntervalDays = 20
+        });
+        await context.SaveChangesAsync();
+        ReviewService service = CreateService(context);
+        ReviewSessionViewModel session = (await service.StartAsync("user-1"))!;
+
+        ReviewRatingResult result = await service.RateAsync(
+            "user-1", session.SessionId, card.Id, ReviewRating.Easy, answerRevealed: true);
+
+        Assert.Equal(30, result.Progress.LongTermIntervalDays);
+        Assert.Equal(FixedNow.AddDays(30), result.Progress.NextReviewAtUtc);
+    }
+
+    [Fact]
+    public async Task RateAsync_ChangingMaximumIntervalOnlyAffectsLaterCalculations()
+    {
+        await using AppDbContext context = CreateContext();
+        Flashcard card = await SeedCardAsync(context);
+        UserStudySettings settings = new()
+        {
+            UserId = "user-1",
+            ReviewSessionSize = 20,
+            ReviewMaxIntervalDays = 30
+        };
+        context.UserStudySettings.Add(settings);
+        context.ReviewProgresses.Add(new ReviewProgress
+        {
+            UserId = "user-1",
+            FlashcardId = card.Id,
+            Stage = ReviewStage.Reviewing,
+            NextReviewAtUtc = FixedNow.AddMinutes(-1),
+            LongTermIntervalDays = 20
+        });
+        await context.SaveChangesAsync();
+        ReviewService service = CreateService(context);
+
+        ReviewSessionViewModel firstSession = (await service.StartAsync("user-1"))!;
+        await service.RateAsync("user-1", firstSession.SessionId, card.Id, ReviewRating.Easy, true);
+        ReviewProgress firstProgress = await context.ReviewProgresses.SingleAsync();
+        Assert.Equal(30, firstProgress.LongTermIntervalDays);
+        Assert.Equal(FixedNow.AddDays(30), firstProgress.NextReviewAtUtc);
+
+        settings.ReviewMaxIntervalDays = 60;
+        firstProgress.NextReviewAtUtc = FixedNow.AddMinutes(-1);
+        await context.SaveChangesAsync();
+        ReviewSessionViewModel secondSession = (await service.StartAsync("user-1"))!;
+        await service.RateAsync("user-1", secondSession.SessionId, card.Id, ReviewRating.Easy, true);
+
+        ReviewProgress secondProgress = await context.ReviewProgresses.SingleAsync();
+        Assert.Equal(60, secondProgress.LongTermIntervalDays);
+        Assert.Equal(FixedNow.AddDays(60), secondProgress.NextReviewAtUtc);
     }
 
     [Fact]

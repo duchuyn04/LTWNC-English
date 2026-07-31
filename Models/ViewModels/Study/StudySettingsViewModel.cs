@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using ltwnc.Models.Entities;
 
 namespace ltwnc.Models.ViewModels.Study;
@@ -5,6 +6,12 @@ namespace ltwnc.Models.ViewModels.Study;
 // Safe transport model dùng cho View và POST settings; không chứa khóa database hoặc UserId.
 public class StudySettingsViewModel
 {
+    [Range(ReviewSettingsPolicy.MinimumSessionSize, ReviewSettingsPolicy.MaximumSessionSize)]
+    public int ReviewSessionSize { get; set; } = ReviewSettingsPolicy.DefaultSessionSize;
+
+    [Range(ReviewSettingsPolicy.MinimumMaxIntervalDays, ReviewSettingsPolicy.MaximumMaxIntervalDays)]
+    public int ReviewMaxIntervalDays { get; set; } = ReviewSettingsPolicy.DefaultMaxIntervalDays;
+
     public bool StarredOnly { get; set; }
 
     public bool UnlearnedOnly { get; set; }

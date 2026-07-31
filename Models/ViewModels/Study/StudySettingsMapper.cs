@@ -9,6 +9,8 @@ public static class StudySettingsMapper
     {
         return new StudySettingsViewModel
         {
+            ReviewSessionSize = settings.ReviewSessionSize,
+            ReviewMaxIntervalDays = settings.ReviewMaxIntervalDays,
             StarredOnly = settings.StarredOnly,
             UnlearnedOnly = settings.UnlearnedOnly,
             ShowFrontTerm = settings.ShowFrontTerm,
@@ -40,6 +42,8 @@ public static class StudySettingsMapper
     {
         return new UserStudySettings
         {
+            ReviewSessionSize = settings.ReviewSessionSize,
+            ReviewMaxIntervalDays = settings.ReviewMaxIntervalDays,
             StarredOnly = settings.StarredOnly,
             UnlearnedOnly = settings.UnlearnedOnly,
             ShowFrontTerm = settings.ShowFrontTerm,

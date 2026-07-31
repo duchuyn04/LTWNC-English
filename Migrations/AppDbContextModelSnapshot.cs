@@ -1317,6 +1317,16 @@ namespace ltwnc.Migrations
                     b.Property<bool>("UnlearnedOnly")
                         .HasColumnType("bit");
 
+                    b.Property<int>("ReviewMaxIntervalDays")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(30);
+
+                    b.Property<int>("ReviewSessionSize")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int")
+                        .HasDefaultValue(20);
+
                     b.Property<string>("UserId")
                         .IsRequired()
                         .HasColumnType("nvarchar(450)");

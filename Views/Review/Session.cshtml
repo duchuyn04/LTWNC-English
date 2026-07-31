@@ -3,6 +3,10 @@
     ViewData["Title"] = "Ôn tập đến hạn";
     ReviewCardViewModel? card = Model.Cards.FirstOrDefault(value => !value.IsRated)
         ?? Model.Cards.FirstOrDefault();
+    ReviewRatingPreviewViewModel? againPreview = card?.RatingPreviews.FirstOrDefault(value => value.Rating == ReviewRating.Again);
+    ReviewRatingPreviewViewModel? hardPreview = card?.RatingPreviews.FirstOrDefault(value => value.Rating == ReviewRating.Hard);
+    ReviewRatingPreviewViewModel? goodPreview = card?.RatingPreviews.FirstOrDefault(value => value.Rating == ReviewRating.Good);
+    ReviewRatingPreviewViewModel? easyPreview = card?.RatingPreviews.FirstOrDefault(value => value.Rating == ReviewRating.Easy);
 }
 
 <div class="mx-auto" style="max-width: 760px;">
@@ -80,10 +84,10 @@
                     <input type="hidden" name="flashcardId" value="@card.FlashcardId" />
                     <input id="answer-revealed" type="hidden" name="answerRevealed" value="false" />
                     <div class="d-flex flex-wrap gap-2" role="group" aria-label="Mức nhớ">
-                        <button class="btn btn-outline-danger" type="submit" name="rating" value="Again" disabled>Quên · Again</button>
-                        <button class="btn btn-outline-warning" type="submit" name="rating" value="Hard" disabled>Khó · Hard</button>
-                        <button class="btn btn-outline-success" type="submit" name="rating" value="Good" disabled>Tốt · Good</button>
-                        <button class="btn btn-outline-primary" type="submit" name="rating" value="Easy" disabled>Dễ · Easy</button>
+                        <button class="btn btn-outline-danger" type="submit" name="rating" value="Again" disabled>Quên · Again · @againPreview?.DelayLabel</button>
+                        <button class="btn btn-outline-warning" type="submit" name="rating" value="Hard" disabled>Khó · Hard · @hardPreview?.DelayLabel</button>
+                        <button class="btn btn-outline-success" type="submit" name="rating" value="Good" disabled>Tốt · Good · @goodPreview?.DelayLabel</button>
+                        <button class="btn btn-outline-primary" type="submit" name="rating" value="Easy" disabled>Dễ · Easy · @easyPreview?.DelayLabel</button>
                     </div>
                 </form>
             </div>

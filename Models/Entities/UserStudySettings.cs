@@ -31,6 +31,12 @@ public class UserStudySettings
     [Required]
     public string UserId { get; set; } = string.Empty;
 
+    // Ôn tập đến hạn: số thẻ tối đa trong một lượt.
+    public int ReviewSessionSize { get; set; } = ReviewSettingsPolicy.DefaultSessionSize;
+
+    // Ôn tập đến hạn: giới hạn khoảng ôn dài hạn theo ngày.
+    public int ReviewMaxIntervalDays { get; set; } = ReviewSettingsPolicy.DefaultMaxIntervalDays;
+
     // Bộ lọc Study Hub / màn học: chỉ thẻ đã sao
     public bool StarredOnly { get; set; }
 
@@ -102,4 +108,40 @@ public class UserStudySettings
 
     // Xáo trộn thứ tự thẻ khi vào dictation
     public bool DictationShuffle { get; set; }
+}
+
+public static class ReviewSettingsPolicy
+{
+    public const int DefaultSessionSize = 20;
+    public const int MinimumSessionSize = 5;
+    public const int MaximumSessionSize = 100;
+    public const int DefaultMaxIntervalDays = 30;
+    public const int MinimumMaxIntervalDays = 30;
+    public const int MaximumMaxIntervalDays = 365;
+
+    public static int ValidateSessionSize(int value)
+    {
+        if (value < MinimumSessionSize || value > MaximumSessionSize)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(value),
+                value,
+                $"Kích thước lượt ôn phải từ {MinimumSessionSize} đến {MaximumSessionSize}.");
+        }
+
+        return value;
+    }
+
+    public static int ValidateMaxIntervalDays(int value)
+    {
+        if (value < MinimumMaxIntervalDays || value > MaximumMaxIntervalDays)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(value),
+                value,
+                $"Khoảng ôn tối đa phải từ {MinimumMaxIntervalDays} đến {MaximumMaxIntervalDays} ngày.");
+        }
+
+        return value;
+    }
 }

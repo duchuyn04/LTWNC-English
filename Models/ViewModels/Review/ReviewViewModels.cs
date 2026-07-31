@@ -27,9 +27,24 @@ public sealed class ReviewCardViewModel
 
     public ReviewRating? Rating { get; set; }
 
+    public IReadOnlyList<ReviewRatingPreviewViewModel> RatingPreviews { get; set; } = Array.Empty<ReviewRatingPreviewViewModel>();
+
     public bool IsNewCard { get; set; }
 
     public bool IsRated { get; set; }
+}
+
+public sealed class ReviewRatingPreviewViewModel
+{
+    public ReviewRating Rating { get; set; }
+
+    public DateTimeOffset NextReviewAtUtc { get; set; }
+
+    public int LongTermIntervalDays { get; set; }
+
+    public TimeSpan Delay { get; set; }
+
+    public string DelayLabel { get; set; } = string.Empty;
 }
 
 public sealed class ReviewSessionViewModel

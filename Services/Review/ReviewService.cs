@@ -8,8 +8,6 @@ namespace ltwnc.Services.Review;
 
 public sealed class ReviewService : IReviewService
 {
-    private const int DefaultBatchSize = 20;
-
     private readonly AppDbContext _context;
     private readonly ReviewStateMachine _stateMachine;
     private readonly TimeProvider _timeProvider;
@@ -58,6 +56,8 @@ public sealed class ReviewService : IReviewService
         }
 
         DateTimeOffset now = _timeProvider.GetUtcNow();
+        UserStudySettings settings = await GetSettingsAsync(userId);
+        int batchSize = ReviewSettingsPolicy.ValidateSessionSize(settings.ReviewSessionSize);
         Dictionary<int, ReviewProgress> progressByCardId = await _context.ReviewProgresses
             .Where(value => value.UserId == userId && cards.Select(card => card.Id).Contains(value.FlashcardId))
             .ToDictionaryAsync(value => value.FlashcardId);
@@ -68,11 +68,11 @@ public sealed class ReviewService : IReviewService
             .GroupBy(card => progressByCardId[card.Id].NextReviewAtUtc!.Value)
             .OrderBy(group => group.Key)
             .SelectMany(group => Shuffle(group))
-            .Take(DefaultBatchSize)
+            .Take(batchSize)
             .ToList();
         List<Flashcard> newCards = cards
             .Where(card => !progressByCardId.ContainsKey(card.Id))
-            .Take(Math.Max(0, DefaultBatchSize - dueCards.Count))
+            .Take(Math.Max(0, batchSize - dueCards.Count))
             .ToList();
         List<Flashcard> assignedCards = dueCards
             .Concat(newCards)
@@ -176,7 +176,9 @@ public sealed class ReviewService : IReviewService
                 progress.NextReviewAtUtc,
                 progress.LongTermIntervalDays);
         DateTimeOffset now = _timeProvider.GetUtcNow();
-        ReviewTransition transition = _stateMachine.Rate(current, rating, now);
+        UserStudySettings settings = await GetSettingsAsync(userId);
+        int maximumIntervalDays = ReviewSettingsPolicy.ValidateMaxIntervalDays(settings.ReviewMaxIntervalDays);
+        ReviewTransition transition = _stateMachine.Rate(current, rating, now, maximumIntervalDays);
 
         if (progress == null)
         {
@@ -252,10 +254,8 @@ public sealed class ReviewService : IReviewService
         Dictionary<int, ReviewProgress> progressByCardId = await _context.ReviewProgresses
             .Where(value => value.UserId == session.UserId && cardIds.Contains(value.FlashcardId))
             .ToDictionaryAsync(value => value.FlashcardId);
-        UserStudySettings settings = await _context.UserStudySettings
-            .AsNoTracking()
-            .SingleOrDefaultAsync(value => value.UserId == session.UserId)
-            ?? new UserStudySettings();
+        UserStudySettings settings = await GetSettingsAsync(session.UserId);
+        int maximumIntervalDays = ReviewSettingsPolicy.ValidateMaxIntervalDays(settings.ReviewMaxIntervalDays);
 
         List<ReviewCardViewModel> cards = session.Items
             .OrderBy(item => item.OrderIndex)
@@ -279,6 +279,9 @@ public sealed class ReviewService : IReviewService
                     UploadedImagePath = item.Flashcard.UploadedImagePath,
                     Stage = stage,
                     Rating = item.Rating,
+                    RatingPreviews = item.Rating == null
+                        ? BuildRatingPreviews(progress, maximumIntervalDays)
+                        : Array.Empty<ReviewRatingPreviewViewModel>(),
                     IsNewCard = item.IsNewCardAtAssignment,
                     IsRated = item.Rating != null
                 };
@@ -301,6 +304,55 @@ public sealed class ReviewService : IReviewService
         .Include(value => value.Items)
             .ThenInclude(value => value.Flashcard)
                 .ThenInclude(value => value!.FlashcardSet);
+
+    private async Task<UserStudySettings> GetSettingsAsync(string userId)
+    {
+        return await _context.UserStudySettings
+            .AsNoTracking()
+            .SingleOrDefaultAsync(value => value.UserId == userId)
+            ?? new UserStudySettings { UserId = userId };
+    }
+
+    private List<ReviewRatingPreviewViewModel> BuildRatingPreviews(
+        ReviewProgress? progress,
+        int maximumIntervalDays)
+    {
+        ReviewSchedule current = progress == null
+            ? new(ReviewStage.New, null, 0)
+            : new(progress.Stage, progress.NextReviewAtUtc, progress.LongTermIntervalDays);
+        DateTimeOffset now = _timeProvider.GetUtcNow();
+
+        return Enum.GetValues<ReviewRating>()
+            .Select(rating =>
+            {
+                ReviewTransition transition = _stateMachine.Rate(
+                    current,
+                    rating,
+                    now,
+                    maximumIntervalDays);
+                TimeSpan delay = transition.NextReviewAtUtc - now;
+                return new ReviewRatingPreviewViewModel
+                {
+                    Rating = rating,
+                    NextReviewAtUtc = transition.NextReviewAtUtc,
+                    LongTermIntervalDays = transition.LongTermIntervalDays,
+                    Delay = delay,
+                    DelayLabel = FormatDelay(delay, transition.LongTermIntervalDays)
+                };
+            })
+            .ToList();
+    }
+
+    private static string FormatDelay(TimeSpan delay, int longTermIntervalDays)
+    {
+        if (delay <= TimeSpan.FromHours(1))
+        {
+            return $"{Math.Max(1, (int)Math.Ceiling(delay.TotalMinutes))} phút";
+        }
+
+        int days = Math.Max(1, (int)Math.Ceiling(delay.TotalDays));
+        return $"{days} ngày";
+    }
 
     private static IEnumerable<T> Shuffle<T>(IEnumerable<T> values)
     {
