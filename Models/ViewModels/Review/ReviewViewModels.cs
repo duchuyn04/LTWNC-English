@@ -25,6 +25,8 @@ public sealed class ReviewCardViewModel
 
     public ReviewStage Stage { get; set; }
 
+    public ReviewRating? Rating { get; set; }
+
     public bool IsNewCard { get; set; }
 
     public bool IsRated { get; set; }
@@ -39,6 +41,10 @@ public sealed class ReviewSessionViewModel
     public int RatedCards { get; set; }
 
     public bool IsCompleted { get; set; }
+
+    public bool IsEnded { get; set; }
+
+    public bool IsFinished => IsCompleted || IsEnded;
 
     public StudySettingsViewModel Settings { get; set; } = new();
 

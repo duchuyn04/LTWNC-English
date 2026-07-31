@@ -179,7 +179,7 @@ public class AppDbContext : DbContext
             entity.HasIndex(e => new { e.UserId, e.CompletedAtUtc });
             entity.HasIndex(e => e.UserId)
                 .IsUnique()
-                .HasFilter("[CompletedAtUtc] IS NULL");
+                .HasFilter("[CompletedAtUtc] IS NULL AND [EndedAtUtc] IS NULL");
         });
 
         builder.Entity<ReviewSessionItem>(entity =>

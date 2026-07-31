@@ -59,6 +59,8 @@ public class ReviewSession
 
     public DateTimeOffset? CompletedAtUtc { get; set; }
 
+    public DateTimeOffset? EndedAtUtc { get; set; }
+
     public ICollection<ReviewSessionItem> Items { get; set; } = new List<ReviewSessionItem>();
 }
 

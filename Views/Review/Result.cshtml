@@ -5,8 +5,15 @@
 
 <div class="mx-auto" style="max-width: 720px;">
     <span class="text-uppercase text-muted small fw-semibold">Ôn tập đến hạn</span>
-    <h1 class="display-6 mt-2">Lượt ôn đã hoàn thành</h1>
+    <h1 class="display-6 mt-2">@(Model.IsEnded ? "Lượt ôn đã kết thúc" : "Lượt ôn đã hoàn thành")</h1>
     <p class="lead">Bạn đã tự đánh giá @Model.RatedCards / @Model.TotalCards thẻ.</p>
+
+    <div class="d-flex flex-wrap gap-2 mb-4" aria-label="Tổng kết mức nhớ">
+        <span class="badge text-bg-danger">Quên: @Model.Cards.Count(card => card.Rating == ReviewRating.Again)</span>
+        <span class="badge text-bg-warning">Khó: @Model.Cards.Count(card => card.Rating == ReviewRating.Hard)</span>
+        <span class="badge text-bg-success">Tốt: @Model.Cards.Count(card => card.Rating == ReviewRating.Good)</span>
+        <span class="badge text-bg-primary">Dễ: @Model.Cards.Count(card => card.Rating == ReviewRating.Easy)</span>
+    </div>
 
     <div class="card border-0 shadow-sm mb-4">
         <div class="card-body p-4">

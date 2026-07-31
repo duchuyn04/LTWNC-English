@@ -54,6 +54,34 @@ public sealed class ReviewControllerTests
     }
 
     [Fact]
+    public async Task Session_CompletedSession_RedirectsToResult()
+    {
+        var review = new Mock<IReviewService>();
+        review.Setup(service => service.GetSessionAsync(17, "user-1"))
+            .ReturnsAsync(new ReviewSessionViewModel { SessionId = 17, IsCompleted = true });
+        ReviewController controller = CreateController("user-1", review);
+
+        IActionResult actual = await controller.Session(17);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(actual);
+        Assert.Equal(nameof(ReviewController.Result), redirect.ActionName);
+    }
+
+    [Fact]
+    public async Task Result_EndedSession_ReturnsSummaryView()
+    {
+        var review = new Mock<IReviewService>();
+        review.Setup(service => service.GetSessionAsync(17, "user-1"))
+            .ReturnsAsync(new ReviewSessionViewModel { SessionId = 17, IsEnded = true });
+        ReviewController controller = CreateController("user-1", review);
+
+        IActionResult actual = await controller.Result(17);
+
+        var view = Assert.IsType<ViewResult>(actual);
+        Assert.True(Assert.IsType<ReviewSessionViewModel>(view.Model).IsEnded);
+    }
+
+    [Fact]
     public async Task Rate_WithoutAnswerReveal_ReturnsConflict()
     {
         var review = new Mock<IReviewService>();
@@ -76,12 +104,47 @@ public sealed class ReviewControllerTests
                 "user-1", 17, 3, ReviewRating.Good, true))
             .ReturnsAsync(new ReviewRatingResult
             {
-                Session = new ReviewSessionViewModel { SessionId = 17 },
+                Session = new ReviewSessionViewModel { SessionId = 17, IsCompleted = true },
                 Progress = new ReviewProgressViewModel { Stage = ReviewStage.Reviewing }
             });
         ReviewController controller = CreateController("user-1", review);
 
         IActionResult actual = await controller.Rate(17, 3, ReviewRating.Good, true);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(actual);
+        Assert.Equal(nameof(ReviewController.Result), redirect.ActionName);
+        Assert.Equal(17, redirect.RouteValues!["sessionId"]);
+    }
+
+    [Fact]
+    public async Task Rate_WhileSessionHasCardsRemaining_RedirectsBackToSession()
+    {
+        var review = new Mock<IReviewService>();
+        review.Setup(service => service.RateAsync(
+                "user-1", 17, 3, ReviewRating.Good, true))
+            .ReturnsAsync(new ReviewRatingResult
+            {
+                Session = new ReviewSessionViewModel { SessionId = 17, IsCompleted = false },
+                Progress = new ReviewProgressViewModel { Stage = ReviewStage.Reviewing }
+            });
+        ReviewController controller = CreateController("user-1", review);
+
+        IActionResult actual = await controller.Rate(17, 3, ReviewRating.Good, true);
+
+        var redirect = Assert.IsType<RedirectToActionResult>(actual);
+        Assert.Equal(nameof(ReviewController.Session), redirect.ActionName);
+        Assert.Equal(17, redirect.RouteValues!["sessionId"]);
+    }
+
+    [Fact]
+    public async Task End_ExistingSession_RedirectsToResult()
+    {
+        var review = new Mock<IReviewService>();
+        review.Setup(service => service.EndAsync("user-1", 17))
+            .ReturnsAsync(new ReviewSessionViewModel { SessionId = 17, IsEnded = true });
+        ReviewController controller = CreateController("user-1", review);
+
+        IActionResult actual = await controller.End(17);
 
         var redirect = Assert.IsType<RedirectToActionResult>(actual);
         Assert.Equal(nameof(ReviewController.Result), redirect.ActionName);

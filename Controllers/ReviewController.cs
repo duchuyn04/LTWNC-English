@@ -72,7 +72,7 @@ public sealed class ReviewController : Controller
             return NotFound();
         }
 
-        return session.IsCompleted
+        return session.IsFinished
             ? RedirectToAction(nameof(Result), new { sessionId })
             : View(session);
     }
@@ -100,7 +100,9 @@ public sealed class ReviewController : Controller
                 flashcardId,
                 rating,
                 answerRevealed);
-            return RedirectToAction(nameof(Result), new { sessionId = result.Session.SessionId });
+            return result.Session.IsFinished
+                ? RedirectToAction(nameof(Result), new { sessionId = result.Session.SessionId })
+                : RedirectToAction(nameof(Session), new { sessionId = result.Session.SessionId });
         }
         catch (KeyNotFoundException)
         {
@@ -114,6 +116,23 @@ public sealed class ReviewController : Controller
                 message = exception.Message
             });
         }
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Route("/Review/{sessionId:int}/End")]
+    public async Task<IActionResult> End(int sessionId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        ReviewSessionViewModel? session = await _reviewService.EndAsync(userId, sessionId);
+        return session == null
+            ? NotFound()
+            : RedirectToAction(nameof(Result), new { sessionId = session.SessionId });
     }
 
     [HttpGet]
@@ -132,7 +151,7 @@ public sealed class ReviewController : Controller
             return NotFound();
         }
 
-        return session.IsCompleted
+        return session.IsFinished
             ? View(session)
             : RedirectToAction(nameof(Session), new { sessionId });
     }

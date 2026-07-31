@@ -17,4 +17,6 @@ public interface IReviewService
         int flashcardId,
         ReviewRating rating,
         bool answerRevealed);
+
+    Task<ReviewSessionViewModel?> EndAsync(string userId, int sessionId);
 }

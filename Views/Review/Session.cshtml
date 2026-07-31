@@ -11,7 +11,10 @@
             <span class="text-uppercase text-muted small fw-semibold">Ôn tập đến hạn</span>
             <h1 class="h2 mt-2 mb-0">Thẻ @(Model.RatedCards + 1) / @Model.TotalCards</h1>
         </div>
-        <a href="/Review" class="btn btn-outline-secondary">Thoát</a>
+        <form method="post" action="/Review/@Model.SessionId/End" onsubmit="return confirm('Kết thúc sớm lượt ôn?');">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-outline-secondary">Kết thúc sớm</button>
+        </form>
     </div>
 
     @if (card is not null)

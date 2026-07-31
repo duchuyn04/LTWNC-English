@@ -960,6 +960,9 @@ namespace ltwnc.Migrations
                     b.Property<DateTimeOffset?>("CompletedAtUtc")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<DateTimeOffset?>("EndedAtUtc")
+                        .HasColumnType("datetimeoffset");
+
                     b.Property<DateTimeOffset>("StartedAtUtc")
                         .HasColumnType("datetimeoffset");
 
@@ -973,7 +976,7 @@ namespace ltwnc.Migrations
 
                     b.HasIndex("UserId")
                         .IsUnique()
-                        .HasFilter("[CompletedAtUtc] IS NULL");
+                        .HasFilter("[CompletedAtUtc] IS NULL AND [EndedAtUtc] IS NULL");
 
                     b.ToTable("ReviewSessions");
                 });
