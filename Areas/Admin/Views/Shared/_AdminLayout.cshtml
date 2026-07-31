@@ -44,6 +44,7 @@
     <link rel="stylesheet" href="~/css/admin/components.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/css/admin/responsive.css" asp-append-version="true" />
     @await RenderSectionAsync("Styles", required: false)
+    <link rel="stylesheet" href="~/css/popup.css" asp-append-version="true" />
 </head>
 <body class="admin-body">
     <a class="admin-skip-link" href="#admin-main">Bỏ qua điều hướng</a>
@@ -126,6 +127,7 @@
     </div>
 
     <script src="/js/admin-shell.js" asp-append-version="true"></script>
+    <script src="/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

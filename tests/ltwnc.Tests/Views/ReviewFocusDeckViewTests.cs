@@ -62,7 +62,7 @@ public sealed class ReviewFocusDeckViewTests
         string view = Read("Views/Review/Session.cshtml");
 
         Assert.Contains("action=\"/Review/@Model.SessionId/End\"", view);
-        Assert.Contains("return confirm('Kết thúc sớm lượt ôn?')", view);
+        Assert.Contains("data-confirm=\"Kết thúc sớm lượt ôn?\"", view);
         Assert.Contains("action=\"/Review/@Model.SessionId/Rate\"", view);
         Assert.Contains("@Html.AntiForgeryToken()", view);
         Assert.Contains("name=\"flashcardId\"", view);

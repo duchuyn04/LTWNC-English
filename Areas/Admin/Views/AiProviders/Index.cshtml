@@ -23,12 +23,12 @@
 
     @if (TempData["ProviderMessage"] is string message)
     {
-        <div class="provider-message" role="status">@message</div>
+        <div class="provider-message" data-popup="success">@message</div>
     }
 
     @if (TempData["ProviderError"] is string error)
     {
-        <div class="provider-error" role="alert">@error</div>
+        <div class="provider-error" data-popup="error">@error</div>
     }
 
     <div class="provider-notice"

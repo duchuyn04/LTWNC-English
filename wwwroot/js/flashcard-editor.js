@@ -179,7 +179,8 @@
         feedback.replaceChildren();
         const alert = document.createElement('div');
         alert.className = 'alert ' + (isError ? 'alert-danger' : 'alert-success');
-        alert.setAttribute('role', 'alert');
+        alert.dataset.popup = isError ? 'error' : 'success';
+        if (!isError && undoLogId) alert.dataset.popupPersist = 'true';
 
         const text = document.createElement('span');
         text.textContent = message;
@@ -315,6 +316,13 @@
         return false;
     }
 
+    async function confirmBatchActionFromButton(button) {
+        if (window.appConfirm && await window.appConfirm('Xóa các thẻ đã chọn?')) {
+            submitBatchActionFromButton(button);
+        }
+        return false;
+    }
+
     function bindBatchSelection() {
         document.querySelectorAll('form#batch-form').forEach(function (form) {
             syncBatchToolbar(form);
@@ -372,6 +380,7 @@
     window.bindAutoGrow = bindAutoGrow;
     window.bindAnchors = bindAnchors;
     window.submitBatchActionFromButton = submitBatchActionFromButton;
+    window.confirmBatchActionFromButton = confirmBatchActionFromButton;
 
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', init);

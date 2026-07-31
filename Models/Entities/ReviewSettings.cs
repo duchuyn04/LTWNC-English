@@ -1,12 +1,13 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using ltwnc.Models;
 
 namespace ltwnc.Models.Entities;
 
 // Cấu hình ôn tập riêng cho một user và một bộ thẻ.
 // Không dùng chung với UserStudySettings để thay đổi Flashcard/Dictation
 // không thể vô tình làm thay đổi lịch ôn.
-public sealed class ReviewSettings
+public sealed class ReviewSettings : IPrototype<ReviewSettings>
 {
     [Key]
     public int Id { get; set; }
@@ -59,6 +60,32 @@ public sealed class ReviewSettings
     public static bool IsValidNewCardQuota(int value) =>
         value >= ReviewSettingsPolicy.MinimumNewCardQuota
         && value <= ReviewSettingsPolicy.MaximumNewCardQuota;
+
+    // Tạo bản cấu hình độc lập để áp dụng cho một bộ thẻ khác. Identity, owner
+    // và quan hệ tới bộ thẻ được reset; service sẽ gán lại theo bộ đích.
+    public ReviewSettings Clone()
+    {
+        return new ReviewSettings
+        {
+            ReviewSessionSize = ReviewSessionSize,
+            NewCardQuota = NewCardQuota,
+            ReviewMaxIntervalDays = ReviewMaxIntervalDays,
+            ShowFrontTerm = ShowFrontTerm,
+            ShowFrontDefinition = ShowFrontDefinition,
+            ShowFrontIpa = ShowFrontIpa,
+            ShowFrontImage = ShowFrontImage,
+            ShowBackTerm = ShowBackTerm,
+            ShowBackDefinition = ShowBackDefinition,
+            ShowBackIpa = ShowBackIpa,
+            ShowBackExample = ShowBackExample,
+            ShowBackImage = ShowBackImage,
+            HideImage = HideImage,
+            BlurImage = BlurImage,
+            LargeImage = LargeImage,
+            PronounceFront = PronounceFront,
+            PronounceBack = PronounceBack
+        };
+    }
 
     public static ReviewSettings CreateFromLegacy(
         string userId,

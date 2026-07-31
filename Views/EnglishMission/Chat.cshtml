@@ -18,7 +18,7 @@
     @Html.AntiForgeryToken()
     @if (TempData["MissionError"] is string error)
     {
-        <div class="mission-alert mission-chat-alert" role="alert">
+        <div class="mission-alert mission-chat-alert" data-popup="error">
             <i class="ph ph-warning-circle" aria-hidden="true"></i>
             <span>@error</span>
         </div>

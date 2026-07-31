@@ -21,7 +21,7 @@
 
     @if (TempData["MissionError"] is string error)
     {
-        <div class="mission-alert"><i class="ph ph-warning-circle"></i><span>@error</span></div>
+        <div class="mission-alert" data-popup="error"><i class="ph ph-warning-circle"></i><span>@error</span></div>
     }
 
     <div class="mission-topic-grid">

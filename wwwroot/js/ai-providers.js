@@ -10,6 +10,12 @@
     var noticeIcon = notice.querySelector("[data-provider-notice-icon]");
 
     function showNotice(message, type, shouldFocus) {
+        if (type !== "pending" && window.showAppPopup) {
+            notice.hidden = true;
+            window.showAppPopup(message, type === "error" ? "error" : "success");
+            return;
+        }
+
         notice.classList.remove("is-pending", "is-success", "is-error");
         notice.classList.add("is-" + type);
         noticeText.textContent = message;

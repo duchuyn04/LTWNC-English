@@ -295,6 +295,40 @@ public class FlashcardSetController : Controller
         }
     }
 
+    // Nhân bản bộ thẻ của chính người dùng thành một bộ private độc lập.
+    [HttpPost]
+    [Route("/Set/{id:int}/Duplicate")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Duplicate(
+        int id,
+        CancellationToken cancellationToken = default)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        try
+        {
+            FlashcardSet duplicate = await _setService.DuplicateOwnedSetAsync(
+                id,
+                userId,
+                cancellationToken);
+            TempData["Success"] = $"Đã nhân bản bộ thẻ thành “{duplicate.Title}”.";
+            return RedirectToAction(nameof(Details), new { id = duplicate.Id });
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound("Không tìm thấy bộ thẻ có thể nhân bản.");
+        }
+        catch (InvalidOperationException exception)
+        {
+            TempData["DuplicateError"] = exception.Message;
+            return RedirectToAction(nameof(Details), new { id });
+        }
+    }
+
     // Chuyển đường dẫn chỉnh sửa cũ sang trình chỉnh sửa thống nhất.
     [Route("/Set/{id}/Edit")]
     public IActionResult Edit(int id)

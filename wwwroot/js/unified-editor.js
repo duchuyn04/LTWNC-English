@@ -496,7 +496,7 @@
 
         card.querySelector('.btn-delete').addEventListener('click', async (e) => {
             e.stopPropagation();
-            if (!confirm('Xóa thẻ này?')) return;
+            if (!window.appConfirm || !await window.appConfirm('Xóa thẻ này?')) return;
 
             const id = card.dataset.id;
             if (pendingSaves.has(id)) {

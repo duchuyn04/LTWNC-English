@@ -6,12 +6,12 @@
 
 @if (TempData["ContentReportsSuccess"] is string successMessage)
 {
-    <div class="admin-alert admin-alert--success" role="status">@successMessage</div>
+    <div class="admin-alert admin-alert--success" data-popup="success">@successMessage</div>
 }
 
 @if (TempData["ContentReportsError"] is string errorMessage)
 {
-    <div class="admin-alert admin-alert--danger" role="alert">@errorMessage</div>
+    <div class="admin-alert admin-alert--danger" data-popup="error">@errorMessage</div>
 }
 
 <nav class="admin-tab-list" aria-label="Trạng thái báo cáo">
@@ -69,7 +69,7 @@
                                 {
                                     <form method="post" action="/Admin/ContentReports/@report.Id/Dismiss"
                                           class="admin-inline-action-form"
-                                          onsubmit="return confirm('Bác bỏ báo cáo này?');">
+                                          data-confirm="Bác bỏ báo cáo này?">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="Version" value="@report.Version" />
                                         <label for="dismiss-reason-@report.Id">Lý do</label>
@@ -78,7 +78,7 @@
                                     </form>
                                     <form method="post" action="/Admin/ContentReports/@report.Id/Quarantine"
                                           class="admin-inline-action-form"
-                                          onsubmit="return confirm('Cách ly bộ flashcard này?');">
+                                          data-confirm="Cách ly bộ flashcard này?">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="ReportVersion" value="@report.Version" />
                                         <input type="hidden" name="FlashcardSetVersion" value="@report.FlashcardSetVersion" />
@@ -95,7 +95,7 @@
                                 {
                                     <form method="post" action="/Admin/ContentReports/Restore/@report.FlashcardSetId"
                                           class="admin-inline-action-form"
-                                          onsubmit="return confirm('Khôi phục bộ flashcard này?');">
+                                          data-confirm="Khôi phục bộ flashcard này?">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="FlashcardSetVersion" value="@report.FlashcardSetVersion" />
                                         <label for="restore-reason-@report.Id">Lý do khôi phục</label>

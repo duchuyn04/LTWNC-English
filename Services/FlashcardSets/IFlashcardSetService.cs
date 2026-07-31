@@ -32,6 +32,12 @@ public interface IFlashcardSetService
 
     Task<FlashcardSet> CopyPublicSetAsync(int sourceSetId, string learnerId);
 
+    // Tạo một bản sao private, độc lập từ bộ thẻ của chính người dùng.
+    Task<FlashcardSet> DuplicateOwnedSetAsync(
+        int sourceSetId,
+        string ownerId,
+        CancellationToken cancellationToken = default);
+
     Task<FlashcardSet> CreateSetAsync(
         string title,
         string? description,

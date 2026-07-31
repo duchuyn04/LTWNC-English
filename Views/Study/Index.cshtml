@@ -22,7 +22,9 @@
 <div class="study-hub">
     @if (TempData["Message"] is string message)
     {
-        <div class="alert alert-info d-flex align-items-center justify-content-between mb-4">
+        <div class="alert alert-info d-flex align-items-center justify-content-between mb-4"
+             data-popup="info"
+             data-popup-persist="@(message.Contains("bộ lọc") ? "true" : "false")">
             <span>@message</span>
             @if (message.Contains("bộ lọc"))
             {

@@ -5,6 +5,7 @@ using ltwnc.Models.ViewModels.FlashcardSet;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http;
 using System;
+using System.Data;
 using System.IO;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Formats;
@@ -250,6 +251,87 @@ public class FlashcardSetService : IFlashcardSetService
             // 10. Gọi `Delete` để thực hiện bước nghiệp vụ này.
             File.Delete(physicalPath);
         }
+    }
+
+    // Tạo một file vật lý mới cho ảnh của bản sao. Không dùng chung đường dẫn vì
+    // xóa một bộ thẻ sẽ xóa file ảnh của bộ đó khỏi ổ đĩa.
+    private async Task<string> CopyUploadedImageAsync(
+        string uploadedImagePath,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(uploadedImagePath)
+            || !uploadedImagePath.StartsWith(UploadedImageUrlPrefix, StringComparison.Ordinal))
+        {
+            throw InvalidDuplicateImage();
+        }
+
+        string relativeName = uploadedImagePath[UploadedImageUrlPrefix.Length..];
+        string sourceFileName = Path.GetFileName(relativeName);
+        if (!string.Equals(relativeName, sourceFileName, StringComparison.Ordinal))
+        {
+            throw InvalidDuplicateImage();
+        }
+
+        string extension = Path.GetExtension(sourceFileName);
+        if (!AllowedImageExtensions.Contains(extension))
+        {
+            throw InvalidDuplicateImage();
+        }
+
+        string uploadRoot = Path.GetFullPath(
+            Path.Combine(_environment.WebRootPath, "uploads", "flashcards"));
+        string sourcePath = Path.GetFullPath(Path.Combine(uploadRoot, sourceFileName));
+        if (!sourcePath.StartsWith(
+                uploadRoot + Path.DirectorySeparatorChar,
+                StringComparison.OrdinalIgnoreCase)
+            || !File.Exists(sourcePath))
+        {
+            throw InvalidDuplicateImage();
+        }
+
+        Directory.CreateDirectory(uploadRoot);
+        string targetFileName = $"{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
+        string targetPath = Path.Combine(uploadRoot, targetFileName);
+
+        try
+        {
+            await using FileStream source = new(
+                sourcePath,
+                FileMode.Open,
+                FileAccess.Read,
+                FileShare.Read,
+                bufferSize: 81920,
+                useAsync: true);
+            await using FileStream target = new(
+                targetPath,
+                FileMode.CreateNew,
+                FileAccess.Write,
+                FileShare.None,
+                bufferSize: 81920,
+                useAsync: true);
+            await source.CopyToAsync(target, cancellationToken);
+        }
+        catch (OperationCanceledException)
+        {
+            File.Delete(targetPath);
+            throw;
+        }
+        catch (Exception exception) when (exception is IOException or UnauthorizedAccessException)
+        {
+            File.Delete(targetPath);
+            throw InvalidDuplicateImage(exception);
+        }
+
+        return $"{UploadedImageUrlPrefix}{targetFileName}";
+    }
+
+    private static InvalidOperationException InvalidDuplicateImage(Exception? inner = null)
+    {
+        const string message =
+            "Không thể nhân bản vì một hoặc nhiều ảnh của bộ nguồn không còn hợp lệ.";
+        return inner == null
+            ? new InvalidOperationException(message)
+            : new InvalidOperationException(message, inner);
     }
 
     // Lấy tất cả bộ thẻ thuộc về một người dùng
@@ -634,6 +716,211 @@ public class FlashcardSetService : IFlashcardSetService
             // 28. Phát sinh lại lỗi hiện tại để tầng gọi xử lý.
             throw;
         }
+    }
+
+    // Nhân bản bộ thẻ của chính owner bằng Prototype. Nội dung, cấu hình Review,
+    // trạng thái sao và ảnh được sao chép; tiến độ cùng lịch sử không được đụng tới.
+    public async Task<FlashcardSet> DuplicateOwnedSetAsync(
+        int sourceSetId,
+        string ownerId,
+        CancellationToken cancellationToken = default)
+    {
+        FlashcardSet? source = await _context.FlashcardSets
+            .AsNoTracking()
+            .Include(set => set.Flashcards.OrderBy(card => card.OrderIndex))
+            .SingleOrDefaultAsync(
+                set => set.Id == sourceSetId && set.UserId == ownerId,
+                cancellationToken);
+        if (source == null)
+        {
+            // Không phân biệt không tồn tại và không sở hữu để tránh dò ID bộ thẻ.
+            throw new KeyNotFoundException("Không tìm thấy bộ thẻ có thể nhân bản.");
+        }
+
+        if (source.ModerationStatus == FlashcardSetModerationStatus.Quarantined)
+        {
+            throw new InvalidOperationException(
+                "Không thể nhân bản bộ thẻ đang bị cách ly.");
+        }
+
+        ReviewSettings? sourceSettings = await _context.ReviewSettings
+            .AsNoTracking()
+            .SingleOrDefaultAsync(
+                settings => settings.UserId == ownerId
+                    && settings.FlashcardSetId == sourceSetId,
+                cancellationToken);
+
+        FlashcardSet duplicate = source.Clone();
+        duplicate.UserId = ownerId;
+        duplicate.IsPublic = false;
+        duplicate.SourceSetId = null;
+        duplicate.NewCardQuota = sourceSettings?.NewCardQuota ?? source.NewCardQuota;
+        duplicate.ReviewPaused = source.ReviewPaused;
+        duplicate.ModerationStatus = FlashcardSetModerationStatus.Active;
+        duplicate.ModerationPublicReason = null;
+        duplicate.ModerationInternalNote = null;
+        duplicate.ModerationEvidence = null;
+        duplicate.ModeratedByUserId = null;
+        duplicate.ModeratedAtUtc = null;
+        duplicate.ModerationVersion = 1;
+
+        List<Flashcard> sourceCards = source.Flashcards
+            .OrderBy(card => card.OrderIndex)
+            .ToList();
+        List<Flashcard> duplicateCards = duplicate.Flashcards
+            .OrderBy(card => card.OrderIndex)
+            .ToList();
+        if (sourceCards.Count != duplicateCards.Count)
+        {
+            throw new InvalidOperationException(
+                "Không thể nhân bản vì danh sách thẻ nguồn chưa được tải đầy đủ.");
+        }
+
+        List<string> createdImagePaths = new();
+        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction? transaction = null;
+        try
+        {
+            for (int index = 0; index < sourceCards.Count; index++)
+            {
+                Flashcard sourceCard = sourceCards[index];
+                Flashcard duplicateCard = duplicateCards[index];
+                duplicateCard.IsStarred = sourceCard.IsStarred;
+
+                if (!string.IsNullOrWhiteSpace(sourceCard.UploadedImagePath))
+                {
+                    string copiedPath = await CopyUploadedImageAsync(
+                        sourceCard.UploadedImagePath,
+                        cancellationToken);
+                    duplicateCard.UploadedImagePath = copiedPath;
+                    createdImagePaths.Add(copiedPath);
+                }
+            }
+
+            if (_context.Database.IsRelational())
+            {
+                // Serializable giữ việc chọn hậu tố tên và insert trong cùng một
+                // phạm vi, giảm khả năng hai request đồng thời lấy cùng số thứ tự.
+                transaction = await _context.Database.BeginTransactionAsync(
+                    IsolationLevel.Serializable,
+                    cancellationToken);
+            }
+
+            FlashcardSet? currentSource = await _context.FlashcardSets
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    set => set.Id == sourceSetId && set.UserId == ownerId,
+                    cancellationToken);
+            if (currentSource == null)
+            {
+                throw new KeyNotFoundException("Không tìm thấy bộ thẻ có thể nhân bản.");
+            }
+
+            if (currentSource.ModerationStatus == FlashcardSetModerationStatus.Quarantined)
+            {
+                throw new InvalidOperationException(
+                    "Không thể nhân bản bộ thẻ đang bị cách ly.");
+            }
+
+            duplicate.Title = await GenerateDuplicateTitleAsync(
+                source.Title,
+                ownerId,
+                cancellationToken);
+
+            ReviewSettings duplicateSettings = sourceSettings?.Clone()
+                ?? ReviewSettings.CreateDefault(ownerId, 0, duplicate.NewCardQuota);
+            duplicateSettings.UserId = ownerId;
+            duplicateSettings.FlashcardSet = duplicate;
+            duplicateSettings.FlashcardSetId = 0;
+
+            _context.FlashcardSets.Add(duplicate);
+            _context.ReviewSettings.Add(duplicateSettings);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            if (transaction != null)
+            {
+                await transaction.CommitAsync(cancellationToken);
+            }
+
+            return duplicate;
+        }
+        catch
+        {
+            try
+            {
+                if (transaction != null)
+                {
+                    await transaction.RollbackAsync(CancellationToken.None);
+                }
+            }
+            finally
+            {
+                // FileSystem không tham gia transaction database, vì vậy luôn
+                // dọn file đã tạo kể cả khi chính thao tác rollback gặp lỗi.
+                _context.ChangeTracker.Clear();
+                foreach (string path in createdImagePaths)
+                {
+                    DeleteUploadedImage(path);
+                }
+            }
+
+            throw;
+        }
+        finally
+        {
+            if (transaction != null)
+            {
+                await transaction.DisposeAsync();
+            }
+        }
+    }
+
+    private async Task<string> GenerateDuplicateTitleAsync(
+        string sourceTitle,
+        string ownerId,
+        CancellationToken cancellationToken)
+    {
+        HashSet<string> existingTitles = (await _context.FlashcardSets
+                .AsNoTracking()
+                .Where(set => set.UserId == ownerId)
+                .Select(set => set.Title)
+                .ToListAsync(cancellationToken))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        string root = DuplicateTitleRoot(sourceTitle);
+
+        for (int copyNumber = 1; ; copyNumber++)
+        {
+            string suffix = copyNumber == 1
+                ? " (Bản sao)"
+                : $" (Bản sao {copyNumber})";
+            int maximumRootLength = 200 - suffix.Length;
+            string safeRoot = root.Length <= maximumRootLength
+                ? root
+                : root[..maximumRootLength].TrimEnd();
+            string candidate = safeRoot + suffix;
+            if (!existingTitles.Contains(candidate))
+            {
+                return candidate;
+            }
+        }
+    }
+
+    // Khi nhân bản lại một bản sao, bỏ hậu tố cũ để tiếp tục chuỗi đánh số thay
+    // vì tạo tên dạng "Bản sao của bản sao".
+    private static string DuplicateTitleRoot(string title)
+    {
+        const string marker = " (Bản sao";
+        int markerIndex = title.LastIndexOf(marker, StringComparison.OrdinalIgnoreCase);
+        if (markerIndex < 0 || !title.EndsWith(')'))
+        {
+            return title;
+        }
+
+        string suffixBody = title[(markerIndex + marker.Length)..^1];
+        bool validSuffix = suffixBody.Length == 0
+            || (suffixBody.StartsWith(' ')
+                && int.TryParse(suffixBody[1..], out int number)
+                && number >= 2);
+        return validSuffix ? title[..markerIndex] : title;
     }
 
     // Tạo bộ thẻ mới

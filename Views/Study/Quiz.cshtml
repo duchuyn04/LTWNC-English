@@ -39,7 +39,7 @@
                       asp-route-setId="@Model.SetId"
                       asp-route-sessionId="@Model.SessionId"
                       method="post"
-                      onsubmit="return confirm('Làm lại từ đầu sẽ xóa các câu trả lời hiện tại.');">
+                      data-confirm="Làm lại từ đầu sẽ xóa các câu trả lời hiện tại.">
                     @Html.AntiForgeryToken()
                     <button type="submit" class="quiz-restart">Làm lại từ đầu</button>
                 </form>
@@ -65,7 +65,7 @@
 
         @if (TempData["Message"] is string message)
         {
-            <div class="quiz-alert" role="status" aria-live="polite">@message</div>
+            <div class="quiz-alert" data-popup="info">@message</div>
         }
 
         <div class="quiz-page-intro quiz-page-intro-question">

@@ -44,13 +44,13 @@
 
         @if (TempData["Success"] is string success)
         {
-            <div class="settings-alert settings-alert-success" role="status" aria-live="polite">
+            <div class="settings-alert settings-alert-success" data-popup="success">
                 <i class="ph ph-check-circle" aria-hidden="true"></i> @success
             </div>
         }
         @if (TempData["Error"] is string error)
         {
-            <div class="settings-alert settings-alert-error" role="alert">
+            <div class="settings-alert settings-alert-error" data-popup="error">
                 <i class="ph ph-warning-circle" aria-hidden="true"></i> @error
             </div>
         }

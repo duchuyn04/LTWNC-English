@@ -19,7 +19,7 @@
     <main class="quiz-result">
         @if (TempData["Message"] is string message && !string.IsNullOrWhiteSpace(message))
         {
-            <div class="quiz-alert" role="status" aria-live="polite">@message</div>
+            <div class="quiz-alert" data-popup="info">@message</div>
         }
 
         <header class="quiz-result-header">

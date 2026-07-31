@@ -79,4 +79,21 @@ public sealed class ReviewStateMachineTests
         Assert.Equal(1, good.LongTermIntervalDays);
         Assert.Equal(2, easy.LongTermIntervalDays);
     }
+
+    [Fact]
+    public void Rate_ConcreteStateChangesTheStateOwnedByContext()
+    {
+        ReviewStateMachine machine = new();
+
+        Assert.Equal(ReviewStage.New, machine.CurrentStage);
+
+        ReviewTransition transition = machine.Rate(
+            new ReviewSchedule(ReviewStage.Reviewing, FixedNow, 10),
+            ReviewRating.Again,
+            FixedNow,
+            maximumIntervalDays: 30);
+
+        Assert.Equal(ReviewStage.Relearning, transition.NextStage);
+        Assert.Equal(ReviewStage.Relearning, machine.CurrentStage);
+    }
 }

@@ -1,0 +1,196 @@
+.app-popup-stack {
+    position: fixed;
+    z-index: 1085;
+    bottom: 1.25rem;
+    right: 1.25rem;
+    display: grid;
+    width: min(420px, calc(100vw - 2rem));
+    gap: .75rem;
+    pointer-events: none;
+}
+
+.app-popup-stack .app-popup {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: .75rem;
+    margin: 0 !important;
+    padding: 1rem 3rem 1rem 1rem !important;
+    color: #252722;
+    border: 1px solid #d8d9d1;
+    border-left: 4px solid #777b70;
+    border-radius: 14px;
+    background: #fffef9;
+    box-shadow: 0 18px 50px rgba(28, 31, 25, .18);
+    font-family: "Be Vietnam Pro", sans-serif;
+    font-size: .9rem;
+    line-height: 1.55;
+    opacity: 0;
+    overflow: auto;
+    max-height: min(70vh, 560px);
+    pointer-events: auto;
+    transform: translateX(1rem);
+    transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.app-popup-stack .app-popup.is-visible {
+    opacity: 1;
+    transform: translateX(0);
+}
+
+.app-popup-stack .app-popup.is-leaving {
+    opacity: 0;
+    transform: translateX(1rem);
+}
+
+.app-popup-stack .app-popup--success {
+    border-left-color: #497253;
+    background: #f5fbf5;
+}
+
+.app-popup-stack .app-popup--error {
+    border-left-color: #a5403a;
+    background: #fff7f5;
+}
+
+.app-popup-stack .app-popup--info {
+    border-left-color: #55728a;
+    background: #f5f9fc;
+}
+
+.app-popup-stack .app-popup > i:first-child {
+    flex: 0 0 auto;
+    margin-top: .15rem;
+    font-size: 1.2rem;
+}
+
+.app-popup-stack .app-popup a,
+.app-popup-stack .app-popup button:not(.app-popup__close) {
+    color: inherit;
+    font-weight: 700;
+}
+
+.app-popup__close {
+    position: absolute;
+    top: .65rem;
+    right: .7rem;
+    display: grid;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    place-items: center;
+    color: #55584f;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    font: inherit;
+    font-size: 1.25rem;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.app-popup__close:hover,
+.app-popup__close:focus-visible {
+    color: #20221e;
+    background: rgba(35, 38, 32, .08);
+    outline: none;
+}
+
+@media (max-width: 640px) {
+    .app-popup-stack {
+        bottom: .75rem;
+        right: .75rem;
+        left: .75rem;
+        width: auto;
+    }
+
+    .app-popup-stack .app-popup {
+        max-height: 60vh;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-popup-stack .app-popup {
+        transition: none;
+    }
+}
+
+.app-confirm-backdrop {
+    position: fixed;
+    z-index: 1090;
+    inset: 0;
+    display: grid;
+    padding: 1rem;
+    place-items: center;
+    background: rgba(20, 22, 19, .58);
+    backdrop-filter: blur(5px);
+}
+
+.app-confirm {
+    width: min(460px, 100%);
+    padding: 1.4rem;
+    color: #252722;
+    border: 1px solid #d7d8d0;
+    border-radius: 18px;
+    background: #fffef9;
+    box-shadow: 0 28px 80px rgba(15, 17, 14, .32);
+    font-family: "Be Vietnam Pro", sans-serif;
+}
+
+.app-confirm__mark {
+    display: grid;
+    width: 2.75rem;
+    height: 2.75rem;
+    margin-bottom: 1rem;
+    place-items: center;
+    color: #8b3e38;
+    border-radius: 50%;
+    background: #f7e8e5;
+    font-size: 1.3rem;
+    font-weight: 800;
+}
+
+.app-confirm h2 {
+    margin: 0 0 .45rem;
+    font-size: 1.2rem;
+    font-weight: 750;
+}
+
+.app-confirm p {
+    margin: 0;
+    color: #66695f;
+    line-height: 1.65;
+}
+
+.app-confirm__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: .65rem;
+    margin-top: 1.4rem;
+}
+
+.app-confirm__actions button {
+    min-height: 2.7rem;
+    padding: .65rem 1rem;
+    border-radius: 10px;
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.app-confirm__cancel {
+    color: #40423c;
+    border: 1px solid #d2d4cc;
+    background: #fff;
+}
+
+.app-confirm__accept {
+    color: #fff;
+    border: 1px solid #303a31;
+    background: #303a31;
+}
+
+.app-confirm__actions button:focus-visible {
+    outline: 3px solid rgba(76, 111, 85, .28);
+    outline-offset: 2px;
+}

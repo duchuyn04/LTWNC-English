@@ -54,6 +54,19 @@
                 <a href="/Set/@Model.Id/Edit" class="btn-secondary-custom">
                     <i class="ph ph-pencil"></i> Quản lý
                 </a>
+                @if (!Model.IsQuarantined)
+                {
+                    <form asp-action="Duplicate"
+                          asp-route-id="@Model.Id"
+                          method="post"
+                          class="d-inline"
+                          data-confirm="Tạo một bản sao riêng tư và độc lập của bộ thẻ này?">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" class="btn-secondary-custom">
+                            <i class="ph ph-copy"></i> Nhân bản
+                        </button>
+                    </form>
+                }
                 <a href="/Study/@Model.Id/Flashcard" class="btn-primary-custom">
                     <i class="ph ph-play-circle"></i> Bắt đầu học
                 </a>
@@ -85,14 +98,24 @@
         </div>
     </div>
 
+    @if (TempData["Success"] is string success)
+    {
+        <div class="set-report-alert set-report-alert--success" data-popup="success">@success</div>
+    }
+
+    @if (TempData["DuplicateError"] is string duplicateError)
+    {
+        <div class="set-report-alert set-report-alert--danger" data-popup="error">@duplicateError</div>
+    }
+
     @if (TempData["ContentReportSuccess"] is string reportSuccess)
     {
-        <div class="set-report-alert set-report-alert--success" role="status">@reportSuccess</div>
+        <div class="set-report-alert set-report-alert--success" data-popup="success">@reportSuccess</div>
     }
 
     @if (TempData["ContentReportError"] is string reportError)
     {
-        <div class="set-report-alert set-report-alert--danger" role="alert">@reportError</div>
+        <div class="set-report-alert set-report-alert--danger" data-popup="error">@reportError</div>
     }
 
     @if (Model.CanReport)
