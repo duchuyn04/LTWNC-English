@@ -158,6 +158,7 @@ builder.Services.AddScoped<IStudyModeStrategy, FlashcardModeStrategy>();
 builder.Services.AddScoped<IStudyModeStrategy, DictationModeStrategy>();
 builder.Services.AddScoped<IStudyModeStrategy, QuizModeStrategy>();
 builder.Services.AddScoped<IStudyModeStrategy, EnglishMissionModeStrategy>();
+builder.Services.AddScoped<IStudyModeStrategy, ReviewModeStrategy>();
 builder.Services.AddScoped<IQuizService, QuizService>();
 
 // ============================================================
@@ -301,5 +302,3 @@ app.MapControllerRoute(
     .WithStaticAssets();
 
 app.Run();
-
-public partial class Program { }

@@ -94,7 +94,6 @@ public class FlashcardSetController : Controller
             model.Title = set.Title;
             model.Description = set.Description;
             model.IsPublic = set.IsPublic;
-            model.NewCardQuota = set.NewCardQuota;
             model.ReviewPaused = set.ReviewPaused;
             model.IsQuarantined = set.ModerationStatus == FlashcardSetModerationStatus.Quarantined;
             model.ModerationPublicReason = set.ModerationPublicReason;
@@ -338,7 +337,7 @@ public class FlashcardSetController : Controller
                 model.Description,
                 model.IsPublic,
                 userId,
-                model.NewCardQuota,
+                null,
                 model.ReviewPaused);
             TempData["Success"] = "Đã lưu thay đổi bộ thẻ.";
             return RedirectToAction("Edit", new { id });
@@ -727,7 +726,6 @@ public class FlashcardSetController : Controller
             Title = postedSet?.Title ?? set.Title,
             Description = postedSet?.Description ?? set.Description,
             IsPublic = postedSet?.IsPublic ?? set.IsPublic,
-            NewCardQuota = postedSet?.NewCardQuota ?? set.NewCardQuota,
             ReviewPaused = postedSet?.ReviewPaused ?? set.ReviewPaused,
             Cards = FlashcardViewModelMapper.FromEntities(set.Flashcards)
         };

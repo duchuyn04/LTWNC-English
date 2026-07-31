@@ -55,6 +55,13 @@ public class ReviewSession
     [Required]
     public string UserId { get; set; } = string.Empty;
 
+    // Null chỉ dành cho các phiên cũ được tạo trước khi Review hoạt động theo bộ.
+    public int? FlashcardSetId { get; set; }
+
+    // Bản chụp JSON của ReviewSettings tại lúc bắt đầu. Phiên đang chạy luôn
+    // đọc bản chụp này, vì vậy thay đổi quick settings chỉ áp dụng lượt sau.
+    public string? SettingsSnapshotJson { get; set; }
+
     public DateTimeOffset StartedAtUtc { get; set; }
 
     public DateTimeOffset? CompletedAtUtc { get; set; }

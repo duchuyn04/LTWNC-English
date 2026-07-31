@@ -1,3 +1,4 @@
+@model ReviewSetViewModel
 @{
     ViewData["Title"] = "Ôn tập đến hạn";
     ViewData["HideLayoutChrome"] = true;
@@ -16,26 +17,45 @@
                 <span>Quay lại bộ thẻ</span>
             </a>
             <span class="review-focus__brand">Ôn tập ngắt quãng</span>
-            <span class="review-focus__status">
-                <span class="review-focus__status-dot" aria-hidden="true"></span>
-                Sẵn sàng
-            </span>
+            @await Html.PartialAsync("_SettingsPanel", new ReviewSettingsPanelViewModel
+            {
+                SetId = Model.SetId,
+                Settings = Model.Settings
+            })
         </header>
 
         <section class="review-focus__intro" aria-labelledby="review-intro-title">
             <div>
-                <p class="review-focus__eyebrow">Spaced review · Focus Deck</p>
+                <p class="review-focus__eyebrow">@Model.SetTitle · Focus Deck</p>
                 <h1 class="review-focus__intro-title" id="review-intro-title">Ôn lại trước khi quên.</h1>
                 <p class="review-focus__intro-lede">
                     Một lượt ôn ngắn, tập trung vào những thẻ đã đến hạn trước rồi mới thêm thẻ mới khi còn chỗ.
                 </p>
             </div>
             <div class="review-focus__intro-card">
-                <span class="review-focus__intro-card-icon" aria-hidden="true">
-                    <i class="ph ph-clock-countdown"></i>
-                </span>
-                <strong>Nhịp ôn của bạn</strong>
-                <p>Đánh giá mức nhớ sau khi hiện đáp án để hệ thống tự lập lịch cho lần gặp lại tiếp theo.</p>
+                <div class="review-focus__intro-card-heading">
+                    <span class="review-focus__intro-card-icon" aria-hidden="true">
+                        <i class="ph ph-timer"></i>
+                    </span>
+                    <div>
+                        <strong>Nhịp ôn của bạn</strong>
+                        <p>Phiên tiếp theo</p>
+                    </div>
+                </div>
+                <dl class="review-focus__intro-stats">
+                    <div>
+                        <dt>Đến hạn</dt>
+                        <dd>@Model.DueCards</dd>
+                    </div>
+                    <div>
+                        <dt>Thẻ mới</dt>
+                        <dd>@Model.NewCards</dd>
+                    </div>
+                    <div>
+                        <dt>Tối đa</dt>
+                        <dd>@Model.Settings.ReviewSessionSize</dd>
+                    </div>
+                </dl>
             </div>
         </section>
 
@@ -47,12 +67,12 @@
         <section class="review-focus__start-card" aria-labelledby="review-start-title">
             <div>
                 <h2 id="review-start-title">Bắt đầu lượt ôn</h2>
-                <p>Thẻ đến hạn được ưu tiên trước, sau đó thêm thẻ mới theo giới hạn của từng bộ thẻ.</p>
+                <p>Thẻ đến hạn được ưu tiên trước, sau đó thêm tối đa @Model.Settings.NewCardQuota thẻ mới của riêng bộ này trong ngày.</p>
             </div>
             <div class="review-focus__start-card-actions">
-                <form method="post" action="/Review/Start">
+                <form method="post" action="/Review/Set/@Model.SetId/Start">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="review-focus__primary">
+                    <button type="submit" class="review-focus__primary" disabled="@Model.IsPaused">
                         <span>Bắt đầu ôn tập</span>
                         <i class="ph ph-arrow-right" aria-hidden="true"></i>
                     </button>

@@ -23,7 +23,6 @@
     const setTitleInput = document.getElementById('set-title');
     const setDescriptionInput = document.getElementById('set-description');
     const setIsPublicInput = document.getElementById('set-is-public');
-    const setNewCardQuotaInput = document.getElementById('set-new-card-quota');
     const setReviewPausedInput = document.getElementById('set-review-paused');
     const saveStatus = document.getElementById('save-status');
     const cardCountLabel = document.getElementById('card-count');
@@ -164,23 +163,16 @@
     }
 
     function getSetMetadata() {
-        const quotaText = setNewCardQuotaInput.value.trim();
         return {
             title: setTitleInput.value.trim(),
             description: setDescriptionInput.value.trim(),
             isPublic: setIsPublicInput.checked,
-            newCardQuota: quotaText === '' ? null : Number(quotaText),
             reviewPaused: setReviewPausedInput.checked
         };
     }
 
     function validateSetMetadata(metadata) {
         if (!metadata.title) return 'Tên bộ từ không được để trống.';
-        if (!Number.isInteger(metadata.newCardQuota)
-            || metadata.newCardQuota < 0
-            || metadata.newCardQuota > 20) {
-            return 'Hạn mức thẻ mới phải là số nguyên từ 0 đến 20.';
-        }
         return '';
     }
 
@@ -241,7 +233,6 @@
                 editor.dataset.setId = set.id;
                 editor.dataset.description = metadata.description;
                 editor.dataset.isPublic = metadata.isPublic.toString();
-                editor.dataset.newCardQuota = metadata.newCardQuota.toString();
                 editor.dataset.reviewPaused = metadata.reviewPaused.toString();
                 history.replaceState(null, '', `/flashcardset/editor/${set.id}`);
                 return set.id;
@@ -288,7 +279,6 @@
 
             editor.dataset.description = metadata.description;
             editor.dataset.isPublic = metadata.isPublic.toString();
-            editor.dataset.newCardQuota = metadata.newCardQuota.toString();
             editor.dataset.reviewPaused = metadata.reviewPaused.toString();
             if (revision === metadataRevision) {
                 isMetadataDirty = false;
@@ -613,8 +603,6 @@
         markMetadataDirty();
         saveSetMetadata();
     });
-    setNewCardQuotaInput.addEventListener('input', markMetadataDirty);
-    setNewCardQuotaInput.addEventListener('blur', saveSetMetadata);
     setReviewPausedInput.addEventListener('change', () => {
         markMetadataDirty();
         saveSetMetadata();

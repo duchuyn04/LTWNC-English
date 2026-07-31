@@ -50,8 +50,6 @@
             </div>
         }
 
-        @await Html.PartialAsync("_StudyModeNavigation", Model)
-
         <div class="study-focus-column">
             <div class="progress-strip">
                 <span class="progress-label">Tiến độ</span>
@@ -160,7 +158,10 @@
         </p>
         </div>
 
-        <section class="study-vocabulary-section" aria-labelledby="study-vocabulary-title">
+        <aside class="study-sidebar" aria-label="Công cụ học tập">
+            @await Html.PartialAsync("_StudyModeNavigation", Model)
+
+            <section class="study-vocabulary-section" aria-labelledby="study-vocabulary-title">
             <header class="study-vocabulary-header">
                 <div>
                     <h2 id="study-vocabulary-title">Danh sách từ</h2>
@@ -174,15 +175,12 @@
                         <option value="learning">Đang học trước</option>
                         <option value="mastered">Đã thành thạo trước</option>
                     </select>
-                    <a class="vocab-edit-link" href="/Set/@Model.SetId/Edit">
-                        <i class="ph ph-pencil-simple" aria-hidden="true"></i>
-                        <span>Chỉnh sửa</span>
-                    </a>
                 </div>
             </header>
 
             <div id="vocab-list" class="vocab-list"></div>
-        </section>
+            </section>
+        </aside>
     </section>
 
     <aside id="study-settings-drawer" class="study-settings-drawer" role="dialog" aria-modal="true" aria-labelledby="settings-title" hidden>
@@ -205,23 +203,6 @@
                 <div class="settings-options settings-options-compact">
                     <label class="settings-option"><span>Chỉ thẻ đánh dấu sao</span><input type="checkbox" data-setting="StarredOnly"></label>
                     <label class="settings-option"><span>Chỉ thẻ chưa thuộc</span><input type="checkbox" data-setting="UnlearnedOnly"></label>
-                </div>
-            </section>
-
-            <section class="settings-section" aria-labelledby="settings-review-title">
-                <div class="settings-section-heading">
-                    <h3 id="settings-review-title">Ôn tập đến hạn</h3>
-                    <p>Áp dụng cho toàn bộ Thư viện cá nhân</p>
-                </div>
-                <div class="settings-options settings-options-compact">
-                    <label class="settings-option" for="review-session-size">
-                        <span>Số thẻ mỗi lượt (5–100)</span>
-                        <input id="review-session-size" type="number" min="5" max="100" step="1" data-setting="ReviewSessionSize">
-                    </label>
-                    <label class="settings-option" for="review-max-interval-days">
-                        <span>Khoảng ôn tối đa (30–365 ngày)</span>
-                        <input id="review-max-interval-days" type="number" min="30" max="365" step="1" data-setting="ReviewMaxIntervalDays">
-                    </label>
                 </div>
             </section>
 

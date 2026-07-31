@@ -36,8 +36,22 @@ public sealed class ReviewController : Controller
 
         ReviewSessionViewModel? active = await _reviewService.GetActiveSessionAsync(userId);
         return active == null
-            ? View()
+            ? Redirect("/Set")
             : RedirectToAction(nameof(Session), new { sessionId = active.SessionId });
+    }
+
+    [HttpGet]
+    [Route("/Review/Set/{setId:int}")]
+    public async Task<IActionResult> Set(int setId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Challenge();
+        }
+
+        ReviewSetViewModel? set = await _reviewService.GetSetAsync(userId, setId);
+        return set == null ? NotFound() : View("Index", set);
     }
 
     [HttpPost]
@@ -51,11 +65,34 @@ public sealed class ReviewController : Controller
             return Unauthorized();
         }
 
-        ReviewSessionViewModel? session = await _reviewService.StartAsync(userId);
+        TempData["Message"] = "Hãy chọn một bộ thẻ để bắt đầu Review.";
+        return Redirect("/Set");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [Route("/Review/Set/{setId:int}/Start")]
+    public async Task<IActionResult> Start(int setId)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null)
+        {
+            return Unauthorized();
+        }
+
+        ReviewSetViewModel? set = await _reviewService.GetSetAsync(userId, setId);
+        if (set == null)
+        {
+            return NotFound();
+        }
+
+        ReviewSessionViewModel? session = await _reviewService.StartAsync(userId, setId);
         if (session == null)
         {
-            TempData["Message"] = "Chưa có thẻ mới phù hợp để bắt đầu ôn tập.";
-            return RedirectToAction(nameof(Index));
+            TempData["Message"] = set.IsPaused
+                ? "Bộ thẻ đang tạm dừng Review."
+                : "Chưa có thẻ phù hợp để bắt đầu ôn tập.";
+            return RedirectToAction(nameof(Set), new { setId });
         }
 
         return RedirectToAction(nameof(Session), new { sessionId = session.SessionId });

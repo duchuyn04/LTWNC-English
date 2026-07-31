@@ -8,7 +8,6 @@ public class EditorViewModel
     public string Title { get; set; } = string.Empty;
     public string? Description { get; set; }
     public bool IsPublic { get; set; }
-    public int NewCardQuota { get; set; } = ReviewSettingsPolicy.DefaultNewCardQuota;
     public bool ReviewPaused { get; set; }
     public bool IsQuarantined { get; set; }
     public string? ModerationPublicReason { get; set; }

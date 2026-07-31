@@ -1,8 +1,8 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Review;
-using ltwnc.Models.ViewModels.Study;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace ltwnc.Services.Review;
 
@@ -180,6 +180,158 @@ public sealed class ReviewService : IReviewService
         return await GetSessionAsync(session.Id, userId);
     }
 
+    public async Task<ReviewSetViewModel?> GetSetAsync(string userId, int setId)
+    {
+        FlashcardSet? set = await _context.FlashcardSets
+            .AsNoTracking()
+            .SingleOrDefaultAsync(value => value.Id == setId && value.UserId == userId);
+        if (set == null)
+        {
+            return null;
+        }
+
+        ReviewSettingsViewModel settings = await GetOrCreateSetSettingsAsync(userId, set.Id);
+        DateTimeOffset now = _timeProvider.GetUtcNow();
+        List<int> cardIds = await _context.Flashcards
+            .Where(value => value.FlashcardSetId == set.Id)
+            .Select(value => value.Id)
+            .ToListAsync();
+        Dictionary<int, ReviewProgress> progress = await _context.ReviewProgresses
+            .AsNoTracking()
+            .Where(value => value.UserId == userId && cardIds.Contains(value.FlashcardId))
+            .ToDictionaryAsync(value => value.FlashcardId);
+
+        return new ReviewSetViewModel
+        {
+            SetId = set.Id,
+            SetTitle = set.Title,
+            TotalCards = cardIds.Count,
+            DueCards = cardIds.Count(id => progress.TryGetValue(id, out ReviewProgress? item)
+                && item.NextReviewAtUtc != null
+                && item.NextReviewAtUtc <= now),
+            NewCards = cardIds.Count(id => !progress.ContainsKey(id)),
+            IsPaused = set.ReviewPaused,
+            Settings = settings
+        };
+    }
+
+    public async Task<ReviewSessionViewModel?> StartAsync(string userId, int setId)
+    {
+        ReviewSessionViewModel? active = await GetActiveSessionAsync(userId);
+        if (active != null)
+        {
+            return active;
+        }
+
+        FlashcardSet? set = await _context.FlashcardSets
+            .AsNoTracking()
+            .SingleOrDefaultAsync(value => value.Id == setId && value.UserId == userId);
+        if (set == null || set.ReviewPaused)
+        {
+            return null;
+        }
+
+        ReviewSettingsViewModel settings = await GetOrCreateSetSettingsAsync(userId, set.Id);
+        int batchSize = ReviewSettingsPolicy.ValidateSessionSize(settings.ReviewSessionSize);
+        int newCardQuota = ReviewSettingsPolicy.ValidateNewCardQuota(settings.NewCardQuota);
+        DateTimeOffset now = _timeProvider.GetUtcNow();
+        DateTime reviewDate = GetVietnamDate(now);
+        List<Flashcard> cards = await _context.Flashcards
+            .Include(value => value.FlashcardSet)
+            .Where(value => value.FlashcardSetId == set.Id)
+            .OrderBy(value => value.OrderIndex)
+            .ThenBy(value => value.Id)
+            .ToListAsync();
+        if (cards.Count == 0)
+        {
+            return null;
+        }
+
+        List<int> cardIds = cards.Select(value => value.Id).ToList();
+        Dictionary<int, ReviewProgress> progressByCardId = await _context.ReviewProgresses
+            .Where(value => value.UserId == userId && cardIds.Contains(value.FlashcardId))
+            .ToDictionaryAsync(value => value.FlashcardId);
+        List<Flashcard> dueCards = cards
+            .Where(card => progressByCardId.TryGetValue(card.Id, out ReviewProgress? progress)
+                && progress.NextReviewAtUtc != null
+                && progress.NextReviewAtUtc <= now)
+            .OrderBy(card => progressByCardId[card.Id].NextReviewAtUtc)
+            .ThenBy(card => card.OrderIndex)
+            .ThenBy(card => card.Id)
+            .Take(batchSize)
+            .ToList();
+
+        int usedNewCardQuota = await _context.ReviewSessionItems
+            .Where(item => item.IsNewCardAtAssignment
+                && cardIds.Contains(item.FlashcardId)
+                && item.ReviewSession != null
+                && item.ReviewSession.UserId == userId
+                && item.NewCardAssignedDate == reviewDate)
+            .Select(item => item.FlashcardId)
+            .Distinct()
+            .CountAsync();
+        int newCardSlots = Math.Min(
+            Math.Max(0, batchSize - dueCards.Count),
+            Math.Max(0, newCardQuota - usedNewCardQuota));
+        List<Flashcard> newCards = cards
+            .Where(card => !progressByCardId.ContainsKey(card.Id))
+            .OrderBy(card => card.OrderIndex)
+            .ThenBy(card => card.Id)
+            .Take(newCardSlots)
+            .ToList();
+        List<Flashcard> assignedCards = dueCards.Concat(newCards).ToList();
+        if (assignedCards.Count == 0)
+        {
+            return null;
+        }
+
+        ReviewSession session = new()
+        {
+            UserId = userId,
+            FlashcardSetId = set.Id,
+            SettingsSnapshotJson = JsonSerializer.Serialize(settings),
+            StartedAtUtc = now,
+            Items = assignedCards.Select((card, index) =>
+            {
+                ReviewProgress? progress = progressByCardId.GetValueOrDefault(card.Id);
+                ReviewStage stage = progress?.Stage ?? ReviewStage.New;
+                return new ReviewSessionItem
+                {
+                    FlashcardId = card.Id,
+                    Flashcard = card,
+                    OrderIndex = index,
+                    IsNewCardAtAssignment = progress == null,
+                    NewCardAssignedDate = progress == null ? reviewDate : null,
+                    PreviousStage = stage,
+                    NextStage = stage,
+                    PreviousNextReviewAtUtc = progress?.NextReviewAtUtc,
+                    NextReviewAtUtc = progress?.NextReviewAtUtc,
+                    PreviousLongTermIntervalDays = progress?.LongTermIntervalDays ?? 0,
+                    NextLongTermIntervalDays = progress?.LongTermIntervalDays ?? 0
+                };
+            }).ToList()
+        };
+
+        _context.ReviewSessions.Add(session);
+        try
+        {
+            await _context.SaveChangesAsync();
+        }
+        catch (DbUpdateException)
+        {
+            _context.ChangeTracker.Clear();
+            ReviewSessionViewModel? activeAfterRace = await GetActiveSessionAsync(userId);
+            if (activeAfterRace != null)
+            {
+                return activeAfterRace;
+            }
+
+            throw;
+        }
+
+        return await GetSessionAsync(session.Id, userId);
+    }
+
     public async Task<ReviewSessionViewModel?> GetSessionAsync(int sessionId, string userId)
     {
         ReviewSession? session = await QuerySessions()
@@ -241,7 +393,7 @@ public sealed class ReviewService : IReviewService
                 progress.NextReviewAtUtc,
                 progress.LongTermIntervalDays);
         DateTimeOffset now = _timeProvider.GetUtcNow();
-        UserStudySettings settings = await GetSettingsAsync(userId);
+        ReviewSettingsViewModel settings = await GetSessionSettingsAsync(session);
         int maximumIntervalDays = ReviewSettingsPolicy.ValidateMaxIntervalDays(settings.ReviewMaxIntervalDays);
         ReviewTransition transition = _stateMachine.Rate(current, rating, now, maximumIntervalDays);
 
@@ -340,7 +492,7 @@ public sealed class ReviewService : IReviewService
         Dictionary<int, ReviewProgress> progressByCardId = await _context.ReviewProgresses
             .Where(value => value.UserId == session.UserId && cardIds.Contains(value.FlashcardId))
             .ToDictionaryAsync(value => value.FlashcardId);
-        UserStudySettings settings = await GetSettingsAsync(session.UserId);
+        ReviewSettingsViewModel settings = await GetSessionSettingsAsync(session);
         int maximumIntervalDays = ReviewSettingsPolicy.ValidateMaxIntervalDays(settings.ReviewMaxIntervalDays);
 
         List<ReviewCardViewModel> cards = session.Items
@@ -377,11 +529,13 @@ public sealed class ReviewService : IReviewService
         return new ReviewSessionViewModel
         {
             SessionId = session.Id,
+            SetId = session.FlashcardSetId,
+            SetTitle = cards.FirstOrDefault()?.SetTitle ?? string.Empty,
             TotalCards = cards.Count,
             RatedCards = cards.Count(card => card.IsRated),
             IsCompleted = session.CompletedAtUtc != null,
             IsEnded = session.EndedAtUtc != null,
-            Settings = StudySettingsMapper.ToViewModel(settings),
+            Settings = settings,
             Cards = cards
         };
     }
@@ -433,6 +587,58 @@ public sealed class ReviewService : IReviewService
             .AsNoTracking()
             .SingleOrDefaultAsync(value => value.UserId == userId)
             ?? new UserStudySettings { UserId = userId };
+    }
+
+    private async Task<ReviewSettingsViewModel> GetOrCreateSetSettingsAsync(string userId, int setId)
+    {
+        ReviewSettings? settings = await _context.ReviewSettings
+            .SingleOrDefaultAsync(value => value.UserId == userId && value.FlashcardSetId == setId);
+        if (settings == null)
+        {
+            settings = ReviewSettings.CreateDefault(
+                userId,
+                setId,
+                ReviewSettingsPolicy.DefaultNewCardQuota);
+            _context.ReviewSettings.Add(settings);
+            await _context.SaveChangesAsync();
+        }
+
+        return ReviewSettingsMapper.ToViewModel(settings);
+    }
+
+    private async Task<ReviewSettingsViewModel> GetSessionSettingsAsync(ReviewSession session)
+    {
+        if (!string.IsNullOrWhiteSpace(session.SettingsSnapshotJson))
+        {
+            ReviewSettingsViewModel? snapshot = JsonSerializer.Deserialize<ReviewSettingsViewModel>(
+                session.SettingsSnapshotJson);
+            if (snapshot != null)
+            {
+                return snapshot;
+            }
+        }
+
+        // Tương thích cho phiên cũ chưa có snapshot; phiên mới không đi qua nhánh này.
+        UserStudySettings legacy = await GetSettingsAsync(session.UserId);
+        return new ReviewSettingsViewModel
+        {
+            ReviewSessionSize = legacy.ReviewSessionSize,
+            ReviewMaxIntervalDays = legacy.ReviewMaxIntervalDays,
+            ShowFrontTerm = legacy.ShowFrontTerm,
+            ShowFrontDefinition = legacy.ShowFrontDefinition,
+            ShowFrontIpa = legacy.ShowFrontIpa,
+            ShowFrontImage = legacy.ShowFrontImage,
+            ShowBackTerm = legacy.ShowBackTerm,
+            ShowBackDefinition = legacy.ShowBackDefinition,
+            ShowBackIpa = legacy.ShowBackIpa,
+            ShowBackExample = legacy.ShowBackExample,
+            ShowBackImage = legacy.ShowBackImage,
+            HideImage = legacy.HideImage,
+            BlurImage = legacy.BlurImage,
+            LargeImage = legacy.LargeImage,
+            PronounceFront = legacy.PronounceFront,
+            PronounceBack = legacy.PronounceBack
+        };
     }
 
     private List<ReviewRatingPreviewViewModel> BuildRatingPreviews(

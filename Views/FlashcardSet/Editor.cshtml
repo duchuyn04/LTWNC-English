@@ -13,7 +13,6 @@
      data-is-new="@(Model.Id.HasValue ? "false" : "true")"
      data-description="@(Model.Description ?? "")"
      data-is-public="@Model.IsPublic.ToString().ToLowerInvariant()"
-     data-new-card-quota="@Model.NewCardQuota"
      data-review-paused="@Model.ReviewPaused.ToString().ToLowerInvariant()"
      data-is-quarantined="@Model.IsQuarantined.ToString().ToLowerInvariant()">
     @Html.AntiForgeryToken()
@@ -56,17 +55,6 @@
                             <small>Mọi người có thể tìm và sao chép bộ thẻ này.</small>
                         </span>
                     </label>
-
-                    <label for="set-new-card-quota">Thẻ mới mỗi ngày</label>
-                    <input id="set-new-card-quota"
-                           class="form-control"
-                           type="number"
-                           min="0"
-                           max="20"
-                           step="1"
-                           value="@Model.NewCardQuota"
-                           aria-describedby="set-new-card-quota-help" />
-                    <small id="set-new-card-quota-help">Từ 0 đến 20. Hạn mức tính theo ngày Việt Nam; thẻ đến hạn vẫn được ưu tiên.</small>
 
                     <label class="checkbox-label" for="set-review-paused">
                         <input type="checkbox" id="set-review-paused" @(Model.ReviewPaused ? "checked" : "") />

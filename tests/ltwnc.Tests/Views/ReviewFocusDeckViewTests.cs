@@ -48,7 +48,7 @@ public sealed class ReviewFocusDeckViewTests
             Assert.Contains("review-focus", view);
         }
 
-        Assert.Contains("action=\"/Review/Start\"", index);
+        Assert.Contains("action=\"/Review/Set/@Model.SetId/Start\"", index);
         Assert.Contains("@Html.AntiForgeryToken()", index);
         Assert.Contains("TempData[\"Message\"]", index);
         Assert.Contains("role=\"status\"", index);
@@ -62,6 +62,7 @@ public sealed class ReviewFocusDeckViewTests
         string view = Read("Views/Review/Session.cshtml");
 
         Assert.Contains("action=\"/Review/@Model.SessionId/End\"", view);
+        Assert.Contains("return confirm('Kết thúc sớm lượt ôn?')", view);
         Assert.Contains("action=\"/Review/@Model.SessionId/Rate\"", view);
         Assert.Contains("@Html.AntiForgeryToken()", view);
         Assert.Contains("name=\"flashcardId\"", view);

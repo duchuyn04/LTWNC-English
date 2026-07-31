@@ -41,7 +41,7 @@ body {
 .study-shell {
     min-height: 100dvh;
     margin: -3rem calc(50% - 50vw);
-    padding: var(--fc-space-md) var(--fc-space-md) calc(7.5rem + env(safe-area-inset-bottom));
+    padding: var(--fc-space-md) var(--fc-space-md) calc(var(--fc-space-xl) + env(safe-area-inset-bottom));
     background: var(--fc-paper);
     color: var(--fc-ink);
     font-family: var(--font-body);
@@ -56,9 +56,13 @@ body {
     grid-template-areas:
         "header"
         "status"
-        "modes"
         "focus"
+        "modes"
         "vocabulary";
+}
+
+.study-sidebar {
+    display: contents;
 }
 
 .study-page-header {
@@ -207,7 +211,7 @@ body {
 .study-mode-navigation-item {
     display: grid;
     min-width: 0;
-    min-height: 58px;
+    min-height: 52px;
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: var(--fc-space-xs);
@@ -258,6 +262,27 @@ body {
 
 .study-mode-navigation-item.is-disabled > i:last-child {
     justify-self: end;
+}
+
+/* Ô mode lẻ cuối (hiện là Review) tràn full-width để grid 2 cột không bỏ trống nửa hàng. */
+.study-mode-navigation-item:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+    border-color: var(--fc-accent);
+    background: var(--fc-accent-soft);
+}
+
+.study-mode-navigation-item:last-child:nth-child(odd):hover:not(.is-disabled):not(.is-active) {
+    border-color: var(--fc-accent-deep);
+}
+
+/* Ô full-width có chỗ nên hiện mô tả + mũi dẫn để trông có chủ đích, không lẻ loi. */
+.study-mode-navigation-item:last-child:nth-child(odd) .study-mode-navigation-copy small {
+    display: block;
+    color: var(--fc-accent-deep);
+}
+
+.study-mode-navigation-item:last-child:nth-child(odd) .study-mode-navigation-copy strong {
+    font-size: 0.82rem;
 }
 
 /* Main studio pane: progress, card, shortcuts, persistent controls. */
@@ -323,7 +348,7 @@ body {
 
 .flashcard-frame {
     min-width: 0;
-    height: clamp(21rem, 58svh, 34rem);
+    height: clamp(21rem, 56svh, 33rem);
     perspective: 1000px;
     cursor: pointer;
 }
@@ -522,13 +547,10 @@ body {
 }
 
 .control-bar {
-    position: fixed;
-    left: 50%;
-    bottom: max(0.75rem, env(safe-area-inset-bottom));
-    z-index: var(--fc-z-sticky);
+    position: static;
     grid-area: controls;
     display: grid;
-    width: min(calc(100% - 1.5rem), 46rem);
+    width: 100%;
     min-width: 0;
     grid-template-columns: auto auto minmax(0, 1fr) auto;
     align-items: center;
@@ -538,7 +560,6 @@ body {
     padding: var(--fc-space-xs);
     background: var(--fc-surface);
     box-shadow: var(--fc-shadow-raised);
-    transform: translateX(-50%);
 }
 
 .control-progress {
@@ -1331,14 +1352,30 @@ body.settings-open {
 
     .study-stage {
         height: calc(100dvh - 2rem);
-        grid-template-columns: minmax(0, 1fr) minmax(20rem, 28rem);
+        grid-template-columns: minmax(0, 1fr) minmax(21rem, 27rem);
         grid-template-rows: auto auto minmax(0, 1fr);
         grid-template-areas:
-            "header modes"
-            "status modes"
-            "focus vocabulary";
+            "header sidebar"
+            "status sidebar"
+            "focus sidebar";
         column-gap: clamp(1.5rem, 3vw, 3rem);
-        row-gap: var(--fc-space-md);
+        row-gap: var(--fc-space-sm);
+    }
+
+    .study-sidebar {
+        grid-area: sidebar;
+        display: grid;
+        min-width: 0;
+        min-height: 0;
+        grid-template-rows: auto minmax(0, 1fr);
+        gap: var(--fc-space-md);
+        border-left: 1px solid var(--fc-line);
+        padding-left: var(--fc-space-lg);
+    }
+
+    .study-sidebar > .study-mode-navigation,
+    .study-sidebar > .study-vocabulary-section {
+        grid-area: auto;
     }
 
     .study-page-header {
@@ -1367,26 +1404,33 @@ body.settings-open {
 
     .study-mode-navigation {
         align-self: start;
-        border-left: 1px solid var(--fc-line);
-        padding-left: var(--fc-space-lg);
+    }
+
+    .study-mode-navigation-bar {
+        gap: 0.4rem;
+    }
+
+    .study-mode-navigation-item {
+        min-height: 48px;
+        padding: 0.65rem 0.75rem;
     }
 
     .study-focus-column {
-        width: min(100%, 46rem);
+        width: min(100%, 52rem);
         min-height: 0;
+        align-content: start;
         justify-self: center;
         gap: var(--fc-space-xs);
         grid-template-areas:
             "progress"
             "card"
             "controls";
-        grid-template-rows: auto minmax(0, 1fr) auto;
+        grid-template-rows: auto auto auto;
     }
 
     .flashcard-frame {
-        height: 100%;
+        height: clamp(24rem, calc(100dvh - 18rem), 40rem);
         min-height: 20rem;
-        max-height: 40rem;
     }
 
     .keyboard-hint {
@@ -1418,8 +1462,8 @@ body.settings-open {
         grid-template-rows: auto minmax(0, 1fr);
         overflow: hidden;
         border-top: 1px solid var(--fc-line);
-        border-left: 1px solid var(--fc-line);
-        padding: var(--fc-space-md) 0 0 var(--fc-space-lg);
+        border-left: 0;
+        padding: var(--fc-space-md) 0 0;
     }
 
     .vocab-list {
@@ -1432,7 +1476,7 @@ body.settings-open {
     }
 
     .vocab-row {
-        grid-template-columns: 1.25rem minmax(0, 1fr) 44px;
+        grid-template-columns: 1.25rem minmax(0, 1fr) 40px;
         grid-template-areas:
             "index term audio"
             ". meaning audio";
@@ -1440,6 +1484,12 @@ body.settings-open {
 
     .vocab-row-meaning {
         padding-left: calc(44px + var(--fc-space-xs));
+    }
+
+    .vocab-star,
+    .vocab-audio {
+        width: 40px;
+        height: 40px;
     }
 }
 
@@ -1458,7 +1508,7 @@ body.settings-open {
     }
 }
 
-@media (max-width: 24rem) {
+@media (max-width: 30rem) {
     .study-shell {
         padding-inline: var(--fc-space-sm);
     }
@@ -1468,7 +1518,7 @@ body.settings-open {
     }
 
     .control-bar {
-        width: calc(100% - 1rem);
+        width: 100%;
         grid-template-columns: auto 44px minmax(0, 1fr) 44px;
         gap: var(--fc-space-2xs);
         padding: var(--fc-space-2xs);

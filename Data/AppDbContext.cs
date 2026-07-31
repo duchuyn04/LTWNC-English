@@ -203,6 +203,7 @@ public class AppDbContext : DbContext
         builder.Entity<ReviewSession>(entity =>
         {
             entity.HasIndex(e => new { e.UserId, e.CompletedAtUtc });
+            entity.HasIndex(e => new { e.UserId, e.FlashcardSetId, e.CompletedAtUtc });
             entity.HasIndex(e => e.UserId)
                 .IsUnique()
                 .HasFilter("[CompletedAtUtc] IS NULL AND [EndedAtUtc] IS NULL");

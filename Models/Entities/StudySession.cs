@@ -11,7 +11,8 @@ public enum StudyMode
     Write,     // Viết chính tả
     Match,     // Ghép đôi
     Dictation,      // Nghe chép chính tả
-    EnglishMission // Hội thoại tình huống với AI
+    EnglishMission, // Hội thoại tình huống với AI
+    Review          // Ôn tập ngắt quãng theo bộ
 }
 
 public enum QuizRetryKind

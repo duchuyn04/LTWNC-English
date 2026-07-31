@@ -1,5 +1,4 @@
 using ltwnc.Models.Entities;
-using ltwnc.Models.ViewModels.Study;
 
 namespace ltwnc.Models.ViewModels.Review;
 
@@ -51,6 +50,10 @@ public sealed class ReviewSessionViewModel
 {
     public int SessionId { get; set; }
 
+    public int? SetId { get; set; }
+
+    public string SetTitle { get; set; } = string.Empty;
+
     public int TotalCards { get; set; }
 
     public int RatedCards { get; set; }
@@ -61,9 +64,33 @@ public sealed class ReviewSessionViewModel
 
     public bool IsFinished => IsCompleted || IsEnded;
 
-    public StudySettingsViewModel Settings { get; set; } = new();
+    public ReviewSettingsViewModel Settings { get; set; } = new();
 
     public IReadOnlyList<ReviewCardViewModel> Cards { get; set; } = Array.Empty<ReviewCardViewModel>();
+}
+
+public sealed class ReviewSetViewModel
+{
+    public int SetId { get; set; }
+
+    public string SetTitle { get; set; } = string.Empty;
+
+    public int TotalCards { get; set; }
+
+    public int DueCards { get; set; }
+
+    public int NewCards { get; set; }
+
+    public bool IsPaused { get; set; }
+
+    public ReviewSettingsViewModel Settings { get; set; } = new();
+}
+
+public sealed class ReviewSettingsPanelViewModel
+{
+    public int SetId { get; set; }
+
+    public ReviewSettingsViewModel Settings { get; set; } = new();
 }
 
 public sealed class ReviewProgressViewModel

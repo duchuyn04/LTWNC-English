@@ -9,6 +9,10 @@ public interface IReviewService
 
     Task<ReviewSessionViewModel?> StartAsync(string userId);
 
+    Task<ReviewSetViewModel?> GetSetAsync(string userId, int setId);
+
+    Task<ReviewSessionViewModel?> StartAsync(string userId, int setId);
+
     Task<ReviewSessionViewModel?> GetSessionAsync(int sessionId, string userId);
 
     Task<ReviewRatingResult> RateAsync(

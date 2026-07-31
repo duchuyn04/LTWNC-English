@@ -1,0 +1,78 @@
+@model ReviewSettingsPanelViewModel
+
+<details class="review-settings" data-review-settings>
+    <summary class="review-settings__trigger" aria-label="Mở cài đặt Review">
+        <i class="ph ph-gear" aria-hidden="true"></i>
+        <span>Cài đặt</span>
+    </summary>
+    <div class="review-settings__panel">
+        <div class="review-settings__heading">
+            <div>
+                <strong>Cài đặt Review</strong>
+                <small>Thay đổi trong phiên chỉ áp dụng từ lượt sau.</small>
+            </div>
+        </div>
+        <form method="post" action="/Review/Set/@Model.SetId/Settings" data-review-settings-form>
+            @Html.AntiForgeryToken()
+            <div class="review-settings__numbers">
+                <label>Số thẻ mỗi lượt
+                    <input asp-for="Settings.ReviewSessionSize" name="ReviewSessionSize" min="5" max="100" />
+                </label>
+                <label>Thẻ mới mỗi ngày
+                    <input asp-for="Settings.NewCardQuota" name="NewCardQuota" min="0" max="20" />
+                </label>
+                <label>Khoảng ôn tối đa (ngày)
+                    <input asp-for="Settings.ReviewMaxIntervalDays" name="ReviewMaxIntervalDays" min="30" max="365" />
+                </label>
+            </div>
+            <fieldset>
+                <legend>Mặt trước</legend>
+                <label><input asp-for="Settings.ShowFrontTerm" name="ShowFrontTerm" /> Từ</label>
+                <label><input asp-for="Settings.ShowFrontDefinition" name="ShowFrontDefinition" /> Nghĩa</label>
+                <label><input asp-for="Settings.ShowFrontIpa" name="ShowFrontIpa" /> IPA</label>
+                <label><input asp-for="Settings.ShowFrontImage" name="ShowFrontImage" /> Ảnh</label>
+            </fieldset>
+            <fieldset>
+                <legend>Mặt sau</legend>
+                <label><input asp-for="Settings.ShowBackTerm" name="ShowBackTerm" /> Từ</label>
+                <label><input asp-for="Settings.ShowBackDefinition" name="ShowBackDefinition" /> Nghĩa</label>
+                <label><input asp-for="Settings.ShowBackIpa" name="ShowBackIpa" /> IPA</label>
+                <label><input asp-for="Settings.ShowBackExample" name="ShowBackExample" /> Ví dụ</label>
+                <label><input asp-for="Settings.ShowBackImage" name="ShowBackImage" /> Ảnh</label>
+            </fieldset>
+            <fieldset>
+                <legend>Ảnh và phát âm</legend>
+                <label><input asp-for="Settings.HideImage" name="HideImage" /> Ẩn ảnh</label>
+                <label><input asp-for="Settings.BlurImage" name="BlurImage" /> Làm mờ ảnh</label>
+                <label><input asp-for="Settings.LargeImage" name="LargeImage" /> Ảnh lớn</label>
+                <label><input asp-for="Settings.PronounceFront" name="PronounceFront" /> Đọc mặt trước</label>
+                <label><input asp-for="Settings.PronounceBack" name="PronounceBack" /> Đọc mặt sau</label>
+            </fieldset>
+            <p class="review-settings__message" data-review-settings-message aria-live="polite"></p>
+            <button type="submit" class="review-focus__primary">Lưu cho lượt sau</button>
+        </form>
+    </div>
+</details>
+
+<script>
+(() => {
+    const root = document.currentScript.previousElementSibling;
+    const form = root?.querySelector('[data-review-settings-form]');
+    const message = root?.querySelector('[data-review-settings-message]');
+    if (!form || form.dataset.bound === 'true') return;
+    form.dataset.bound = 'true';
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        const response = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        if (message) {
+            message.textContent = response.ok
+                ? 'Đã lưu. Cài đặt mới áp dụng từ lượt Review tiếp theo.'
+                : 'Không thể lưu cài đặt. Hãy kiểm tra lại các giới hạn.';
+        }
+    });
+})();
+</script>

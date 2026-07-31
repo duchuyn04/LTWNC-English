@@ -20,8 +20,5 @@ public class EditSetViewModel
     // Public / private
     public bool IsPublic { get; set; } = true;
 
-    [Range(ReviewSettingsPolicy.MinimumNewCardQuota, ReviewSettingsPolicy.MaximumNewCardQuota)]
-    public int NewCardQuota { get; set; } = ReviewSettingsPolicy.DefaultNewCardQuota;
-
     public bool ReviewPaused { get; set; }
 }

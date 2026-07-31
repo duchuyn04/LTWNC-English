@@ -62,13 +62,6 @@
                     <label asp-for="IsPublic" class="set-check-label">Công khai</label>
                 </div>
 
-                <div class="mb-3">
-                    <label asp-for="NewCardQuota" class="set-form-label">Thẻ mới mỗi ngày</label>
-                    <input asp-for="NewCardQuota" class="set-form-input" min="0" max="20" />
-                    <small class="text-muted">Từ 0 đến 20; thẻ đến hạn vẫn được ưu tiên.</small>
-                    <span asp-validation-for="NewCardQuota" class="text-danger"></span>
-                </div>
-
                 <div class="mb-4 form-check">
                     <input asp-for="ReviewPaused" class="form-check-input" />
                     <label asp-for="ReviewPaused" class="set-check-label">Tạm dừng ôn bộ này</label>

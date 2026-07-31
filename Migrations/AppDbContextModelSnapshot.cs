@@ -973,6 +973,12 @@ namespace ltwnc.Migrations
                     b.Property<DateTimeOffset?>("EndedAtUtc")
                         .HasColumnType("datetimeoffset");
 
+                    b.Property<int?>("FlashcardSetId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("SettingsSnapshotJson")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<DateTimeOffset>("StartedAtUtc")
                         .HasColumnType("datetimeoffset");
 
@@ -987,6 +993,8 @@ namespace ltwnc.Migrations
                         .HasFilter("[CompletedAtUtc] IS NULL AND [EndedAtUtc] IS NULL");
 
                     b.HasIndex("UserId", "CompletedAtUtc");
+
+                    b.HasIndex("UserId", "FlashcardSetId", "CompletedAtUtc");
 
                     b.ToTable("ReviewSessions");
                 });
