@@ -35,6 +35,9 @@ public class AppDbContext : DbContext
     public DbSet<AdminAuditLog> AdminAuditLogs => Set<AdminAuditLog>();
     public DbSet<AiOperationLog> AiOperationLogs => Set<AiOperationLog>();
     public DbSet<ContentReport> ContentReports => Set<ContentReport>();
+    public DbSet<CreditPackage> CreditPackages => Set<CreditPackage>();
+    public DbSet<CreditPurchase> CreditPurchases => Set<CreditPurchase>();
+    public DbSet<CreditLedgerEntry> CreditLedgerEntries => Set<CreditLedgerEntry>();
 
     // Cấu hình model — indexes, relationships, constraints
     protected override void OnModelCreating(ModelBuilder builder)
@@ -56,6 +59,8 @@ public class AppDbContext : DbContext
                 .IsUnique()
                 .HasDatabaseName("AppUserNameIndex")
                 .HasFilter("[NormalizedUserName] IS NOT NULL");
+            entity.Property(user => user.CreditBalance).HasDefaultValue(10);
+            entity.Property(user => user.CreditVersion).IsConcurrencyToken();
         });
 
         builder.Entity<UserProfile>(entity =>
@@ -376,6 +381,62 @@ public class AppDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(report => report.FlashcardSetId)
                 .OnDelete(DeleteBehavior.Restrict);
+        });
+
+        builder.Entity<CreditPackage>(entity =>
+        {
+            entity.Property(package => package.Name).HasMaxLength(120).IsRequired();
+            entity.Property(package => package.Description).HasMaxLength(500);
+            entity.Property(package => package.Version).IsConcurrencyToken();
+            entity.HasIndex(package => new { package.IsArchived, package.IsActive, package.DisplayOrder });
+            entity.ToTable(table =>
+            {
+                table.HasCheckConstraint("CK_CreditPackages_PriceVnd", "[PriceVnd] > 0");
+                table.HasCheckConstraint("CK_CreditPackages_Credits", "[Credits] > 0");
+            });
+        });
+
+        builder.Entity<CreditPurchase>(entity =>
+        {
+            entity.Property(purchase => purchase.UserId).HasMaxLength(450).IsRequired();
+            entity.Property(purchase => purchase.InvoiceNumber).HasMaxLength(64).IsRequired();
+            entity.Property(purchase => purchase.PackageName).HasMaxLength(120).IsRequired();
+            entity.Property(purchase => purchase.Currency).HasMaxLength(3).IsRequired();
+            entity.Property(purchase => purchase.Status).HasMaxLength(32).IsRequired();
+            entity.Property(purchase => purchase.Version).IsConcurrencyToken();
+            entity.HasIndex(purchase => purchase.InvoiceNumber).IsUnique();
+            entity.HasIndex(purchase => purchase.SePayTransactionId)
+                .IsUnique()
+                .HasFilter("[SePayTransactionId] IS NOT NULL");
+            entity.HasIndex(purchase => new { purchase.UserId, purchase.Status, purchase.ExpiresAtUtc });
+            entity.HasIndex(purchase => purchase.UserId)
+                .IsUnique()
+                .HasFilter("[Status] = 'Pending'");
+            entity.HasOne<AppUser>()
+                .WithMany()
+                .HasForeignKey(purchase => purchase.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne(purchase => purchase.Package)
+                .WithMany()
+                .HasForeignKey(purchase => purchase.CreditPackageId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        builder.Entity<CreditLedgerEntry>(entity =>
+        {
+            entity.Property(entry => entry.UserId).HasMaxLength(450).IsRequired();
+            entity.Property(entry => entry.Type).HasMaxLength(40).IsRequired();
+            entity.Property(entry => entry.SourceType).HasMaxLength(60).IsRequired();
+            entity.Property(entry => entry.SourceId).HasMaxLength(100).IsRequired();
+            entity.Property(entry => entry.Description).HasMaxLength(500).IsRequired();
+            entity.HasIndex(entry => new { entry.SourceType, entry.SourceId }).IsUnique();
+            entity.HasIndex(entry => new { entry.UserId, entry.CreatedAtUtc });
+            entity.HasOne<AppUser>()
+                .WithMany()
+                .HasForeignKey(entry => entry.UserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            entity.ToTable(table =>
+                table.HasCheckConstraint("CK_CreditLedgerEntries_BalanceAfter", "[BalanceAfter] >= 0"));
         });
     }
 }

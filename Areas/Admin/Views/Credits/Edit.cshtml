@@ -1,0 +1,24 @@
+@model AdminCreditPackageEditViewModel
+@{
+    string title = Model.Id.HasValue ? "Sửa gói tín dụng" : "Tạo gói tín dụng";
+    ViewData["Title"] = title;
+    ViewData["Heading"] = title;
+}
+
+<section class="admin-panel">
+    <p><a class="admin-text-link" href="/Admin/Credits">Quay lại danh sách</a></p>
+    <form method="post" action="/Admin/Credits/Packages/Save" class="admin-filter-form">
+        @Html.AntiForgeryToken()
+        <input asp-for="Id" type="hidden" />
+        <input asp-for="Version" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="admin-alert admin-alert--danger"></div>
+        <div class="admin-filter-field"><label asp-for="Name">Tên gói</label><input asp-for="Name" /><span asp-validation-for="Name"></span></div>
+        <div class="admin-filter-field"><label asp-for="Description">Mô tả</label><textarea asp-for="Description"></textarea><span asp-validation-for="Description"></span></div>
+        <div class="admin-filter-field"><label asp-for="PriceVnd">Giá (VND)</label><input asp-for="PriceVnd" type="number" min="1" /><span asp-validation-for="PriceVnd"></span></div>
+        <div class="admin-filter-field"><label asp-for="Credits">Số tín dụng</label><input asp-for="Credits" type="number" min="1" /><span asp-validation-for="Credits"></span></div>
+        <div class="admin-filter-field"><label asp-for="DisplayOrder">Thứ tự hiển thị</label><input asp-for="DisplayOrder" type="number" /></div>
+        <label class="admin-checkbox-line"><input asp-for="IsActive" /> Đang bán</label>
+        <div class="admin-filter-field"><label asp-for="Reason">Lý do thay đổi</label><textarea asp-for="Reason" maxlength="500" required></textarea><span asp-validation-for="Reason"></span></div>
+        <button type="submit" class="admin-filter-submit">Lưu gói</button>
+    </form>
+</section>

@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using ltwnc.Data;
 
@@ -11,9 +12,11 @@ using ltwnc.Data;
 namespace ltwnc.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260801013158_AddCreditsAndSePayPayments")]
+    partial class AddCreditsAndSePayPayments
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -574,13 +577,6 @@ namespace ltwnc.Migrations
                         .HasMaxLength(450)
                         .HasColumnType("nvarchar(450)");
 
-                    b.Property<int>("Version")
-                        .IsConcurrencyToken()
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("VoidedAtUtc")
-                        .HasColumnType("datetime2");
-
                     b.HasKey("Id");
 
                     b.HasIndex("CreditPackageId");
@@ -591,10 +587,6 @@ namespace ltwnc.Migrations
                     b.HasIndex("SePayTransactionId")
                         .IsUnique()
                         .HasFilter("[SePayTransactionId] IS NOT NULL");
-
-                    b.HasIndex("UserId")
-                        .IsUnique()
-                        .HasFilter("[Status] = 'Pending'");
 
                     b.HasIndex("UserId", "Status", "ExpiresAtUtc");
 
@@ -1672,27 +1664,12 @@ namespace ltwnc.Migrations
                     b.Navigation("FlashcardSet");
                 });
 
-            modelBuilder.Entity("ltwnc.Models.Entities.CreditLedgerEntry", b =>
-                {
-                    b.HasOne("ltwnc.Models.Entities.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-                });
-
             modelBuilder.Entity("ltwnc.Models.Entities.CreditPurchase", b =>
                 {
                     b.HasOne("ltwnc.Models.Entities.CreditPackage", "Package")
                         .WithMany()
                         .HasForeignKey("CreditPackageId")
                         .OnDelete(DeleteBehavior.SetNull);
-
-                    b.HasOne("ltwnc.Models.Entities.AppUser", null)
-                        .WithMany()
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
 
                     b.Navigation("Package");
                 });

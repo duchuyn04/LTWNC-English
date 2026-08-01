@@ -1,0 +1,44 @@
+@model ltwnc.Models.Entities.CreditPurchase
+@using ltwnc.Models.Entities
+@{
+    ViewData["Title"] = "Kết quả thanh toán";
+    bool paid = Model.Status == CreditPurchaseStatuses.Paid;
+    string? callbackResult = ViewData["PaymentResult"] as string;
+    bool cancelled = callbackResult is "cancel" or "error";
+    bool shouldPoll = !paid && !cancelled;
+}
+<section class="credit-payment-result text-center mx-auto" data-purchase-id="@Model.Id" data-paid="@paid.ToString().ToLowerInvariant()">
+    <span class="credit-kicker">SEPAY VIETQR</span>
+    <h1 class="mt-2">@(paid ? "Đã cộng tín dụng" : "Đang xác nhận thanh toán")</h1>
+    <p data-payment-message>
+        @(paid
+            ? $"{Model.Credits} tín dụng đã được cộng vào tài khoản."
+            : cancelled
+                ? "Thanh toán chưa hoàn tất. Bạn chưa bị trừ tiền và có thể thử lại khi sẵn sàng."
+                : "SePay đang gửi xác nhận về hệ thống. Quá trình này thường chỉ mất vài giây.")
+    </p>
+    <div class="d-flex gap-2 justify-content-center mt-4">
+        <a class="btn btn-dark" href="/Credits">Xem số dư</a>
+        <a class="btn btn-outline-secondary" href="/Set">Về bộ thẻ</a>
+    </div>
+</section>
+@if (shouldPoll)
+{
+<script>
+(() => {
+    const root = document.querySelector('[data-purchase-id]');
+    let attempts = 0;
+    const timer = setInterval(async () => {
+        if (++attempts > 20) return clearInterval(timer);
+        const response = await fetch(`/Credits/Payment/${root.dataset.purchaseId}/Status`, { credentials: 'same-origin' });
+        if (!response.ok) return;
+        const result = await response.json();
+        if (result.paid) {
+            clearInterval(timer);
+            root.querySelector('h1').textContent = 'Đã cộng tín dụng';
+            root.querySelector('[data-payment-message]').textContent = 'Thanh toán thành công. Tín dụng đã được cộng vào tài khoản.';
+        }
+    }, 2000);
+})();
+</script>
+}

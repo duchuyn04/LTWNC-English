@@ -162,6 +162,7 @@ Yêu cầu:
 ```bash
 git clone https://github.com/duchuyn04/LTWNC-English.git
 cd LTWNC-English
+cp appsettings.example.json appsettings.json
 dotnet restore
 ```
 
@@ -195,6 +196,22 @@ WHERE NormalizedEmail = 'EMAIL@EXAMPLE.COM';
 ```
 
 Đăng xuất và đăng nhập lại để cookie nhận claim admin mới.
+
+## Thanh toán tín dụng qua SePay
+
+English Mission sử dụng 1 tín dụng cho mỗi phản hồi AI được lưu thành công. Tạo mission không tốn tín dụng; lỗi AI và retry cùng mã lượt chat không bị trừ lại.
+
+Có thể điền cấu hình SePay thật vào `appsettings.json` local; file này đã bị Git bỏ qua. `appsettings.example.json` chỉ chứa giá trị mẫu an toàn. Hoặc dùng User Secrets:
+
+```bash
+dotnet user-secrets set "SePay:Environment" "Sandbox"
+dotnet user-secrets set "SePay:MerchantId" "MERCHANT_ID"
+dotnet user-secrets set "SePay:SecretKey" "CHECKOUT_SECRET"
+dotnet user-secrets set "SePay:IpnSecret" "IPN_SECRET"
+dotnet user-secrets set "SePay:PublicBaseUrl" "https://your-public-domain.example"
+```
+
+Cấu hình IPN trên SePay trỏ tới `POST /api/payments/sepay/ipn`. Endpoint phải dùng HTTPS công khai; khi phát triển local có thể dùng tunnel HTTPS. Chỉ IPN `ORDER_PAID` hợp lệ mới cộng tín dụng, không cộng từ URL chuyển hướng của trình duyệt.
 
 ## Kiểm thử
 

@@ -20,6 +20,7 @@ public sealed class EnglishMissionRespondResult
     public required EnglishMissionTurn Turn { get; init; }
     public required MissionEntity Mission { get; init; }
     public required IReadOnlyList<EnglishMissionTargetWord> TargetWords { get; init; }
+    public int CreditBalance { get; init; }
 }
 
 // Hợp đồng điều phối toàn bộ vòng đời nhiệm vụ hội thoại tiếng Anh.

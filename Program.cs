@@ -26,6 +26,7 @@ using ltwnc.Services.Profiles;
 using ltwnc.Services.Leaderboard;
 using ltwnc.Services.PublicLibrary;
 using ltwnc.Services.Review;
+using ltwnc.Services.Credits;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -127,6 +128,8 @@ if (!builder.Environment.IsEnvironment("Testing"))
 }
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IProfileService, ProfileService>();
+builder.Services.AddScoped<ICreditService, CreditService>();
+builder.Services.AddScoped<IAdminCreditService, AdminCreditService>();
 builder.Services.AddScoped<IAvatarService, AvatarService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.Configure<RouteOptions>(options =>
@@ -233,6 +236,21 @@ builder.Services.AddRateLimiter(options =>
             {
                 PermitLimit = 20,
                 Window = TimeSpan.FromHours(1),
+                QueueLimit = 0,
+                AutoReplenishment = true
+            });
+    });
+    options.AddPolicy("payments", context =>
+    {
+        string key = context.User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? context.Connection.RemoteIpAddress?.ToString()
+            ?? "unknown";
+        return RateLimitPartition.GetFixedWindowLimiter(
+            $"payments:{key}",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromMinutes(1),
                 QueueLimit = 0,
                 AutoReplenishment = true
             });

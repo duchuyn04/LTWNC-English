@@ -8,6 +8,7 @@ using ltwnc.Models.Entities;
 using ltwnc.Services.Ai;
 using ltwnc.Services.Study;
 using ltwnc.Services.StudyEvents;
+using ltwnc.Services.Credits;
 using MissionEntity = ltwnc.Models.Entities.EnglishMission;
 
 namespace ltwnc.Services.EnglishMission;
@@ -30,6 +31,7 @@ public sealed class EnglishMissionService : IEnglishMissionService
     private readonly IAiCompletionRouter _router;
     private readonly IStudyEventPublisher _studyEvents;
     private readonly TimeProvider _timeProvider;
+    private readonly ICreditService _credits;
 
     // Nhận các service học tập, AI, sự kiện và thời gian cần cho toàn bộ vòng đời Nhiệm vụ tiếng Anh.
     public EnglishMissionService(
@@ -37,7 +39,8 @@ public sealed class EnglishMissionService : IEnglishMissionService
         IStudyService studyService,
         IAiCompletionRouter router,
         IStudyEventPublisher studyEvents,
-        TimeProvider timeProvider)
+        TimeProvider timeProvider,
+        ICreditService credits)
     {
         // 1. Lưu dependency `_context` để các phương thức khác sử dụng.
         _context = context;
@@ -49,6 +52,7 @@ public sealed class EnglishMissionService : IEnglishMissionService
         _studyEvents = studyEvents;
         // 5. Lưu dependency `_timeProvider` để các phương thức khác sử dụng.
         _timeProvider = timeProvider;
+        _credits = credits;
     }
 
     // Trả danh sách chủ đề cố định để controller không tự tạo nội dung nhiệm vụ.
@@ -207,13 +211,16 @@ public sealed class EnglishMissionService : IEnglishMissionService
             {
                 Turn = existing,
                 Mission = mission,
-                TargetWords = mission.TargetWords.OrderBy(word => word.Id).ToList()
+                TargetWords = mission.TargetWords.OrderBy(word => word.Id).ToList(),
+                CreditBalance = await _credits.GetBalanceAsync(userId, cancellationToken)
             };
         }
         // 9. Kiểm tra `mission.Status != "Active"` để chọn nhánh xử lý phù hợp.
         if (mission.Status != "Active") throw new ArgumentException("Mission này đã kết thúc.");
         // 10. Kiểm tra `mission.TurnCount >= MaxTurns` để chọn nhánh xử lý phù hợp.
         if (mission.TurnCount >= MaxTurns) throw new ArgumentException("Mission đã đạt số lượt tối đa.");
+
+        await _credits.EnsureCanSpendAsync(userId, cancellationToken);
 
         // 11. Gọi `Parse` và lưu kết quả vào `goals`.
         List<GoalPayload> goals = Parse<List<GoalPayload>>(mission.GoalsJson, "Dữ liệu mục tiêu mission không hợp lệ.");
@@ -274,6 +281,11 @@ public sealed class EnglishMissionService : IEnglishMissionService
         }
         // 26. Cập nhật bộ đếm hoặc trạng thái `mission.TurnCount`.
         mission.TurnCount++;
+        int creditBalance = await _credits.PrepareMissionTurnDebitAsync(
+            userId,
+            mission.Id,
+            clientTurnId,
+            cancellationToken);
         // 27. Gọi `ToList` và lưu kết quả vào `allAchieved`.
         List<string> allAchieved = turns
             .SelectMany(item => Parse<List<string>>(item.AchievedGoalsJson, "[]"))
@@ -320,7 +332,8 @@ public sealed class EnglishMissionService : IEnglishMissionService
                 {
                     Turn = persisted,
                     Mission = latest,
-                    TargetWords = latest.TargetWords.OrderBy(word => word.Id).ToList()
+                    TargetWords = latest.TargetWords.OrderBy(word => word.Id).ToList(),
+                    CreditBalance = await _credits.GetBalanceAsync(userId, cancellationToken)
                 };
             }
             // 43. Dừng xử lý và phát sinh lỗi `new ArgumentException("Mission vừa được cập nhật ở một yêu cầu khác...`.
@@ -342,7 +355,8 @@ public sealed class EnglishMissionService : IEnglishMissionService
                 {
                     Turn = persisted,
                     Mission = latest,
-                    TargetWords = latest.TargetWords.OrderBy(word => word.Id).ToList()
+                    TargetWords = latest.TargetWords.OrderBy(word => word.Id).ToList(),
+                    CreditBalance = await _credits.GetBalanceAsync(userId, cancellationToken)
                 };
             }
             // 49. Phát sinh lại lỗi hiện tại để tầng gọi xử lý.
@@ -355,7 +369,13 @@ public sealed class EnglishMissionService : IEnglishMissionService
             await PublishCompletedAsync(mission, cancellationToken);
         }
         // 52. Tạo và trả đối tượng kết quả cho nơi gọi.
-        return new EnglishMissionRespondResult { Turn = turn, Mission = mission, TargetWords = mission.TargetWords.OrderBy(word => word.Id).ToList() };
+        return new EnglishMissionRespondResult
+        {
+            Turn = turn,
+            Mission = mission,
+            TargetWords = mission.TargetWords.OrderBy(word => word.Id).ToList(),
+            CreditBalance = creditBalance
+        };
     }
 
     // Kết thúc nhiệm vụ thủ công, cập nhật phiên học và phát sự kiện hoàn thành đúng một lần.

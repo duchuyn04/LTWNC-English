@@ -53,6 +53,23 @@
     var pendingUserNode = null;
     var pendingNpcNode = null;
     var busy = false;
+    var creditBalance = Number(page.dataset.creditBalance || '0');
+    var creditModal = document.getElementById('mission-credit-modal');
+
+    function showCreditPopup() {
+        if (!creditModal) return;
+        creditModal.hidden = false;
+        document.body.classList.add('mission-modal-open');
+        creditModal.querySelector('a').focus();
+    }
+
+    function setCreditBalance(value) {
+        creditBalance = Number(value);
+        var display = page.querySelector('[data-credit-balance]');
+        if (display) display.textContent = String(creditBalance);
+        send.disabled = creditBalance < 1;
+        input.disabled = creditBalance < 1;
+    }
 
     function escapeText(value) {
         var node = document.createElement('div');
@@ -163,6 +180,7 @@
 
     async function submit() {
         if (busy) return;
+        if (creditBalance < 1) { showCreditPopup(); return; }
         var value = (pendingText || input.value).trim();
         if (!value) return;
         pendingText = value;
@@ -181,6 +199,7 @@
         body.append('__RequestVerificationToken', token);
         body.append('userText', value);
         body.append('clientTurnId', pendingTurnId);
+        var requiresCredits = false;
         try {
             var response = await fetch('/Study/' + setId + '/Mission/' + sessionId + '/Respond', {
                 method: 'POST',
@@ -188,10 +207,18 @@
                 body: body.toString()
             });
             var data = await response.json();
-            if (!response.ok) throw new Error(data.error || 'Không thể gửi câu trả lời.');
+            if (!response.ok) {
+                if (data.requiresCredits) {
+                    requiresCredits = true;
+                    setCreditBalance(0);
+                    showCreditPopup();
+                }
+                throw new Error(data.error || 'Không thể gửi câu trả lời.');
+            }
             await appendTurn(data.turn);
             updateWords(data.targetWords);
             updateSuggestion(data.suggestedReplyEn, data.suggestedReplyVi);
+            setCreditBalance(data.creditBalance);
             var count = document.getElementById('mission-turn-count');
             var nextCount = Number(count.textContent) + 1;
             count.textContent = String(nextCount);
@@ -203,14 +230,20 @@
         } catch (error) {
             if (pendingNpcNode) pendingNpcNode.remove();
             pendingNpcNode = null;
-            errorBox.querySelector('p').textContent = error.message;
-            errorBox.hidden = false;
+            if (requiresCredits) {
+                if (pendingUserNode) pendingUserNode.remove();
+                pendingUserNode = null;
+                errorBox.hidden = true;
+            } else {
+                errorBox.querySelector('p').textContent = error.message;
+                errorBox.hidden = false;
+            }
             input.value = pendingText;
         } finally {
             busy = false;
             page.setAttribute('aria-busy', 'false');
-            send.disabled = false;
-            input.disabled = false;
+            send.disabled = creditBalance < 1;
+            input.disabled = creditBalance < 1;
             send.classList.remove('is-loading');
             input.focus();
         }
@@ -219,6 +252,14 @@
     send.addEventListener('click', submit);
     retry.addEventListener('click', submit);
     configureSpeechButtons();
+    setCreditBalance(creditBalance);
+    if (creditBalance < 1) showCreditPopup();
+    if (creditModal) {
+        creditModal.querySelector('[data-credit-close]').addEventListener('click', function () {
+            creditModal.hidden = true;
+            document.body.classList.remove('mission-modal-open');
+        });
+    }
     speakText(page.dataset.openingLine);
     input.addEventListener('keydown', function (event) {
         if (event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); submit(); }

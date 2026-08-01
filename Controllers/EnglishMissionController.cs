@@ -7,6 +7,7 @@ using ltwnc.Services.Ai;
 using ltwnc.Services.Auth;
 using ltwnc.Services.EnglishMission;
 using ltwnc.Services.FlashcardSets;
+using ltwnc.Services.Credits;
 
 namespace ltwnc.Controllers;
 
@@ -18,17 +19,20 @@ public sealed class EnglishMissionController : Controller
     private readonly IEnglishMissionService _missionService;
     private readonly IFlashcardSetService _setService;
     private readonly ICurrentUser _currentUser;
+    private readonly ICreditService _credits;
 
     // Nhận các service cần dùng qua dependency injection.
     public EnglishMissionController(
         IEnglishMissionService missionService,
         IFlashcardSetService setService,
-        ICurrentUser currentUser)
+        ICurrentUser currentUser,
+        ICreditService credits)
     {
         // 1. Lưu các service để những action nhiệm vụ sử dụng.
         _missionService = missionService;
         _setService = setService;
         _currentUser = currentUser;
+        _credits = credits;
     }
 
     // Hiển thị danh sách chủ đề để người dùng chọn trước khi bắt đầu hội thoại.
@@ -90,7 +94,8 @@ public sealed class EnglishMissionController : Controller
                 SetTitle = set?.Title ?? string.Empty,
                 Mission = result.Mission,
                 TargetWords = result.TargetWords,
-                Turns = result.Turns
+                Turns = result.Turns,
+                CreditBalance = await _credits.GetBalanceAsync(userId, cancellationToken)
             });
         }
         catch (KeyNotFoundException) { return NotFound(); }
@@ -127,12 +132,23 @@ public sealed class EnglishMissionController : Controller
                 suggestedReplyVi = result.Mission.SuggestedReplyVi,
                 completed = result.Mission.Status == "Completed",
                 score = result.Mission.Score,
+                creditBalance = result.CreditBalance,
                 resultUrl = Url.Action(nameof(Result), new { setId, sessionId })
             });
         }
         catch (Exception exception) when (exception is AiProviderUnavailableException or AiProviderConfigurationException)
         {
             return StatusCode(StatusCodes.Status503ServiceUnavailable, new { success = false, error = exception.Message, retryable = true });
+        }
+        catch (InsufficientCreditsException exception)
+        {
+            return StatusCode(StatusCodes.Status402PaymentRequired, new
+            {
+                success = false,
+                error = exception.Message,
+                requiresCredits = true,
+                purchaseUrl = Url.Action("Index", "Credits")
+            });
         }
         catch (ArgumentException exception) { return BadRequest(new { success = false, error = exception.Message }); }
         catch (KeyNotFoundException) { return NotFound(); }

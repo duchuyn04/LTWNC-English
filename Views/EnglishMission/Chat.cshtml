@@ -13,6 +13,7 @@
      data-session-id="@Model.Mission.StudySessionId"
      data-npc-name="@Model.Mission.NpcName"
      data-opening-line="@Model.Mission.OpeningLine"
+     data-credit-balance="@Model.CreditBalance"
      data-max-turns="8"
      aria-busy="false">
     @Html.AntiForgeryToken()
@@ -39,6 +40,7 @@
                       style="width:@(Model.Mission.TurnCount * 100 / 8)%"></span>
             </div>
         </div>
+        <a class="mission-credit-balance" href="/Credits"><i class="ph ph-lightning"></i><span><strong data-credit-balance>@Model.CreditBalance</strong><small> tín dụng AI</small></span></a>
         <div class="mission-rail-words"><span class="mission-label">Từ mục tiêu</span>
             @foreach (var word in Model.TargetWords)
             {
@@ -81,6 +83,15 @@
             </form>
         </div>
     </section>
+</div>
+
+<div class="mission-credit-modal" id="mission-credit-modal" hidden>
+    <div class="mission-credit-dialog" role="dialog" aria-modal="true" aria-labelledby="missionCreditTitle">
+        <span class="mission-credit-icon"><i class="ph ph-lightning"></i></span>
+        <h2 id="missionCreditTitle">Bạn đã hết tín dụng</h2>
+        <p>Mua thêm tín dụng để tiếp tục trò chuyện với gia sư AI. Hội thoại hiện tại vẫn được giữ nguyên.</p>
+        <div><button type="button" data-credit-close>Để sau</button><a href="/Credits">Xem các gói tín dụng</a></div>
+    </div>
 </div>
 
 @section Scripts {

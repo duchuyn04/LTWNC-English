@@ -1,0 +1,17 @@
+@model ltwnc.Services.Credits.SePayCheckoutForm
+@{
+    ViewData["Title"] = "Chuyển đến SePay";
+}
+<div class="text-center py-5">
+    <div class="spinner-border mb-3" role="status"><span class="visually-hidden">Đang tải</span></div>
+    <h1 class="h3">Đang chuyển đến SePay</h1>
+    <p class="text-muted">Không đóng cửa sổ này trong khi hệ thống mở trang thanh toán VietQR.</p>
+    <form id="sepayCheckout" action="@Model.ActionUrl" method="post">
+        @foreach (KeyValuePair<string, string> field in Model.Fields)
+        {
+            <input type="hidden" name="@field.Key" value="@field.Value" />
+        }
+        <button class="btn btn-dark" type="submit">Tiếp tục nếu trang không tự chuyển</button>
+    </form>
+</div>
+<script>document.getElementById('sepayCheckout').submit();</script>

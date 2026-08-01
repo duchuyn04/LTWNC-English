@@ -139,3 +139,17 @@ html,body{overflow-x:clip}
     .mission-composer textarea{min-height:2.5rem}
     .mission-send{margin-left:auto}
 }
+.mission-credit-balance { display:flex; align-items:center; gap:.65rem; color:inherit; text-decoration:none; padding:.8rem 0; border-top:1px solid rgba(255,255,255,.14); }
+.mission-credit-balance i { color:#d0ab50; font-size:1.25rem; }
+.mission-credit-balance span,.mission-credit-balance small { display:block; }
+.mission-credit-modal { position:fixed; z-index:1200; inset:0; display:grid; place-items:center; padding:1rem; background:rgba(10,14,12,.7); backdrop-filter:blur(6px); }
+.mission-credit-modal[hidden] { display:none; }
+.mission-credit-dialog { width:min(440px,100%); padding:2rem; border-radius:18px; background:#f8f4e9; color:#17211b; box-shadow:0 30px 90px rgba(0,0,0,.4); }
+.mission-credit-icon { display:grid; width:3rem; height:3rem; place-items:center; border-radius:50%; background:#e8d59c; color:#5d4b1b; font-size:1.4rem; }
+.mission-credit-dialog h2 { margin:1rem 0 .5rem; }
+.mission-credit-dialog p { color:#5f665f; }
+.mission-credit-dialog > div { display:flex; justify-content:flex-end; gap:.75rem; margin-top:1.5rem; }
+.mission-credit-dialog button,.mission-credit-dialog a { padding:.7rem 1rem; border-radius:8px; font-weight:700; text-decoration:none; }
+.mission-credit-dialog button { border:1px solid #b8b8ae; background:transparent; }
+.mission-credit-dialog a { color:#fff; background:#17211b; }
+.mission-modal-open { overflow:hidden; }

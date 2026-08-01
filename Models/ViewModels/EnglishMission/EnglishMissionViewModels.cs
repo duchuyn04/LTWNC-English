@@ -17,4 +17,5 @@ public sealed class EnglishMissionChatViewModel
     public required Models.Entities.EnglishMission Mission { get; set; }
     public IReadOnlyList<EnglishMissionTargetWord> TargetWords { get; set; } = [];
     public IReadOnlyList<EnglishMissionTurn> Turns { get; set; } = [];
+    public int CreditBalance { get; set; }
 }

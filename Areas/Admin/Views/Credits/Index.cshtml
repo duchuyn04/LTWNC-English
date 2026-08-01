@@ -1,0 +1,85 @@
+@model AdminCreditIndexViewModel
+@{
+    ViewData["Title"] = "Tín dụng";
+    ViewData["Heading"] = "Gói và giao dịch tín dụng";
+}
+
+@if (TempData["AdminCreditsSuccess"] is string success)
+{
+    <div class="admin-alert admin-alert--success" data-popup="success">@success</div>
+}
+@if (TempData["AdminCreditsError"] is string error)
+{
+    <div class="admin-alert admin-alert--danger" data-popup="error">@error</div>
+}
+
+<section class="admin-panel">
+    <div class="admin-panel-header">
+        <div>
+            <h2>Gói tín dụng</h2>
+            <p>Quản lý giá, số tín dụng, trạng thái bán và thứ tự hiển thị.</p>
+        </div>
+        <a class="admin-filter-submit" href="/Admin/Credits/Create">Tạo gói</a>
+    </div>
+    <p><a class="admin-text-link" href="/Admin/Credits/Users">Điều chỉnh số dư người dùng</a></p>
+
+    <div class="admin-table-wrapper">
+        <table class="admin-table">
+            <thead>
+                <tr><th>Gói</th><th>Giá</th><th>Tín dụng</th><th>Thứ tự</th><th>Trạng thái</th><th>Thao tác</th></tr>
+            </thead>
+            <tbody>
+            @foreach (AdminCreditPackageRowViewModel package in Model.Packages)
+            {
+                <tr>
+                    <td><strong>@package.Name</strong><small class="admin-muted-line">@package.Description</small></td>
+                    <td>@package.PriceVnd.ToString("N0") đ</td>
+                    <td>@package.Credits.ToString("N0")</td>
+                    <td>@package.DisplayOrder</td>
+                    <td>@(package.IsArchived ? "Đã lưu trữ" : package.IsActive ? "Đang bán" : "Đã tắt")</td>
+                    <td>
+                        <a class="admin-text-link" href="/Admin/Credits/Packages/@package.Id/Edit">Sửa</a>
+                        <form method="post" action="/Admin/Credits/Packages/@package.Id/@(package.IsArchived ? "Unarchive" : "Archive")" class="admin-inline-action-form">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="Version" value="@package.Version" />
+                            <label for="package-reason-@package.Id">Lý do</label>
+                            <input id="package-reason-@package.Id" name="Reason" maxlength="500" required />
+                            <button type="submit" class="admin-filter-submit">@(package.IsArchived ? "Khôi phục" : "Lưu trữ")</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    </div>
+</section>
+
+<section class="admin-panel">
+    <div class="admin-panel-header"><h2>50 lượt mua gần nhất</h2></div>
+    @if (Model.Purchases.Count == 0)
+    {
+        <p class="admin-empty">Chưa có lượt mua nào.</p>
+    }
+    else
+    {
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead><tr><th>Hóa đơn</th><th>Người dùng</th><th>Gói</th><th>Giá</th><th>Tín dụng</th><th>Trạng thái</th><th>Thời gian</th></tr></thead>
+                <tbody>
+                @foreach (AdminCreditPurchaseRowViewModel purchase in Model.Purchases)
+                {
+                    <tr>
+                        <td><strong>@purchase.InvoiceNumber</strong></td>
+                        <td>@purchase.UserDisplay</td>
+                        <td>@purchase.PackageName</td>
+                        <td>@purchase.PriceVnd.ToString("N0") đ</td>
+                        <td>@purchase.Credits.ToString("N0")</td>
+                        <td>@purchase.Status</td>
+                        <td>@purchase.CreatedAtDisplay<small class="admin-muted-line">Đã trả: @purchase.PaidAtDisplay</small></td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

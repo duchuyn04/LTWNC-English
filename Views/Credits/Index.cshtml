@@ -1,0 +1,87 @@
+@model ltwnc.Services.Credits.CreditAccountSnapshot
+@using System.Globalization
+@using ltwnc.Models.Entities
+@{
+    ViewData["Title"] = "Tín dụng AI";
+}
+
+<section class="credit-hero">
+    <div>
+        <span class="credit-kicker">ENGLISH MISSION</span>
+        <h1>Tín dụng AI</h1>
+        <p>Mỗi phản hồi AI được lưu thành công sử dụng 1 tín dụng. Tín dụng không hết hạn.</p>
+    </div>
+    <div class="credit-balance-card">
+        <span>Số dư hiện tại</span>
+        <strong>@Model.Balance</strong>
+        <small>tín dụng</small>
+    </div>
+</section>
+
+@if (TempData["CreditError"] is string error)
+{
+    <div class="alert alert-danger">@error</div>
+}
+
+<section aria-labelledby="packagesTitle">
+    <div class="credit-section-heading">
+        <div><span>01</span><h2 id="packagesTitle">Chọn gói phù hợp</h2></div>
+        <p>Thanh toán an toàn bằng VietQR qua SePay.</p>
+    </div>
+    <div class="credit-package-grid">
+        @foreach (CreditPackage package in Model.Packages)
+        {
+            <article class="credit-package">
+                <span class="credit-package-label">@package.Name</span>
+                <strong>@package.Credits <small>credit</small></strong>
+                <p>@package.Description</p>
+                <div class="credit-package-price">@package.PriceVnd.ToString("N0", CultureInfo.GetCultureInfo("vi-VN")) ₫</div>
+                <form asp-action="Buy" asp-route-packageId="@package.Id" method="post">
+                    <button type="submit" class="btn btn-dark w-100">Mua bằng VietQR</button>
+                </form>
+            </article>
+        }
+    </div>
+</section>
+
+<div class="row g-4 mt-4">
+    <section class="col-lg-6" aria-labelledby="purchaseHistoryTitle">
+        <h2 class="h4" id="purchaseHistoryTitle">Lịch sử mua</h2>
+        <div class="table-responsive credit-history">
+            <table class="table align-middle">
+                <thead><tr><th>Gói</th><th>Giá</th><th>Trạng thái</th><th>Ngày</th></tr></thead>
+                <tbody>
+                @foreach (CreditPurchase purchase in Model.Purchases)
+                {
+                    <tr>
+                        <td>@purchase.PackageName<br /><small>+@purchase.Credits credit</small></td>
+                        <td>@purchase.PriceVnd.ToString("N0") ₫</td>
+                        <td><span class="badge text-bg-@(purchase.Status == CreditPurchaseStatuses.Paid ? "success" : "secondary")">@purchase.Status</span></td>
+                        <td>@purchase.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                }
+                @if (Model.Purchases.Count == 0) { <tr><td colspan="4" class="text-muted">Chưa có giao dịch.</td></tr> }
+                </tbody>
+            </table>
+        </div>
+    </section>
+    <section class="col-lg-6" aria-labelledby="ledgerTitle">
+        <h2 class="h4" id="ledgerTitle">Biến động tín dụng</h2>
+        <div class="table-responsive credit-history">
+            <table class="table align-middle">
+                <thead><tr><th>Nội dung</th><th>Thay đổi</th><th>Số dư</th><th>Ngày</th></tr></thead>
+                <tbody>
+                @foreach (CreditLedgerEntry entry in Model.Ledger)
+                {
+                    <tr>
+                        <td>@entry.Description</td>
+                        <td class="fw-semibold @(entry.Amount > 0 ? "text-success" : "text-danger")">@(entry.Amount > 0 ? "+" : "")@entry.Amount</td>
+                        <td>@entry.BalanceAfter</td>
+                        <td>@entry.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>

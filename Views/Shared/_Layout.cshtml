@@ -1,3 +1,4 @@
+@inject ltwnc.Services.Credits.ICreditService CreditService
 <!DOCTYPE html>
 <html lang="vi">
 <head>
@@ -19,6 +20,12 @@
         var hideLayoutChrome = ViewData["HideLayoutChrome"] as bool? == true;
         var signedIn = User.Identity?.IsAuthenticated == true;
         var currentPath = Context.Request.Path.Value ?? "/";
+        int? creditBalance = null;
+        string? layoutUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (signedIn && !hideLayoutChrome && layoutUserId != null)
+        {
+            creditBalance = await CreditService.GetBalanceAsync(layoutUserId);
+        }
     }
     @if (!hideLayoutChrome)
     {
@@ -35,6 +42,10 @@
                 <div class="app-nav-actions">
                     @if (signedIn)
                     {
+                        <a class="app-nav-credit" href="/Credits" aria-label="@creditBalance tín dụng AI">
+                            <i class="ph ph-lightning" aria-hidden="true"></i>
+                            <span>@creditBalance</span>
+                        </a>
                         <a class="app-nav-account"
                            asp-route="PublicProfile"
                            asp-route-username="@User.Identity?.Name"
@@ -99,6 +110,10 @@
                         <a class="app-drawer-link @(currentPath.StartsWith("/Achievements") ? "is-active" : null)" href="/Achievements">
                             <i class="ph ph-medal" aria-hidden="true"></i>
                             <span>Thành tích</span>
+                        </a>
+                        <a class="app-drawer-link @(currentPath.StartsWith("/Credits") ? "is-active" : null)" href="/Credits">
+                            <i class="ph ph-lightning" aria-hidden="true"></i>
+                            <span>Tín dụng AI (@creditBalance)</span>
                         </a>
                     }
                 </nav>

@@ -87,6 +87,17 @@ public sealed class AuthService : IAuthService
         _db.AppUsers.Add(user);
         // 14. Gọi `Add` để thực hiện bước nghiệp vụ này.
         _db.UserProfiles.Add(new UserProfile { UserId = user.Id, CreatedAt = now, UpdatedAt = now });
+        _db.CreditLedgerEntries.Add(new CreditLedgerEntry
+        {
+            UserId = user.Id,
+            Amount = 10,
+            BalanceAfter = 10,
+            Type = CreditLedgerTypes.WelcomeBonus,
+            SourceType = "UserRegistration",
+            SourceId = user.Id,
+            Description = "Tín dụng chào mừng",
+            CreatedAtUtc = now
+        });
 
         // 15. Thực hiện khối nghiệp vụ và chuyển lỗi sang nhánh xử lý tương ứng.
         try

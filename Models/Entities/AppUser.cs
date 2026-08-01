@@ -14,4 +14,6 @@ public class AppUser
     public DateTimeOffset? LockoutEnd { get; set; }
     public int AccessFailedCount { get; set; }
     public bool IsAdmin { get; set; }
+    public int CreditBalance { get; set; } = 10;
+    public int CreditVersion { get; set; }
 }

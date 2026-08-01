@@ -1,0 +1,67 @@
+@model AdminCreditUserViewModel
+@{
+    ViewData["Title"] = "Điều chỉnh tín dụng";
+    ViewData["Heading"] = "Tín dụng người dùng";
+}
+
+@if (TempData["AdminCreditsSuccess"] is string success)
+{
+    <div class="admin-alert admin-alert--success" data-popup="success">@success</div>
+}
+@if (TempData["AdminCreditsError"] is string error)
+{
+    <div class="admin-alert admin-alert--danger" data-popup="error">@error</div>
+}
+
+<section class="admin-panel">
+    <p><a class="admin-text-link" href="/Admin/Credits">Quay lại gói tín dụng</a></p>
+    <form method="get" action="/Admin/Credits/Users" class="admin-filter-form">
+        <div class="admin-filter-field">
+            <label for="search">Email hoặc tên đăng nhập chính xác</label>
+            <input id="search" name="search" value="@Model.Search" required />
+        </div>
+        <button type="submit" class="admin-filter-submit">Tìm người dùng</button>
+    </form>
+</section>
+
+@if (Model.UserId != null)
+{
+    <section class="admin-panel">
+        <div class="admin-panel-header">
+            <div><h2>@Model.UserName</h2><p>@Model.Email</p></div>
+            <strong>Số dư: @Model.Balance.ToString("N0") tín dụng</strong>
+        </div>
+        <form method="post" action="/Admin/Credits/Users/Adjust" class="admin-filter-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="UserId" value="@Model.UserId" />
+            <input type="hidden" name="CreditVersion" value="@Model.CreditVersion" />
+            <input type="hidden" name="Search" value="@Model.Search" />
+            <div class="admin-filter-field">
+                <label for="operation">Loại điều chỉnh</label>
+                <select id="operation" name="Operation"><option value="Add">Cộng</option><option value="Subtract">Trừ</option></select>
+            </div>
+            <div class="admin-filter-field"><label for="amount">Số tín dụng</label><input id="amount" name="Amount" type="number" min="1" required /></div>
+            <div class="admin-filter-field"><label for="reason">Lý do bắt buộc</label><textarea id="reason" name="Reason" maxlength="500" required></textarea></div>
+            <button type="submit" class="admin-filter-submit">Xác nhận điều chỉnh</button>
+        </form>
+    </section>
+
+    <section class="admin-panel">
+        <div class="admin-panel-header"><h2>30 biến động gần nhất</h2></div>
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead><tr><th>Mã</th><th>Thay đổi</th><th>Số dư sau</th><th>Loại</th><th>Lý do</th><th>Thời gian</th></tr></thead>
+                <tbody>
+                @foreach (AdminCreditLedgerRowViewModel entry in Model.Ledger)
+                {
+                    <tr><td>#@entry.Id</td><td>@entry.Amount.ToString("+#;-#;0")</td><td>@entry.BalanceAfter</td><td>@entry.Type</td><td>@entry.Description</td><td>@entry.CreatedAtDisplay</td></tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+}
+else if (Model.SearchAttempted)
+{
+    <section class="admin-panel"><p class="admin-empty">Không tìm thấy tài khoản khớp chính xác email hoặc tên đăng nhập.</p></section>
+}
