@@ -105,6 +105,7 @@ Cấu hình nằm trong `appsettings.json` local:
 
 ```json
 "AiProviders": {
+  "AllowPrivateNetworks": false,
   "Routing": {
     "OverallTimeoutSeconds": 90
   },
@@ -131,7 +132,7 @@ Router chỉ lấy provider có `IsEnabled = true`, rồi sắp xếp theo:
 3. Thứ tự xuất hiện trong mảng nếu hai provider còn lại giống nhau.
 
 `appsettings.json` bị Git bỏ qua. `appsettings.example.json` chỉ chứa cấu hình
-mẫu và không chứa API key thật.
+mẫu và không chứa API key thật. `AllowPrivateNetworks` mặc định là `false`; chỉ bật thành `true` trong `appsettings.Development.json` khi phát triển với provider localhost/private đáng tin cậy. Provider từ xa vẫn phải dùng HTTPS và DNS private không được phép khi chưa opt-in.
 
 ## Một handler xử lý request ra sao?
 
@@ -173,9 +174,7 @@ Chain chỉ fallback các lỗi đã biết là an toàn:
 - `CryptographicException`.
 - Timeout tổng thể của router được ghi là `TotalTimeout` rồi dừng chain.
 
-Lỗi hủy request do client không bị nuốt để thử provider khác. Những exception
-không nằm trong nhóm fallback cũng được ném ra để middleware hoặc tầng gọi xử
-lý đúng nguyên nhân.
+Lỗi hủy request do client không bị nuốt để thử provider khác; Router trả `OperationCanceledException` mang token của caller và không gọi handler dự phòng. Timeout riêng của provider được adapter chuyển thành `AiProviderUnavailableException` nên có thể fallback, còn total timeout chung ghi `TotalTimeout` và dừng chain. Những exception không nằm trong nhóm fallback cũng được ném ra để middleware hoặc tầng gọi xử lý đúng nguyên nhân.
 
 ## Timeout và log attempt
 
@@ -203,6 +202,10 @@ không còn hiển thị health snapshot hoặc form chỉnh sửa provider.
 Cách này phù hợp với project nhỏ: cấu hình thay đổi cùng deployment, không cần
 thêm workflow quản trị, mã hóa API key trong database hoặc bảng riêng chỉ để
 lưu provider.
+
+## Kiểm thử
+
+Chain được kiểm thử tại [`AiCompletionRouterHardeningTests.cs`](../tests/ltwnc.Tests/Services/Ai/AiCompletionRouterHardeningTests.cs) với stub adapter và InMemory log. Test bao phủ provider enabled/order, unsupported adapter, configuration/unavailable/invalid response, success short-circuit, all-failed safe message, total timeout và caller cancellation.
 
 ## Tự kiểm tra
 

@@ -30,43 +30,16 @@ Người giữ bản sao không cần đọc và sửa từng câu trong đó. H
 
 `CardActionMemento` đóng vai trò bản sao dự phòng. `CardActionService` giữ nó trong lịch sử, còn từng Command biết cách dùng nó để Undo.
 
-## Code trước khi áp dụng Memento
+## Vì sao cần một object Memento rõ ràng?
 
-Cơ chế snapshot và Undo đã tồn tại, nhưng được biểu diễn bằng ba bước rời nhau:
-
-```csharp
-public interface ICardActionCommand
-{
-    Task ExecuteAsync();
-    Task UndoAsync();
-    string GetSnapshotJson();
-    void LoadSnapshot(string json);
-}
-```
-
-Khi thực hiện, service phải nhớ gọi Command rồi lấy snapshot:
+Nếu snapshot chỉ là một chuỗi hoặc state tạm nằm trong Command, caller phải tự nhớ trình tự chụp, giữ và nạp trạng thái. Contract hiện tại gom rõ hai điểm:
 
 ```csharp
-await command.ExecuteAsync();
-string snapshot = command.GetSnapshotJson();
+Task<CardActionMemento> ExecuteAsync();
+Task UndoAsync(CardActionMemento memento);
 ```
 
-Khi hoàn tác, service lại phải nạp snapshot trước khi gọi Undo:
-
-```csharp
-command.LoadSnapshot(log.SnapshotJson);
-await command.UndoAsync();
-```
-
-## Vấn đề của code cũ
-
-`ExecuteAsync()` và snapshot là hai lời gọi riêng. Contract không buộc caller phải lấy snapshot sau khi thực hiện.
-
-`LoadSnapshot()` và `UndoAsync()` cũng là hai lời gọi riêng. Caller có thể quên nạp snapshot hoặc command có thể giữ nhầm snapshot cũ trong field.
-
-`CardActionService` phải biết trình tự sử dụng trạng thái tạm của Command dù service không nên hiểu cách hoàn tác từng loại hành động.
-
-Code đã có ý tưởng của Memento nhưng chưa có object Memento rõ ràng.
+`ExecuteAsync()` luôn trả Memento khi thao tác thành công. `UndoAsync()` nhận Memento trực tiếp, nên Command không phải giữ snapshot mutable trong field và `CardActionService` không cần phân tích JSON.
 
 ## Vì sao chọn Memento?
 
@@ -76,7 +49,7 @@ Chức năng này có ba dấu hiệu phù hợp:
 2. Cần khôi phục đúng trạng thái đó vào một thời điểm sau.
 3. Nơi lưu lịch sử không nên biết cấu trúc snapshot của từng Command.
 
-Snapshot của thao tác đánh sao là một bảng `cardId -> trạng thái sao cũ`. Snapshot của thao tác xóa phải chứa cả thẻ, tiến trình học, chi tiết nghe chép và từ mục tiêu English Mission.
+Snapshot của thao tác đánh sao là một bảng `cardId -> trạng thái sao cũ`. Snapshot của thao tác xóa là root `DeleteCardsSnapshot`, chứa thẻ, `UserProgress`, `ReviewProgress`, `ReviewSessionItem`, metadata `ReviewSession`, chi tiết nghe chép và từ mục tiêu English Mission.
 
 `CardActionService` không cần phân tích hai cấu trúc này. Service chỉ lưu nguyên chuỗi JSON rồi trả nó cho đúng Command khi Undo.
 
@@ -146,14 +119,15 @@ foreach (Flashcard card in cards)
 
 ```mermaid
 flowchart TD
-    A[CardActionService nhận Command] --> B[Command chụp trạng thái cũ]
-    B --> C[Command thay đổi dữ liệu]
-    C --> D[Command trả CardActionMemento]
-    D --> E[Service lưu StateJson vào CardActionLog]
-    E --> F[Commit transaction]
+    A[CardActionService nhận Command] --> B[Command xác thực target]
+    B --> C[Command chụp trạng thái cũ]
+    C --> D[Command thay đổi dữ liệu]
+    D --> E[Command trả CardActionMemento]
+    E --> F[Service lưu StateJson vào CardActionLog]
+    F --> G[Commit transaction]
 ```
 
-Điểm quan trọng là `ExecuteAsync()` không thể thành công mà quên trả Memento. Nếu việc tạo log thất bại, transaction không được commit nên thay đổi của Command cũng bị rollback.
+Điểm quan trọng là validation target và việc chụp snapshot xảy ra trong transaction của `CardActionService`. Nếu command, việc tạo log hoặc commit thất bại, thao tác không được xem là thành công.
 
 ## Luồng hoàn tác
 
@@ -161,10 +135,12 @@ flowchart TD
 flowchart TD
     A[Service đọc CardActionLog] --> B[Factory tạo đúng Command]
     B --> C[Service bọc SnapshotJson thành Memento]
-    C --> D[Command kiểm tra và đọc Memento]
-    D --> E[Command khôi phục trạng thái]
-    E --> F[Service cập nhật UndoneAt]
-    F --> G[Commit transaction]
+    C --> D[Command validate toàn bộ snapshot]
+    D --> E{Có conflict dữ liệu?}
+    E -->|Có| X[Fail, không ghi]
+    E -->|Không| F[Restore theo thứ tự quan hệ]
+    F --> G[Service cập nhật UndoneAt]
+    G --> H[Commit transaction]
 ```
 
 `CardActionService` chỉ làm việc này:
@@ -174,7 +150,7 @@ CardActionMemento memento = new(log.SnapshotJson);
 await command.UndoAsync(memento);
 ```
 
-Service không biết JSON là dictionary trạng thái sao hay danh sách snapshot thẻ đã xóa.
+Service không biết JSON là dictionary trạng thái sao hay root snapshot thẻ đã xóa. Command từ chối JSON lỗi, ID trùng, quan hệ sai hoặc dữ liệu hiện tại đã conflict trước lần ghi đầu tiên. `UndoneAt` chỉ được cập nhật sau khi restore hoàn tất.
 
 ## Command và Memento khác nhau thế nào?
 
@@ -198,25 +174,34 @@ Command chứa hành vi. Memento chứa trạng thái phục vụ hành vi hoàn
 
 Project tiếp tục dùng `CardActionLog.SnapshotJson` vì:
 
-- Không cần migration.
-- Không đổi định dạng JSON cũ.
-- Các log được tạo trước khi refactor vẫn Undo được.
+- Không cần migration hoặc bảng Memento mới.
+- Root JSON mới mở rộng backward-compatible.
+- Snapshot cũ dạng mảng `FlashcardSnapshot[]` vẫn được nhận diện và đọc.
+- Các log được tạo trước khi có dữ liệu Review vẫn Undo được khi không có collection Review.
 
-Khi đọc log cũ, service chỉ bọc chuỗi JSON hiện có:
+Snapshot mới dùng root `DeleteCardsSnapshot` với `Cards` và `ReviewSessions`; các collection Review trong từng card mặc định rỗng khi đọc log cũ.
+
+Khi đọc log, service chỉ bọc chuỗi JSON hiện có:
 
 ```csharp
 new CardActionMemento(log.SnapshotJson)
 ```
 
-## Nếu Memento bị hỏng thì sao?
+## Nếu Memento bị hỏng hoặc dữ liệu đã đổi thì sao?
 
-Command kiểm tra Memento trước khi thay đổi dữ liệu. Chuỗi null, rỗng, JSON sai hoặc JSON giải mã thành `null` đều bị từ chối bằng lỗi:
+Command kiểm tra Memento trước khi thay đổi dữ liệu. Chuỗi null, rỗng, JSON sai, JSON giải mã thành `null`, ID trùng, enum không hợp lệ, quan hệ card/session sai hoặc target không khớp đều bị từ chối bằng lỗi:
 
 ```text
 Dữ liệu hoàn tác không hợp lệ.
 ```
 
+Ngoài cấu trúc snapshot, Undo còn kiểm tra conflict: ID đã được tạo lại, ReviewSession retained đã đổi metadata, hoặc session item hiện tại va chạm. Conflict không merge và không ghi đè dữ liệu mới.
+
 Transaction không commit và `UndoneAt` không được cập nhật. Hệ thống không báo Undo thành công khi dữ liệu chưa được khôi phục đầy đủ.
+
+## Kiểm thử
+
+Round-trip và lifecycle Review được kiểm chứng tại [`DeleteCardsMementoTests.cs`](../tests/ltwnc.Tests/Services/CardActions/DeleteCardsMementoTests.cs). Test bao phủ partial/empty active session, completed/ended session, giữ ID và quan hệ, malformed/duplicate relationship, legacy array snapshot và conflict trước Undo.
 
 ## Tự kiểm tra
 
@@ -234,4 +219,4 @@ Transaction không commit và `UndoneAt` không được cập nhật. Hệ th�
 
 ## Kết luận ngắn
 
-Memento biến snapshot rời rạc thành một object rõ ràng. Command tự tạo và tự dùng Memento, còn `CardActionService` chỉ lưu giữ nó. Nhờ vậy luồng Undo khó bị gọi sai thứ tự hơn mà vẫn giữ nguyên database và dữ liệu lịch sử cũ.
+Memento biến snapshot rời rạc thành một object rõ ràng. Command tự tạo và tự dùng Memento, còn `CardActionService` chỉ lưu giữ nó. Nhờ vậy luồng Undo khó bị gọi sai thứ tự hơn mà vẫn giữ nguyên database và dữ liệu lịch sử cũ. Sau khi acceptance của Ticket 02 và regression suite đã pass, Delete Command/Memento đủ điều kiện được dùng như ví dụ production-ready trong báo cáo.

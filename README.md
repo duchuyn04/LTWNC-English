@@ -79,7 +79,7 @@ Controller phụ thuộc vào interface của application service. Dependency In
 
 ### Prototype
 
-`FlashcardSet` và `Flashcard` triển khai `IPrototype<T>`. `FlashcardSet.Clone()` tạo deep copy các thẻ, giữ nội dung học nhưng reset identity, owner, trạng thái công khai và dữ liệu cá nhân. `FlashcardSetService` gán owner mới trước khi lưu bản sao.
+`FlashcardSet` và `Flashcard` triển khai `IPrototype<T>`. `FlashcardSet.Clone()` tạo deep copy các thẻ, giữ nội dung học nhưng reset identity, owner, trạng thái công khai và dữ liệu cá nhân. `FlashcardSetService` dùng Prototype cho cả copy public và owner duplication; service áp chính sách ReviewSettings, sao và ảnh theo từng flow.
 
 ### Factory Method
 
@@ -113,15 +113,15 @@ Mỗi chế độ học triển khai `IStudyModeStrategy`, ví dụ `FlashcardMo
 
 ### Chain of Responsibility
 
-`AiCompletionRouter` tạo chuỗi `AiProviderFallbackHandler` theo provider được bật trong `appsettings.json`. Mỗi handler thử một adapter; lỗi fallback an toàn được chuyển cho handler kế tiếp, còn kết quả thành công dừng chuỗi.
+`AiCompletionRouter` tạo chuỗi `AiProviderFallbackHandler` theo provider được bật trong `appsettings.json`. Mỗi handler thử một adapter; lỗi fallback an toàn được chuyển cho handler kế tiếp, còn kết quả thành công dừng chuỗi. Primary/priority/declaration order, total timeout và caller cancellation được phân biệt; private-network provider chỉ bật opt-in development.
 
 ### Command
 
-`DeleteCardsCommand`, `StarCardsCommand` và `UnstarCardsCommand` triển khai `ICardActionCommand`. `CardActionService` thực thi mọi command qua cùng một contract, ghi lịch sử và hỗ trợ Undo.
+`DeleteCardsCommand`, `StarCardsCommand` và `UnstarCardsCommand` triển khai `ICardActionCommand`. Domain command xác thực owner/set/ID batch; `DeleteCardsCommand` snapshot cả Review, Dictation và English Mission để Undo nguyên tử trong transaction.
 
 ### Memento
 
-Command chụp trạng thái trước khi thay đổi và trả về `CardActionMemento`. `CardActionService` đóng vai trò Caretaker, lưu memento trong `CardActionLog.SnapshotJson` và truyền lại cho command khi hoàn tác.
+Command chụp trạng thái trước khi thay đổi và trả về `CardActionMemento`. `CardActionService` đóng vai trò Caretaker, lưu memento trong `CardActionLog.SnapshotJson` và truyền lại cho command khi hoàn tác. Snapshot Delete mở rộng backward-compatible; malformed snapshot hoặc conflict hiện tại làm Undo fail trước mutation.
 
 ```mermaid
 flowchart LR
@@ -133,7 +133,7 @@ flowchart LR
 
 ### Observer
 
-`StudyEventPublisher` phát sự kiện tới các implementation của `IStudyEventObserver`. `AchievementStudyObserver` cập nhật thành tích, còn `LoggingStudyObserver` ghi log. Lỗi ở một observer được cô lập để không chặn observer khác hoặc làm hỏng buổi học đã lưu.
+`StudyEventPublisher` phát sự kiện tới các implementation của `IStudyEventObserver`. `AchievementStudyObserver` cập nhật thành tích, còn `LoggingStudyObserver` ghi log. Lỗi thường ở một observer được cô lập, nhưng cancellation của caller được truyền lại và dừng observer phía sau; buổi học đã lưu không bị rollback vì side effect thường.
 
 Các bài giải thích bổ sung về design pattern nằm trong [`explain/`](explain/README.md).
 

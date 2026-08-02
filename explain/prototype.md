@@ -6,17 +6,14 @@ Prototype là cách tạo một bản sao mới từ một object đã có.
 
 Bản sao giống bản gốc ở những phần cần giữ, nhưng hai bản là hai object riêng biệt. Sửa bản sao không làm thay đổi bản gốc.
 
-Trong project này:
+Trong project này, Prototype được dùng cho hai luồng nhân bản:
 
 ```text
-Bộ thẻ của An
-        |
-        | Sao chép
-        v
-Bộ thẻ mới của Bình
+Bộ thẻ công khai của An  --CopyPublicSetAsync-->  Bộ riêng của Bình
+Bộ thẻ của owner         --DuplicateOwnedSetAsync--> Bản sao mới của owner
 ```
 
-Bộ của Bình giữ nội dung học từ bộ của An. Tuy nhiên, nó có ID mới, chủ mới và trạng thái riêng.
+Cả hai luồng đều tạo object và thẻ con mới từ `source.Clone()`. Chúng có ID mới, nhưng quy tắc dữ liệu giữ lại và reset khác nhau theo nghiệp vụ.
 
 Đó là toàn bộ ý tưởng của Prototype.
 
@@ -122,16 +119,16 @@ Lưu database
 
 Method trở nên dài và khó kiểm tra. Khi entity có thêm một thuộc tính, lập trình viên phải nhớ quay lại service để sửa đoạn sao chép.
 
-Code cũ còn sao chép cả `IsStarred` và `UploadedImagePath`. Điều này không đúng với người chủ mới:
+Ở luồng copy public, `IsStarred` và `UploadedImagePath` không được mang sang người học mới:
 
 - `IsStarred` là lựa chọn cá nhân của An, không phải của Bình.
 - `UploadedImagePath` chỉ là đường dẫn đến file ảnh cũ. Chép đường dẫn không tạo ra một file ảnh mới.
 
-Sai sót này xảy ra vì quy tắc sao chép nằm lẫn trong một service đang làm nhiều việc khác.
+Luồng `DuplicateOwnedSetAsync` có nghiệp vụ khác: owner muốn giữ lựa chọn sao và ảnh. Service tạo một file ảnh mới, sao chép ReviewSettings, nhưng không sao chép `ReviewProgress` hay lịch sử học. Hai chính sách khác nhau được đặt ở service sau khi dùng chung `Clone()`, thay vì làm `Clone()` biết người gọi là ai.
 
 ## Vì sao chọn Prototype cho chức năng này?
 
-Chức năng sao chép bộ thẻ có đúng các dấu hiệu phù hợp với Prototype.
+Hai chức năng sao chép bộ thẻ có đúng các dấu hiệu phù hợp với Prototype.
 
 ### Đã có sẵn một object làm mẫu
 
@@ -212,7 +209,7 @@ Bạn chỉ cần biết bốn vị trí:
 | [`IPrototype.cs`](../Models/IPrototype.cs) | Quy định object có thể gọi `Clone()` |
 | [`FlashcardSet.cs`](../Models/Entities/FlashcardSet.cs) | Biết cách sao chép một bộ thẻ |
 | [`Flashcard.cs`](../Models/Entities/Flashcard.cs) | Biết cách sao chép một thẻ |
-| [`FlashcardSetService.cs`](../Services/FlashcardSets/FlashcardSetService.cs) | Kiểm tra điều kiện, gọi `Clone()` và lưu bản sao |
+| [`FlashcardSetService.cs`](../Services/FlashcardSets/FlashcardSetService.cs) | Kiểm tra điều kiện, gọi `Clone()` và lưu bản sao public hoặc bản sao owner |
 
 Tên gọi chuẩn của GoF được ghép như sau:
 
@@ -245,7 +242,7 @@ flowchart TD
     F --> G[Lưu vào database]
 ```
 
-Đoạn code quan trọng nhất chỉ có vài dòng:
+Đoạn code quan trọng nhất của copy public chỉ có vài dòng:
 
 ```csharp
 FlashcardSet copy = source.Clone();
@@ -254,6 +251,7 @@ copy.SourceSetId = source.Id;
 copy.IsPublic = false;
 ```
 
+Với owner duplication, service vẫn bắt đầu bằng `source.Clone()`, sau đó đặt `SourceSetId = null`, tạo tiêu đề hậu tố `(Bản sao)`, giữ `ReviewPaused`/`NewCardQuota`, khôi phục `IsStarred` và sao chép file upload trong transaction.
 Đọc bằng lời:
 
 ```text
@@ -278,7 +276,7 @@ Ghi lại bản sao đến từ bộ nào.
 | Thời gian tạo | Đặt thành thời gian hiện tại |
 | Trạng thái kiểm duyệt | Trở về trạng thái mặc định |
 
-### Từng thẻ
+### Từng thẻ trong copy public
 
 | Dữ liệu | Sau khi sao chép |
 | --- | --- |
@@ -288,6 +286,18 @@ Ghi lại bản sao đến từ bộ nào.
 | Đánh sao | Reset về chưa đánh sao |
 | Đường dẫn ảnh đã upload | Bỏ đi vì file ảnh thật không được sao chép |
 | URL ảnh bên ngoài | Giữ nguyên |
+
+### Owner duplication
+
+| Dữ liệu | Sau khi nhân bản |
+| --- | --- |
+| Nội dung, thứ tự và URL ảnh | Giữ nguyên |
+| ID bộ/thẻ | Reset để database tạo ID mới |
+| Đánh sao | Giữ nguyên |
+| Ảnh upload | Tạo file mới, không dùng chung path |
+| ReviewSettings | Sao chép cấu hình của owner |
+| ReviewProgress và StudySession history | Không sao chép |
+| SourceSetId | Đặt `null` vì đây là bản sao do chính owner tạo |
 
 ## Vì sao phải sao chép cả từng thẻ?
 
@@ -351,13 +361,13 @@ Có thể nhớ như sau:
 
 ## Test kiểm tra điều gì?
 
-Các test tại [`FlashcardSetCloneTests.cs`](../tests/ltwnc.Tests/Services/FlashcardSets/FlashcardSetCloneTests.cs) và [`FlashcardCloneTests.cs`](../tests/ltwnc.Tests/Services/FlashcardSets/FlashcardCloneTests.cs) xác nhận rằng:
+Các test tại [`DuplicateOwnedSetTests.cs`](../tests/ltwnc.Tests/Services/FlashcardSets/DuplicateOwnedSetTests.cs) và [`ReviewHardeningTests.cs`](../tests/ltwnc.Tests/Services/FlashcardSets/ReviewHardeningTests.cs) xác nhận các luồng Prototype hiện tại:
 
-- Bản sao là object mới.
-- Nội dung học vẫn còn đủ.
-- ID và chủ cũ không bị mang theo.
-- Trạng thái đánh sao được reset.
-- Sửa bản sao không ảnh hưởng bản gốc.
+- Copy/duplicate tạo bộ và thẻ mới với ID mới.
+- Copy public reset Review policy và không mang `ReviewProgress`.
+- Owner duplication giữ sao, tạo file ảnh mới và sao chép ReviewSettings.
+- ReviewProgress và StudySession history của nguồn vẫn thuộc nguồn.
+- Lỗi ảnh hoặc database dọn file và không để lại bản sao dở dang.
 
 ## Tự kiểm tra xem đã hiểu chưa
 
@@ -375,6 +385,6 @@ Hãy thử trả lời ba câu sau:
 
 ## Kết luận ngắn
 
-Prototype trong project hoạt động như nút "Tạo một bản giống bộ này".
+Prototype trong project hoạt động như nút "Tạo một bản giống bộ này" cho cả copy public và owner duplication.
 
-Nó giữ nội dung học, tạo object độc lập và reset dữ liệu thuộc về chủ cũ. Sau đó service gán chủ mới và lưu bản sao vào database.
+Nó luôn giữ nội dung học và tạo object độc lập. Copy public reset dữ liệu cá nhân rồi gán learner và source lineage; owner duplication giữ sao, sao chép ReviewSettings/ảnh bằng dữ liệu mới, nhưng không sao chép progress hay lịch sử. Service áp chính sách phù hợp và lưu bản sao vào database.

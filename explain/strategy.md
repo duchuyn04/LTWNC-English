@@ -20,6 +20,7 @@ Flashcard       = xem mặt trước rồi lật thẻ
 Nghe chép       = nghe âm thanh rồi nhập câu trả lời
 Trắc nghiệm     = chọn một đáp án
 English Mission = dùng từ trong hội thoại với AI
+Review          = ôn tập ngắt quãng theo bộ
 ```
 
 Mỗi cách học có luật riêng. Ví dụ, Nghe chép theo câu cần thẻ có `ExampleSentence`, còn English Mission cần ít nhất 3 thẻ.
@@ -87,6 +88,7 @@ StudyService chỉ chọn đúng strategy và gọi nó.
 | Concrete Strategy | [`DictationModeStrategy`](../Services/StudyModes/DictationModeStrategy.cs) |
 | Concrete Strategy | [`QuizModeStrategy`](../Services/StudyModes/QuizModeStrategy.cs) |
 | Concrete Strategy | [`EnglishMissionModeStrategy`](../Services/StudyModes/EnglishMissionModeStrategy.cs) |
+| Concrete Strategy | [`ReviewModeStrategy`](../Services/StudyModes/ReviewModeStrategy.cs) |
 | Context | [`StudyService`](../Services/Study/StudyService.cs) |
 | Bộ chọn | [`StudyModeStrategyResolver`](../Services/StudyModes/StudyModeStrategyResolver.cs) |
 
@@ -140,6 +142,7 @@ flowchart LR
     C -->|Dictation| E[DictationModeStrategy]
     C -->|Quiz| F[QuizModeStrategy]
     C -->|English Mission| G[EnglishMissionModeStrategy]
+    C -->|Review| H[ReviewModeStrategy]
 ```
 
 ## Ví dụ về sự khác nhau giữa các strategy
@@ -151,6 +154,8 @@ flowchart LR
 `QuizModeStrategy` còn hỏi `QuizQuestionFactory` xem dữ liệu hiện tại có đủ để tạo câu hỏi hay không.
 
 `EnglishMissionModeStrategy` chỉ cho phép bắt đầu khi có ít nhất 3 thẻ phù hợp.
+
+`ReviewModeStrategy` là mode độc lập theo bộ. Nó chỉ trả thẻ cho owner khi bộ không bị tạm dừng Review, rồi tạo option dẫn tới `/Review/Set/{setId}`.
 
 Mỗi luật nằm trong class của đúng chế độ.
 
@@ -174,4 +179,4 @@ Trong project này, Strategy chủ yếu chịu trách nhiệm chọn thẻ và 
 
 ## Kết luận ngắn
 
-Strategy giúp project xem mỗi chế độ học là một cách xử lý có thể thay thế. `StudyService` điều phối, còn từng strategy giữ luật riêng của Flashcard, Nghe chép, Trắc nghiệm hoặc English Mission.
+Strategy giúp project xem mỗi chế độ học là một cách xử lý có thể thay thế. `StudyService` điều phối, còn từng strategy giữ luật riêng của Flashcard, Nghe chép, Trắc nghiệm, English Mission và Review.

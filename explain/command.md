@@ -68,12 +68,13 @@ Command cũng cho phép `CardActionService` xử lý mọi thao tác theo cùng 
 
 ```text
 Mở transaction
-Chạy command và nhận Memento
+Command xác thực target và chạy
+Nhận Memento
 Lưu Memento vào lịch sử
 Commit
 ```
 
-Service không cần biết command đang xóa hay đánh sao.
+Validation nằm trong domain command chứ không chỉ dựa vào controller: user phải sở hữu bộ, ID phải hợp lệ, không trùng, thuộc đúng bộ và tồn tại. Vì vậy Delete/Star/Unstar đều thất bại trước mutation nếu target batch có một phần sai. Service không cần biết command đang xóa hay đánh sao.
 
 ## Command nằm ở đâu trong project?
 
@@ -128,7 +129,7 @@ Thẻ 8 trước đây: chưa đánh sao
 
 `StarCardsCommand.UndoAsync(memento)` đọc trạng thái trong Memento rồi trả từng thẻ về giá trị cũ.
 
-Xóa phức tạp hơn. `DeleteCardsCommand` phải giữ nội dung thẻ và dữ liệu liên quan như tiến trình học, chi tiết nghe chép và từ mục tiêu của English Mission. Nếu chỉ giữ ID thẻ, project không đủ dữ liệu để tạo lại bản ghi đã xóa.
+Xóa phức tạp hơn. `DeleteCardsCommand` phải giữ nội dung thẻ và dữ liệu liên quan như `UserProgress`, `ReviewProgress`, `ReviewSessionItem`, metadata của `ReviewSession`, chi tiết nghe chép và từ mục tiêu của English Mission. Với active ReviewSession bị xóa hết item, snapshot còn ghi session đã bị cleanup để Undo tạo lại; session completed/ended giữ shell và metadata, chỉ khôi phục item. Nếu chỉ giữ ID thẻ, project không đủ dữ liệu để tạo lại bản ghi đã xóa.
 
 ## Luồng thực hiện
 
@@ -146,11 +147,13 @@ flowchart TD
 
 Khi người dùng bấm Hoàn tác:
 
-1. `CardActionService` đọc `CardActionLog`.
+1. `CardActionService` mở transaction và đọc `CardActionLog` của đúng user.
 2. Factory tạo lại đúng loại command từ `ActionType`.
 3. Service bọc `SnapshotJson` cũ thành `CardActionMemento`.
-4. Service gọi `command.UndoAsync(memento)`.
-5. Log được đánh dấu đã hoàn tác để không chạy hai lần.
+4. Command kiểm tra toàn bộ cấu trúc snapshot, quan hệ ID và conflict dữ liệu hiện tại trước lần ghi đầu tiên.
+5. Command khôi phục theo thứ tự quan hệ: thẻ, session cha, progress và item/dữ liệu con.
+6. Chỉ khi toàn bộ restore thành công, log mới được đánh dấu `UndoneAt`.
+7. Transaction commit; lỗi malformed, conflict hoặc lỗi persistence làm toàn bộ Undo thất bại và không ghi đè dữ liệu mới.
 
 ```csharp
 ICardActionCommand command = _commandFactory.Create(
@@ -162,6 +165,10 @@ ICardActionCommand command = _commandFactory.Create(
 CardActionMemento memento = new(log.SnapshotJson);
 await command.UndoAsync(memento);
 ```
+
+## Acceptance và kiểm thử
+
+Các test tại [`CardActionServiceTests.cs`](../tests/ltwnc.Tests/Services/CardActions/CardActionServiceTests.cs) kiểm chứng owner/cross-set/ID batch và Star/Unstar Undo all-or-nothing. Test round-trip Delete/Memento tại [`DeleteCardsMementoTests.cs`](../tests/ltwnc.Tests/Services/CardActions/DeleteCardsMementoTests.cs) kiểm chứng Review, Dictation, English Mission, lifecycle session, malformed/legacy snapshot và conflict trước restore.
 
 ## Vì sao không chỉ viết một method cho mỗi thao tác?
 

@@ -78,7 +78,7 @@ StudyService phát sự kiện. Các observer tự phản ứng.
 | Concrete Observer | [`AchievementStudyObserver`](../Services/Achievements/AchievementStudyObserver.cs) |
 | Concrete Observer | [`LoggingStudyObserver`](../Services/StudyEvents/LoggingStudyObserver.cs) |
 | Thông báo | [`StudyEvents.cs`](../Services/StudyEvents/StudyEvents.cs) |
-| Nơi phát sự kiện | `StudyService`, `QuizService`, `DictationService` |
+| Nơi phát sự kiện | `StudyService`, `QuizService`, `DictationService`, `EnglishMissionService` |
 
 Interface Observer chỉ yêu cầu một method:
 
@@ -122,7 +122,7 @@ await _studyEvents.PublishAsync(new StudySessionCompletedEvent(
 
 ## Vì sao phát sự kiện sau khi lưu database?
 
-Project gọi `SaveChangesAsync()` trước rồi mới publish.
+Project gọi `SaveChangesAsync()` trước rồi mới publish trong các luồng hiện có: `CardProgressChanged`, `StudySessionCompleted` và `DictationAnswerChecked`.
 
 ```text
 Lưu kết quả học thành công
@@ -133,17 +133,19 @@ Phát sự kiện cho observer
 
 Nhờ vậy observer đọc database sẽ thấy dữ liệu mới nhất. Thành tích cũng không được mở dựa trên một buổi học chưa lưu thành công.
 
-## Nếu một Observer bị lỗi thì sao?
+## Nếu một Observer bị lỗi hoặc request bị hủy thì sao?
 
-`StudyEventPublisher` gọi từng observer trong `try/catch` riêng.
+`StudyEventPublisher` gọi từng observer tuần tự và cô lập lỗi thường của từng observer.
 
-Nếu observer thành tích lỗi:
+Nếu observer thành tích hoặc logging ném exception thông thường:
 
-- Lỗi được ghi log.
+- Lỗi được ghi log cùng loại observer, loại event và user.
 - Observer tiếp theo vẫn được gọi.
 - Buổi học đã lưu không bị báo thất bại chỉ vì chức năng phụ lỗi.
 
-Đây là quyết định của project vì thành tích và logging là phản ứng phụ. Chúng không được phá hỏng nghiệp vụ học chính.
+Cancellation là nhánh khác. Publisher truyền request token vào observer, kiểm tra token trước/sau mỗi lần gọi, truyền lại `OperationCanceledException` và không gọi observer phía sau khi request đã hủy. Vì vậy không được bắt cancellation như lỗi thường để tiếp tục chain.
+
+Đây là quyết định của project vì thành tích và logging là phản ứng phụ, còn cancellation là tín hiệu điều khiển của caller.
 
 ## DI thay cho Attach và Detach
 
@@ -152,6 +154,10 @@ Trong sách GoF, Subject thường có method `Attach()` để đăng ký observ
 Project dùng dependency injection. Các observer được đăng ký trong `Program.cs`, rồi ASP.NET Core đưa danh sách đó vào `StudyEventPublisher`.
 
 Ý nghĩa vẫn giống nhau: publisher có danh sách người nghe, nhưng việc đăng ký diễn ra khi ứng dụng khởi động.
+
+## Kiểm thử
+
+Publisher được kiểm chứng trực tiếp tại [`StudyEventPublisherTests.cs`](../tests/ltwnc.Tests/Services/StudyEvents/StudyEventPublisherTests.cs) với success/order, ordinary failure continuation, contextual error logging, cancellation propagation và suppression của observer phía sau.
 
 ## Tự kiểm tra
 

@@ -68,6 +68,22 @@ API OpenAI lại cần request có dạng:
 
 Hai bên không dùng cùng cấu trúc. Adapter là nơi phù hợp để dịch giữa chúng.
 
+Provider Xiaomi-compatible dùng cùng request contract nhưng thay trường giới hạn token:
+
+```json
+{
+  "model": "model-id",
+  "messages": [
+    { "role": "system", "content": "..." },
+    { "role": "user", "content": "..." }
+  ],
+  "max_completion_tokens": 800,
+  "temperature": 0.3
+}
+```
+
+Hai trường `max_tokens` và `max_completion_tokens` là hai biến thể loại trừ nhau; Adapter chọn biến thể Xiaomi dựa trên host `xiaomimimo.com`.
+
 Nếu sau này thêm một provider có giao thức khác, project có thể tạo adapter mới mà không đổi contract của Router.
 
 ## Adapter nằm ở đâu trong project?
@@ -121,10 +137,11 @@ var openAiRequest = new OpenAiChatRequest(
         new OpenAiChatMessage("user", request.UserPrompt)
     ],
     request.MaxTokens,
+    null,
     0.3m);
 ```
 
-Nó cũng lấy nội dung từ response OpenAI và chuyển lỗi giao thức thành lỗi ứng dụng.
+Nó cũng lấy nội dung từ response OpenAI và chuyển lỗi giao thức thành lỗi ứng dụng. Với Xiaomi-compatible, lời gọi tương đương truyền `null` cho `max_tokens` và `request.MaxTokens` cho `max_completion_tokens`.
 
 ### Adaptee
 
@@ -196,6 +213,10 @@ Lỗi tạm thời OpenAI -> AiProviderUnavailableException
 ```
 
 Router dựa vào loại lỗi ứng dụng để quyết định có thử provider tiếp theo hay không.
+
+## Kiểm thử
+
+Adapter được kiểm thử qua HTTP boundary giả lập, không gọi provider thật: [`OpenAiCompatibleAdapterTests.cs`](../tests/ltwnc.Tests/Services/Ai/OpenAiCompatibleAdapterTests.cs). Các case bao phủ request thường, hai biến thể giới hạn token, response thiếu/rỗng, lỗi JSON, lỗi cấu hình, kết nối, timeout và chính sách private-network opt-in.
 
 ## Tự kiểm tra
 
