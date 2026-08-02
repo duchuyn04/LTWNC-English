@@ -4,7 +4,7 @@ namespace ltwnc.Services.StudyEvents;
 
 // Subject cụ thể: phát sự kiện học cho mọi observer.
 // Observer lấy từ DI lúc startup (tương đương Attach trong sách GoF).
-// Một observer lỗi chỉ log, không dừng chuỗi và không phá buổi học.
+// Lỗi thường của observer chỉ log; cancellation của request được truyền lại caller.
 public class StudyEventPublisher : IStudyEventPublisher
 {
     // Danh sách observer đã AddScoped trong Program.cs
@@ -27,14 +27,22 @@ public class StudyEventPublisher : IStudyEventPublisher
     // Gọi OnStudyEventAsync từng observer; catch từng cái
     public async Task PublishAsync(StudyEvent studyEvent, CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         // 1. Duyệt từng `observer` trong `_observers` để xử lý lần lượt.
         foreach (IStudyEventObserver observer in _observers)
         {
+            cancellationToken.ThrowIfCancellationRequested();
+
             // 2. Thực hiện khối nghiệp vụ và chuyển lỗi sang nhánh xử lý tương ứng.
             try
             {
                 // 3. Gọi `OnStudyEventAsync` để thực hiện bước nghiệp vụ này.
                 await observer.OnStudyEventAsync(studyEvent, cancellationToken);
+            }
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+            {
+                throw;
             }
             catch (Exception ex)
             {
@@ -47,6 +55,8 @@ public class StudyEventPublisher : IStudyEventPublisher
                     studyEvent.GetType().Name,
                     studyEvent.UserId);
             }
+
+            cancellationToken.ThrowIfCancellationRequested();
         }
     }
 }
