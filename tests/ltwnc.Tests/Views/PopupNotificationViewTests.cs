@@ -26,7 +26,6 @@ public sealed class PopupNotificationViewTests
     [InlineData("Views/Study/Index.cshtml")]
     [InlineData("Views/Study/Quiz.cshtml")]
     [InlineData("Views/Study/QuizResult.cshtml")]
-    [InlineData("Areas/Admin/Views/AiProviders/Index.cshtml")]
     [InlineData("Areas/Admin/Views/ContentReports/Index.cshtml")]
     [InlineData("Areas/Admin/Views/Dashboard/Index.cshtml")]
     [InlineData("Areas/Admin/Views/Users/Details.cshtml")]

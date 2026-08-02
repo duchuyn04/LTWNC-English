@@ -11,6 +11,7 @@ using System.Threading.RateLimiting;
 using ltwnc.Areas.Admin;
 using ltwnc.Data;
 using ltwnc.Services.Achievements;
+using ltwnc.Services.Ai;
 using ltwnc.Services.Auth;
 using ltwnc.Services.CardActions;
 using ltwnc.Services.FlashcardSets;
@@ -272,10 +273,11 @@ else
 {
     builder.Services.AddDataProtection();
 }
-builder.Services.AddScoped<ltwnc.Services.Ai.OpenAiCompatibleApiClient>();
-builder.Services.AddScoped<ltwnc.Services.Ai.IAiProviderAdapter, ltwnc.Services.Ai.OpenAiCompatibleAdapter>();
-builder.Services.AddScoped<ltwnc.Services.Ai.IAiCompletionRouter, ltwnc.Services.Ai.AiCompletionRouter>();
-builder.Services.AddScoped<ltwnc.Services.Ai.IAiProviderService, ltwnc.Services.Ai.AiProviderService>();
+builder.Services.AddOptions<AiProvidersOptions>()
+    .Bind(builder.Configuration.GetSection("AiProviders"));
+builder.Services.AddScoped<OpenAiCompatibleApiClient>();
+builder.Services.AddScoped<IAiProviderAdapter, OpenAiCompatibleAdapter>();
+builder.Services.AddScoped<IAiCompletionRouter, AiCompletionRouter>();
 builder.Services.AddScoped<ltwnc.Services.EnglishMission.IEnglishMissionService, ltwnc.Services.EnglishMission.EnglishMissionService>();
 
 

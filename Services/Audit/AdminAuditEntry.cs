@@ -9,11 +9,6 @@ public static class AdminAuditActions
     public const string ContentReportsDismiss = "ContentReports.Dismiss";
     public const string ContentReportsQuarantine = "ContentReports.Quarantine";
     public const string ContentSetsRestore = "ContentSets.Restore";
-    public const string AiProvidersCreate = "AiProviders.Create";
-    public const string AiProvidersUpdate = "AiProviders.Update";
-    public const string AiProvidersSetPrimary = "AiProviders.SetPrimary";
-    public const string AiProvidersDisable = "AiProviders.Disable";
-    public const string AiProvidersEnable = "AiProviders.Enable";
     public const string CreditPackagesCreate = "Credits.Packages.Create";
     public const string CreditPackagesUpdate = "Credits.Packages.Update";
     public const string CreditPackagesArchive = "Credits.Packages.Archive";

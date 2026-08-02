@@ -26,32 +26,17 @@ Request theo chuẩn OpenAI
 
 ## Trước khi Adapter được chuẩn hóa, code triển khai ra sao?
 
-Project đã có class tên `OpenAiCompatibleAdapter`, nhưng ban đầu class này chỉ chuyển tiếp lời gọi:
+Nếu Router gọi thẳng `OpenAiCompatibleApiClient`, Router sẽ phải biết đồng thời:
 
-```csharp
-public Task<string> CompleteAsync(
-    AiProvider provider,
-    string? apiKey,
-    AiCompletionRequest request,
-    CancellationToken cancellationToken)
-{
-    return _client.CompleteAsync(
-        provider,
-        apiKey,
-        request,
-        cancellationToken);
-}
-```
-
-Việc chuyển dữ liệu thật sự lại nằm trong `OpenAiCompatibleClient`. Client này phải biết đồng thời:
-
-- Entity EF `AiProvider` của project.
+- Cấu hình provider từ `appsettings.json`.
 - Request ứng dụng `AiCompletionRequest`.
 - JSON và endpoint của OpenAI.
 - Cách phân loại lỗi cho ứng dụng.
 - Cách gửi HTTP.
 
-Adapter khi đó gần như một lớp chuyển tiếp. Ranh giới giữa ứng dụng và giao thức OpenAI chưa rõ.
+Khi đó logic fallback và logic giao thức bên ngoài bị trộn trong cùng một luồng.
+Adapter tạo một ranh giới rõ: Router nói contract của application, còn client
+nói HTTP OpenAI.
 
 ## Vì sao áp dụng Adapter đúng nghĩa cho chức năng này?
 
@@ -89,7 +74,7 @@ Nếu sau này thêm một provider có giao thức khác, project có thể t�
 
 | Vai trò GoF | Code |
 | --- | --- |
-| Client | [`AiCompletionRouter`](../Services/Ai/AiCompletionRouter.cs), [`AiProviderService`](../Services/Ai/AiProviderService.cs) |
+| Client | [`AiCompletionRouter`](../Services/Ai/AiCompletionRouter.cs) |
 | Target | [`IAiProviderAdapter`](../Services/Ai/AiProviderAdapterContracts.cs) |
 | Adapter | [`OpenAiCompatibleAdapter`](../Services/Ai/OpenAiCompatibleAdapter.cs) |
 | Adaptee | [`OpenAiCompatibleApiClient`](../Services/Ai/OpenAiCompatibleApiClient.cs) |
@@ -97,7 +82,7 @@ Nếu sau này thêm một provider có giao thức khác, project có thể t�
 
 ```mermaid
 flowchart LR
-    A[Router và Provider Service] --> B[IAiProviderAdapter]
+    A[Router và fallback chain] --> B[IAiProviderAdapter]
     B --> C[OpenAiCompatibleAdapter]
     C --> D[OpenAiCompatibleApiClient]
     D --> E[OpenAI compatible API]
@@ -107,9 +92,10 @@ flowchart LR
 
 ### Client
 
-`AiCompletionRouter` chọn provider theo độ ưu tiên, xử lý fallback, timeout tổng và ghi log vận hành.
+`AiCompletionRouter` và `AiProviderFallbackHandler` chọn provider theo cấu hình,
+xử lý fallback, timeout tổng và ghi log vận hành.
 
-Router chỉ biết `IAiProviderAdapter`. Nó không tạo JSON OpenAI.
+Các class này chỉ biết `IAiProviderAdapter`. Chúng không tạo JSON OpenAI.
 
 ### Target
 
@@ -179,19 +165,24 @@ public sealed record AiProviderConnection(
     int TimeoutSeconds);
 ```
 
-Nếu Adapter nhận trực tiếp entity `AiProvider`, ranh giới AI sẽ phụ thuộc vào database của project. Thay cách lưu provider có thể làm Adapter phải đổi dù giao thức bên ngoài không đổi.
+Nếu Adapter nhận trực tiếp object options đầy đủ hoặc JSON cấu hình, ranh giới AI
+sẽ phụ thuộc vào cách lưu cấu hình của project. `AiProviderConnection` giữ
+contract runtime nhỏ và ổn định dù cấu hình chuyển từ database sang
+`appsettings.json`.
 
-Router chuyển entity thành `AiProviderConnection` trước khi gọi Adapter.
+`AiProviderFallbackHandler` chuyển `AiProviderOptions` thành
+`AiProviderConnection` trước khi gọi Adapter.
 
 ## Vì sao API key được truyền riêng?
 
-API key không nằm trong `AiProviderConnection`. Router giải mã key ngay trước lời gọi rồi truyền bằng tham số riêng.
+API key không nằm trong `AiProviderConnection`. Handler đọc key từ options và
+truyền bằng tham số riêng ngay trước lời gọi Adapter.
 
-Cách này giảm nguy cơ secret xuất hiện trong:
+Cách này giữ secret ngoài:
 
-- Debug output của record.
-- Log vận hành.
-- Code chỉ cần đọc cấu hình không bí mật.
+- `AiProviderConnection` và các log runtime.
+- Request JSON nội bộ của Adapter.
+- Các object chỉ cần đọc cấu hình kết nối.
 
 ## Adapter chuyển lỗi ra sao?
 

@@ -2,7 +2,9 @@ using ltwnc.Areas.Admin;
 using ltwnc.Areas.Admin.Models;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
+using ltwnc.Services.Ai;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 
 namespace ltwnc.Services.AdminDashboard;
 
@@ -14,11 +16,16 @@ public sealed class AdminDashboardService
 
     private readonly AppDbContext _context;
     private readonly TimeProvider _timeProvider;
+    private readonly AiProvidersOptions _aiProviders;
 
-    public AdminDashboardService(AppDbContext context, TimeProvider timeProvider)
+    public AdminDashboardService(
+        AppDbContext context,
+        TimeProvider timeProvider,
+        IOptions<AiProvidersOptions> aiProviders)
     {
         _context = context;
         _timeProvider = timeProvider;
+        _aiProviders = aiProviders.Value;
     }
 
     public async Task<AdminDashboardViewModel> GetAsync(
@@ -61,17 +68,6 @@ public sealed class AdminDashboardService
             .AsNoTracking()
             .CountAsync(report => report.Status == ContentReportStatus.Pending, cancellationToken);
 
-        AiProviderRow? primaryProvider = await _context.AiProviders
-            .AsNoTracking()
-            .Where(provider => provider.IsPrimary)
-            .OrderBy(provider => provider.Id)
-            .Select(provider => new AiProviderRow(
-                provider.Name,
-                provider.IsEnabled,
-                provider.LastCheckSucceeded,
-                provider.LastCheckedAt))
-            .FirstOrDefaultAsync(cancellationToken);
-
         return new AdminDashboardViewModel
         {
             From = from,
@@ -79,7 +75,7 @@ public sealed class AdminDashboardService
             Today = today,
             RangeError = error,
             PendingReportCount = pendingReportCount,
-            AiStatus = BuildAiStatus(primaryProvider),
+            AiStatus = BuildAiStatus(_aiProviders),
             Activity = BuildActivity(from, to, sessions, nowUtc),
             NewUsers = BuildNewUsers(from, to, newUserCreatedAt),
             Reports = BuildReports(from, to, reportCreatedAt)
@@ -203,30 +199,26 @@ public sealed class AdminDashboardService
         return counts.Select(item => new AdminDashboardReportDay(item.Key, item.Value)).ToArray();
     }
 
-    private static AdminDashboardAiStatus BuildAiStatus(AiProviderRow? provider)
+    private static AdminDashboardAiStatus BuildAiStatus(AiProvidersOptions options)
     {
+        AiProviderOptions? provider = (options.Providers ?? [])
+            .Where(candidate => candidate.IsEnabled)
+            .OrderByDescending(candidate => candidate.IsPrimary)
+            .ThenBy(candidate => candidate.Priority)
+            .FirstOrDefault();
+
         if (provider == null)
         {
-            return new AdminDashboardAiStatus(false, "AI cần cấu hình", "Chưa có provider chính.");
+            return new AdminDashboardAiStatus(
+                false,
+                "AI chưa cấu hình",
+                "Thêm provider trong appsettings.json.");
         }
 
-        if (!provider.IsEnabled)
-        {
-            return new AdminDashboardAiStatus(false, "AI đang tắt", $"Provider {provider.Name} đang bị tắt.");
-        }
-
-        if (provider.LastCheckSucceeded != true)
-        {
-            string detail = provider.LastCheckSucceeded == false
-                ? $"Lần kiểm tra gần nhất của {provider.Name} thất bại."
-                : $"Provider {provider.Name} chưa được kiểm tra kết nối.";
-            return new AdminDashboardAiStatus(false, "AI cần kiểm tra", detail);
-        }
-
-        string checkedAt = provider.LastCheckedAt.HasValue
-            ? $"Kiểm tra lúc {AdminTimeZone.ToVietnamTime(provider.LastCheckedAt.Value):HH:mm dd/MM/yyyy}."
-            : "Kết nối gần nhất thành công.";
-        return new AdminDashboardAiStatus(true, "AI hoạt động", checkedAt);
+        return new AdminDashboardAiStatus(
+            true,
+            "AI đã cấu hình",
+            $"Provider đang ưu tiên: {provider.Name}.");
     }
 
     private static DateTime ToUtc(DateOnly date, TimeOnly time)
@@ -237,9 +229,4 @@ public sealed class AdminDashboardService
 
     private sealed record StudySessionRow(DateTime StartedAt, DateTime? CompletedAt);
 
-    private sealed record AiProviderRow(
-        string Name,
-        bool IsEnabled,
-        bool? LastCheckSucceeded,
-        DateTime? LastCheckedAt);
 }

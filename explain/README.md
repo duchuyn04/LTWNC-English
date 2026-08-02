@@ -19,9 +19,10 @@ Các tài liệu trong thư mục này dành cho người mới học lập trì
 | Factory Method | Tạo đúng Command từ loại thao tác | [Đọc Factory Method](factory.md) |
 | Observer | Phát sự kiện học cho thành tích và logging | [Đọc Observer](observer.md) |
 | State | Xử lý lịch ôn theo giai đoạn ghi nhớ | [Đọc State](state.md) |
+| Chain of Responsibility | Fallback lần lượt qua các provider AI | [Đọc Chain of Responsibility](chain-of-responsibility.md) |
 | Adapter | Chuyển đổi giữa contract ứng dụng và API OpenAI | [Đọc Adapter](adapter.md) |
 | Decorator | Bổ sung cache cho thư viện công khai | [Đọc Decorator](decorator.md) |
 
 ## Thứ tự đọc gợi ý
 
-Đọc `Prototype` trước vì mẫu này ít thành phần nhất. Sau đó đọc `Strategy`, `Command`, `Memento` và `Factory Method`. Các tài liệu còn lại là `Observer`, `State`, `Adapter` và `Decorator`; chúng liên quan nhiều object phối hợp với nhau hơn.
+Đọc `Prototype` trước vì mẫu này ít thành phần nhất. Sau đó đọc `Strategy`, `Command`, `Memento` và `Factory Method`. Các tài liệu còn lại là `Observer`, `State`, `Chain of Responsibility`, `Adapter` và `Decorator`; chúng liên quan nhiều object phối hợp với nhau hơn.

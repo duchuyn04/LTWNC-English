@@ -14,7 +14,7 @@
 - Thao tác hàng loạt xóa, đánh sao, bỏ sao và hoàn tác từ lịch sử.
 - Thành tích, tiến độ học và thông báo sự kiện sau mỗi hoạt động.
 - Quản trị người dùng, báo cáo nội dung, audit log và AI provider.
-- AI provider tương thích OpenAI, hỗ trợ mã hóa API key, kiểm tra kết nối và fallback theo độ ưu tiên.
+- AI provider tương thích OpenAI, cấu hình từ `appsettings.json` và fallback theo độ ưu tiên.
 
 ## Công nghệ
 
@@ -62,7 +62,7 @@ ltwnc/
 
 Controller phụ thuộc vào interface của application service. Dependency Injection trong `Program.cs` chịu trách nhiệm ghép implementation, decorator, strategy, observer và command creator.
 
-## 9 mẫu thiết kế GoF
+## 10 mẫu thiết kế GoF
 
 | Nhóm | Mẫu | Vị trí áp dụng |
 | --- | --- | --- |
@@ -72,6 +72,7 @@ Controller phụ thuộc vào interface của application service. Dependency In
 | Cấu trúc | Decorator | Bổ sung cache cho thư viện công khai |
 | Hành vi | Strategy | Chọn cách lấy thẻ theo chế độ học |
 | Hành vi | State | Xử lý lịch ôn theo giai đoạn ghi nhớ |
+| Hành vi | Chain of Responsibility | Fallback lần lượt qua các provider AI |
 | Hành vi | Command | Đóng gói thao tác hàng loạt trên thẻ |
 | Hành vi | Memento | Lưu trạng thái để hoàn tác command |
 | Hành vi | Observer | Phát sự kiện học cho thành tích và logging |
@@ -109,6 +110,10 @@ Mỗi chế độ học triển khai `IStudyModeStrategy`, ví dụ `FlashcardMo
 ### State
 
 `ReviewStateMachine` là Context. Bốn concrete state `NewReviewState`, `LearningReviewState`, `ReviewingReviewState` và `RelearningReviewState` xử lý rating và quyết định transition tiếp theo mà không đưa toàn bộ điều kiện nghiệp vụ vào `ReviewService`.
+
+### Chain of Responsibility
+
+`AiCompletionRouter` tạo chuỗi `AiProviderFallbackHandler` theo provider được bật trong `appsettings.json`. Mỗi handler thử một adapter; lỗi fallback an toàn được chuyển cho handler kế tiếp, còn kết quả thành công dừng chuỗi.
 
 ### Command
 
@@ -185,7 +190,34 @@ dotnet run
 
 ## AI provider
 
-Provider được quản lý tại `/Admin/AiProviders`. API key là tùy chọn và được mã hóa bằng ASP.NET Core Data Protection. Provider từ xa phải dùng HTTPS; HTTP chỉ được chấp nhận cho localhost hoặc loopback.
+Provider được cấu hình trong `AiProviders:Providers` của `appsettings.json`; project không còn màn hình Admin để chỉnh provider. `appsettings.json` đã nằm trong `.gitignore`, còn `appsettings.example.json` chỉ chứa giá trị mẫu không có API key thật.
+
+Ví dụ cấu hình:
+
+```json
+{
+  "AiProviders": {
+    "Routing": {
+      "OverallTimeoutSeconds": 90
+    },
+    "Providers": [
+      {
+        "Name": "Example provider",
+        "AdapterType": "OpenAICompatible",
+        "BaseUrl": "https://your-provider.example/v1",
+        "ModelId": "your-model-id",
+        "ApiKey": "",
+        "IsEnabled": true,
+        "IsPrimary": true,
+        "Priority": 1,
+        "TimeoutSeconds": 60
+      }
+    ]
+  }
+}
+```
+
+API key chỉ được truyền cho adapter lúc gọi. Provider từ xa phải dùng HTTPS; HTTP chỉ được chấp nhận cho localhost hoặc loopback.
 
 Để cấp quyền admin cho tài khoản đã đăng ký:
 

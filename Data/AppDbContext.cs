@@ -28,7 +28,6 @@ public class AppDbContext : DbContext
 
     // Bảng thành tích (huy hiệu) user đã mở khóa — do Observer ghi khi có sự kiện học
     public DbSet<UserAchievement> UserAchievements => Set<UserAchievement>();
-    public DbSet<AiProvider> AiProviders => Set<AiProvider>();
     public DbSet<EnglishMission> EnglishMissions => Set<EnglishMission>();
     public DbSet<EnglishMissionTargetWord> EnglishMissionTargetWords => Set<EnglishMissionTargetWord>();
     public DbSet<EnglishMissionTurn> EnglishMissionTurns => Set<EnglishMissionTurn>();
@@ -273,23 +272,6 @@ public class AppDbContext : DbContext
                   .WithMany()
                   .HasForeignKey(e => e.StudySessionId)
                   .OnDelete(DeleteBehavior.Cascade);
-        });
-
-        builder.Entity<AiProvider>(entity =>
-        {
-            entity.HasIndex(provider => new { provider.IsEnabled, provider.Priority });
-            // Chỉ cho phép tối đa một provider chính trong database.
-            entity.HasIndex(provider => provider.IsPrimary)
-                .IsUnique()
-                .HasFilter("[IsPrimary] = 1");
-            entity.Property(provider => provider.Name).HasMaxLength(120).IsRequired();
-            entity.Property(provider => provider.AdapterType).HasMaxLength(80).IsRequired();
-            entity.Property(provider => provider.BaseUrl).HasMaxLength(500).IsRequired();
-            entity.Property(provider => provider.ModelId).HasMaxLength(200).IsRequired();
-            entity.Property(provider => provider.ApiKeyLastFour).HasMaxLength(4);
-            // Khóa phiên bản lạc quan: mọi lệnh UPDATE đều kiểm tra giá trị cũ
-            // để chặn hai quản trị viên ghi đè thay đổi của nhau.
-            entity.Property(provider => provider.Version).IsConcurrencyToken();
         });
 
         builder.Entity<AiOperationLog>(entity =>
