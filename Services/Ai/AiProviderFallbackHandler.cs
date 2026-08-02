@@ -38,6 +38,8 @@ public sealed class AiProviderFallbackHandler
         CancellationTokenSource overallTimeout,
         CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (_adapter == null)
         {
             await RecordAttemptAsync(

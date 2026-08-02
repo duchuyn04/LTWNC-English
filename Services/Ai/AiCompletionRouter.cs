@@ -52,6 +52,8 @@ public class AiCompletionRouter : IAiCompletionRouter
         Func<string, bool>? responseValidator = null,
         CancellationToken cancellationToken = default)
     {
+        cancellationToken.ThrowIfCancellationRequested();
+
         if (_chain == null)
         {
             throw new AiProviderUnavailableException(LearnerSafeUnavailableMessage);
@@ -61,12 +63,20 @@ public class AiCompletionRouter : IAiCompletionRouter
             CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         overallTimeout.CancelAfter(TimeSpan.FromSeconds(_overallTimeoutSeconds));
 
-        AiCompletionResult? result = await _chain.HandleAsync(
-            request,
-            responseValidator,
-            fallbackAttempt: 0,
-            overallTimeout: overallTimeout,
-            cancellationToken: cancellationToken);
+        AiCompletionResult? result;
+        try
+        {
+            result = await _chain.HandleAsync(
+                request,
+                responseValidator,
+                fallbackAttempt: 0,
+                overallTimeout: overallTimeout,
+                cancellationToken: cancellationToken);
+        }
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw new OperationCanceledException(cancellationToken);
+        }
 
         return result
             ?? throw new AiProviderUnavailableException(LearnerSafeUnavailableMessage);
