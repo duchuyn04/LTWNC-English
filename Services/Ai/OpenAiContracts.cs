@@ -24,7 +24,7 @@ internal sealed record OpenAiChatRequest(
 internal sealed class OpenAiChatResponse
 {
     [JsonPropertyName("choices")]
-    public List<OpenAiChatChoice> Choices { get; init; } = [];
+    public List<OpenAiChatChoice>? Choices { get; init; } = [];
 }
 
 internal sealed class OpenAiChatChoice

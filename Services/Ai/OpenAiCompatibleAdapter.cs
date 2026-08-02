@@ -58,7 +58,7 @@ public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
                 apiKey,
                 openAiRequest,
                 cancellationToken);
-            string? content = response.Choices.FirstOrDefault()?.Message?.Content;
+            string? content = response.Choices?.FirstOrDefault()?.Message?.Content;
             if (string.IsNullOrWhiteSpace(content))
             {
                 throw new AiProviderUnavailableException(

@@ -217,7 +217,7 @@ Ví dụ cấu hình:
 }
 ```
 
-API key chỉ được truyền cho adapter lúc gọi. Provider từ xa phải dùng HTTPS; HTTP chỉ được chấp nhận cho localhost hoặc loopback.
+API key chỉ được truyền cho adapter lúc gọi. Provider từ xa phải dùng HTTPS; HTTP chỉ được chấp nhận cho localhost hoặc loopback. `AiProviders:AllowPrivateNetworks` mặc định là `false`; chỉ bật thành `true` trong `appsettings.Development.json` khi đang phát triển với provider localhost/private đáng tin cậy, không bật trong production.
 
 Để cấp quyền admin cho tài khoản đã đăng ký:
 

@@ -130,7 +130,7 @@ Nó cũng lấy nội dung từ response OpenAI và chuyển lỗi giao thức t
 
 `OpenAiCompatibleApiClient` biết cách gọi endpoint `/chat/completions`.
 
-Nó chịu trách nhiệm HTTP, DNS, timeout riêng của provider, HTTPS, chặn địa chỉ mạng nội bộ và đọc JSON theo giao thức OpenAI.
+Nó chịu trách nhiệm HTTP, DNS, timeout riêng của provider, HTTPS, chặn địa chỉ mạng nội bộ và đọc JSON theo giao thức OpenAI. `AiProviders:AllowPrivateNetworks` mặc định là `false`; chỉ bật opt-in trong môi trường development đáng tin cậy khi provider chạy ở localhost/private network.
 
 ## Một request đi qua hệ thống như thế nào?
 
