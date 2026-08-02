@@ -1,3 +1,5 @@
+using ltwnc.Models.Entities;
+
 namespace ltwnc.Services.CardActions;
 
 // Bản chụp một thẻ trước khi xóa, đủ để Undo khôi phục đúng Id và nội dung.
@@ -49,6 +51,58 @@ public class FlashcardSnapshot
     public List<DictationSessionDetailSnapshot> DictationSessionDetails { get; set; } = new();
 
     public List<EnglishMissionTargetWordSnapshot> EnglishMissionTargetWords { get; set; } = new();
+
+    public List<ReviewProgressSnapshot> ReviewProgresses { get; set; } = new();
+
+    public List<ReviewSessionItemSnapshot> ReviewSessionItems { get; set; } = new();
+}
+
+public sealed class DeleteCardsSnapshot
+{
+    public List<FlashcardSnapshot> Cards { get; set; } = new();
+
+    public List<ReviewSessionSnapshot> ReviewSessions { get; set; } = new();
+}
+
+public sealed class ReviewProgressSnapshot
+{
+    public int Id { get; set; }
+    public string UserId { get; set; } = string.Empty;
+    public int FlashcardId { get; set; }
+    public ReviewStage Stage { get; set; }
+    public DateTimeOffset? NextReviewAtUtc { get; set; }
+    public int LongTermIntervalDays { get; set; }
+    public DateTimeOffset? LastRatedAtUtc { get; set; }
+}
+
+public sealed class ReviewSessionSnapshot
+{
+    public bool WasRemoved { get; set; }
+    public int Id { get; set; }
+    public string UserId { get; set; } = string.Empty;
+    public int? FlashcardSetId { get; set; }
+    public string? SettingsSnapshotJson { get; set; }
+    public DateTimeOffset StartedAtUtc { get; set; }
+    public DateTimeOffset? CompletedAtUtc { get; set; }
+    public DateTimeOffset? EndedAtUtc { get; set; }
+}
+
+public sealed class ReviewSessionItemSnapshot
+{
+    public int Id { get; set; }
+    public int ReviewSessionId { get; set; }
+    public int FlashcardId { get; set; }
+    public int OrderIndex { get; set; }
+    public bool IsNewCardAtAssignment { get; set; }
+    public DateTime? NewCardAssignedDate { get; set; }
+    public ReviewRating? Rating { get; set; }
+    public DateTimeOffset? RatedAtUtc { get; set; }
+    public ReviewStage PreviousStage { get; set; }
+    public ReviewStage NextStage { get; set; }
+    public DateTimeOffset? PreviousNextReviewAtUtc { get; set; }
+    public DateTimeOffset? NextReviewAtUtc { get; set; }
+    public int PreviousLongTermIntervalDays { get; set; }
+    public int NextLongTermIntervalDays { get; set; }
 }
 
 public class EnglishMissionTargetWordSnapshot

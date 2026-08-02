@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore;
 
 namespace ltwnc.Services.CardActions;
 
-// Command xóa nhiều thẻ. Snapshot gồm thẻ + progress + dictation detail để Undo đủ.
+// Command xóa nhiều thẻ. Snapshot gồm thẻ và dữ liệu học liên quan để Undo đủ.
 public class DeleteCardsCommand : ICardActionCommand
 {
     // Query / xóa / restore entity
@@ -36,7 +36,7 @@ public class DeleteCardsCommand : ICardActionCommand
         CardIds = cardIds.ToList().AsReadOnly();
     }
 
-    // Chụp thẻ + progress + dictation detail rồi xóa (FK: xóa con trước)
+    // Chụp thẻ và dữ liệu học liên quan rồi xóa theo thứ tự FK.
     public async Task<CardActionMemento> ExecuteAsync()
     {
         // 1. Gọi `ToListAsync` và lưu kết quả vào `cards`.
@@ -61,6 +61,50 @@ public class DeleteCardsCommand : ICardActionCommand
         List<EnglishMissionTargetWord> missionWords = await _context.EnglishMissionTargetWords
             .Where(word => validatedCardIds.Contains(word.FlashcardId))
             .ToListAsync();
+
+        List<ReviewProgress> reviewProgresses = await _context.ReviewProgresses
+            .Where(progress => validatedCardIds.Contains(progress.FlashcardId))
+            .ToListAsync();
+        List<ReviewSessionItem> reviewSessionItems = await _context.ReviewSessionItems
+            .Where(item => validatedCardIds.Contains(item.FlashcardId))
+            .ToListAsync();
+        int[] affectedSessionIds = reviewSessionItems
+            .Select(item => item.ReviewSessionId)
+            .Distinct()
+            .ToArray();
+        List<ReviewSession> affectedSessions = affectedSessionIds.Length == 0
+            ? []
+            : await _context.ReviewSessions
+                .Include(session => session.Items)
+                .Where(session => affectedSessionIds.Contains(session.Id))
+                .ToListAsync();
+        if (affectedSessions.Count != affectedSessionIds.Length)
+        {
+            throw new InvalidOperationException("Dữ liệu Review hiện tại không nhất quán.");
+        }
+
+        List<ReviewSession> removedSessions = affectedSessions
+            .Where(session =>
+                session.CompletedAtUtc == null
+                && session.EndedAtUtc == null
+                && !session.Items.Any(item => !validatedCardIds.Contains(item.FlashcardId)))
+            .ToList();
+        HashSet<int> removedSessionIds = removedSessions
+            .Select(session => session.Id)
+            .ToHashSet();
+        List<ReviewSessionSnapshot> reviewSessionSnapshots = affectedSessions
+            .Select(session => new ReviewSessionSnapshot
+            {
+                WasRemoved = removedSessionIds.Contains(session.Id),
+                Id = session.Id,
+                UserId = session.UserId,
+                FlashcardSetId = session.FlashcardSetId,
+                SettingsSnapshotJson = session.SettingsSnapshotJson,
+                StartedAtUtc = session.StartedAtUtc,
+                CompletedAtUtc = session.CompletedAtUtc,
+                EndedAtUtc = session.EndedAtUtc
+            })
+            .ToList();
 
         // Memento giữ snapshot cục bộ, command không lưu trạng thái Undo tạm thời.
         List<FlashcardSnapshot> snapshots = new();
@@ -137,6 +181,40 @@ public class DeleteCardsCommand : ICardActionCommand
                 })
                 .ToList();
 
+            List<ReviewProgressSnapshot> reviewProgressSnapshots = reviewProgresses
+                .Where(progress => progress.FlashcardId == card.Id)
+                .Select(progress => new ReviewProgressSnapshot
+                {
+                    Id = progress.Id,
+                    UserId = progress.UserId,
+                    FlashcardId = progress.FlashcardId,
+                    Stage = progress.Stage,
+                    NextReviewAtUtc = progress.NextReviewAtUtc,
+                    LongTermIntervalDays = progress.LongTermIntervalDays,
+                    LastRatedAtUtc = progress.LastRatedAtUtc
+                })
+                .ToList();
+            List<ReviewSessionItemSnapshot> reviewSessionItemSnapshots = reviewSessionItems
+                .Where(item => item.FlashcardId == card.Id)
+                .Select(item => new ReviewSessionItemSnapshot
+                {
+                    Id = item.Id,
+                    ReviewSessionId = item.ReviewSessionId,
+                    FlashcardId = item.FlashcardId,
+                    OrderIndex = item.OrderIndex,
+                    IsNewCardAtAssignment = item.IsNewCardAtAssignment,
+                    NewCardAssignedDate = item.NewCardAssignedDate,
+                    Rating = item.Rating,
+                    RatedAtUtc = item.RatedAtUtc,
+                    PreviousStage = item.PreviousStage,
+                    NextStage = item.NextStage,
+                    PreviousNextReviewAtUtc = item.PreviousNextReviewAtUtc,
+                    NextReviewAtUtc = item.NextReviewAtUtc,
+                    PreviousLongTermIntervalDays = item.PreviousLongTermIntervalDays,
+                    NextLongTermIntervalDays = item.NextLongTermIntervalDays
+                })
+                .ToList();
+
             // 18. Gọi `Add` để thực hiện bước nghiệp vụ này.
             snapshots.Add(new FlashcardSnapshot
             {
@@ -155,9 +233,15 @@ public class DeleteCardsCommand : ICardActionCommand
                 OrderIndex = card.OrderIndex,
                 UserProgresses = progressSnapshots,
                 DictationSessionDetails = detailSnapshots,
-                EnglishMissionTargetWords = missionWordSnapshots
+                EnglishMissionTargetWords = missionWordSnapshots,
+                ReviewProgresses = reviewProgressSnapshots,
+                ReviewSessionItems = reviewSessionItemSnapshots
             });
         }
+
+        _context.ReviewProgresses.RemoveRange(reviewProgresses);
+        _context.ReviewSessionItems.RemoveRange(reviewSessionItems);
+        _context.ReviewSessions.RemoveRange(removedSessions);
 
         // 19. Gọi `RemoveRange` để thực hiện bước nghiệp vụ này.
         _context.UserProgresses.RemoveRange(progresses);
@@ -170,15 +254,21 @@ public class DeleteCardsCommand : ICardActionCommand
         // 23. Gọi `SaveChangesAsync` để thực hiện bước nghiệp vụ này.
         await _context.SaveChangesAsync();
 
-        return new CardActionMemento(JsonSerializer.Serialize(snapshots));
+        return new CardActionMemento(JsonSerializer.Serialize(new DeleteCardsSnapshot
+        {
+            Cards = snapshots,
+            ReviewSessions = reviewSessionSnapshots
+        }));
     }
 
-    // Restore thẻ / progress / detail với đúng Id cũ (SQL Server: IDENTITY_INSERT)
+    // Restore thẻ và dữ liệu liên quan với đúng Id cũ (SQL Server: IDENTITY_INSERT)
     public async Task UndoAsync(CardActionMemento memento)
     {
         // Đọc và kiểm tra toàn bộ Memento trước khi bắt đầu khôi phục dữ liệu.
-        List<FlashcardSnapshot> snapshots = CardActionMemento.Restore<List<FlashcardSnapshot>>(memento);
-        ValidateSnapshots(snapshots);
+        DeleteCardsSnapshot state = RestoreSnapshot(memento);
+        ValidateSnapshots(state);
+        await ValidateRestoreConflictsAsync(state);
+        List<FlashcardSnapshot> snapshots = state.Cards;
 
         // 1. Khởi tạo `cards` với dữ liệu ban đầu cần thiết.
         List<Flashcard> cards = new List<Flashcard>();
@@ -213,6 +303,25 @@ public class DeleteCardsCommand : ICardActionCommand
             await SaveWithIdentityInsertAsync<Flashcard>();
         }
 
+        List<ReviewSession> reviewSessions = state.ReviewSessions
+            .Where(session => session.WasRemoved)
+            .Select(session => new ReviewSession
+            {
+                Id = session.Id,
+                UserId = session.UserId,
+                FlashcardSetId = session.FlashcardSetId,
+                SettingsSnapshotJson = session.SettingsSnapshotJson,
+                StartedAtUtc = session.StartedAtUtc,
+                CompletedAtUtc = session.CompletedAtUtc,
+                EndedAtUtc = session.EndedAtUtc
+            })
+            .ToList();
+        _context.ReviewSessions.AddRange(reviewSessions);
+        if (reviewSessions.Count > 0)
+        {
+            await SaveWithIdentityInsertAsync<ReviewSession>();
+        }
+
         // 7. Khởi tạo `progresses` với dữ liệu ban đầu cần thiết.
         List<UserProgress> progresses = new List<UserProgress>();
         // 8. Duyệt từng `snapshot` trong Memento để xử lý lần lượt.
@@ -243,6 +352,51 @@ public class DeleteCardsCommand : ICardActionCommand
         {
             // 13. Gọi `SaveWithIdentityInsertAsync` để thực hiện bước nghiệp vụ này.
             await SaveWithIdentityInsertAsync<UserProgress>();
+        }
+
+        List<ReviewProgress> reviewProgresses = state.Cards
+            .SelectMany(snapshot => snapshot.ReviewProgresses)
+            .Select(progress => new ReviewProgress
+            {
+                Id = progress.Id,
+                UserId = progress.UserId,
+                FlashcardId = progress.FlashcardId,
+                Stage = progress.Stage,
+                NextReviewAtUtc = progress.NextReviewAtUtc,
+                LongTermIntervalDays = progress.LongTermIntervalDays,
+                LastRatedAtUtc = progress.LastRatedAtUtc
+            })
+            .ToList();
+        _context.ReviewProgresses.AddRange(reviewProgresses);
+        if (reviewProgresses.Count > 0)
+        {
+            await SaveWithIdentityInsertAsync<ReviewProgress>();
+        }
+
+        List<ReviewSessionItem> reviewSessionItems = state.Cards
+            .SelectMany(snapshot => snapshot.ReviewSessionItems)
+            .Select(item => new ReviewSessionItem
+            {
+                Id = item.Id,
+                ReviewSessionId = item.ReviewSessionId,
+                FlashcardId = item.FlashcardId,
+                OrderIndex = item.OrderIndex,
+                IsNewCardAtAssignment = item.IsNewCardAtAssignment,
+                NewCardAssignedDate = item.NewCardAssignedDate,
+                Rating = item.Rating,
+                RatedAtUtc = item.RatedAtUtc,
+                PreviousStage = item.PreviousStage,
+                NextStage = item.NextStage,
+                PreviousNextReviewAtUtc = item.PreviousNextReviewAtUtc,
+                NextReviewAtUtc = item.NextReviewAtUtc,
+                PreviousLongTermIntervalDays = item.PreviousLongTermIntervalDays,
+                NextLongTermIntervalDays = item.NextLongTermIntervalDays
+            })
+            .ToList();
+        _context.ReviewSessionItems.AddRange(reviewSessionItems);
+        if (reviewSessionItems.Count > 0)
+        {
+            await SaveWithIdentityInsertAsync<ReviewSessionItem>();
         }
 
         // 14. Khởi tạo `details` với dữ liệu ban đầu cần thiết.
@@ -309,16 +463,44 @@ public class DeleteCardsCommand : ICardActionCommand
         }
     }
 
-    // Kiểm tra cấu trúc và quan hệ trong snapshot trước khi ghi bất kỳ bản ghi nào.
-    private void ValidateSnapshots(List<FlashcardSnapshot> snapshots)
+    private static DeleteCardsSnapshot RestoreSnapshot(CardActionMemento? memento)
     {
+        string json = memento?.StateJson?.TrimStart() ?? string.Empty;
+        if (json.StartsWith("[", StringComparison.Ordinal))
+        {
+            return new DeleteCardsSnapshot
+            {
+                Cards = CardActionMemento.Restore<List<FlashcardSnapshot>>(memento)
+            };
+        }
+
+        return CardActionMemento.Restore<DeleteCardsSnapshot>(memento);
+    }
+
+    // Kiểm tra cấu trúc và quan hệ trong snapshot trước khi ghi bất kỳ bản ghi nào.
+    private void ValidateSnapshots(DeleteCardsSnapshot state)
+    {
+        List<FlashcardSnapshot> snapshots = state.Cards
+            ?? throw CardActionMemento.InvalidMemento();
+        List<ReviewSessionSnapshot> reviewSessions = state.ReviewSessions
+            ?? throw CardActionMemento.InvalidMemento();
         HashSet<int> expectedCardIds = CardIds.ToHashSet();
         HashSet<int> snapshotCardIds = new();
         HashSet<int> progressIds = new();
         HashSet<int> detailIds = new();
         HashSet<int> missionWordIds = new();
+        HashSet<int> reviewProgressIds = new();
+        HashSet<(string UserId, int FlashcardId)> reviewProgressKeys = new();
+        HashSet<int> reviewSessionItemIds = new();
+        HashSet<(int SessionId, int FlashcardId)> reviewSessionItemCardKeys = new();
+        HashSet<(int SessionId, int OrderIndex)> reviewSessionItemOrderKeys = new();
+        HashSet<int> reviewSessionIds = new();
+        HashSet<string> activeSessionUsers = new();
+        HashSet<int> itemSessionIds = new();
 
-        if (snapshots.Count == 0 || expectedCardIds.Count == 0)
+        if (snapshots.Count == 0
+            || expectedCardIds.Count == 0
+            || CardIds.Count != expectedCardIds.Count)
         {
             throw CardActionMemento.InvalidMemento();
         }
@@ -350,12 +532,16 @@ public class DeleteCardsCommand : ICardActionCommand
                 ?? throw CardActionMemento.InvalidMemento();
             List<EnglishMissionTargetWordSnapshot> missionWords = snapshot.EnglishMissionTargetWords
                 ?? throw CardActionMemento.InvalidMemento();
+            List<ReviewProgressSnapshot> reviewProgresses = snapshot.ReviewProgresses
+                ?? throw CardActionMemento.InvalidMemento();
+            List<ReviewSessionItemSnapshot> reviewItems = snapshot.ReviewSessionItems
+                ?? throw CardActionMemento.InvalidMemento();
 
             bool invalidProgress = progresses.Any(progress =>
                 progress is null
                 || progress.Id <= 0
                 || !progressIds.Add(progress.Id)
-                || progress.UserId is null
+                || string.IsNullOrWhiteSpace(progress.UserId)
                 || progress.FlashcardId != snapshot.Id);
             bool invalidDetail = details.Any(detail =>
                 detail is null
@@ -372,17 +558,204 @@ public class DeleteCardsCommand : ICardActionCommand
                 || word.Term is null
                 || word.Definition is null
                 || word.FlashcardId != snapshot.Id);
-            if (invalidProgress || invalidDetail || invalidMissionWord)
+            bool invalidReviewProgress = reviewProgresses.Any(progress =>
+                progress is null
+                || progress.Id <= 0
+                || !reviewProgressIds.Add(progress.Id)
+                || string.IsNullOrWhiteSpace(progress.UserId)
+                || progress.FlashcardId != snapshot.Id
+                || !Enum.IsDefined(progress.Stage)
+                || !reviewProgressKeys.Add((progress.UserId, progress.FlashcardId)));
+            bool invalidReviewItem = reviewItems.Any(item =>
+                item is null
+                || item.Id <= 0
+                || !reviewSessionItemIds.Add(item.Id)
+                || item.ReviewSessionId <= 0
+                || item.FlashcardId != snapshot.Id
+                || item.OrderIndex < 0
+                || !Enum.IsDefined(item.PreviousStage)
+                || !Enum.IsDefined(item.NextStage)
+                || (item.Rating.HasValue && !Enum.IsDefined(item.Rating.Value))
+                || !reviewSessionItemCardKeys.Add((item.ReviewSessionId, item.FlashcardId))
+                || !reviewSessionItemOrderKeys.Add((item.ReviewSessionId, item.OrderIndex)));
+            if (invalidProgress
+                || invalidDetail
+                || invalidMissionWord
+                || invalidReviewProgress
+                || invalidReviewItem)
+            {
+                throw CardActionMemento.InvalidMemento();
+            }
+
+            foreach (ReviewSessionItemSnapshot item in reviewItems)
+            {
+                itemSessionIds.Add(item.ReviewSessionId);
+            }
+        }
+
+        foreach (ReviewSessionSnapshot session in reviewSessions)
+        {
+            bool invalidSession = session is null
+                || session.Id <= 0
+                || !reviewSessionIds.Add(session.Id)
+                || string.IsNullOrWhiteSpace(session.UserId)
+                || (session.FlashcardSetId.HasValue && session.FlashcardSetId != SetId)
+                || (session.WasRemoved
+                    && (session.CompletedAtUtc.HasValue || session.EndedAtUtc.HasValue))
+                || (session.CompletedAtUtc == null
+                    && session.EndedAtUtc == null
+                    && !activeSessionUsers.Add(session.UserId))
+                || !itemSessionIds.Contains(session.Id);
+            if (invalidSession)
             {
                 throw CardActionMemento.InvalidMemento();
             }
         }
 
-        if (!snapshotCardIds.SetEquals(expectedCardIds))
+        if (!snapshotCardIds.SetEquals(expectedCardIds)
+            || itemSessionIds.Any(sessionId => !reviewSessionIds.Contains(sessionId)))
         {
             throw CardActionMemento.InvalidMemento();
         }
     }
+
+    private async Task ValidateRestoreConflictsAsync(DeleteCardsSnapshot state)
+    {
+        HashSet<int> cardIds = state.Cards.Select(snapshot => snapshot.Id).ToHashSet();
+        HashSet<int> progressIds = state.Cards
+            .SelectMany(snapshot => snapshot.UserProgresses)
+            .Select(progress => progress.Id)
+            .ToHashSet();
+        HashSet<int> detailIds = state.Cards
+            .SelectMany(snapshot => snapshot.DictationSessionDetails)
+            .Select(detail => detail.Id)
+            .ToHashSet();
+        HashSet<int> missionWordIds = state.Cards
+            .SelectMany(snapshot => snapshot.EnglishMissionTargetWords)
+            .Select(word => word.Id)
+            .ToHashSet();
+        HashSet<int> reviewProgressIds = state.Cards
+            .SelectMany(snapshot => snapshot.ReviewProgresses)
+            .Select(progress => progress.Id)
+            .ToHashSet();
+        HashSet<int> reviewSessionItemIds = state.Cards
+            .SelectMany(snapshot => snapshot.ReviewSessionItems)
+            .Select(item => item.Id)
+            .ToHashSet();
+        HashSet<int> deletedReviewSessionIds = state.ReviewSessions
+            .Where(session => session.WasRemoved)
+            .Select(session => session.Id)
+            .ToHashSet();
+        HashSet<int> retainedReviewSessionIds = state.ReviewSessions
+            .Where(session => !session.WasRemoved)
+            .Select(session => session.Id)
+            .ToHashSet();
+
+        await EnsureNoExistingAsync(
+            _context.Flashcards.Where(card => cardIds.Contains(card.Id)),
+            cardIds);
+        await EnsureNoExistingAsync(
+            _context.UserProgresses.Where(progress => progressIds.Contains(progress.Id)),
+            progressIds);
+        await EnsureNoExistingAsync(
+            _context.DictationSessionDetails.Where(detail => detailIds.Contains(detail.Id)),
+            detailIds);
+        await EnsureNoExistingAsync(
+            _context.EnglishMissionTargetWords.Where(word => missionWordIds.Contains(word.Id)),
+            missionWordIds);
+        await EnsureNoExistingAsync(
+            _context.ReviewProgresses.Where(progress => reviewProgressIds.Contains(progress.Id)),
+            reviewProgressIds);
+        await EnsureNoExistingAsync(
+            _context.ReviewSessionItems.Where(item => reviewSessionItemIds.Contains(item.Id)),
+            reviewSessionItemIds);
+        await EnsureNoExistingAsync(
+            _context.ReviewSessions.Where(session => deletedReviewSessionIds.Contains(session.Id)),
+            deletedReviewSessionIds);
+
+        if (retainedReviewSessionIds.Count > 0)
+        {
+            List<ReviewSession> currentRetainedSessions = await _context.ReviewSessions
+                .Where(session => retainedReviewSessionIds.Contains(session.Id))
+                .ToListAsync();
+            if (!currentRetainedSessions
+                .Select(session => session.Id)
+                .ToHashSet()
+                .SetEquals(retainedReviewSessionIds))
+            {
+                throw CardActionMemento.InvalidMemento();
+            }
+
+            Dictionary<int, ReviewSession> currentSessionsById = currentRetainedSessions
+                .ToDictionary(session => session.Id);
+            foreach (ReviewSessionSnapshot snapshot in state.ReviewSessions.Where(session => !session.WasRemoved))
+            {
+                ReviewSession current = currentSessionsById[snapshot.Id];
+                if (current.UserId != snapshot.UserId
+                    || current.FlashcardSetId != snapshot.FlashcardSetId
+                    || current.SettingsSnapshotJson != snapshot.SettingsSnapshotJson
+                    || current.StartedAtUtc != snapshot.StartedAtUtc
+                    || current.CompletedAtUtc != snapshot.CompletedAtUtc
+                    || current.EndedAtUtc != snapshot.EndedAtUtc)
+                {
+                    throw RestoreConflict();
+                }
+            }
+        }
+
+        HashSet<(int SessionId, int FlashcardId)> restoredItemCardKeys = state.Cards
+            .SelectMany(snapshot => snapshot.ReviewSessionItems)
+            .Select(item => (item.ReviewSessionId, item.FlashcardId))
+            .ToHashSet();
+        HashSet<(int SessionId, int OrderIndex)> restoredItemOrderKeys = state.Cards
+            .SelectMany(snapshot => snapshot.ReviewSessionItems)
+            .Select(item => (item.ReviewSessionId, item.OrderIndex))
+            .ToHashSet();
+        HashSet<int> affectedSessionIds = state.Cards
+            .SelectMany(snapshot => snapshot.ReviewSessionItems)
+            .Select(item => item.ReviewSessionId)
+            .ToHashSet();
+        if (affectedSessionIds.Count > 0)
+        {
+            List<ReviewSessionItem> currentItems = await _context.ReviewSessionItems
+                .Where(item => affectedSessionIds.Contains(item.ReviewSessionId))
+                .ToListAsync();
+            if (currentItems.Any(item =>
+                !reviewSessionItemIds.Contains(item.Id)
+                && (restoredItemCardKeys.Contains((item.ReviewSessionId, item.FlashcardId))
+                    || restoredItemOrderKeys.Contains((item.ReviewSessionId, item.OrderIndex)))))
+            {
+                throw RestoreConflict();
+            }
+        }
+
+        foreach (ReviewSessionSnapshot session in state.ReviewSessions.Where(session => session.WasRemoved))
+        {
+            bool hasNewActiveSession = await _context.ReviewSessions.AnyAsync(current =>
+                current.Id != session.Id
+                && current.UserId == session.UserId
+                && current.CompletedAtUtc == null
+                && current.EndedAtUtc == null);
+            if (hasNewActiveSession)
+            {
+                throw RestoreConflict();
+            }
+        }
+    }
+
+    private static async Task EnsureNoExistingAsync<TEntity>(
+        IQueryable<TEntity> query,
+        IReadOnlyCollection<int> ids)
+        where TEntity : class
+    {
+        if (ids.Count > 0 && await query.AnyAsync())
+        {
+            throw RestoreConflict();
+        }
+    }
+
+    private static InvalidOperationException RestoreConflict()
+        => new("Không thể hoàn tác vì dữ liệu hiện tại đã thay đổi.");
 
     // SQL Server: bật IDENTITY_INSERT theo bảng entity rồi SaveChanges, tắt trong finally.
     // Provider khác: SaveChanges thường (test SQLite).
@@ -427,6 +800,18 @@ public class DeleteCardsCommand : ICardActionCommand
         {
             // 12. Cập nhật `tableName` bằng giá trị mới.
             tableName = "EnglishMissionTargetWords";
+        }
+        else if (entityName == nameof(ReviewProgress))
+        {
+            tableName = "ReviewProgresses";
+        }
+        else if (entityName == nameof(ReviewSession))
+        {
+            tableName = "ReviewSessions";
+        }
+        else if (entityName == nameof(ReviewSessionItem))
+        {
+            tableName = "ReviewSessionItems";
         }
         else
         {
