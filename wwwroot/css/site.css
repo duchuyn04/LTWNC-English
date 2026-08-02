@@ -296,8 +296,11 @@ a:hover {
 }
 
 .app-drawer-header {
+    position: relative;
     min-height: 116px;
+    display: flex;
     align-items: flex-start;
+    justify-content: space-between;
     padding: 1.5rem;
     border-bottom: 1px solid var(--line);
 }
@@ -318,9 +321,13 @@ a:hover {
     font-size: 1.55rem;
     font-weight: 800;
     letter-spacing: -0.035em;
+    padding-right: 3rem;
 }
 
 .app-drawer-close {
+    position: absolute;
+    top: 1.5rem;
+    right: 1.5rem;
     width: 42px;
     height: 42px;
     flex: 0 0 auto;

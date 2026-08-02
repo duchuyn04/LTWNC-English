@@ -1,11 +1,16 @@
+/* ============================================================
+   LTWNC English — Modern SaaS Toast Popup System
+   ============================================================ */
+
 .app-popup-stack {
     position: fixed;
     z-index: 1085;
-    bottom: 1.25rem;
-    right: 1.25rem;
-    display: grid;
-    width: min(420px, calc(100vw - 2rem));
-    gap: .75rem;
+    bottom: 1.5rem;
+    right: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    width: min(440px, calc(100vw - 2rem));
+    gap: 0.75rem;
     pointer-events: none;
 }
 
@@ -13,107 +18,136 @@
     position: relative;
     display: flex;
     align-items: flex-start;
-    gap: .75rem;
+    gap: 0.85rem;
     margin: 0 !important;
-    padding: 1rem 3rem 1rem 1rem !important;
-    color: #252722;
-    border: 1px solid #d8d9d1;
-    border-left: 4px solid #777b70;
-    border-radius: 14px;
-    background: #fffef9;
-    box-shadow: 0 18px 50px rgba(28, 31, 25, .18);
-    font-family: "Be Vietnam Pro", sans-serif;
-    font-size: .9rem;
-    line-height: 1.55;
+    padding: 1.1rem 2.8rem 1.1rem 1.15rem !important;
+    border-radius: var(--radius-card, 16px);
+    border: 1px solid var(--line, #E0E4DB);
+    background: var(--surface, #FFFDF7);
+    box-shadow: 0 16px 40px -6px rgba(41, 50, 38, 0.16), 0 4px 12px rgba(0, 0, 0, 0.03);
+    font-family: var(--font-body, 'Be Vietnam Pro', sans-serif);
     opacity: 0;
-    overflow: auto;
-    max-height: min(70vh, 560px);
     pointer-events: auto;
-    transform: translateX(1rem);
-    transition: opacity 180ms ease, transform 180ms ease;
+    transform: translateY(1rem) scale(0.96);
+    transition: opacity 220ms var(--ease-out, ease), transform 220ms var(--ease-out, ease);
+    overflow: hidden;
 }
 
 .app-popup-stack .app-popup.is-visible {
     opacity: 1;
-    transform: translateX(0);
+    transform: translateY(0) scale(1);
 }
 
 .app-popup-stack .app-popup.is-leaving {
     opacity: 0;
-    transform: translateX(1rem);
+    transform: translateY(0.5rem) scale(0.96);
 }
 
+/* ================= TONE VARIANTS ================= */
+
+/* Success Toast — Solid Emerald with White Text */
 .app-popup-stack .app-popup--success {
-    border-left-color: #497253;
-    background: #f5fbf5;
+    background: #059669;
+    border-color: #047857;
+    color: #ffffff;
+    box-shadow: 0 16px 40px -6px rgba(5, 150, 105, 0.35), 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
+.app-popup-stack .app-popup--success .app-popup__icon {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+}
+
+.app-popup-stack .app-popup--success .app-popup__content {
+    color: #ffffff;
+}
+
+/* Error Toast — Solid Crimson Red with White Text */
 .app-popup-stack .app-popup--error {
-    border-left-color: #a5403a;
-    background: #fff7f5;
+    background: #dc2626;
+    border-color: #b91c1c;
+    color: #ffffff;
+    box-shadow: 0 16px 40px -6px rgba(220, 38, 38, 0.35), 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
+.app-popup-stack .app-popup--error .app-popup__icon {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+}
+
+.app-popup-stack .app-popup--error .app-popup__content {
+    color: #ffffff;
+}
+
+/* Info Toast — Solid Blue with White Text */
 .app-popup-stack .app-popup--info {
-    border-left-color: #55728a;
-    background: #f5f9fc;
+    background: #2563eb;
+    border-color: #1d4ed8;
+    color: #ffffff;
+    box-shadow: 0 16px 40px -6px rgba(37, 99, 235, 0.35), 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
-.app-popup-stack .app-popup > i:first-child {
+.app-popup-stack .app-popup--info .app-popup__icon {
+    background: rgba(255, 255, 255, 0.2);
+    color: #ffffff;
+}
+
+.app-popup-stack .app-popup--info .app-popup__content {
+    color: #ffffff;
+}
+
+/* ================= ELEMENTS ================= */
+
+.app-popup__icon {
     flex: 0 0 auto;
-    margin-top: .15rem;
-    font-size: 1.2rem;
+    width: 2.25rem;
+    height: 2.25rem;
+    display: grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 1.25rem;
 }
 
-.app-popup-stack .app-popup a,
-.app-popup-stack .app-popup button:not(.app-popup__close) {
+.app-popup__content {
+    flex: 1 1 auto;
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1.5;
+}
+
+.app-popup__content a {
     color: inherit;
     font-weight: 700;
+    text-decoration: underline;
 }
 
 .app-popup__close {
     position: absolute;
-    top: .65rem;
-    right: .7rem;
+    top: 0.85rem;
+    right: 0.85rem;
     display: grid;
-    width: 2rem;
-    height: 2rem;
+    width: 1.85rem;
+    height: 1.85rem;
     padding: 0;
     place-items: center;
-    color: #55584f;
+    color: rgba(255, 255, 255, 0.85);
+    opacity: 1;
     border: 0;
     border-radius: 50%;
     background: transparent;
-    font: inherit;
-    font-size: 1.25rem;
-    line-height: 1;
+    font-size: 1.1rem;
     cursor: pointer;
+    transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
 .app-popup__close:hover,
 .app-popup__close:focus-visible {
-    color: #20221e;
-    background: rgba(35, 38, 32, .08);
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.2);
     outline: none;
 }
 
-@media (max-width: 640px) {
-    .app-popup-stack {
-        bottom: .75rem;
-        right: .75rem;
-        left: .75rem;
-        width: auto;
-    }
-
-    .app-popup-stack .app-popup {
-        max-height: 60vh;
-    }
-}
-
-@media (prefers-reduced-motion: reduce) {
-    .app-popup-stack .app-popup {
-        transition: none;
-    }
-}
+/* ================= MODAL CONFIRM DIALOG ================= */
 
 .app-confirm-backdrop {
     position: fixed;
@@ -129,12 +163,12 @@
 .app-confirm {
     width: min(460px, 100%);
     padding: 1.4rem;
-    color: #252722;
-    border: 1px solid #d7d8d0;
-    border-radius: 18px;
-    background: #fffef9;
+    color: var(--ink, #252722);
+    border: 1px solid var(--line, #d7d8d0);
+    border-radius: var(--radius-card, 18px);
+    background: var(--surface, #fffef9);
     box-shadow: 0 28px 80px rgba(15, 17, 14, .32);
-    font-family: "Be Vietnam Pro", sans-serif;
+    font-family: var(--font-body, "Be Vietnam Pro", sans-serif);
 }
 
 .app-confirm__mark {
@@ -158,7 +192,7 @@
 
 .app-confirm p {
     margin: 0;
-    color: #66695f;
+    color: var(--muted, #66695f);
     line-height: 1.65;
 }
 
@@ -172,7 +206,7 @@
 .app-confirm__actions button {
     min-height: 2.7rem;
     padding: .65rem 1rem;
-    border-radius: 10px;
+    border-radius: var(--radius-control, 10px);
     font: inherit;
     font-weight: 700;
     cursor: pointer;
@@ -193,4 +227,13 @@
 .app-confirm__actions button:focus-visible {
     outline: 3px solid rgba(76, 111, 85, .28);
     outline-offset: 2px;
+}
+
+@media (max-width: 640px) {
+    .app-popup-stack {
+        bottom: 1rem;
+        right: 1rem;
+        left: 1rem;
+        width: auto;
+    }
 }

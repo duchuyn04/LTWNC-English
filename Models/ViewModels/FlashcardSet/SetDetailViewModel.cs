@@ -15,6 +15,12 @@ public class SetDetailViewModel
     // Mô tả
     public string? Description { get; set; }
 
+    // Username của chủ bộ thẻ để tạo link profile.
+    public string? AuthorUsername { get; set; }
+
+    // Chữ cái hiển thị trong avatar tác giả.
+    public string AuthorInitials { get; set; } = "TV";
+
     // Public hay private
     public bool IsPublic { get; set; }
 

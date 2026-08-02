@@ -1,0 +1,510 @@
+/* ============================================================
+   LTWNC English — AI Credits Hub
+   Single source of truth: site.css design tokens.
+   ============================================================ */
+
+.credits-page {
+    padding: clamp(2rem, 4vw, 3.5rem) 0 clamp(3.5rem, 6vw, 5rem);
+}
+
+/* ================= HERO BANNER ================= */
+.credit-hero {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 2rem;
+    align-items: center;
+    padding: clamp(2rem, 4vw, 3.25rem);
+    margin-bottom: 2.5rem;
+    background: var(--ink);
+    color: var(--paper);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-lift);
+    overflow: hidden;
+}
+
+.credit-hero::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -20%;
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle, rgba(183, 121, 31, 0.18) 0%, rgba(41, 50, 38, 0) 70%);
+    pointer-events: none;
+}
+
+.credit-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: var(--radius-pill);
+    background: rgba(245, 238, 220, 0.12);
+    color: var(--brass);
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+}
+
+.credit-hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    line-height: 0.95;
+    margin: 0 0 1rem;
+    color: var(--paper);
+}
+
+.credit-hero p {
+    max-width: 36rem;
+    margin: 0;
+    color: rgba(247, 243, 233, 0.75);
+    font-size: 0.98rem;
+    line-height: 1.6;
+}
+
+.credit-balance-card {
+    position: relative;
+    z-index: 1;
+    min-width: 15rem;
+    padding: 1.5rem 1.75rem;
+    background: rgba(247, 243, 233, 0.06);
+    border: 1px solid rgba(247, 243, 233, 0.15);
+    border-radius: var(--radius-card);
+}
+
+.credit-balance-card span {
+    display: block;
+    color: rgba(247, 243, 233, 0.65);
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+.credit-balance-card strong {
+    display: block;
+    font-size: clamp(3rem, 5vw, 4.25rem);
+    font-weight: 800;
+    line-height: 0.9;
+    margin: 0.6rem 0;
+    color: var(--brass);
+    letter-spacing: -0.06em;
+}
+
+.credit-balance-card small {
+    display: block;
+    color: rgba(247, 243, 233, 0.8);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.credit-balance-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    margin-top: 0.75rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: var(--radius-pill);
+    background: rgba(223, 233, 215, 0.18);
+    color: var(--sage);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+/* ================= TRUST BAR ================= */
+.credit-trust-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem 1.75rem;
+    max-width: 56rem;
+    margin: 0 auto 3rem;
+    padding: 0.85rem 1.5rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    box-shadow: var(--shadow-card);
+}
+
+.credit-trust-bar span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--ink);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.credit-trust-bar i {
+    color: var(--brass-deep);
+    font-size: 1.1rem;
+}
+
+/* ================= SECTION HEADINGS ================= */
+.credit-section-header {
+    text-align: center;
+    max-width: 40rem;
+    margin: 0 auto 2rem;
+}
+
+.credit-section-header span {
+    color: var(--brass-deep);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.credit-section-header h2 {
+    font-family: var(--font-display);
+    font-size: clamp(1.75rem, 3.5vw, 2.25rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+    margin: 0.4rem 0 0.5rem;
+    color: var(--ink);
+}
+
+.credit-section-header p {
+    color: var(--muted);
+    font-size: 0.92rem;
+    margin: 0;
+}
+
+/* ================= PACKAGE CARDS ================= */
+.credit-package-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(1rem, 2vw, 1.75rem);
+    align-items: stretch;
+    margin-bottom: 4rem;
+}
+
+.credit-package {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: clamp(1.5rem, 2.2vw, 2.25rem);
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+    transition: transform var(--duration-med) var(--ease-out), box-shadow var(--duration-med) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+
+.credit-package:hover {
+    transform: translateY(-6px);
+    border-color: var(--ink);
+    box-shadow: var(--shadow-lift);
+}
+
+.credit-package--featured {
+    background: var(--ink);
+    color: var(--paper);
+    border: 2px solid var(--ink);
+    border-top: 4px solid var(--brass);
+    box-shadow: var(--shadow-lift);
+}
+
+.credit-package--featured:hover {
+    border-color: var(--brass);
+    box-shadow: 0 20px 44px rgba(41, 50, 38, 0.22);
+}
+
+.credit-package-badge {
+    position: absolute;
+    top: -0.8rem;
+    right: 1.25rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.28rem 0.7rem;
+    border-radius: var(--radius-pill);
+    background: var(--brass);
+    color: var(--ink);
+    font-size: 0.64rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    box-shadow: 0 4px 12px rgba(41, 50, 38, 0.15);
+}
+
+.credit-package-index {
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+}
+
+.credit-package--featured .credit-package-index {
+    color: rgba(247, 243, 233, 0.5);
+}
+
+.credit-package-info {
+    margin-top: 0.85rem;
+}
+
+.credit-package-info h3 {
+    margin: 0 0 0.25rem;
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.credit-package--featured .credit-package-info h3 {
+    color: var(--paper);
+}
+
+.credit-package-info p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.credit-package--featured .credit-package-info p {
+    color: rgba(247, 243, 233, 0.65);
+}
+
+.credit-package-quantity {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-top: auto;
+    padding-top: 1.5rem;
+}
+
+.credit-package-quantity strong {
+    color: var(--ink);
+    font-size: clamp(2.5rem, 4vw, 3.5rem);
+    font-weight: 800;
+    letter-spacing: -0.06em;
+    line-height: 0.85;
+}
+
+.credit-package--featured .credit-package-quantity strong {
+    color: var(--brass);
+}
+
+.credit-package-quantity small {
+    color: var(--muted);
+    font-size: 0.82rem;
+    font-weight: 600;
+}
+
+.credit-package--featured .credit-package-quantity small {
+    color: rgba(247, 243, 233, 0.65);
+}
+
+.credit-package-unit {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--muted);
+}
+
+.credit-package--featured .credit-package-unit {
+    color: rgba(247, 243, 233, 0.6);
+}
+
+.credit-savings-tag {
+    padding: 0.12rem 0.45rem;
+    border-radius: var(--radius-pill);
+    background: var(--success-bg);
+    color: var(--success);
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.credit-package--featured .credit-savings-tag {
+    background: rgba(229, 238, 230, 0.2);
+    color: var(--sage);
+}
+
+.credit-package-price {
+    display: grid;
+    gap: 0.15rem;
+    margin-top: 1.25rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--line);
+}
+
+.credit-package--featured .credit-package-price {
+    border-color: rgba(247, 243, 233, 0.15);
+}
+
+.credit-package-price strong {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: var(--ink);
+}
+
+.credit-package--featured .credit-package-price strong {
+    color: var(--paper);
+}
+
+.credit-package-price small {
+    font-size: 0.72rem;
+    color: var(--muted);
+}
+
+.credit-package--featured .credit-package-price small {
+    color: rgba(247, 243, 233, 0.55);
+}
+
+.btn-credit-buy {
+    display: inline-flex;
+    width: 100%;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    padding: 0.65rem 1.1rem;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--ink);
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--duration-fast) var(--ease-out);
+}
+
+.btn-credit-buy:hover {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.credit-package--featured .btn-credit-buy {
+    background: var(--brass);
+    border-color: var(--brass);
+    color: var(--ink);
+}
+
+.credit-package--featured .btn-credit-buy:hover {
+    background: var(--paper);
+    border-color: var(--paper);
+    color: var(--ink);
+}
+
+/* ================= DATA CARDS & TABLES ================= */
+.credit-data-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1.5rem;
+}
+
+.credit-data-card {
+    padding: 1.75rem;
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+}
+
+.credit-data-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--line);
+}
+
+.credit-data-card-header h3 {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: var(--ink);
+}
+
+.credit-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.credit-table th {
+    padding: 0.6rem 0.75rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-bottom: 1px solid var(--line-strong);
+}
+
+.credit-table td {
+    padding: 0.85rem 0.75rem;
+    color: var(--ink-soft);
+    border-bottom: 1px solid var(--line);
+    vertical-align: middle;
+}
+
+.credit-table tr:last-child td {
+    border-bottom: none;
+}
+
+.status-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.2rem 0.55rem;
+    border-radius: var(--radius-pill);
+    font-size: 0.7rem;
+    font-weight: 700;
+}
+
+.status-badge--paid {
+    background: var(--success-bg);
+    color: var(--success);
+}
+
+.status-badge--pending {
+    background: var(--brass-soft);
+    color: var(--brass-deep);
+}
+
+.amount-plus {
+    color: var(--success);
+    font-weight: 800;
+}
+
+.amount-minus {
+    color: var(--error);
+    font-weight: 800;
+}
+
+.credit-empty-state {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--muted);
+}
+
+.credit-empty-state i {
+    font-size: 2.25rem;
+    margin-bottom: 0.5rem;
+    display: block;
+}
+
+@media (max-width: 1023px) {
+    .credit-hero {
+        grid-template-columns: 1fr;
+    }
+    .credit-package-grid {
+        grid-template-columns: 1fr;
+    }
+    .credit-data-grid {
+        grid-template-columns: 1fr;
+    }
+}

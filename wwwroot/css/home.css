@@ -685,6 +685,443 @@
     color: var(--ink);
 }
 
+/* ==================== AI CREDITS ==================== */
+
+.home-credits {
+    border-block: 1px solid var(--line);
+    background: var(--surface);
+}
+
+.home-credit-grid {
+    display: grid;
+    grid-template-columns: minmax(0, 3fr) minmax(0, 4fr) minmax(0, 3fr);
+    gap: 1rem;
+    align-items: stretch;
+}
+
+.home-credit-plan {
+    display: flex;
+    min-width: 0;
+    min-height: 27rem;
+    flex-direction: column;
+    padding: clamp(1.5rem, 3vw, 2.5rem);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-card);
+    background: var(--paper);
+}
+
+.home-credit-plan--featured {
+    min-height: 30rem;
+    margin-top: -1.5rem;
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.home-credit-plan-topline {
+    display: flex;
+    min-height: 1.75rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    color: var(--muted);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+}
+
+.home-credit-plan--featured .home-credit-plan-topline {
+    color: rgba(247, 243, 233, 0.62);
+}
+
+.home-credit-plan-topline strong {
+    padding: 0.35rem 0.55rem;
+    border-radius: var(--radius-pill);
+    background: var(--brass);
+    color: var(--ink);
+    font-size: 0.64rem;
+}
+
+.home-credit-plan h3 {
+    margin: 1.5rem 0 0.5rem;
+    font-size: clamp(1.65rem, 3vw, 2.5rem);
+    font-weight: 800;
+    letter-spacing: -0.04em;
+}
+
+.home-credit-plan--featured h3 {
+    color: var(--paper);
+}
+
+.home-credit-plan > p {
+    min-height: 3.5rem;
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.875rem;
+    line-height: 1.6;
+}
+
+.home-credit-plan--featured > p {
+    color: rgba(247, 243, 233, 0.65);
+}
+
+.home-credit-amount {
+    display: flex;
+    align-items: baseline;
+    gap: 0.65rem;
+    margin-top: auto;
+    padding: 2rem 0 1.5rem;
+    border-bottom: 1px solid var(--line-strong);
+}
+
+.home-credit-plan--featured .home-credit-amount {
+    border-color: rgba(247, 243, 233, 0.18);
+}
+
+.home-credit-amount strong {
+    color: var(--brass-deep);
+    font-size: clamp(3rem, 6vw, 5rem);
+    font-weight: 800;
+    letter-spacing: -0.06em;
+    line-height: 0.8;
+}
+
+.home-credit-plan--featured .home-credit-amount strong {
+    color: var(--brass);
+}
+
+.home-credit-amount span {
+    max-width: 5rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    line-height: 1.3;
+}
+
+.home-credit-plan--featured .home-credit-amount span {
+    color: rgba(247, 243, 233, 0.62);
+}
+
+.home-credit-price {
+    display: grid;
+    gap: 0.2rem;
+    padding: 1.35rem 0;
+}
+
+.home-credit-price strong {
+    font-size: 1.15rem;
+}
+
+.home-credit-price small {
+    color: var(--muted);
+    font-size: 0.7rem;
+}
+
+.home-credit-plan--featured .home-credit-price small {
+    color: rgba(247, 243, 233, 0.58);
+}
+
+.home-credit-plan > a {
+    display: inline-flex;
+    min-height: 2.85rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius-control);
+    color: var(--ink);
+    font-size: 0.8rem;
+    font-weight: 700;
+}
+
+.home-credit-plan > a:hover {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.home-credit-plan--featured > a {
+    border-color: var(--paper);
+    background: var(--paper);
+    color: var(--ink);
+}
+
+.home-credit-plan--featured > a:hover {
+    border-color: var(--brass);
+    background: var(--brass);
+    color: var(--ink);
+}
+
+.home-credit-note {
+    display: flex;
+    max-width: 52rem;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: 2rem;
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.6;
+}
+
+.home-credit-note i {
+    flex: 0 0 auto;
+    color: var(--brass-deep);
+    font-size: 1.4rem;
+}
+
+.home-credits {
+    background: var(--paper);
+    border-block: 1px solid var(--line);
+}
+
+.home-credit-trust-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem 1.75rem;
+    max-width: 54rem;
+    margin: 0 auto 2.5rem;
+    padding: 0.85rem 1.5rem;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-pill);
+    background: var(--surface);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.home-credit-trust-bar span {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    color: var(--ink);
+    font-size: 0.82rem;
+    font-weight: 700;
+}
+
+.home-credit-trust-bar i {
+    color: var(--brass-deep);
+    font-size: 1.1rem;
+}
+
+.home-credit-options {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: clamp(1rem, 2vw, 1.75rem);
+    align-items: stretch;
+}
+
+.home-credit-option {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    padding: clamp(1.4rem, 2vw, 2rem);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-card);
+    background: var(--surface);
+    box-shadow: 0 4px 16px -2px rgba(0, 0, 0, 0.04);
+    transition: transform var(--duration-med) var(--ease-out), box-shadow var(--duration-med) var(--ease-out), border-color var(--duration-fast) var(--ease-out);
+}
+
+.home-credit-option:hover {
+    transform: translateY(-6px);
+    border-color: var(--ink);
+    box-shadow: 0 14px 28px -4px rgba(0, 0, 0, 0.1);
+}
+
+.home-credit-option--featured {
+    border: 2px solid var(--ink);
+    border-top: 4px solid var(--brass);
+    background: var(--ink);
+    color: var(--paper);
+    box-shadow: 0 12px 32px -4px rgba(0, 0, 0, 0.18);
+}
+
+.home-credit-option--featured:hover {
+    transform: translateY(-6px);
+    border-color: var(--brass);
+    box-shadow: 0 18px 36px -4px rgba(0, 0, 0, 0.24);
+}
+
+.home-credit-badge {
+    position: absolute;
+    top: -0.75rem;
+    right: 1.25rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-pill);
+    background: linear-gradient(135deg, var(--brass) 0%, #d97706 100%);
+    color: var(--ink);
+    font-size: 0.62rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.home-credit-option-index {
+    color: var(--muted);
+    font-size: 0.68rem;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: 0.12em;
+}
+
+.home-credit-option--featured .home-credit-option-index {
+    color: rgba(247, 243, 233, 0.5);
+}
+
+.home-credit-option-name {
+    margin-top: 0.85rem;
+}
+
+.home-credit-option-name h3 {
+    margin: 0 0 0.25rem;
+    font-size: 1.45rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+.home-credit-option--featured .home-credit-option-name h3 {
+    color: var(--paper);
+}
+
+.home-credit-option-name p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.78rem;
+    line-height: 1.5;
+}
+
+.home-credit-option--featured .home-credit-option-name p {
+    color: rgba(247, 243, 233, 0.65);
+}
+
+.home-credit-option-quantity {
+    display: flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin-top: auto;
+    padding-top: 1.5rem;
+}
+
+.home-credit-option-quantity strong {
+    color: var(--ink);
+    font-size: clamp(2.5rem, 4vw, 3.5rem);
+    font-weight: 800;
+    letter-spacing: -0.05em;
+    line-height: 0.9;
+}
+
+.home-credit-option--featured .home-credit-option-quantity strong {
+    color: var(--brass);
+}
+
+.home-credit-option-quantity small {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.home-credit-option--featured .home-credit-option-quantity small {
+    color: rgba(247, 243, 233, 0.65);
+}
+
+.home-credit-option-unit {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    margin-top: 0.4rem;
+    font-size: 0.72rem;
+    color: var(--muted);
+}
+
+.home-credit-option--featured .home-credit-option-unit {
+    color: rgba(247, 243, 233, 0.6);
+}
+
+.home-credit-savings {
+    padding: 0.1rem 0.4rem;
+    border-radius: var(--radius-pill);
+    background: #dcfce7;
+    color: #15803d;
+    font-size: 0.65rem;
+    font-weight: 700;
+}
+
+.home-credit-option--featured .home-credit-savings {
+    background: rgba(220, 252, 231, 0.2);
+    color: #86efac;
+}
+
+.home-credit-option-price {
+    display: grid;
+    gap: 0.15rem;
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--line);
+}
+
+.home-credit-option--featured .home-credit-option-price {
+    border-color: rgba(247, 243, 233, 0.15);
+}
+
+.home-credit-option-price strong {
+    color: var(--ink);
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+.home-credit-option--featured .home-credit-option-price strong {
+    color: var(--paper);
+}
+
+.home-credit-option-price small {
+    color: var(--muted);
+    font-size: 0.7rem;
+}
+
+.home-credit-option--featured .home-credit-option-price small {
+    color: rgba(247, 243, 233, 0.55);
+}
+
+.home-credit-option-cta {
+    display: inline-flex;
+    min-height: 2.75rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-top: 1.25rem;
+    padding: 0.65rem 1rem;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius-control);
+    background: transparent;
+    color: var(--ink);
+    font-size: 0.8rem;
+    font-weight: 700;
+    transition: all var(--duration-fast) var(--ease-out);
+}
+
+.home-credit-option-cta:hover {
+    background: var(--ink);
+    color: var(--paper);
+}
+
+.home-credit-option--featured .home-credit-option-cta {
+    border-color: var(--brass);
+    background: var(--brass);
+    color: var(--ink);
+}
+
+.home-credit-option--featured .home-credit-option-cta:hover {
+    background: #d97706;
+    border-color: #d97706;
+    color: #ffffff;
+}
+
 /* ==================== PUBLIC SETS ==================== */
 
 .home-sets {
@@ -1114,7 +1551,8 @@
 @media (max-width: 991px) {
     .home-hero-grid,
     .home-feature-grid,
-    .home-set-discovery {
+    .home-set-discovery,
+    .home-credit-board {
         grid-template-columns: 1fr;
     }
 
@@ -1140,6 +1578,10 @@
 
     .home-word-specimen {
         min-height: 24rem;
+    }
+
+    .home-credit-principle {
+        min-height: 25rem;
     }
 
     .home-feature-list {
@@ -1225,6 +1667,14 @@
     .home-mode-grid,
     .home-testimonial-grid {
         grid-template-columns: 1fr;
+    }
+
+    .home-credit-options {
+        grid-template-columns: 1fr;
+    }
+
+    .home-credit-option-quantity {
+        padding: 0.75rem 0;
     }
 
     .home-feature-list {

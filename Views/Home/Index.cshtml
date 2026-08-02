@@ -1,7 +1,9 @@
 @model HomeViewModel
+@using System.Globalization
 @{
     ViewData["Title"] = "Trang chủ";
     var primaryCta = User.Identity?.IsAuthenticated == true ? "/Set/Create" : "/Account/Register";
+    var creditCta = User.Identity?.IsAuthenticated == true ? "/Credits" : "/Account/Register";
 }
 
 @section Styles {
@@ -227,10 +229,75 @@
         </div>
     </section>
 
+    @if (Model.CreditPackages.Any())
+    {
+    <section class="home-section home-credits" id="credits" aria-labelledby="home-credits-title">
+        <div class="container">
+            <header class="home-editorial-header">
+                <span class="home-section-number" aria-hidden="true">03</span>
+                <h2 id="home-credits-title">Thêm lượt hội thoại khi bạn cần.</h2>
+                <p>Mỗi phản hồi AI đã lưu dùng 1 tín dụng. Tín dụng không hết hạn và tạo mission luôn miễn phí.</p>
+            </header>
+
+            <div class="home-credit-trust-bar" aria-label="Cam kết tín dụng">
+                <span><i class="ph ph-lightning" aria-hidden="true"></i> 1 Credit = 1 phản hồi AI</span>
+                <span><i class="ph ph-gift" aria-hidden="true"></i> Tặng 10 Credit khi đăng ký</span>
+                <span><i class="ph ph-infinity" aria-hidden="true"></i> Không ngày hết hạn</span>
+                <span><i class="ph ph-shield-check" aria-hidden="true"></i> Xác nhận tự động VietQR</span>
+            </div>
+
+            <div class="home-credit-board home-credit-options" aria-label="Ba gói tín dụng">
+                @for (var index = 0; index < Model.CreditPackages.Count; index++)
+                {
+                    var package = Model.CreditPackages[index];
+                    var featured = index == 1;
+                    var unitPrice = package.Credits > 0 ? (package.PriceVnd / package.Credits) : 0;
+                    string savingsTag = index switch {
+                        1 => "Tiết kiệm 17%",
+                        2 => "Tiết kiệm 30%",
+                        _ => ""
+                    };
+
+                    <article class="home-credit-option @(featured ? "home-credit-option--featured" : "")">
+                        @if (featured)
+                        {
+                            <span class="home-credit-badge"><i class="ph ph-sparkle" aria-hidden="true"></i> ĐƯỢC CHỌN NHIỀU</span>
+                        }
+                        <span class="home-credit-option-index">@((index + 1).ToString("00"))</span>
+                        <div class="home-credit-option-name">
+                            <h3>@package.Name</h3>
+                            <p>@package.Description</p>
+                        </div>
+                        <div class="home-credit-option-quantity">
+                            <strong>@package.Credits</strong>
+                            <small>credit</small>
+                        </div>
+                        <div class="home-credit-option-unit">
+                            <span>@unitPrice.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))đ / credit</span>
+                            @if (!string.IsNullOrEmpty(savingsTag))
+                            {
+                                <span class="home-credit-savings">@savingsTag</span>
+                            }
+                        </div>
+                        <div class="home-credit-option-price">
+                            <strong>@package.PriceVnd.ToString("N0", CultureInfo.GetCultureInfo("vi-VN")) ₫</strong>
+                            <small>VietQR · một lần</small>
+                        </div>
+                        <a href="@creditCta" class="home-credit-option-cta" aria-label="Chọn gói @package.Name">
+                            <span>Chọn gói @(featured ? package.Name : "")</span>
+                            <i class="ph ph-arrow-up-right" aria-hidden="true"></i>
+                        </a>
+                    </article>
+                }
+            </div>
+        </div>
+    </section>
+    }
+
     <section class="home-section home-sets" id="featured-sets" aria-labelledby="home-sets-title">
         <div class="container">
             <header class="home-editorial-header home-sets-header">
-                <span class="home-section-number" aria-hidden="true">03</span>
+                <span class="home-section-number" aria-hidden="true">04</span>
                 <div>
                     <span class="home-eyebrow">Bộ thẻ cộng đồng</span>
                     <h2 id="home-sets-title">Chọn một bộ thẻ và học ngay.</h2>
@@ -311,7 +378,7 @@
     <section class="home-section home-testimonials" id="testimonials" aria-labelledby="home-testimonials-title">
         <div class="container">
             <header class="home-editorial-header">
-                <span class="home-section-number" aria-hidden="true">04</span>
+                <span class="home-section-number" aria-hidden="true">05</span>
                 <h2 id="home-testimonials-title">Người học nói gì.</h2>
                 <p>Những điều họ thấy hữu ích khi học theo nhiều chế độ.</p>
             </header>

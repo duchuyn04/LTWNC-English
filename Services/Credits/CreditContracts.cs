@@ -51,6 +51,7 @@ public sealed class InsufficientCreditsException : Exception
 public interface ICreditService
 {
     Task<int> GetBalanceAsync(string userId, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<CreditPackage>> GetActivePackagesAsync(int limit = 3, CancellationToken cancellationToken = default);
     Task EnsureCanSpendAsync(string userId, CancellationToken cancellationToken = default);
     Task<int> PrepareMissionTurnDebitAsync(string userId, int missionId, string clientTurnId, CancellationToken cancellationToken = default);
     Task<CreditAccountSnapshot> GetAccountAsync(string userId, CancellationToken cancellationToken = default);

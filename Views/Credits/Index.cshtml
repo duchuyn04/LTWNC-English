@@ -5,83 +5,187 @@
     ViewData["Title"] = "Tín dụng AI";
 }
 
-<section class="credit-hero">
-    <div>
-        <span class="credit-kicker">ENGLISH MISSION</span>
-        <h1>Tín dụng AI</h1>
-        <p>Mỗi phản hồi AI được lưu thành công sử dụng 1 tín dụng. Tín dụng không hết hạn.</p>
-    </div>
-    <div class="credit-balance-card">
-        <span>Số dư hiện tại</span>
-        <strong>@Model.Balance</strong>
-        <small>tín dụng</small>
-    </div>
-</section>
-
-@if (TempData["CreditError"] is string error)
-{
-    <div class="alert alert-danger">@error</div>
+@section Styles {
+    <link rel="stylesheet" href="~/css/credits.css" asp-append-version="true" />
 }
 
-<section aria-labelledby="packagesTitle">
-    <div class="credit-section-heading">
-        <div><span>01</span><h2 id="packagesTitle">Chọn gói phù hợp</h2></div>
-        <p>Thanh toán an toàn bằng VietQR qua SePay.</p>
-    </div>
-    <div class="credit-package-grid">
-        @foreach (CreditPackage package in Model.Packages)
-        {
-            <article class="credit-package">
-                <span class="credit-package-label">@package.Name</span>
-                <strong>@package.Credits <small>credit</small></strong>
-                <p>@package.Description</p>
-                <div class="credit-package-price">@package.PriceVnd.ToString("N0", CultureInfo.GetCultureInfo("vi-VN")) ₫</div>
-                <form asp-action="Buy" asp-route-packageId="@package.Id" method="post">
-                    <button type="submit" class="btn btn-dark w-100">Mua bằng VietQR</button>
-                </form>
-            </article>
-        }
-    </div>
-</section>
+<div class="credits-page">
+    <section class="credit-hero" aria-label="Tổng quan tín dụng">
+        <div>
+            <span class="credit-kicker"><i class="ph ph-lightning" aria-hidden="true"></i> ENGLISH MISSION</span>
+            <h1>Tín dụng AI</h1>
+            <p>Mỗi phản hồi AI được lưu thành công sử dụng 1 tín dụng. Tín dụng không bao giờ hết hạn.</p>
+        </div>
+        <div class="credit-balance-card">
+            <span>Số dư hiện tại</span>
+            <strong>@Model.Balance</strong>
+            <small>tín dụng khả dụng</small>
+            <span class="credit-balance-status"><i class="ph ph-check-circle" aria-hidden="true"></i> Tài khoản đang hoạt động</span>
+        </div>
+    </section>
 
-<div class="row g-4 mt-4">
-    <section class="col-lg-6" aria-labelledby="purchaseHistoryTitle">
-        <h2 class="h4" id="purchaseHistoryTitle">Lịch sử mua</h2>
-        <div class="table-responsive credit-history">
-            <table class="table align-middle">
-                <thead><tr><th>Gói</th><th>Giá</th><th>Trạng thái</th><th>Ngày</th></tr></thead>
-                <tbody>
-                @foreach (CreditPurchase purchase in Model.Purchases)
-                {
-                    <tr>
-                        <td>@purchase.PackageName<br /><small>+@purchase.Credits credit</small></td>
-                        <td>@purchase.PriceVnd.ToString("N0") ₫</td>
-                        <td><span class="badge text-bg-@(purchase.Status == CreditPurchaseStatuses.Paid ? "success" : "secondary")">@purchase.Status</span></td>
-                        <td>@purchase.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                    </tr>
-                }
-                @if (Model.Purchases.Count == 0) { <tr><td colspan="4" class="text-muted">Chưa có giao dịch.</td></tr> }
-                </tbody>
-            </table>
+    @if (TempData["CreditError"] is string creditError)
+    {
+        <div data-popup="error">@creditError</div>
+    }
+    @if (TempData["CreditSuccess"] is string creditSuccess)
+    {
+        <div data-popup="success">@creditSuccess</div>
+    }
+
+    <div class="credit-trust-bar" aria-label="Cam kết tín dụng">
+        <span><i class="ph ph-lightning" aria-hidden="true"></i> 1 Credit = 1 Phản hồi AI</span>
+        <span><i class="ph ph-gift" aria-hidden="true"></i> Tặng 10 Credit khi đăng ký</span>
+        <span><i class="ph ph-infinity" aria-hidden="true"></i> Không ngày hết hạn</span>
+        <span><i class="ph ph-shield-check" aria-hidden="true"></i> Xác nhận tự động VietQR</span>
+    </div>
+
+    <section aria-labelledby="packagesTitle">
+        <header class="credit-section-header">
+            <span>01 · Chọn Gói</span>
+            <h2 id="packagesTitle">Bảng Giá Tín Dụng AI</h2>
+            <p>Thanh toán 1 lần duy nhất bằng VietQR qua SePay. Nhận tín dụng tức thì.</p>
+        </header>
+
+        <div class="credit-package-grid">
+            @for (var index = 0; index < Model.Packages.Count; index++)
+            {
+                var package = Model.Packages[index];
+                var featured = index == 1;
+                var unitPrice = package.Credits > 0 ? (package.PriceVnd / package.Credits) : 0;
+                string savingsTag = index switch {
+                    1 => "Tiết kiệm 17%",
+                    2 => "Tiết kiệm 30%",
+                    _ => ""
+                };
+
+                <article class="credit-package @(featured ? "credit-package--featured" : "")">
+                    @if (featured)
+                    {
+                        <span class="credit-package-badge"><i class="ph ph-sparkle" aria-hidden="true"></i> ĐƯỢC CHỌN NHIỀU</span>
+                    }
+                    <span class="credit-package-index">@((index + 1).ToString("00"))</span>
+                    <div class="credit-package-info">
+                        <h3>@package.Name</h3>
+                        <p>@package.Description</p>
+                    </div>
+                    <div class="credit-package-quantity">
+                        <strong>@package.Credits</strong>
+                        <small>credit</small>
+                    </div>
+                    <div class="credit-package-unit">
+                        <span>@unitPrice.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))đ / credit</span>
+                        @if (!string.IsNullOrEmpty(savingsTag))
+                        {
+                            <span class="credit-savings-tag">@savingsTag</span>
+                        }
+                    </div>
+                    <div class="credit-package-price">
+                        <strong>@package.PriceVnd.ToString("N0", CultureInfo.GetCultureInfo("vi-VN")) ₫</strong>
+                        <small>VietQR · thanh toán 1 lần</small>
+                    </div>
+                    <form asp-action="Buy" asp-route-packageId="@package.Id" method="post" class="mt-auto">
+                        <button type="submit" class="btn-credit-buy">
+                            <span>Mua gói @(featured ? package.Name : "")</span>
+                            <i class="ph ph-arrow-up-right" aria-hidden="true"></i>
+                        </button>
+                    </form>
+                </article>
+            }
         </div>
     </section>
-    <section class="col-lg-6" aria-labelledby="ledgerTitle">
-        <h2 class="h4" id="ledgerTitle">Biến động tín dụng</h2>
-        <div class="table-responsive credit-history">
-            <table class="table align-middle">
-                <thead><tr><th>Nội dung</th><th>Thay đổi</th><th>Số dư</th><th>Ngày</th></tr></thead>
-                <tbody>
-                @foreach (CreditLedgerEntry entry in Model.Ledger)
-                {
-                    <tr>
-                        <td>@entry.Description</td>
-                        <td class="fw-semibold @(entry.Amount > 0 ? "text-success" : "text-danger")">@(entry.Amount > 0 ? "+" : "")@entry.Amount</td>
-                        <td>@entry.BalanceAfter</td>
-                        <td>@entry.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</td>
-                    </tr>
-                }
-                </tbody>
-            </table>
-        </div>
-    </section>
+
+    <div class="credit-data-grid">
+        <section class="credit-data-card" aria-labelledby="purchaseHistoryTitle">
+            <div class="credit-data-card-header">
+                <h3 id="purchaseHistoryTitle"><i class="ph ph-receipt" aria-hidden="true"></i> Lịch sử mua</h3>
+                <span class="badge text-bg-light">@Model.Purchases.Count giao dịch</span>
+            </div>
+            @if (Model.Purchases.Count == 0)
+            {
+                <div class="credit-empty-state">
+                    <i class="ph ph-receipt-x" aria-hidden="true"></i>
+                    <p class="mb-0">Chưa có giao dịch mua tín dụng nào.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="credit-table">
+                        <thead>
+                            <tr>
+                                <th>Gói cước</th>
+                                <th>Giá tiền</th>
+                                <th>Trạng thái</th>
+                                <th>Thời gian</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (CreditPurchase purchase in Model.Purchases)
+                            {
+                                var isPaid = purchase.Status == CreditPurchaseStatuses.Paid;
+                                <tr>
+                                    <td>
+                                        <strong>@purchase.PackageName</strong>
+                                        <div class="text-muted small">+@purchase.Credits credit</div>
+                                    </td>
+                                    <td><strong>@purchase.PriceVnd.ToString("N0", CultureInfo.GetCultureInfo("vi-VN")) ₫</strong></td>
+                                    <td>
+                                        <span class="status-badge @(isPaid ? "status-badge--paid" : "status-badge--pending")">
+                                            @(isPaid ? "Đã thanh toán" : purchase.Status)
+                                        </span>
+                                    </td>
+                                    <td><small class="text-muted">@purchase.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+
+        <section class="credit-data-card" aria-labelledby="ledgerTitle">
+            <div class="credit-data-card-header">
+                <h3 id="ledgerTitle"><i class="ph ph-chart-line-up" aria-hidden="true"></i> Biến động tín dụng</h3>
+                <span class="badge text-bg-light">@Model.Ledger.Count bản ghi</span>
+            </div>
+            @if (Model.Ledger.Count == 0)
+            {
+                <div class="credit-empty-state">
+                    <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>
+                    <p class="mb-0">Chưa có biến động tín dụng nào.</p>
+                </div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="credit-table">
+                        <thead>
+                            <tr>
+                                <th>Nội dung</th>
+                                <th>Biến động</th>
+                                <th>Số dư</th>
+                                <th>Thời gian</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (CreditLedgerEntry entry in Model.Ledger)
+                            {
+                                <tr>
+                                    <td>@entry.Description</td>
+                                    <td>
+                                        <span class="@(entry.Amount > 0 ? "amount-plus" : "amount-minus")">
+                                            @(entry.Amount > 0 ? "+" : "")@entry.Amount
+                                        </span>
+                                    </td>
+                                    <td><strong>@entry.BalanceAfter</strong></td>
+                                    <td><small class="text-muted">@entry.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small></td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+        </section>
+    </div>
 </div>

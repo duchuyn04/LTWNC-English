@@ -1,6 +1,7 @@
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Profile;
+using ltwnc.Services.Achievements;
 using ltwnc.Services.Auth;
 using Microsoft.EntityFrameworkCore;
 
@@ -371,19 +372,22 @@ public sealed class ProfileService : IProfileService
         string userId,
         CancellationToken cancellationToken)
     {
-        // 1. Trả kết quả từ `ToListAsync` cho nơi gọi.
-        return await _db.UserAchievements
+        List<UserAchievement> userAchievements = await _db.UserAchievements
             .AsNoTracking()
             .Where(achievement => achievement.UserId == userId)
             .OrderByDescending(achievement => achievement.UnlockedAt)
+            .ToListAsync(cancellationToken);
+
+        return userAchievements
             .Select(achievement => new ProfileBadgeViewModel
             {
                 Code = achievement.Code,
                 Title = achievement.Title,
                 Description = achievement.Description,
-                UnlockedAt = achievement.UnlockedAt
+                UnlockedAt = achievement.UnlockedAt,
+                IconClass = AchievementCatalog.GetIconClass(achievement.Code)
             })
-            .ToListAsync(cancellationToken);
+            .ToList();
     }
 
     private async Task<IReadOnlyList<ProfilePublicSetViewModel>> LoadPublicSetsAsync(

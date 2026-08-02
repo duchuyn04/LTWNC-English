@@ -103,11 +103,13 @@ public sealed class FlashcardSetDuplicateControllerTests
     {
         Mock<ICurrentUser> currentUser = new();
         currentUser.SetupGet(value => value.UserId).Returns(userId);
+        Mock<IAuthService> auth = new();
         FlashcardSetController controller = new(
             sets.Object,
             currentUser.Object,
             new Mock<IFlashcardImportService>().Object,
-            new Mock<IContentReportService>().Object);
+            new Mock<IContentReportService>().Object,
+            auth.Object);
         DefaultHttpContext httpContext = new();
         controller.ControllerContext = new ControllerContext { HttpContext = httpContext };
         controller.TempData = new TempDataDictionary(

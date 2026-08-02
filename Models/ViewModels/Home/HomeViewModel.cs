@@ -8,6 +8,17 @@ public class HomeViewModel
 
     // Từ khóa q trên URL; null nếu chưa search
     public string? SearchQuery { get; set; }
+
+    public IReadOnlyList<HomeCreditPackageViewModel> CreditPackages { get; set; } = [];
+}
+
+public sealed class HomeCreditPackageViewModel
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public long PriceVnd { get; set; }
+    public int Credits { get; set; }
 }
 
 public class PublicSetViewModel

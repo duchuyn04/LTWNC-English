@@ -137,6 +137,8 @@ public sealed class PublicLibraryService : IPublicLibraryService
 
                 //Dùng tên mặc định nếu không có thông tin tác giả
                 author != null && author.UserName != null ? author.UserName : "Thành viên",
+                // Username thật để chỉ tạo link khi tác giả còn tồn tại.
+                author != null ? author.UserName : null,
                 // Số flashcard trong bộ
                 set.Flashcards.Count,
                 //Số bộ thẻ được sao chép từ bộ hiện tại

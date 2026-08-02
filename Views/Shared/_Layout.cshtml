@@ -161,6 +161,14 @@
     }
 
     <main class="app-main">
+        @if (TempData["SuccessMessage"] is string globalSuccessMessage)
+        {
+            <div data-popup="success">@globalSuccessMessage</div>
+        }
+        @if (TempData["ErrorMessage"] is string globalErrorMessage)
+        {
+            <div data-popup="error">@globalErrorMessage</div>
+        }
         @if (IsSectionDefined("FullWidth"))
         {
             @RenderSection("FullWidth", required: false)

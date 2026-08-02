@@ -43,11 +43,32 @@ function toggleFlip() {
         popup.setAttribute('role', tone === 'error' ? 'alert' : 'status');
         popup.setAttribute('aria-live', tone === 'error' ? 'assertive' : 'polite');
 
+        const contentWrapper = document.createElement('div');
+        contentWrapper.className = 'app-popup__content';
+        while (popup.firstChild) {
+            contentWrapper.appendChild(popup.firstChild);
+        }
+
+        const iconWrapper = document.createElement('div');
+        iconWrapper.className = 'app-popup__icon';
+        const icon = document.createElement('i');
+        icon.className = tone === 'error'
+            ? 'ph ph-warning-circle'
+            : tone === 'success'
+                ? 'ph ph-check-circle'
+                : 'ph ph-info';
+        iconWrapper.appendChild(icon);
+
+        popup.appendChild(iconWrapper);
+        popup.appendChild(contentWrapper);
+
         const close = document.createElement('button');
         close.type = 'button';
         close.className = 'app-popup__close';
         close.setAttribute('aria-label', 'Đóng thông báo');
-        close.textContent = '×';
+        const closeIcon = document.createElement('i');
+        closeIcon.className = 'ph ph-x';
+        close.appendChild(closeIcon);
         close.addEventListener('click', function () { dismiss(popup); });
         popup.appendChild(close);
         getStack().appendChild(popup);

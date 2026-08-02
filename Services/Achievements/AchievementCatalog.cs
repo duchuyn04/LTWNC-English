@@ -31,24 +31,18 @@ public static class AchievementCatalog
     // Đường dẫn CTA chung
     private const string DefaultCtaPath = "/Set";
 
-    // Một huy hiệu: mã, UI, metric đo, mốc Target, CTA
+    // Một huy hiệu: mã, UI, metric đo, mốc Target, CTA, IconClass
     public sealed record Definition(
-        // Khóa lưu UserAchievement.Code
         string Code,
-        // Tên hiện UI
         string Title,
-        // Mô tả điều kiện
         string Description,
-        // Loại metric so với snapshot
         AchievementMetricKind Metric,
-        // Cần đạt bao nhiêu
         int Target,
-        // Nhãn nút CTA
         string CtaText,
-        // URL CTA
-        string CtaPath);
+        string CtaPath,
+        string IconClass = "ph-medal");
 
-    // Toàn bộ huy hiệu app hỗ trợ (thứ tự catalog, UI có thể sort lại)
+    // Toàn bộ huy hiệu app hỗ trợ
     public static IReadOnlyList<Definition> All { get; } =
     [
         // --- Thẻ đã thuộc ---
@@ -59,7 +53,8 @@ public static class AchievementCatalog
             AchievementMetricKind.CardsMastered,
             1,
             CardCtaText,
-            DefaultCtaPath),
+            DefaultCtaPath,
+            "ph-check-circle"),
         new Definition(
             CardsMastered10,
             "Thuộc 10 thẻ",
@@ -67,7 +62,8 @@ public static class AchievementCatalog
             AchievementMetricKind.CardsMastered,
             10,
             CardCtaText,
-            DefaultCtaPath),
+            DefaultCtaPath,
+            "ph-cards"),
         new Definition(
             CardsMastered25,
             "Thuộc 25 thẻ",
@@ -75,7 +71,8 @@ public static class AchievementCatalog
             AchievementMetricKind.CardsMastered,
             25,
             CardCtaText,
-            DefaultCtaPath),
+            DefaultCtaPath,
+            "ph-stack-overflow"),
         new Definition(
             CardsMastered50,
             "Thuộc 50 thẻ",
@@ -83,7 +80,8 @@ public static class AchievementCatalog
             AchievementMetricKind.CardsMastered,
             50,
             CardCtaText,
-            DefaultCtaPath),
+            DefaultCtaPath,
+            "ph-books"),
         new Definition(
             CardsMastered100,
             "Thuộc 100 thẻ",
@@ -91,7 +89,8 @@ public static class AchievementCatalog
             AchievementMetricKind.CardsMastered,
             100,
             CardCtaText,
-            DefaultCtaPath),
+            DefaultCtaPath,
+            "ph-crown"),
 
         // --- Buổi Flashcard ---
         new Definition(
@@ -101,7 +100,8 @@ public static class AchievementCatalog
             AchievementMetricKind.FlashcardSessions,
             1,
             SessionCtaText,
-            DefaultCtaPath),
+            DefaultCtaPath,
+            "ph-cards"),
         new Definition(
             FlashcardSessions5,
             "5 buổi Flashcard",
@@ -109,7 +109,8 @@ public static class AchievementCatalog
             AchievementMetricKind.FlashcardSessions,
             5,
             SessionCtaText,
-            DefaultCtaPath),
+            DefaultCtaPath,
+            "ph-stack"),
         new Definition(
             FlashcardSessions10,
             "10 buổi Flashcard",
@@ -117,7 +118,8 @@ public static class AchievementCatalog
             AchievementMetricKind.FlashcardSessions,
             10,
             SessionCtaText,
-            DefaultCtaPath),
+            DefaultCtaPath,
+            "ph-layers"),
         new Definition(
             FlashcardSessions20,
             "20 buổi Flashcard",
@@ -125,7 +127,8 @@ public static class AchievementCatalog
             AchievementMetricKind.FlashcardSessions,
             20,
             SessionCtaText,
-            DefaultCtaPath),
+            DefaultCtaPath,
+            "ph-lightning"),
 
         // --- Buổi / câu Nghe chép ---
         new Definition(
@@ -135,7 +138,8 @@ public static class AchievementCatalog
             AchievementMetricKind.DictationSessions,
             1,
             SessionCtaText,
-            DefaultCtaPath),
+            DefaultCtaPath,
+            "ph-headphones"),
         new Definition(
             DictationSessions5,
             "5 buổi Nghe chép",
@@ -143,7 +147,8 @@ public static class AchievementCatalog
             AchievementMetricKind.DictationSessions,
             5,
             SessionCtaText,
-            DefaultCtaPath),
+            DefaultCtaPath,
+            "ph-ear"),
         new Definition(
             DictationCorrect10,
             "10 câu nghe chép đúng",
@@ -151,7 +156,8 @@ public static class AchievementCatalog
             AchievementMetricKind.DictationCorrectAnswers,
             10,
             SessionCtaText,
-            DefaultCtaPath),
+            DefaultCtaPath,
+            "ph-pencil-line"),
         new Definition(
             DictationCorrect50,
             "50 câu nghe chép đúng",
@@ -159,7 +165,8 @@ public static class AchievementCatalog
             AchievementMetricKind.DictationCorrectAnswers,
             50,
             SessionCtaText,
-            DefaultCtaPath),
+            DefaultCtaPath,
+            "ph-notepad"),
         new Definition(
             DictationPerfectSession,
             "Nghe chép điểm tuyệt đối",
@@ -167,13 +174,19 @@ public static class AchievementCatalog
             AchievementMetricKind.DictationPerfectSessions,
             1,
             SessionCtaText,
-            DefaultCtaPath)
+            DefaultCtaPath,
+            "ph-star-fill")
     ];
 
     // Tìm định nghĩa theo mã; trả null nếu không có trong danh mục
     public static Definition? Find(string code)
     {
-        // 1. Trả kết quả từ `FirstOrDefault` cho nơi gọi.
         return All.FirstOrDefault(item => item.Code == code);
+    }
+
+    // Lấy icon class theo mã huy hiệu
+    public static string GetIconClass(string code)
+    {
+        return Find(code)?.IconClass ?? "ph-medal";
     }
 }

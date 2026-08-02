@@ -6,6 +6,7 @@ using ltwnc.Models;
 using ltwnc.Models.Entities;
 using ltwnc.Services.FlashcardSets;
 using ltwnc.Models.ViewModels.Home;
+using ltwnc.Services.Credits;
 
 namespace ltwnc.Controllers;
 
@@ -14,12 +15,14 @@ public class HomeController : Controller
 {
     // Service lấy và tìm kiếm các bộ thẻ công khai.
     private readonly IFlashcardSetService _setService;
+    private readonly ICreditService _creditService;
 
     // Nhận service bộ thẻ qua dependency injection.
-    public HomeController(IFlashcardSetService setService)
+    public HomeController(IFlashcardSetService setService, ICreditService creditService)
     {
         // 1. Lưu service bộ thẻ để trang chủ sử dụng.
         _setService = setService;
+        _creditService = creditService;
     }
 
     // Hiển thị trang chủ cho cả khách và người đã đăng nhập, có hỗ trợ tìm kiếm.
@@ -49,6 +52,17 @@ public class HomeController : Controller
                 Id = set.Id,
                 Title = set.Title,
                 Description = set.Description
+            })
+            .ToList();
+
+        model.CreditPackages = (await _creditService.GetActivePackagesAsync())
+            .Select(package => new HomeCreditPackageViewModel
+            {
+                Id = package.Id,
+                Name = package.Name,
+                Description = package.Description,
+                PriceVnd = package.PriceVnd,
+                Credits = package.Credits
             })
             .ToList();
 

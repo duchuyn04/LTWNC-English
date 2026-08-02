@@ -37,7 +37,7 @@
                      data-code="@item.Code"
                      data-unlocked="@unlockedAttr">
                     <div class="ach-icon" aria-hidden="true">
-                        <i class="ph @(item.IsUnlocked ? "ph-medal" : "ph-lock-simple")"></i>
+                        <i class="ph @(item.IsUnlocked ? (string.IsNullOrEmpty(item.IconClass) ? "ph-medal" : item.IconClass) : "ph-lock-simple")"></i>
                     </div>
                     <div class="ach-body">
                         <p class="ach-title">@item.Title</p>

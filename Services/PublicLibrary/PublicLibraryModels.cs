@@ -26,6 +26,7 @@ public sealed record PublicLibrarySetItem(
     string Title,
     string? Description,
     string AuthorName,
+    string? AuthorUsername,
     int CardCount,
     int CopyCount,
     DateTime UpdatedAt);

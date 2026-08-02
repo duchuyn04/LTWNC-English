@@ -26,19 +26,22 @@ public class FlashcardSetController : Controller
     private readonly ICurrentUser _currentUser;
     private readonly IFlashcardImportService _importService;
     private readonly IContentReportService _contentReportService;
+    private readonly IAuthService _authService;
 
     // Nhận các service cần dùng qua dependency injection.
     public FlashcardSetController(
         IFlashcardSetService setService,
         ICurrentUser currentUser,
         IFlashcardImportService importService,
-        IContentReportService contentReportService)
+        IContentReportService contentReportService,
+        IAuthService authService)
     {
-        // 1. Lưu các service để những action quản lý bộ thẻ sử dụng.
+        // Lưu các service để các action sử dụng.
         _setService = setService;
         _currentUser = currentUser;
         _importService = importService;
         _contentReportService = contentReportService;
+        _authService = authService;
     }
 
     // Hiển thị thư viện bộ thẻ cá nhân kèm tiến độ học.
@@ -180,6 +183,29 @@ public class FlashcardSetController : Controller
             return NotFound();
         }
 
+        // Lấy username sau khi đã kiểm tra quyền xem bộ thẻ.
+        AppUser? author = await _authService.FindByIdAsync(set.UserId);
+        string? authorUsername = null;
+        string authorInitials = "TV";
+
+        if (author != null && !string.IsNullOrWhiteSpace(author.UserName))
+        {
+            authorUsername = author.UserName.Trim();
+            string[] nameParts = authorUsername
+                .Split(' ', StringSplitOptions.RemoveEmptyEntries);
+
+            string initials = string.Join(
+                string.Empty,
+                nameParts
+                    .Take(2)
+                    .Select(part => char.ToUpperInvariant(part[0])));
+
+            if (!string.IsNullOrWhiteSpace(initials))
+            {
+                authorInitials = initials;
+            }
+        }
+
         // Nếu đang xem bộ thẻ của người khác, kiểm tra người dùng đã sao chép bộ này chưa.
         int? existingCopyId = null;
         if (userId != null && userId != set.UserId)
@@ -202,6 +228,8 @@ public class FlashcardSetController : Controller
             Id = set.Id,
             Title = set.Title,
             Description = set.Description,
+            AuthorUsername = authorUsername,
+            AuthorInitials = authorInitials,
             IsPublic = set.IsPublic,
             IsQuarantined = set.ModerationStatus == FlashcardSetModerationStatus.Quarantined,
             ModerationPublicReason = set.ModerationPublicReason,

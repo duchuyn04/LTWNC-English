@@ -12,6 +12,9 @@ public class AchievementListItemViewModel
     // Mô tả điều kiện / ý nghĩa
     public string Description { get; set; } = string.Empty;
 
+    // Class icon Phosphor (vd: ph-headphones, ph-star-fill, ph-check-circle)
+    public string IconClass { get; set; } = "ph-medal";
+
     // true = đã mở khóa
     public bool IsUnlocked { get; set; }
 

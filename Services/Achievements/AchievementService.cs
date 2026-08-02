@@ -126,7 +126,8 @@ public class AchievementService : IAchievementService
                 Target = definition.Target,
                 ProgressPercent = progressPercent,
                 CtaText = definition.CtaText,
-                CtaUrl = definition.CtaPath
+                CtaUrl = definition.CtaPath,
+                IconClass = definition.IconClass
             });
         }
 

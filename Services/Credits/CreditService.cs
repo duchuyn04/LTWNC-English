@@ -32,6 +32,20 @@ public sealed class CreditService : ICreditService
             .SingleAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<CreditPackage>> GetActivePackagesAsync(
+        int limit = 3,
+        CancellationToken cancellationToken = default)
+    {
+        int safeLimit = Math.Clamp(limit, 1, 20);
+        return await _db.CreditPackages
+            .AsNoTracking()
+            .Where(package => package.IsActive && !package.IsArchived)
+            .OrderBy(package => package.DisplayOrder)
+            .ThenBy(package => package.PriceVnd)
+            .Take(safeLimit)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task EnsureCanSpendAsync(string userId, CancellationToken cancellationToken = default)
     {
         if (await GetBalanceAsync(userId, cancellationToken) < 1)

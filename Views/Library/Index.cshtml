@@ -105,10 +105,29 @@
                                     <p>@item.Description</p>
                                 }
                             </div>
-                            <div class="library-author-row">
-                                <span class="library-avatar">@item.AuthorInitials</span>
-                                <span><small>Chia sẻ bởi</small><strong>@item.AuthorName</strong></span>
-                            </div>
+                            @if (!string.IsNullOrWhiteSpace(item.AuthorUsername))
+                            {
+                                <a class="library-author-row library-author-link"
+                                   asp-route="PublicProfile"
+                                   asp-route-username="@item.AuthorUsername"
+                                   aria-label="Xem profile của @item.AuthorName">
+                                    <span class="library-avatar">@item.AuthorInitials</span>
+                                    <span>
+                                        <small>Chia sẻ bởi</small>
+                                        <strong>@item.AuthorName</strong>
+                                    </span>
+                                </a>
+                            }
+                            else
+                            {
+                                <div class="library-author-row library-author-fallback">
+                                    <span class="library-avatar">@item.AuthorInitials</span>
+                                    <span>
+                                        <small>Chia sẻ bởi</small>
+                                        <strong>@item.AuthorName</strong>
+                                    </span>
+                                </div>
+                            }
                             <footer>
                                 <div class="library-card-metrics">
                                     <span><i class="ph ph-cards" aria-hidden="true"></i>@item.CardCount thẻ</span>

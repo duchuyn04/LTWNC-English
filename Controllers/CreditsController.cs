@@ -41,7 +41,7 @@ public sealed class CreditsController : Controller
         }
         catch (Exception exception) when (exception is KeyNotFoundException or InvalidOperationException)
         {
-            TempData["CreditError"] = exception.Message;
+            TempData["CreditError"] = "Hệ thống thanh toán bằng VietQR hiện chưa khả dụng. Vui lòng thử lại sau hoặc liên hệ hỗ trợ.";
             return RedirectToAction(nameof(Index));
         }
     }

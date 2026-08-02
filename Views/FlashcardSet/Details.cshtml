@@ -18,6 +18,24 @@
             <p>@(Model.IsPublic ? "Bộ thẻ công khai" : "Bộ thẻ riêng tư") · @Model.Flashcards.Count thẻ</p>
         }
 
+        @if (!string.IsNullOrWhiteSpace(Model.AuthorUsername))
+        {
+            <a class="set-detail-author-link"
+               asp-route="PublicProfile"
+               asp-route-username="@Model.AuthorUsername"
+               aria-label="Xem profile của @Model.AuthorUsername">
+                <span class="set-detail-author-avatar" aria-hidden="true">@Model.AuthorInitials</span>
+                <span>
+                    <small>Chia sẻ bởi</small>
+                    <strong>@Model.AuthorUsername</strong>
+                </span>
+            </a>
+        }
+        else
+        {
+            <div class="set-detail-author-fallback">Tác giả không còn khả dụng</div>
+        }
+
         <div class="set-detail-stats">
             <div class="set-detail-stat">
                 <div class="set-detail-stat-value">0%</div>
@@ -120,32 +138,73 @@
 
     @if (Model.CanReport)
     {
-        <section class="set-report-panel" aria-labelledby="report-content-heading">
-            <div>
-                <h3 id="report-content-heading">Báo cáo bộ flashcard</h3>
-                <p>Chọn lý do cố định và thêm mô tả nếu cần.</p>
+        <div class="set-report-trigger-row">
+            <button type="button"
+                    class="set-report-trigger btn-secondary-custom"
+                    data-bs-toggle="modal"
+                    data-bs-target="#report-content-modal"
+                    aria-haspopup="dialog">
+                <i class="ph ph-flag" aria-hidden="true"></i> Báo cáo bộ thẻ
+            </button>
+        </div>
+
+        <div class="modal fade set-report-modal"
+             id="report-content-modal"
+             tabindex="-1"
+             aria-labelledby="report-content-heading"
+             aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div>
+                            <span class="set-report-modal-kicker">Phản hồi nội dung</span>
+                            <h3 id="report-content-heading">Báo cáo bộ flashcard</h3>
+                            <p>Chọn lý do và thêm mô tả nếu cần.</p>
+                        </div>
+                        <button type="button"
+                                class="btn-close"
+                                data-bs-dismiss="modal"
+                                aria-label="Đóng popup báo cáo"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form asp-action="Report"
+                              asp-route-id="@Model.Id"
+                              method="post"
+                              class="set-report-form">
+                            @Html.AntiForgeryToken()
+                            <div>
+                                <label for="report-reason">Lý do</label>
+                                <select id="report-reason" name="Reason" required>
+                                    <option value="">Chọn lý do</option>
+                                    @foreach (var option in Model.ReportReasonOptions)
+                                    {
+                                        <option value="@option.Value">@option.Label</option>
+                                    }
+                                </select>
+                            </div>
+                            <div>
+                                <label for="report-description">Mô tả thêm</label>
+                                <textarea id="report-description"
+                                          name="Description"
+                                          maxlength="1000"
+                                          rows="4"></textarea>
+                            </div>
+                            <div class="set-report-form-actions">
+                                <button type="button"
+                                        class="btn-secondary-custom"
+                                        data-bs-dismiss="modal">
+                                    Hủy
+                                </button>
+                                <button type="submit" class="btn-primary-custom">
+                                    <i class="ph ph-paper-plane-tilt" aria-hidden="true"></i>
+                                    Gửi báo cáo
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
-            <form asp-action="Report" asp-route-id="@Model.Id" method="post" class="set-report-form">
-                @Html.AntiForgeryToken()
-                <div>
-                    <label for="report-reason">Lý do</label>
-                    <select id="report-reason" name="Reason" required>
-                        <option value="">Chọn lý do</option>
-                        @foreach (var option in Model.ReportReasonOptions)
-                        {
-                            <option value="@option.Value">@option.Label</option>
-                        }
-                    </select>
-                </div>
-                <div>
-                    <label for="report-description">Mô tả thêm</label>
-                    <textarea id="report-description" name="Description" maxlength="1000" rows="4"></textarea>
-                </div>
-                <button type="submit" class="btn-secondary-custom">
-                    <i class="ph ph-flag" aria-hidden="true"></i> Gửi báo cáo
-                </button>
-            </form>
-        </section>
+        </div>
     }
     else if (Model.HasOpenReport)
     {
@@ -158,22 +217,86 @@
     {
         <div class="set-detail-list">
             <div class="set-detail-list-header">
-                <h3>Danh sách từ</h3>
+                <h3>Nội dung bộ thẻ</h3>
                 @if (Model.IsOwner)
                 {
                     <a href="/Set/@Model.Id/Edit" class="btn-secondary-custom set-detail-list-action">Quản lý</a>
                 }
             </div>
-            @foreach (var card in Model.Flashcards.OrderBy(c => c.OrderIndex))
-            {
-                <div class="set-detail-row">
-                    <div>
-                        <div class="set-detail-term">@card.FrontText</div>
-                        <small class="set-detail-meta">@card.PartOfSpeech · @card.Pronunciation</small>
-                    </div>
-                    <div class="set-detail-definition">@card.BackText</div>
-                </div>
-            }
+
+            <div class="set-detail-card-list">
+                @{ int cardNumber = 1; }
+                @foreach (var card in Model.Flashcards.OrderBy(card => card.OrderIndex))
+                {
+                    string? imageSource = null;
+                    if (!string.IsNullOrWhiteSpace(card.UploadedImagePath))
+                    {
+                        imageSource = card.UploadedImagePath;
+                    }
+                    else if (!string.IsNullOrWhiteSpace(card.ImageUrl))
+                    {
+                        imageSource = card.ImageUrl;
+                    }
+
+                    <article class="set-detail-card" aria-labelledby="set-card-@card.Id">
+                        <div class="set-detail-card-number">Thẻ @cardNumber</div>
+                        <div class="set-detail-card-sides">
+                            <section class="set-detail-side set-detail-side-front">
+                                <span class="set-detail-side-label">Mặt trước</span>
+                                <h4 id="set-card-@card.Id">@card.FrontText</h4>
+                                @if (!string.IsNullOrWhiteSpace(card.Pronunciation) ||
+                                     !string.IsNullOrWhiteSpace(card.PartOfSpeech))
+                                {
+                                    <div class="set-detail-card-meta">
+                                        @if (!string.IsNullOrWhiteSpace(card.Pronunciation))
+                                        {
+                                            <span>Phát âm: @card.Pronunciation</span>
+                                        }
+                                        @if (!string.IsNullOrWhiteSpace(card.PartOfSpeech))
+                                        {
+                                            <span>Loại từ: @card.PartOfSpeech</span>
+                                        }
+                                    </div>
+                                }
+                            </section>
+
+                            <section class="set-detail-side set-detail-side-back">
+                                <span class="set-detail-side-label">Mặt sau</span>
+                                <p class="set-detail-definition">@card.BackText</p>
+                            </section>
+                        </div>
+
+                        @if (!string.IsNullOrWhiteSpace(card.ExampleSentence))
+                        {
+                            <div class="set-detail-example">
+                                <span>Câu ví dụ</span>
+                                <p>@card.ExampleSentence</p>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(card.ExampleMeaning))
+                        {
+                            <div class="set-detail-example">
+                                <span>Nghĩa câu ví dụ</span>
+                                <p>@card.ExampleMeaning</p>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(card.Synonyms))
+                        {
+                            <div class="set-detail-card-meta set-detail-card-meta-wide">
+                                <span>Từ đồng nghĩa: @card.Synonyms</span>
+                            </div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(imageSource))
+                        {
+                            <img class="set-detail-card-image"
+                                 src="@imageSource"
+                                 alt="Ảnh minh họa cho @card.FrontText" />
+                        }
+                    </article>
+
+                    cardNumber++;
+                }
+            </div>
         </div>
     }
     else

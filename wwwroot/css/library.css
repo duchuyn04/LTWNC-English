@@ -78,6 +78,20 @@
     white-space: nowrap;
 }
 
+.library-author-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.library-author-link:hover strong {
+    color: var(--lib-brass);
+}
+
+.library-author-link:focus-visible {
+    outline: 2px solid var(--lib-brass);
+    outline-offset: 4px;
+}
+
 /* Hero + search */
 .library-a {
     display: grid;

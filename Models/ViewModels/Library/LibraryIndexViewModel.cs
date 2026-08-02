@@ -11,6 +11,7 @@ public sealed class LibrarySetCardViewModel
     public string Title { get; init; } = string.Empty;
     public string? Description { get; init; }
     public string AuthorName { get; init; } = string.Empty;
+    public string? AuthorUsername { get; init; }
     public int CardCount { get; init; }
     public int CopyCount { get; init; }
     public DateTime UpdatedAt { get; init; }
@@ -63,6 +64,7 @@ public sealed class LibraryIndexViewModel
                 Title = item.Title,
                 Description = item.Description,
                 AuthorName = item.AuthorName,
+                AuthorUsername = item.AuthorUsername,
                 CardCount = item.CardCount,
                 CopyCount = item.CopyCount,
                 UpdatedAt = item.UpdatedAt
