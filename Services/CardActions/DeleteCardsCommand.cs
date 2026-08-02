@@ -40,25 +40,26 @@ public class DeleteCardsCommand : ICardActionCommand
     public async Task<CardActionMemento> ExecuteAsync()
     {
         // 1. Gọi `ToListAsync` và lưu kết quả vào `cards`.
-        List<Flashcard> cards = await _context.Flashcards
-            .Where(flashcard =>
-                flashcard.FlashcardSetId == SetId
-                && CardIds.Contains(flashcard.Id))
-            .ToListAsync();
+        List<Flashcard> cards = await CardActionTargetValidator.ValidateAsync(
+            _context,
+            SetId,
+            UserId,
+            CardIds);
+        HashSet<int> validatedCardIds = cards.Select(card => card.Id).ToHashSet();
 
         // 2. Gọi `ToListAsync` và lưu kết quả vào `progresses`.
         List<UserProgress> progresses = await _context.UserProgresses
-            .Where(progress => CardIds.Contains(progress.FlashcardId))
+            .Where(progress => validatedCardIds.Contains(progress.FlashcardId))
             .ToListAsync();
 
         // 3. Gọi `ToListAsync` và lưu kết quả vào `details`.
         List<DictationSessionDetail> details = await _context.DictationSessionDetails
-            .Where(detail => CardIds.Contains(detail.FlashcardId))
+            .Where(detail => validatedCardIds.Contains(detail.FlashcardId))
             .ToListAsync();
 
         // 4. Gọi `ToListAsync` và lưu kết quả vào `missionWords`.
         List<EnglishMissionTargetWord> missionWords = await _context.EnglishMissionTargetWords
-            .Where(word => CardIds.Contains(word.FlashcardId))
+            .Where(word => validatedCardIds.Contains(word.FlashcardId))
             .ToListAsync();
 
         // Memento giữ snapshot cục bộ, command không lưu trạng thái Undo tạm thời.

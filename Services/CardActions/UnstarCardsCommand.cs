@@ -39,12 +39,12 @@ public class UnstarCardsCommand : ICardActionCommand
     // Chụp IsStarred cũ rồi set false
     public async Task<CardActionMemento> ExecuteAsync()
     {
-        // 1. Gọi `ToListAsync` và lưu kết quả vào `cards`.
-        List<Flashcard> cards = await _context.Flashcards
-            .Where(flashcard =>
-                flashcard.FlashcardSetId == SetId
-                && CardIds.Contains(flashcard.Id))
-            .ToListAsync();
+        // 1. Xác thực quyền sở hữu và toàn bộ target trước khi thay đổi.
+        List<Flashcard> cards = await CardActionTargetValidator.ValidateAsync(
+            _context,
+            SetId,
+            UserId,
+            CardIds);
 
         // Memento giữ trạng thái cũ, command không cần snapshot tạm trên field.
         Dictionary<int, bool> previousStates = new();
@@ -70,17 +70,26 @@ public class UnstarCardsCommand : ICardActionCommand
         Dictionary<int, bool> previousStates =
             CardActionMemento.Restore<Dictionary<int, bool>>(memento);
 
-        // 1. Gọi `ToListAsync` và lưu kết quả vào `cards`.
-        List<Flashcard> cards = await _context.Flashcards
-            .Where(flashcard =>
-                flashcard.FlashcardSetId == SetId
-                && CardIds.Contains(flashcard.Id))
-            .ToListAsync();
+        List<Flashcard> cards;
+        try
+        {
+            cards = await CardActionTargetValidator.ValidateAsync(
+                _context,
+                SetId,
+                UserId,
+                CardIds);
+        }
+        catch (ArgumentException exception)
+        {
+            throw CardActionMemento.InvalidMemento(exception);
+        }
 
         HashSet<int> expectedCardIds = CardIds.ToHashSet();
+        HashSet<int> actualCardIds = cards.Select(card => card.Id).ToHashSet();
         bool isInvalid = previousStates.Count == 0
             || expectedCardIds.Count == 0
             || !previousStates.Keys.ToHashSet().SetEquals(expectedCardIds)
+            || !actualCardIds.SetEquals(expectedCardIds)
             || cards.Any(card => !previousStates.ContainsKey(card.Id));
         if (isInvalid)
         {
