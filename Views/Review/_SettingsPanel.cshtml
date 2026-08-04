@@ -61,6 +61,14 @@
     const message = root?.querySelector('[data-review-settings-message]');
     if (!form || form.dataset.bound === 'true') return;
     form.dataset.bound = 'true';
+
+    document.addEventListener('click', (event) => {
+        if (root.open && !root.contains(event.target)) root.open = false;
+    });
+    document.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape' && root.open) root.open = false;
+    });
+
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
         const response = await fetch(form.action, {

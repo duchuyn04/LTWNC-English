@@ -2,30 +2,29 @@ using ltwnc.Models.Entities;
 
 namespace ltwnc.Services.Review;
 
-// Value Object mô tả trạng thái bền vững hiện tại của một thẻ. Dữ liệu này được
-// lấy từ ReviewProgress để Context khôi phục đúng Concrete State trước khi xử lý.
+// Thông tin ôn tập hiện tại của một thẻ, được đọc từ ReviewProgress trong database.
+// State machine dùng Stage để chọn đúng cách xử lý cho lần đánh giá tiếp theo.
 public sealed record ReviewSchedule(
     ReviewStage Stage,
     DateTimeOffset? NextReviewAtUtc,
     int LongTermIntervalDays);
 
-// Kết quả của một lần xử lý hành động Rate. Concrete State tạo kết quả này,
-// Context chuyển sang NextStage, sau đó ReviewService lưu kết quả vào database.
+// Kết quả sau khi người học chọn Again, Hard, Good hoặc Easy.
+// ReviewService sẽ lưu trạng thái và lịch ôn mới này vào database.
 public sealed record ReviewTransition(
     ReviewStage NextStage,
     DateTimeOffset NextReviewAtUtc,
     int LongTermIntervalDays);
 
-// State abstraction trong mẫu GoF State. Nhờ phụ thuộc vào abstraction này,
-// Context không cần chứa switch theo ReviewStage để thực hiện hành vi nghiệp vụ.
+// Quy định chung cho mọi trạng thái học. Mỗi class trạng thái tự xử lý Rate,
+// vì vậy ReviewStateMachine không phải chứa một switch lớn cho toàn bộ nghiệp vụ.
 public interface IReviewState
 {
-    // Mỗi Concrete State khai báo giai đoạn mà nó đại diện. Context dùng giá trị
-    // này để khôi phục đúng State object từ trạng thái đã lưu trong database.
+    // Giai đoạn mà class này xử lý: New, Learning, Reviewing hoặc Relearning.
     ReviewStage Stage { get; }
 
-    // Theo GoF State, Context được truyền vào để Concrete State có thể yêu cầu
-    // chuyển trạng thái sau khi xử lý hành động Rate.
+    // Tính trạng thái tiếp theo và ngày ôn tiếp theo dựa trên lựa chọn của người học.
+    // context được truyền vào để state hiện tại yêu cầu chuyển sang state mới.
     ReviewTransition Rate(
         ReviewStateMachine context,
         ReviewRating rating,
@@ -34,8 +33,9 @@ public interface IReviewState
         int maximumIntervalDays);
 }
 
-// Concrete State của thẻ mới. Lần đánh giá đầu tiên đưa thẻ vào Learning nếu
-// người học còn gặp khó khăn, hoặc vào Reviewing nếu đã ghi nhớ đủ tốt.
+// Xử lý thẻ chưa từng học:
+// - Again/Hard: đưa vào giai đoạn học ngắn hạn.
+// - Good/Easy: chuyển thẳng sang ôn dài hạn.
 public sealed class NewReviewState : IReviewState
 {
     public ReviewStage Stage => ReviewStage.New;
@@ -68,14 +68,14 @@ public sealed class NewReviewState : IReviewState
             _ => throw new ArgumentOutOfRangeException(nameof(rating), rating, "Mức nhớ không hợp lệ.")
         };
 
-        // Concrete State quyết định State kế tiếp rồi yêu cầu Context thực hiện
-        // chuyển đổi, thay vì để ReviewService tự chọn một IReviewState mới.
+        // State hiện tại đã tính xong kết quả; Context chỉ cập nhật state đang giữ.
         return context.TransitionTo(transition);
     }
 }
 
-// Concrete State cho giai đoạn học ngắn hạn. Again và Hard giữ thẻ trong
-// Learning; Good và Easy tốt nghiệp thẻ sang lịch ôn dài hạn Reviewing.
+// Xử lý thẻ đang học ngắn hạn:
+// - Again/Hard: tiếp tục Learning và sớm gặp lại thẻ.
+// - Good/Easy: chuyển sang Reviewing để bắt đầu ôn dài hạn.
 public sealed class LearningReviewState : IReviewState
 {
     public ReviewStage Stage => ReviewStage.Learning;
@@ -102,8 +102,9 @@ public sealed class LearningReviewState : IReviewState
     }
 }
 
-// Concrete State cho giai đoạn ôn dài hạn. Again làm thẻ rơi về Relearning;
-// các mức còn lại giữ Reviewing và điều chỉnh khoảng cách ôn theo hệ số.
+// Xử lý thẻ đang ôn dài hạn:
+// - Again: người học đã quên, chuyển sang Relearning.
+// - Hard/Good/Easy: vẫn Reviewing nhưng tăng khoảng cách tới lần ôn sau.
 public sealed class ReviewingReviewState : IReviewState
 {
     public ReviewStage Stage => ReviewStage.Reviewing;
@@ -143,8 +144,9 @@ public sealed class ReviewingReviewState : IReviewState
     }
 }
 
-// Concrete State cho thẻ đang học lại sau khi quên. Again và Hard tiếp tục chu
-// kỳ Relearning; Good và Easy đưa thẻ trở lại Reviewing với interval đã giảm.
+// Xử lý thẻ đang học lại sau khi quên:
+// - Again/Hard: tiếp tục Relearning.
+// - Good/Easy: trở lại Reviewing, nhưng dùng khoảng ôn ngắn hơn trước.
 public sealed class RelearningReviewState : IReviewState
 {
     public ReviewStage Stage => ReviewStage.Relearning;
@@ -183,8 +185,8 @@ public sealed class RelearningReviewState : IReviewState
     }
 }
 
-// Hàm dùng chung cho các Concrete State khi tạo lịch dài hạn. Lớp này chỉ làm
-// nhiệm vụ tính toán, không phải một State và không thay đổi Context.
+// Hàm tính lịch dùng chung, tránh lặp công thức trong nhiều state.
+// Lớp này chỉ tính số ngày, không tự chuyển trạng thái.
 internal static class ReviewScheduleCalculator
 {
     public static int RoundUp(double days) => Math.Max(1, (int)Math.Ceiling(days));
@@ -200,19 +202,18 @@ internal static class ReviewScheduleCalculator
     }
 }
 
-// Context trong mẫu GoF State. Context giữ State object hiện tại, chuyển toàn bộ
-// hành vi Rate cho State đó và cung cấp TransitionTo để Concrete State thay đổi
-// hành vi của Context cho lần xử lý tiếp theo.
+// Đầu mối điều phối các state. Class này chọn state phù hợp rồi giao việc Rate
+// cho state đó; bản thân nó không chứa công thức lên lịch của từng giai đoạn.
 //
-// ReviewProgress trong database mới là nguồn dữ liệu bền vững. Vì Context được DI
-// theo request và chỉ sống trong bộ nhớ, mỗi lệnh Rate phải khôi phục State object
-// từ ReviewSchedule trước khi xử lý. Các Concrete State không truy cập database;
-// ReviewService chịu trách nhiệm đọc và lưu ReviewProgress.
+// Trạng thái thật được lưu trong ReviewProgress. ReviewStateMachine chỉ sống trong
+// bộ nhớ nên mỗi lần Rate phải đọc lại Stage từ ReviewSchedule. Các state không
+// truy cập database; ReviewService chịu trách nhiệm đọc và lưu dữ liệu.
 public sealed class ReviewStateMachine
 {
     private readonly IReadOnlyDictionary<ReviewStage, IReviewState> _states;
     private IReviewState _state;
 
+    // ---
     public ReviewStateMachine()
     {
         _states = new Dictionary<ReviewStage, IReviewState>
@@ -223,13 +224,11 @@ public sealed class ReviewStateMachine
             [ReviewStage.Relearning] = new RelearningReviewState()
         };
 
-        // New là trạng thái khởi tạo hợp lệ trước khi Context được hydrate từ
-        // ReviewSchedule của một thẻ cụ thể.
+        // Dùng New làm giá trị ban đầu. Khi Rate chạy, Stage thật của thẻ sẽ thay thế nó.
         _state = _states[ReviewStage.New];
     }
 
-    // Thuộc tính này thể hiện State object mà Context đang sở hữu. Ngoài việc
-    // giúp quan sát đúng cấu trúc GoF, nó còn cho phép kiểm thử việc chuyển state.
+    // Cho biết state machine đang giữ giai đoạn nào; chủ yếu hữu ích khi kiểm thử.
     public ReviewStage CurrentStage => _state.Stage;
 
     public ReviewTransition Rate(
@@ -240,26 +239,24 @@ public sealed class ReviewStateMachine
     {
         ReviewSettingsPolicy.ValidateMaxIntervalDays(maximumIntervalDays);
 
-        // Hydrate Context từ trạng thái bền vững của thẻ. Việc này cần thiết vì
-        // một ReviewStateMachine có thể lần lượt xử lý nhiều thẻ trong một request.
+        // Chọn đúng state dựa trên tiến độ đã lưu của thẻ đang được đánh giá.
+        // Cùng một state machine có thể xử lý nhiều thẻ khác nhau trong một request.
         SetState(current.Stage);
 
-        // Context không chứa điều kiện nghiệp vụ của từng giai đoạn. Concrete
-        // State hiện tại xử lý Rating và chủ động gọi TransitionTo bên dưới.
+        // Giao toàn bộ việc tính lịch cho state hiện tại.
         return _state.Rate(this, rating, current, now, maximumIntervalDays);
     }
 
-    // Concrete State gọi phương thức này sau khi đã tính xong kết quả. Context
-    // thay State object hiện tại, còn ReviewTransition được trả về nguyên vẹn để
-    // ReviewService lưu các giá trị lịch ôn vào database.
+    // State hiện tại gọi hàm này để chuyển sang giai đoạn vừa tính được.
+    // Kết quả được trả nguyên vẹn để ReviewService lưu vào database.
     internal ReviewTransition TransitionTo(ReviewTransition transition)
     {
         SetState(transition.NextStage);
         return transition;
     }
 
-    // Mọi thay đổi State object đều đi qua một điểm duy nhất để bảo đảm enum luôn
-    // ánh xạ tới một Concrete State đã được triển khai.
+    // Đổi enum ReviewStage thành đúng object IReviewState.
+    // Nếu có enum mới nhưng chưa có class xử lý, báo lỗi rõ ràng tại đây.
     private void SetState(ReviewStage stage)
     {
         if (!_states.TryGetValue(stage, out IReviewState? state))

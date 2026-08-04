@@ -8,8 +8,33 @@
     const modeInput = root.querySelector('[data-quiz-mode-input]');
     const presetInput = root.querySelector('[data-quiz-preset-input]');
     const customInput = root.querySelector('[data-quiz-custom-input]');
+    const questionCountInput = root.querySelector('[data-quiz-question-count]');
+    const questionCountMessage = root.querySelector('[data-quiz-count-validation]');
     const submitLabel = root.querySelector('[data-quiz-submit-label]');
     const form = root.querySelector('form');
+    const maximumQuestionCount = Number(questionCountInput?.max ?? 0);
+
+    const validateQuestionCount = () => {
+        if (!questionCountInput) return true;
+
+        const value = questionCountInput.value.trim();
+        let message = '';
+        if (questionCountInput.validity.badInput) {
+            message = 'Nhập số câu hợp lệ.';
+        } else if (value !== '') {
+            const count = Number(value);
+            if (!Number.isInteger(count) || count < 1) {
+                message = 'Số câu phải là số nguyên lớn hơn 0.';
+            } else if (count > maximumQuestionCount) {
+                message = `Bộ thẻ hiện chỉ có ${maximumQuestionCount} câu hỏi. Vui lòng chọn tối đa ${maximumQuestionCount} câu.`;
+            }
+        }
+
+        questionCountInput.setCustomValidity(message);
+        questionCountInput.setAttribute('aria-invalid', message ? 'true' : 'false');
+        if (questionCountMessage) questionCountMessage.textContent = message;
+        return message === '';
+    };
 
     const applyOption = (option) => {
         const mode = option?.dataset.quizMode ?? 'Preset';
@@ -51,11 +76,21 @@
         if (option) applyOption(option);
     });
 
-    form?.addEventListener('submit', () => {
-        if (!form.checkValidity() || !submitLabel) return;
+    questionCountInput?.addEventListener('input', validateQuestionCount);
+    questionCountInput?.addEventListener('change', validateQuestionCount);
+
+    form?.addEventListener('submit', (event) => {
+        const isQuestionCountValid = validateQuestionCount();
+        if (!isQuestionCountValid || !form.checkValidity()) {
+            event.preventDefault();
+            return;
+        }
+
+        if (!submitLabel) return;
         submitLabel.disabled = true;
         submitLabel.setAttribute('aria-busy', 'true');
     });
 
     applyOption(initialOption);
+    validateQuestionCount();
 })();

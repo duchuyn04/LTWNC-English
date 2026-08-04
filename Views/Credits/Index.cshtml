@@ -1,8 +1,74 @@
 @model ltwnc.Services.Credits.CreditAccountSnapshot
 @using System.Globalization
 @using ltwnc.Models.Entities
+@using ltwnc.Services.Credits
 @{
     ViewData["Title"] = "Tín dụng AI";
+    CultureInfo vietnameseCulture = CultureInfo.GetCultureInfo("vi-VN");
+    IReadOnlyList<CreditPurchase> recentPurchases = Model.Purchases.Take(4).ToList();
+    IReadOnlyList<CreditPurchase> additionalPurchases = Model.Purchases.Skip(4).ToList();
+    bool hasUsage = Model.Usage.CreditsUsedThisMonth > 0;
+    int changePercent = Model.Usage.ChangePercent ?? 0;
+    string usageTrendClass;
+    string usageTrendIcon;
+    string usageTrendTitle;
+    string usageTrendDescription;
+
+    if (Model.Usage.CreditsUsedPreviousMonth == 0)
+    {
+        usageTrendClass = Model.Usage.CreditsUsedThisMonth == 0
+            ? "credit-usage-trend--neutral"
+            : "credit-usage-trend--positive";
+        usageTrendIcon = Model.Usage.CreditsUsedThisMonth == 0
+            ? "ph-minus"
+            : "ph-chart-line-up";
+        usageTrendTitle = Model.Usage.CreditsUsedThisMonth == 0
+            ? "Chưa có dữ liệu"
+            : "Mới bắt đầu sử dụng";
+        usageTrendDescription = Model.Usage.CreditsUsedThisMonth == 0
+            ? "Hãy bắt đầu một lượt English Mission"
+            : "Chưa có tháng trước để so sánh";
+    }
+    else if (changePercent > 0)
+    {
+        usageTrendClass = "credit-usage-trend--positive";
+        usageTrendIcon = "ph-chart-line-up";
+        usageTrendTitle = $"Sử dụng tăng {changePercent}%";
+        usageTrendDescription = "So với tháng trước";
+    }
+    else if (changePercent < 0)
+    {
+        usageTrendClass = "credit-usage-trend--negative";
+        usageTrendIcon = "ph-chart-line-down";
+        usageTrendTitle = $"Sử dụng giảm {Math.Abs(changePercent)}%";
+        usageTrendDescription = "So với tháng trước";
+    }
+    else
+    {
+        usageTrendClass = "credit-usage-trend--neutral";
+        usageTrendIcon = "ph-minus";
+        usageTrendTitle = "Sử dụng ổn định";
+        usageTrendDescription = "So với tháng trước";
+    }
+
+    string PurchaseStatusClass(string status) => status switch
+    {
+        CreditPurchaseStatuses.Paid => "status-badge--paid",
+        CreditPurchaseStatuses.Pending => "status-badge--pending",
+        CreditPurchaseStatuses.Cancelled or CreditPurchaseStatuses.Expired or CreditPurchaseStatuses.Failed or CreditPurchaseStatuses.Voided => "status-badge--cancelled",
+        _ => "status-badge--pending"
+    };
+
+    string PurchaseStatusLabel(string status) => status switch
+    {
+        CreditPurchaseStatuses.Paid => "Đã thanh toán",
+        CreditPurchaseStatuses.Pending => "Đang xử lý",
+        CreditPurchaseStatuses.Cancelled => "Đã hủy",
+        CreditPurchaseStatuses.Expired => "Hết hạn",
+        CreditPurchaseStatuses.Failed => "Thất bại",
+        CreditPurchaseStatuses.Voided => "Đã hoàn",
+        _ => status
+    };
 }
 
 @section Styles {
@@ -10,182 +76,298 @@
 }
 
 <div class="credits-page">
-    <section class="credit-hero" aria-label="Tổng quan tín dụng">
-        <div>
-            <span class="credit-kicker"><i class="ph ph-lightning" aria-hidden="true"></i> ENGLISH MISSION</span>
-            <h1>Tín dụng AI</h1>
-            <p>Mỗi phản hồi AI được lưu thành công sử dụng 1 tín dụng. Tín dụng không bao giờ hết hạn.</p>
+    <header class="credit-intro">
+        <span class="credit-intro-kicker">ENGLISH MISSION</span>
+        <h1>Tín dụng AI</h1>
+        <p>Quản lý hạn mức sử dụng trí tuệ nhân tạo cho việc học tập và nghiên cứu của bạn.</p>
+    </header>
+
+    <section class="credit-hero" aria-labelledby="creditHeroTitle">
+        <div class="credit-hero-copy">
+            <span class="credit-hero-label" id="creditHeroTitle">
+                <i class="ph ph-wallet" aria-hidden="true"></i>
+                Số dư khả dụng
+            </span>
+            <div class="credit-hero-balance">
+                <strong>@Model.Balance</strong>
+                <span>tín dụng</span>
+            </div>
+            <p>Tín dụng của bạn không bao giờ hết hạn. Mỗi phản hồi AI tiêu tốn 1 tín dụng.</p>
         </div>
-        <div class="credit-balance-card">
-            <span>Số dư hiện tại</span>
-            <strong>@Model.Balance</strong>
-            <small>tín dụng khả dụng</small>
-            <span class="credit-balance-status"><i class="ph ph-check-circle" aria-hidden="true"></i> Tài khoản đang hoạt động</span>
-        </div>
+        <button class="credit-topup-trigger" type="button"
+                data-bs-toggle="offcanvas"
+                data-bs-target="#creditPackagePanel"
+                aria-controls="creditPackagePanel">
+            <i class="ph ph-plus-circle" aria-hidden="true"></i>
+            <span>Nạp thêm tín dụng</span>
+        </button>
     </section>
 
     @if (TempData["CreditError"] is string creditError)
     {
-        <div data-popup="error">@creditError</div>
+        <div class="credit-inline-alert credit-inline-alert--error" data-popup="error" role="alert">@creditError</div>
     }
     @if (TempData["CreditSuccess"] is string creditSuccess)
     {
-        <div data-popup="success">@creditSuccess</div>
+        <div class="credit-inline-alert credit-inline-alert--success" data-popup="success" role="status">@creditSuccess</div>
     }
 
-    <div class="credit-trust-bar" aria-label="Cam kết tín dụng">
-        <span><i class="ph ph-lightning" aria-hidden="true"></i> 1 Credit = 1 Phản hồi AI</span>
-        <span><i class="ph ph-gift" aria-hidden="true"></i> Tặng 10 Credit khi đăng ký</span>
-        <span><i class="ph ph-infinity" aria-hidden="true"></i> Không ngày hết hạn</span>
-        <span><i class="ph ph-shield-check" aria-hidden="true"></i> Xác nhận tự động VietQR</span>
-    </div>
-
-    <section aria-labelledby="packagesTitle">
-        <header class="credit-section-header">
-            <span>01 · Chọn Gói</span>
-            <h2 id="packagesTitle">Bảng Giá Tín Dụng AI</h2>
-            <p>Thanh toán 1 lần duy nhất bằng VietQR qua SePay. Nhận tín dụng tức thì.</p>
-        </header>
-
-        <div class="credit-package-grid">
-            @for (var index = 0; index < Model.Packages.Count; index++)
-            {
-                var package = Model.Packages[index];
-                var featured = index == 1;
-                var unitPrice = package.Credits > 0 ? (package.PriceVnd / package.Credits) : 0;
-                string savingsTag = index switch {
-                    1 => "Tiết kiệm 17%",
-                    2 => "Tiết kiệm 30%",
-                    _ => ""
-                };
-
-                <article class="credit-package @(featured ? "credit-package--featured" : "")">
-                    @if (featured)
-                    {
-                        <span class="credit-package-badge"><i class="ph ph-sparkle" aria-hidden="true"></i> ĐƯỢC CHỌN NHIỀU</span>
-                    }
-                    <span class="credit-package-index">@((index + 1).ToString("00"))</span>
-                    <div class="credit-package-info">
-                        <h3>@package.Name</h3>
-                        <p>@package.Description</p>
-                    </div>
-                    <div class="credit-package-quantity">
-                        <strong>@package.Credits</strong>
-                        <small>credit</small>
-                    </div>
-                    <div class="credit-package-unit">
-                        <span>@unitPrice.ToString("N0", CultureInfo.GetCultureInfo("vi-VN"))đ / credit</span>
-                        @if (!string.IsNullOrEmpty(savingsTag))
-                        {
-                            <span class="credit-savings-tag">@savingsTag</span>
-                        }
-                    </div>
-                    <div class="credit-package-price">
-                        <strong>@package.PriceVnd.ToString("N0", CultureInfo.GetCultureInfo("vi-VN")) ₫</strong>
-                        <small>VietQR · thanh toán 1 lần</small>
-                    </div>
-                    <form asp-action="Buy" asp-route-packageId="@package.Id" method="post" class="mt-auto">
-                        <button type="submit" class="btn-credit-buy">
-                            <span>Mua gói @(featured ? package.Name : "")</span>
-                            <i class="ph ph-arrow-up-right" aria-hidden="true"></i>
-                        </button>
-                    </form>
-                </article>
-            }
-        </div>
-    </section>
-
-    <div class="credit-data-grid">
+    <div class="credit-overview-grid">
         <section class="credit-data-card" aria-labelledby="purchaseHistoryTitle">
             <div class="credit-data-card-header">
-                <h3 id="purchaseHistoryTitle"><i class="ph ph-receipt" aria-hidden="true"></i> Lịch sử mua</h3>
-                <span class="badge text-bg-light">@Model.Purchases.Count giao dịch</span>
+                <div class="credit-card-heading">
+                    <i class="ph ph-receipt" aria-hidden="true"></i>
+                    <h2 id="purchaseHistoryTitle">Lịch sử giao dịch</h2>
+                </div>
+                <span class="credit-card-count">@Model.Purchases.Count giao dịch</span>
             </div>
-            @if (Model.Purchases.Count == 0)
+
+            @if (recentPurchases.Count == 0)
             {
-                <div class="credit-empty-state">
+                <div class="credit-empty-state credit-empty-state--compact">
                     <i class="ph ph-receipt-x" aria-hidden="true"></i>
-                    <p class="mb-0">Chưa có giao dịch mua tín dụng nào.</p>
+                    <p>Chưa có giao dịch mua tín dụng nào.</p>
+                    <button class="credit-card-link" type="button"
+                            data-bs-toggle="offcanvas"
+                            data-bs-target="#creditPackagePanel"
+                            aria-controls="creditPackagePanel">
+                        Xem các gói tín dụng <i class="ph ph-arrow-up-right" aria-hidden="true"></i>
+                    </button>
                 </div>
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="credit-table">
+                <div class="credit-table-wrap">
+                    <table class="credit-table credit-purchase-table">
                         <thead>
                             <tr>
-                                <th>Gói cước</th>
-                                <th>Giá tiền</th>
-                                <th>Trạng thái</th>
-                                <th>Thời gian</th>
+                                <th scope="col">Gói</th>
+                                <th scope="col">Giá tiền</th>
+                                <th scope="col">Trạng thái</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (CreditPurchase purchase in Model.Purchases)
+                            @foreach (CreditPurchase purchase in recentPurchases)
                             {
-                                var isPaid = purchase.Status == CreditPurchaseStatuses.Paid;
+                                DateTime displayDate = purchase.PaidAtUtc ?? purchase.CreatedAtUtc;
                                 <tr>
                                     <td>
                                         <strong>@purchase.PackageName</strong>
-                                        <div class="text-muted small">+@purchase.Credits credit</div>
+                                        <small>+@purchase.Credits credit · @displayDate.ToLocalTime().ToString("dd/MM HH:mm", vietnameseCulture)</small>
                                     </td>
-                                    <td><strong>@purchase.PriceVnd.ToString("N0", CultureInfo.GetCultureInfo("vi-VN")) ₫</strong></td>
-                                    <td>
-                                        <span class="status-badge @(isPaid ? "status-badge--paid" : "status-badge--pending")">
-                                            @(isPaid ? "Đã thanh toán" : purchase.Status)
-                                        </span>
-                                    </td>
-                                    <td><small class="text-muted">@purchase.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small></td>
+                                    <td><strong>@purchase.PriceVnd.ToString("N0", vietnameseCulture) ₫</strong></td>
+                                    <td><span class="status-badge @PurchaseStatusClass(purchase.Status)">@PurchaseStatusLabel(purchase.Status)</span></td>
                                 </tr>
                             }
                         </tbody>
                     </table>
                 </div>
+
+                @if (additionalPurchases.Count > 0)
+                {
+                    <button class="credit-card-link credit-history-toggle" type="button"
+                            data-bs-toggle="collapse"
+                            data-bs-target="#creditMorePurchases"
+                            aria-expanded="false"
+                            aria-controls="creditMorePurchases">
+                        Xem thêm lịch sử <i class="ph ph-arrow-down" aria-hidden="true"></i>
+                    </button>
+                    <div class="collapse" id="creditMorePurchases">
+                        <div class="credit-table-wrap credit-table-wrap--expanded">
+                            <table class="credit-table credit-purchase-table">
+                                <tbody>
+                                    @foreach (CreditPurchase purchase in additionalPurchases)
+                                    {
+                                        DateTime displayDate = purchase.PaidAtUtc ?? purchase.CreatedAtUtc;
+                                        <tr>
+                                            <td>
+                                                <strong>@purchase.PackageName</strong>
+                                                <small>+@purchase.Credits credit · @displayDate.ToLocalTime().ToString("dd/MM HH:mm", vietnameseCulture)</small>
+                                            </td>
+                                            <td><strong>@purchase.PriceVnd.ToString("N0", vietnameseCulture) ₫</strong></td>
+                                            <td><span class="status-badge @PurchaseStatusClass(purchase.Status)">@PurchaseStatusLabel(purchase.Status)</span></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                }
             }
         </section>
 
-        <section class="credit-data-card" aria-labelledby="ledgerTitle">
+        <section class="credit-data-card credit-usage-card" aria-labelledby="usageTitle">
             <div class="credit-data-card-header">
-                <h3 id="ledgerTitle"><i class="ph ph-chart-line-up" aria-hidden="true"></i> Biến động tín dụng</h3>
-                <span class="badge text-bg-light">@Model.Ledger.Count bản ghi</span>
+                <div class="credit-card-heading">
+                    <i class="ph ph-chart-line-up" aria-hidden="true"></i>
+                    <h2 id="usageTitle">Thống kê sử dụng</h2>
+                </div>
+                <span class="credit-card-count">Tháng này</span>
             </div>
-            @if (Model.Ledger.Count == 0)
+
+            <div class="credit-usage-total">
+                <strong>@Model.Usage.CreditsUsedThisMonth</strong>
+                <span>tín dụng đã dùng</span>
+                <small>1 phản hồi English Mission = 1 tín dụng</small>
+            </div>
+
+            @if (hasUsage)
             {
-                <div class="credit-empty-state">
-                    <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>
-                    <p class="mb-0">Chưa có biến động tín dụng nào.</p>
+                <div class="credit-usage-breakdown" aria-label="Phân bổ tín dụng đã dùng">
+                    @foreach (CreditUsageBreakdown usage in Model.Usage.Breakdown)
+                    {
+                        <div class="credit-usage-item">
+                            <div class="credit-usage-label">
+                                <span>@usage.Label</span>
+                                <strong>@usage.Percentage%</strong>
+                            </div>
+                            <div class="credit-usage-track">
+                                <span class="credit-usage-fill"
+                                      style="width: @usage.Percentage%"
+                                      role="progressbar"
+                                      aria-label="@usage.Label"
+                                      aria-valuemin="0"
+                                      aria-valuemax="100"
+                                      aria-valuenow="@usage.Percentage"></span>
+                            </div>
+                        </div>
+                    }
                 </div>
             }
             else
             {
-                <div class="table-responsive">
-                    <table class="credit-table">
-                        <thead>
-                            <tr>
-                                <th>Nội dung</th>
-                                <th>Biến động</th>
-                                <th>Số dư</th>
-                                <th>Thời gian</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach (CreditLedgerEntry entry in Model.Ledger)
-                            {
-                                <tr>
-                                    <td>@entry.Description</td>
-                                    <td>
-                                        <span class="@(entry.Amount > 0 ? "amount-plus" : "amount-minus")">
-                                            @(entry.Amount > 0 ? "+" : "")@entry.Amount
-                                        </span>
-                                    </td>
-                                    <td><strong>@entry.BalanceAfter</strong></td>
-                                    <td><small class="text-muted">@entry.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</small></td>
-                                </tr>
-                            }
-                        </tbody>
-                    </table>
+                <div class="credit-usage-empty">
+                    <i class="ph ph-chart-line" aria-hidden="true"></i>
+                    <p>Chưa dùng tín dụng trong tháng này.</p>
+                    <small>Bắt đầu một lượt English Mission để xem thống kê.</small>
                 </div>
             }
+
+            <div class="credit-usage-trend @usageTrendClass">
+                <span class="credit-usage-trend-icon"><i class="ph @usageTrendIcon" aria-hidden="true"></i></span>
+                <div>
+                    <strong>@usageTrendTitle</strong>
+                    <small>@usageTrendDescription</small>
+                </div>
+            </div>
         </section>
     </div>
+
+    <details class="credit-ledger-details" id="creditLedgerDetails">
+        <summary>
+            <span class="credit-card-heading">
+                <i class="ph ph-list-dashes" aria-hidden="true"></i>
+                <span>Chi tiết biến động tín dụng</span>
+            </span>
+            <span class="credit-card-count">@Model.Ledger.Count bản ghi</span>
+        </summary>
+        @if (Model.Ledger.Count == 0)
+        {
+            <div class="credit-empty-state credit-empty-state--compact">
+                <i class="ph ph-clock-counter-clockwise" aria-hidden="true"></i>
+                <p>Chưa có biến động tín dụng nào.</p>
+            </div>
+        }
+        else
+        {
+            <div class="credit-table-wrap credit-ledger-table-wrap">
+                <table class="credit-table">
+                    <thead>
+                        <tr>
+                            <th scope="col">Nội dung</th>
+                            <th scope="col">Biến động</th>
+                            <th scope="col">Số dư</th>
+                            <th scope="col">Thời gian</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (CreditLedgerEntry entry in Model.Ledger)
+                        {
+                            <tr>
+                                <td>
+                                    <strong>@entry.Description</strong>
+                                    <small>@entry.Type</small>
+                                </td>
+                                <td>
+                                    <span class="@(entry.Amount > 0 ? "amount-plus" : "amount-minus")">
+                                        @(entry.Amount > 0 ? "+" : "")@entry.Amount
+                                    </span>
+                                </td>
+                                <td><strong>@entry.BalanceAfter</strong></td>
+                                <td><small>@entry.CreatedAtUtc.ToLocalTime().ToString("dd/MM/yyyy HH:mm", vietnameseCulture)</small></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </details>
 </div>
+
+<aside class="offcanvas offcanvas-end credit-package-panel" tabindex="-1" id="creditPackagePanel"
+       aria-labelledby="creditPackagePanelTitle" data-bs-scroll="true">
+    <div class="offcanvas-header credit-package-panel-header">
+        <div>
+            <span class="credit-intro-kicker">NẠP TÍN DỤNG</span>
+            <h2 id="creditPackagePanelTitle">Chọn gói phù hợp</h2>
+        </div>
+        <button type="button" class="credit-panel-close" data-bs-dismiss="offcanvas" aria-label="Đóng panel">
+            <i class="ph ph-x" aria-hidden="true"></i>
+        </button>
+    </div>
+    <div class="offcanvas-body credit-package-panel-body">
+        <p class="credit-package-panel-intro">Thanh toán một lần bằng VietQR qua SePay. Tín dụng được cộng tự động sau khi xác nhận.</p>
+
+        @if (Model.Packages.Count == 0)
+        {
+            <div class="credit-empty-state">
+                <i class="ph ph-package" aria-hidden="true"></i>
+                <p>Các gói tín dụng hiện chưa khả dụng.</p>
+            </div>
+        }
+        else
+        {
+            <div class="credit-package-options">
+                @for (int index = 0; index < Model.Packages.Count; index++)
+                {
+                    CreditPackage package = Model.Packages[index];
+                    bool featured = index == 1;
+                    long unitPrice = package.Credits > 0 ? package.PriceVnd / package.Credits : 0;
+                    <article class="credit-package-option @(featured ? "credit-package-option--featured" : null)">
+                        @if (featured)
+                        {
+                            <span class="credit-package-option-badge">Được chọn nhiều</span>
+                        }
+                        <div class="credit-package-option-copy">
+                            <h3>@package.Name</h3>
+                            @if (!string.IsNullOrWhiteSpace(package.Description))
+                            {
+                                <p>@package.Description</p>
+                            }
+                        </div>
+                        <div class="credit-package-option-meta">
+                            <strong>@package.Credits</strong>
+                            <span>credit</span>
+                            <small>@unitPrice.ToString("N0", vietnameseCulture) ₫ / credit</small>
+                        </div>
+                        <div class="credit-package-option-price">
+                            <strong>@package.PriceVnd.ToString("N0", vietnameseCulture) ₫</strong>
+                            <small>VietQR · thanh toán một lần</small>
+                        </div>
+                        <form asp-action="Buy" asp-route-packageId="@package.Id" method="post">
+                            <button type="submit" class="btn-credit-buy">
+                                <span>Nạp @package.Credits credit</span>
+                                <i class="ph ph-arrow-up-right" aria-hidden="true"></i>
+                            </button>
+                        </form>
+                    </article>
+                }
+            </div>
+        }
+
+        <div class="credit-package-panel-note">
+            <i class="ph ph-shield-check" aria-hidden="true"></i>
+            <span>1 credit = 1 phản hồi AI · Không có ngày hết hạn</span>
+        </div>
+    </div>
+</aside>

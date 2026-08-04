@@ -13,6 +13,28 @@ public sealed class ReviewActivityStatisticsTests
         new(2026, 8, 1, 1, 0, 0, TimeSpan.Zero);
 
     [Fact]
+    public async Task GetPublicProfile_AlwaysIncludesStatistics()
+    {
+        await using AppDbContext context = CreateContext();
+        AppUser user = SeedUser(context);
+        context.UserProfiles.Add(new UserProfile
+        {
+            UserId = user.Id,
+            IsPublic = true,
+            ShowStats = false
+        });
+        await context.SaveChangesAsync();
+
+        ProfileService service = CreateService(context);
+        PublicProfileViewModel result = (await service.GetPublicProfileAsync(
+            user.UserName!,
+            viewerUserId: null))!;
+
+        Assert.True(result.ShowStats);
+        Assert.NotNull(result.Statistics);
+    }
+
+    [Fact]
     public async Task GetPublicProfile_ReviewActivityUsesVietnameseDayAndCompletedSessionsOnly()
     {
         await using AppDbContext context = CreateContext();

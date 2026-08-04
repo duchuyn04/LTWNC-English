@@ -258,7 +258,7 @@ public class ProfileController : Controller
             Username = submittedModel.Username,
             Bio = submittedModel.Bio,
             IsPublic = submittedModel.IsPublic,
-            ShowStats = submittedModel.ShowStats,
+            ShowStats = true,
             ShowBadges = submittedModel.ShowBadges,
             ShowActivity = submittedModel.ShowActivity,
             ShowPublicSets = submittedModel.ShowPublicSets,

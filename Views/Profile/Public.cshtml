@@ -1,14 +1,14 @@
 @model PublicProfileViewModel
 @{
-    ViewData["Title"] = Model.Username;
+    ViewData["Title"] = $"Hồ sơ của {Model.Username}";
 }
 @section Styles {
     <link rel="stylesheet" href="~/css/profile.css" asp-append-version="true" />
 }
 
 <div class="profile-page">
-    <section class="profile-hero">
-        <div class="profile-avatar" aria-hidden="true">
+    <section class="profile-hero" aria-labelledby="profile-name">
+        <div class="profile-avatar" role="img" aria-label="Ảnh đại diện của @Model.Username">
             @if (!string.IsNullOrWhiteSpace(Model.AvatarPath))
             {
                 <img src="@Model.AvatarPath" alt="" />
@@ -17,30 +17,34 @@
             {
                 @Model.AvatarInitial
             }
+            <span class="profile-avatar-badge" aria-hidden="true"><i class="ph ph-sparkle"></i></span>
         </div>
         <div class="profile-identity">
-            <p class="profile-eyebrow">LEARNING TIMELINE</p>
-            <h1>@Model.Username</h1>
+            <p class="profile-eyebrow">HÀNH TRÌNH HỌC TẬP</p>
+            <h1 id="profile-name">@Model.Username</h1>
             @if (!string.IsNullOrWhiteSpace(Model.Bio))
             {
                 <p class="profile-bio">@Model.Bio</p>
             }
             @if (Model.IsOwner)
             {
-                <a class="profile-button profile-button-dark" href="/Account/Profile/Edit">Chỉnh sửa profile</a>
+                <a class="profile-button profile-button-dark" href="/Account/Profile/Edit">
+                    <i class="ph ph-pencil-simple" aria-hidden="true"></i>
+                    Chỉnh sửa hồ sơ
+                </a>
             }
         </div>
     </section>
 
-    @if (Model.ShowStats && Model.Statistics is not null)
+    @if (Model.Statistics is not null)
     {
         <section class="profile-stats" aria-label="Thống kê học tập">
-            <div><strong>@Model.Statistics.LearnedFlashcardCount</strong><span>Thẻ đã học</span></div>
-            <div><strong>@Model.Statistics.CurrentStreak</strong><span>Ngày streak</span></div>
-            <div><strong>@Model.Statistics.CompletedSessionCount</strong><span>Phiên học</span></div>
-            <div><strong>@Model.Statistics.CompletedReviewSessionCount</strong><span>Lượt ôn hoàn thành</span></div>
-            <div><strong>@Model.Statistics.ReviewActivityDayCount</strong><span>Ngày có hoạt động ôn</span></div>
-            <div><strong>@Model.Statistics.UnlockedBadgeCount</strong><span>Huy hiệu</span></div>
+            <div><i class="ph ph-cards profile-stat-icon" aria-hidden="true"></i><strong>@Model.Statistics.LearnedFlashcardCount</strong><span>Thẻ đã học</span></div>
+            <div><i class="ph ph-fire profile-stat-icon" aria-hidden="true"></i><strong>@Model.Statistics.CurrentStreak</strong><span>Ngày liên tiếp</span></div>
+            <div><i class="ph ph-timer profile-stat-icon" aria-hidden="true"></i><strong>@Model.Statistics.CompletedSessionCount</strong><span>Phiên học</span></div>
+            <div><i class="ph ph-arrows-clockwise profile-stat-icon" aria-hidden="true"></i><strong>@Model.Statistics.CompletedReviewSessionCount</strong><span>Lượt ôn</span></div>
+            <div><i class="ph ph-chart-line-up profile-stat-icon" aria-hidden="true"></i><strong>@Model.Statistics.ReviewActivityDayCount</strong><span>Ngày hoạt động</span></div>
+            <div><i class="ph ph-medal profile-stat-icon" aria-hidden="true"></i><strong>@Model.Statistics.UnlockedBadgeCount</strong><span>Huy hiệu</span></div>
         </section>
     }
 
@@ -48,7 +52,7 @@
         @if (Model.ShowActivity)
         {
             <section class="profile-card profile-timeline" aria-labelledby="activity-title">
-                <div class="profile-section-heading"><p class="profile-eyebrow">RECENT ACTIVITY</p><h2 id="activity-title">Hành trình gần đây</h2></div>
+                <div class="profile-section-heading"><h2 id="activity-title">Hoạt động gần đây</h2></div>
                 <ol class="timeline-list">
                     @if (Model.Timeline.Count == 0)
                     {
@@ -56,9 +60,26 @@
                     }
                     else
                     {
-                        @foreach (ProfileTimelineItemViewModel item in Model.Timeline)
+                        @foreach (ProfileTimelineItemViewModel item in Model.Timeline.Take(3))
                         {
-                            <li><span class="timeline-dot" aria-hidden="true"></span><div><strong>@item.Title</strong><p>@item.Detail</p><time datetime="@item.Timestamp.ToString("O")">@item.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</time></div></li>
+                            string itemIcon = item.Kind switch
+                            {
+                                "badge" => "ph-medal",
+                                "set" => "ph-cards",
+                                "review" => "ph-chart-line-up",
+                                _ => "ph-book-open"
+                            };
+                            <li>
+                                <span class="timeline-icon timeline-icon-@item.Kind" aria-hidden="true"><i class="ph @itemIcon"></i></span>
+                                <div class="timeline-content">
+                                    <strong>@item.Title</strong>
+                                    @if (!string.IsNullOrWhiteSpace(item.Detail))
+                                    {
+                                        <p>@item.Detail</p>
+                                    }
+                                    <time datetime="@item.Timestamp.ToString("O")">@item.Timestamp.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</time>
+                                </div>
+                            </li>
                         }
                     }
                 </ol>
@@ -68,11 +89,47 @@
         <aside class="profile-side">
             @if (Model.ShowBadges)
             {
-                <section class="profile-card" aria-labelledby="badges-title"><p class="profile-eyebrow">BADGES</p><h2 id="badges-title">Huy hiệu</h2><div class="badge-list">@if (Model.Badges.Count == 0) { <p class="profile-empty-state">Chưa mở khóa huy hiệu nào.</p> } else { @foreach (ProfileBadgeViewModel badge in Model.Badges) { <div class="badge-item"><span aria-hidden="true"><i class="ph @(string.IsNullOrEmpty(badge.IconClass) ? "ph-medal" : badge.IconClass)"></i></span><div><strong>@badge.Title</strong><p>@badge.Description</p></div></div> } }</div></section>
+                <section class="profile-card" aria-labelledby="badges-title">
+                    <div class="profile-card-heading"><h2 id="badges-title">Huy hiệu</h2><i class="ph ph-medal" aria-hidden="true"></i></div>
+                    <div class="badge-list">
+                        @if (Model.Badges.Count == 0)
+                        {
+                            <p class="profile-empty-state">Chưa mở khóa huy hiệu nào.</p>
+                        }
+                        else
+                        {
+                            @foreach (ProfileBadgeViewModel badge in Model.Badges)
+                            {
+                                <div class="badge-item">
+                                    <span class="badge-item-icon" aria-hidden="true"><i class="ph @(string.IsNullOrEmpty(badge.IconClass) ? "ph-medal" : badge.IconClass)"></i></span>
+                                    <div><strong>@badge.Title</strong><p>@badge.Description</p></div>
+                                </div>
+                            }
+                        }
+                    </div>
+                </section>
             }
             @if (Model.ShowPublicSets)
             {
-                <section class="profile-card" aria-labelledby="public-sets-title"><p class="profile-eyebrow">PUBLIC SETS</p><h2 id="public-sets-title">Bộ thẻ công khai</h2><div class="public-set-list">@if (Model.PublicSets.Count == 0) { <p class="profile-empty-state">Chưa có bộ thẻ công khai nào.</p> } else { @foreach (ProfilePublicSetViewModel set in Model.PublicSets) { <a href="/Set/@set.Id"><strong>@set.Title</strong><span>@set.CardCount thẻ</span></a> } }</div></section>
+                <section class="profile-card" aria-labelledby="public-sets-title">
+                    <div class="profile-card-heading"><h2 id="public-sets-title">Bộ thẻ công khai</h2><i class="ph ph-stack" aria-hidden="true"></i></div>
+                    <div class="public-set-list">
+                        @if (Model.PublicSets.Count == 0)
+                        {
+                            <p class="profile-empty-state">Chưa có bộ thẻ công khai nào.</p>
+                        }
+                        else
+                        {
+                            @foreach (ProfilePublicSetViewModel set in Model.PublicSets)
+                            {
+                                <a href="/Set/@set.Id">
+                                    <span class="public-set-main"><i class="ph ph-cards" aria-hidden="true"></i><strong>@set.Title</strong></span>
+                                    <span>@set.CardCount thẻ</span>
+                                </a>
+                            }
+                        }
+                    </div>
+                </section>
             }
         </aside>
     </div>

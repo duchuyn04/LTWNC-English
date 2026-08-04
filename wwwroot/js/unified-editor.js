@@ -36,6 +36,13 @@
     const cardSearch = document.getElementById('card-search');
     const cardFilter = document.getElementById('card-filter');
     const filterEmpty = document.getElementById('editor-filter-empty');
+    const batchToolbar = document.querySelector('[data-batch-toolbar]');
+    const batchSelectedCount = batchToolbar?.querySelector('[data-batch-selected-count]');
+    const batchSelectAll = batchToolbar?.querySelector('[data-batch-select-all]');
+    const batchActionButtons = batchToolbar
+        ? Array.from(batchToolbar.querySelectorAll('[data-batch-action]'))
+        : [];
+    const batchFeedback = document.getElementById('batch-feedback');
 
     let pendingSaves = new Map(); // cardId -> timeoutId
     const dirtyCards = new Set(); // card dataset ids with unsaved changes
@@ -54,10 +61,56 @@
         return 'new-' + Date.now().toString(36) + '-' + tempIdCounter;
     }
 
+    function isPersistedCard(card) {
+        const id = Number(card?.dataset.id);
+        return Number.isInteger(id) && id > 0;
+    }
+
+    function syncCardSelection(card) {
+        const input = card?.querySelector('[data-card-selection]');
+        if (!input) return;
+
+        const persisted = isPersistedCard(card);
+        input.disabled = !persisted;
+        input.value = persisted ? card.dataset.id : '';
+        if (!persisted) input.checked = false;
+    }
+
+    function getSelectedCards() {
+        return Array.from(container.querySelectorAll('.flashcard-card'))
+            .filter(card => isPersistedCard(card)
+                && card.querySelector('[data-card-selection]')?.checked);
+    }
+
+    function syncBatchToolbar() {
+        if (!batchToolbar) return;
+
+        const selectableInputs = Array.from(container.querySelectorAll('[data-card-selection]'))
+            .filter(input => !input.disabled);
+        const selectedCards = getSelectedCards();
+        const selectedCount = selectedCards.length;
+        batchToolbar.hidden = selectedCount === 0;
+        batchToolbar.dataset.selectedCount = String(selectedCount);
+        if (batchSelectedCount) batchSelectedCount.textContent = String(selectedCount);
+
+        if (batchSelectAll) {
+            batchSelectAll.checked = selectableInputs.length > 0
+                && selectableInputs.every(input => input.checked);
+            batchSelectAll.indeterminate = selectedCount > 0
+                && !batchSelectAll.checked;
+        }
+
+        const pending = batchToolbar.dataset.pending === 'true';
+        batchActionButtons.forEach(button => {
+            button.disabled = pending || selectedCount === 0;
+        });
+    }
+
     function updateCardNumbering() {
         const cards = container.querySelectorAll('.flashcard-card');
         cards.forEach((card, index) => {
             card.querySelector('.card-number').textContent = String(index + 1).padStart(2, '0');
+            syncCardSelection(card);
         });
         cardCountLabel.textContent = cards.length;
         if (quickCardCount) quickCardCount.textContent = cards.length;
@@ -68,6 +121,7 @@
     function applyCardFilters() {
         const query = (cardSearch?.value || '').trim().toLocaleLowerCase('vi');
         const filter = cardFilter?.value || 'all';
+        const totalCount = container.querySelectorAll('.flashcard-card').length;
         let visibleCount = 0;
 
         container.querySelectorAll('.flashcard-card').forEach(card => {
@@ -80,7 +134,13 @@
             if (!card.hidden) visibleCount += 1;
         });
 
-        if (filterEmpty) filterEmpty.hidden = visibleCount > 0;
+        if (filterEmpty) {
+            filterEmpty.textContent = totalCount === 0
+                ? 'Bộ thẻ chưa có thẻ nào. Hãy thêm thẻ để bắt đầu.'
+                : 'Không có thẻ phù hợp. Thử từ khóa khác hoặc chọn “Tất cả thẻ”.';
+            filterEmpty.hidden = visibleCount > 0;
+        }
+        syncBatchToolbar();
     }
 
     async function persistOrder() {
@@ -151,6 +211,167 @@
         saveStatus.className = 'save-status ' + (type || '');
         if (quickSaveLabel) quickSaveLabel.textContent = message || 'Đã tự động lưu';
         if (quickActions) quickActions.dataset.state = type || 'saved';
+    }
+
+    function setCardStarState(card, isStarred) {
+        const starred = Boolean(isStarred);
+        card.dataset.starred = starred ? 'true' : 'false';
+        const starButton = card.querySelector('.btn-star');
+        if (!starButton) return;
+
+        starButton.textContent = starred ? '★' : '☆';
+        starButton.setAttribute('aria-pressed', String(starred));
+    }
+
+    function showBatchFeedback(message, undoLogId, isError) {
+        if (!batchFeedback) {
+            window.showAppPopup?.(message, isError ? 'error' : 'success');
+            return;
+        }
+
+        batchFeedback.replaceChildren();
+        const alert = document.createElement('div');
+        alert.className = 'editor-batch-alert';
+        alert.dataset.popup = isError ? 'error' : 'success';
+        alert.setAttribute('role', isError ? 'alert' : 'status');
+
+        const text = document.createElement('span');
+        text.textContent = message;
+        alert.appendChild(text);
+
+        if (!isError && undoLogId) {
+            const undoForm = document.createElement('form');
+            undoForm.method = 'post';
+            undoForm.action = `/CardActions/Undo/${encodeURIComponent(undoLogId)}`;
+            undoForm.className = 'editor-batch-undo-form';
+
+            const token = document.createElement('input');
+            token.type = 'hidden';
+            token.name = '__RequestVerificationToken';
+            token.value = antiforgeryToken;
+            undoForm.appendChild(token);
+
+            const undoButton = document.createElement('button');
+            undoButton.type = 'submit';
+            undoButton.className = 'btn btn-secondary';
+            undoButton.textContent = 'Hoàn tác';
+            undoForm.appendChild(undoButton);
+            alert.appendChild(undoForm);
+        }
+
+        batchFeedback.appendChild(alert);
+    }
+
+    async function readBatchResponse(response) {
+        const responseText = await response.text();
+        let result = null;
+        try {
+            if (responseText.trim()) result = JSON.parse(responseText);
+        } catch {
+            result = null;
+        }
+
+        if (!response.ok || !result || result.success !== true) {
+            throw new Error(result?.message || 'Không thể thực hiện thao tác. Vui lòng thử lại.');
+        }
+
+        return result;
+    }
+
+    async function flushBatchCardSaves(cards) {
+        for (const card of cards) {
+            const errors = validateCard(getCardData(card));
+            if (errors.length > 0) {
+                showCardErrors(card, errors);
+                setCardExpanded(card, true);
+                card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                setSaveStatus('Bổ sung thuật ngữ và định nghĩa trước khi thao tác', 'error');
+                return false;
+            }
+
+            const id = card.dataset.id;
+            if (pendingSaves.has(id)) {
+                clearTimeout(pendingSaves.get(id));
+                pendingSaves.delete(id);
+            }
+            if (dirtyCards.has(id) && !(await saveCard(card))) return false;
+        }
+        return true;
+    }
+
+    function applyBatchResult(result) {
+        const resultIds = new Set((Array.isArray(result.cardIds) ? result.cardIds : []).map(String));
+        const affectedCards = Array.from(container.querySelectorAll('.flashcard-card'))
+            .filter(card => resultIds.has(card.dataset.id));
+
+        if (result.action === 'Delete') {
+            affectedCards.forEach(card => {
+                pendingSaves.delete(card.dataset.id);
+                dirtyCards.delete(card.dataset.id);
+                card.remove();
+            });
+        } else if (result.action === 'Star' || result.action === 'Unstar') {
+            affectedCards.forEach(card => setCardStarState(card, result.action === 'Star'));
+        }
+
+        container.querySelectorAll('[data-card-selection]').forEach(input => {
+            input.checked = false;
+        });
+        updateCardNumbering();
+        setSaveStatus('Đã lưu', 'saved');
+        showBatchFeedback(result.message, result.undoLogId, false);
+    }
+
+    async function submitBatchAction(action) {
+        if (!batchToolbar || batchToolbar.dataset.pending === 'true') return;
+
+        const selectedCards = getSelectedCards();
+        if (selectedCards.length === 0) {
+            syncBatchToolbar();
+            return;
+        }
+
+        if (action === 'Delete'
+            && window.appConfirm
+            && !await window.appConfirm('Xóa các thẻ đã chọn?')) {
+            return;
+        }
+
+        const setId = getSetId();
+        if (!setId) {
+            showBatchFeedback('Hãy lưu bộ thẻ trước khi thao tác hàng loạt.', null, true);
+            return;
+        }
+
+        batchToolbar.dataset.pending = 'true';
+        syncBatchToolbar();
+        setSaveStatus('Đang thực hiện thao tác...', 'saving');
+
+        try {
+            if (!await flushBatchCardSaves(selectedCards)) return;
+
+            const formData = new FormData();
+            formData.append('__RequestVerificationToken', antiforgeryToken);
+            formData.append('action', action);
+            selectedCards.forEach(card => formData.append('selectedCardIds', card.dataset.id));
+
+            const response = await apiFetch(`/Set/${setId}/BatchAction`, {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json'
+                },
+                body: formData
+            });
+            const result = await readBatchResponse(response);
+            applyBatchResult(result);
+        } catch (error) {
+            setSaveStatus('Không thể thực hiện thao tác', 'error');
+            showBatchFeedback(error.message || 'Không thể thực hiện thao tác. Vui lòng thử lại.', null, true);
+        } finally {
+            delete batchToolbar.dataset.pending;
+            syncBatchToolbar();
+        }
     }
 
     function markCardDirty(card) {
@@ -349,6 +570,7 @@
                 pendingSaves.delete(originalId);
             }
 
+            syncCardSelection(card);
             setSaveStatus('Đã lưu', 'saved');
             dirtyCards.delete(originalId);
             dirtyCards.delete(card.dataset.id);
@@ -397,10 +619,11 @@
         div.dataset.imageUrl = '';
         div.innerHTML = `
             <div class="card-header">
+                <input class="card-selection" type="checkbox" value="" data-card-selection disabled aria-label="Chọn thẻ mới" />
                 <span class="card-drag-handle" tabindex="0" aria-label="Kéo để đổi thứ tự">⋮⋮</span>
                 <span class="card-number">00</span>
                 <button type="button" class="btn-star" aria-label="Đánh dấu sao" aria-pressed="false">☆</button>
-                <button type="button" class="card-summary" aria-label="Mở hoặc thu gọn thẻ">
+                <button type="button" class="card-summary" aria-label="Mở thẻ để chỉnh sửa" aria-expanded="true">
                     <span class="card-summary-field">
                         <small>Thuật ngữ</small>
                         <strong class="card-term"></strong>
@@ -419,6 +642,7 @@
                     </button>
                     <button type="button" class="btn-toggle" aria-label="Thu gọn thẻ" aria-expanded="true">
                         <i class="ph ph-caret-up" aria-hidden="true"></i>
+                        <span class="card-toggle-label">Thu gọn</span>
                     </button>
                     <button type="button" class="btn-delete" aria-label="Xóa thẻ">
                         <i class="ph ph-trash" aria-hidden="true"></i>
@@ -468,13 +692,22 @@
         card.classList.toggle('expanded', expanded);
         card.classList.toggle('collapsed', !expanded);
         const toggle = card.querySelector('.btn-toggle');
+        const summary = card.querySelector('.card-summary');
+        const toggleLabel = toggle.querySelector('.card-toggle-label');
         toggle.setAttribute('aria-expanded', String(expanded));
         toggle.setAttribute('aria-label', expanded ? 'Thu gọn thẻ' : 'Mở rộng thẻ');
         toggle.querySelector('i').className = expanded ? 'ph ph-caret-up' : 'ph ph-caret-down';
+        if (toggleLabel) toggleLabel.textContent = expanded ? 'Thu gọn' : 'Mở thẻ';
+        summary?.setAttribute('aria-expanded', String(expanded));
     }
 
     function bindCardEvents(card) {
-        const inputs = card.querySelectorAll('input, textarea');
+        syncCardSelection(card);
+        const selection = card.querySelector('[data-card-selection]');
+        selection?.addEventListener('click', event => event.stopPropagation());
+        selection?.addEventListener('change', syncBatchToolbar);
+
+        const inputs = card.querySelectorAll('input:not([data-card-selection]), textarea');
         inputs.forEach(input => {
             input.addEventListener('input', () => {
                 if (input.classList.contains('input-front')) {
@@ -534,15 +767,11 @@
                     throw new Error(`HTTP ${response.status}`);
                 }
                 const result = await response.json();
-                card.dataset.starred = result.isStarred;
-                starButton.textContent = result.isStarred ? '★' : '☆';
-                starButton.setAttribute('aria-pressed', String(result.isStarred));
+                setCardStarState(card, result.isStarred);
                 applyCardFilters();
             } catch (err) {
                 setSaveStatus('Lỗi đánh sao', 'error');
-                card.dataset.starred = previousState ? 'true' : 'false';
-                starButton.textContent = previousState ? '★' : '☆';
-                starButton.setAttribute('aria-pressed', String(previousState));
+                setCardStarState(card, previousState);
                 console.error('Star toggle failed:', err);
             }
         });
@@ -611,14 +840,27 @@
     cardSearch.addEventListener('input', applyCardFilters);
     cardFilter.addEventListener('change', applyCardFilters);
 
-    btnAdd.addEventListener('click', () => {
+    batchSelectAll?.addEventListener('change', () => {
+        container.querySelectorAll('[data-card-selection]').forEach(input => {
+            if (!input.disabled) input.checked = batchSelectAll.checked;
+        });
+        syncBatchToolbar();
+    });
+
+    batchActionButtons.forEach(button => {
+        button.addEventListener('click', () => submitBatchAction(button.dataset.batchAction));
+    });
+
+    function addCard() {
         cardSearch.value = '';
         cardFilter.value = 'all';
         const card = createEmptyCard();
         container.appendChild(card);
         updateCardNumbering();
         card.querySelector('.input-front').focus();
-    });
+    }
+
+    btnAdd.addEventListener('click', addCard);
 
     function validateAllCards() {
         let firstInvalidCard = null;
@@ -830,6 +1072,7 @@
         card.querySelector('.card-definition').textContent = data.backText || '';
         card.querySelector('.btn-star').textContent = data.isStarred ? '★' : '☆';
         card.querySelector('.btn-star').setAttribute('aria-pressed', String(Boolean(data.isStarred)));
+        syncCardSelection(card);
         setCardExpanded(card, false);
         container.appendChild(card);
         return card;
@@ -981,10 +1224,19 @@
     updateCardNumbering();
     syncFinishButtons();
 
-    window.addEventListener('beforeunload', (e) => {
-        if (dirtyCards.size > 0 || isMetadataDirty) {
-            e.preventDefault();
-            e.returnValue = '';
-        }
-    });
+    const hasUnsavedChanges = () => dirtyCards.size > 0 || isMetadataDirty;
+    if (window.createAppNavigationGuard) {
+        window.createAppNavigationGuard(hasUnsavedChanges, {
+            title: 'Rời trình soạn thẻ?',
+            message: 'Một số thay đổi chưa kịp lưu. Nếu rời trang lúc này, nội dung đó có thể bị mất.',
+            cancelLabel: 'Tiếp tục chỉnh sửa',
+            acceptLabel: 'Rời trang'
+        });
+    } else {
+        window.addEventListener('beforeunload', (event) => {
+            if (!hasUnsavedChanges()) return;
+            event.preventDefault();
+            event.returnValue = '';
+        });
+    }
 })();

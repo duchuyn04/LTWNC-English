@@ -17,7 +17,16 @@
      data-is-quarantined="@Model.IsQuarantined.ToString().ToLowerInvariant()">
     @Html.AntiForgeryToken()
 
-    <aside class="editor-sidebar" aria-labelledby="editor-sidebar-title">
+    <aside class="offcanvas-xl offcanvas-start editor-sidebar"
+           tabindex="-1"
+           id="editor-settings-panel"
+           aria-labelledby="editor-sidebar-title"
+           data-bs-scroll="true">
+        <div class="offcanvas-header editor-sidebar-mobile-header">
+            <span class="editor-eyebrow">Thiết lập bộ thẻ</span>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#editor-settings-panel" aria-label="Đóng"></button>
+        </div>
+
         <div class="editor-sidebar-inner">
             <a class="editor-back-link" href="/Set">
                 <i class="ph ph-arrow-left" aria-hidden="true"></i>
@@ -25,89 +34,165 @@
             </a>
 
             <div class="editor-sidebar-heading">
+                <span class="editor-eyebrow">@(Model.Id.HasValue ? "Đang chỉnh sửa" : "Bộ thẻ mới")</span>
                 <h2 id="editor-sidebar-title">Thông tin bộ thẻ</h2>
-                <p>Thay đổi được tự động lưu khi bạn rời khỏi trường nhập.</p>
+                <p>Đặt tên và quyền truy cập trước khi thêm nội dung.</p>
             </div>
 
-            <details class="editor-meta-panel" open>
-                <summary>
-                    <span>Thiết lập bộ thẻ</span>
-                    <i class="ph ph-caret-down" aria-hidden="true"></i>
-                </summary>
-                <div class="editor-meta">
-                    <label for="set-title">Tên bộ từ <span class="required">*</span></label>
-                    <input id="set-title"
-                           class="form-control"
-                           value="@Model.Title"
-                           placeholder="Ví dụ: Từ vựng phòng trọ"
-                           aria-required="true" />
+            <div class="editor-meta">
+                <label class="form-label" for="set-title">Tên bộ từ <span class="required">*</span></label>
+                <input id="set-title"
+                       class="form-control"
+                       value="@Model.Title"
+                       placeholder="Ví dụ: Từ vựng phòng trọ"
+                       aria-required="true" />
 
-                    <label for="set-description">Mô tả</label>
-                    <textarea id="set-description"
-                              class="form-control"
-                              rows="4"
-                              placeholder="Nội dung và mục tiêu của bộ thẻ">@Model.Description</textarea>
+                <label class="form-label" for="set-description">Mô tả</label>
+                <textarea id="set-description"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Nội dung và mục tiêu của bộ thẻ">@Model.Description</textarea>
 
-                    <label class="checkbox-label" for="set-is-public">
-                        <input type="checkbox" id="set-is-public" @(Model.IsPublic ? "checked" : "") @(Model.IsQuarantined ? "disabled" : "") />
-                        <span>
-                            <strong>Công khai</strong>
-                            <small>Mọi người có thể tìm và sao chép bộ thẻ này.</small>
-                        </span>
-                    </label>
-
-                    <label class="checkbox-label" for="set-review-paused">
-                        <input type="checkbox" id="set-review-paused" @(Model.ReviewPaused ? "checked" : "") />
-                        <span>
-                            <strong>Tạm dừng ôn bộ này</strong>
-                            <small>Không đưa thẻ mới hoặc thẻ đến hạn vào lượt ôn mới.</small>
-                        </span>
+                <div class="form-check form-switch editor-switch">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           id="set-is-public"
+                           @(Model.IsPublic ? "checked" : "")
+                           @(Model.IsQuarantined ? "disabled" : "") />
+                    <label class="form-check-label" for="set-is-public">
+                        <strong>Công khai</strong>
+                        <small>Mọi người có thể tìm và sao chép bộ thẻ này.</small>
                     </label>
                 </div>
-            </details>
 
-            <div class="editor-sidebar-stats" aria-label="Thống kê bộ thẻ">
-                <span>Số thẻ hiện có</span>
-                <strong id="editor-sidebar-card-count">@Model.Cards.Count</strong>
+                <div class="form-check form-switch editor-switch">
+                    <input class="form-check-input"
+                           type="checkbox"
+                           role="switch"
+                           id="set-review-paused"
+                           @(Model.ReviewPaused ? "checked" : "") />
+                    <label class="form-check-label" for="set-review-paused">
+                        <strong>Tạm dừng ôn tập</strong>
+                        <small>Không đưa thẻ của bộ này vào lượt ôn mới.</small>
+                    </label>
+                </div>
             </div>
 
-            <div class="save-status" id="save-status" role="status" aria-live="polite"></div>
+            <div class="editor-sidebar-footer">
+                <div class="editor-sidebar-stats" aria-label="Thống kê bộ thẻ">
+                    <span>Số thẻ hiện có</span>
+                    <strong id="editor-sidebar-card-count">@Model.Cards.Count</strong>
+                </div>
+                <p class="editor-autosave-note">
+                    <i class="ph ph-cloud-check" aria-hidden="true"></i>
+                    Nội dung được tự động lưu
+                </p>
+            </div>
         </div>
     </aside>
 
     <section class="editor-workspace" aria-labelledby="editor-page-title">
+        @if (TempData["Success"] is string successMessage)
+        {
+            <div data-popup="success">@successMessage</div>
+        }
+        @if (TempData["Error"] is string errorMessage)
+        {
+            <div data-popup="error">@errorMessage</div>
+        }
+
         <header class="editor-header">
-            <div class="editor-title-block">
-                <h1 id="editor-page-title">Danh sách từ</h1>
-                <p class="subtitle"><span id="card-count">@Model.Cards.Count</span> thẻ · chỉnh sửa trực tiếp trong danh sách</p>
+            <div class="editor-mobile-nav d-xl-none">
+                <a class="editor-back-link" href="/Set">
+                    <i class="ph ph-arrow-left" aria-hidden="true"></i>
+                    <span>Bộ thẻ</span>
+                </a>
+                <button type="button"
+                        class="btn btn-secondary editor-settings-trigger"
+                        data-bs-toggle="offcanvas"
+                        data-bs-target="#editor-settings-panel"
+                        aria-controls="editor-settings-panel">
+                    <i class="ph ph-sliders-horizontal" aria-hidden="true"></i>
+                    <span>Thông tin</span>
+                </button>
             </div>
 
-            <div class="header-actions" aria-label="Công cụ danh sách từ">
-                <label class="editor-search" for="card-search">
-                    <span class="visually-hidden">Tìm từ trong bộ thẻ</span>
-                    <i class="ph ph-magnifying-glass" aria-hidden="true"></i>
+            <div class="editor-title-row">
+                <div class="editor-title-block">
+                    <h1 id="editor-page-title">Danh sách từ</h1>
+                    <div class="editor-title-meta">
+                        <p class="subtitle"><strong><span id="card-count">@Model.Cards.Count</span> thẻ trong bộ</strong></p>
+                        <span class="save-status" id="save-status" role="status" aria-live="polite"></span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="editor-toolbar" aria-label="Công cụ danh sách từ">
+                <div class="input-group editor-find-group">
+                    <span class="input-group-text" aria-hidden="true">
+                        <i class="ph ph-magnifying-glass"></i>
+                    </span>
                     <input id="card-search"
                            class="form-control"
                            type="search"
+                           aria-label="Tìm từ trong bộ thẻ"
                            placeholder="Tìm thuật ngữ hoặc định nghĩa"
                            autocomplete="off" />
-                </label>
+                    <select id="card-filter" class="form-select" aria-label="Lọc danh sách thẻ">
+                        <option value="all">Tất cả thẻ</option>
+                        <option value="starred">Đã đánh dấu</option>
+                    </select>
+                </div>
 
-                <select id="card-filter" class="form-select" aria-label="Lọc danh sách thẻ">
-                    <option value="all">Tất cả thẻ</option>
-                    <option value="starred">Đã đánh dấu</option>
-                </select>
+                <div class="btn-group editor-create-group" role="group" aria-label="Thêm nội dung">
+                    <button id="btn-import" type="button" class="btn btn-secondary">
+                        <i class="ph ph-upload-simple" aria-hidden="true"></i>
+                        <span>Nhập file</span>
+                    </button>
+                    <button id="btn-add-card" type="button" class="btn btn-primary">
+                        <i class="ph ph-plus" aria-hidden="true"></i>
+                        <span>Thêm thẻ</span>
+                    </button>
+                </div>
 
-                <button id="btn-import" type="button" class="btn btn-secondary">
-                    <i class="ph ph-upload-simple" aria-hidden="true"></i>
-                    <span>Nhập file</span>
-                </button>
-                <button id="btn-finish" type="button" class="btn btn-primary" disabled>
+                <button id="btn-finish" type="button" class="btn editor-finish" disabled>
                     <i class="ph ph-check" aria-hidden="true"></i>
                     <span>Hoàn tất</span>
                 </button>
             </div>
+
+            <div id="batch-card-toolbar"
+                 class="editor-batch-toolbar"
+                 data-batch-toolbar
+                 hidden>
+                <div class="editor-batch-selection-meta">
+                    <label class="editor-batch-select-all">
+                        <input type="checkbox" data-batch-select-all aria-label="Chọn tất cả thẻ" />
+                        <span>Chọn tất cả</span>
+                    </label>
+                    <span class="editor-batch-count">
+                        <strong data-batch-selected-count>0</strong> thẻ được chọn
+                    </span>
+                </div>
+                <div class="editor-batch-actions" role="group" aria-label="Thao tác hàng loạt">
+                    <button type="button" class="btn btn-secondary" data-batch-action="Star">
+                        <i class="ph ph-star" aria-hidden="true"></i>
+                        <span>Đánh sao</span>
+                    </button>
+                    <button type="button" class="btn btn-secondary" data-batch-action="Unstar">
+                        <i class="ph ph-star-off" aria-hidden="true"></i>
+                        <span>Bỏ sao</span>
+                    </button>
+                    <button type="button" class="btn editor-batch-action--danger" data-batch-action="Delete">
+                        <i class="ph ph-trash" aria-hidden="true"></i>
+                        <span>Xóa</span>
+                    </button>
+                </div>
+            </div>
         </header>
+
+        <div id="batch-feedback" class="editor-batch-feedback" aria-live="polite"></div>
 
         @if (Model.IsQuarantined)
         {
@@ -135,6 +220,12 @@
                              data-image-url="@card.ImageUrl"
                              data-starred="@card.IsStarred.ToString().ToLowerInvariant()">
                         <div class="card-header">
+                            <input class="card-selection"
+                                   type="checkbox"
+                                   value="@(card.Id > 0 ? card.Id : string.Empty)"
+                                   data-card-selection
+                                   aria-label="Chọn thẻ @card.FrontText"
+                                   @(Model.Id.HasValue && card.Id > 0 ? null : "disabled") />
                             <span class="card-drag-handle" tabindex="0" aria-label="Kéo để đổi thứ tự">⋮⋮</span>
                             <span class="card-number">@((i + 1).ToString("00"))</span>
                             <button type="button"
@@ -143,7 +234,10 @@
                                     aria-pressed="@card.IsStarred.ToString().ToLowerInvariant()">
                                 @(card.IsStarred ? "★" : "☆")
                             </button>
-                            <button type="button" class="card-summary" aria-label="Mở hoặc thu gọn thẻ @card.FrontText">
+                            <button type="button"
+                                    class="card-summary"
+                                    aria-label="Mở thẻ @card.FrontText để chỉnh sửa"
+                                    aria-expanded="@(i == 0 ? "true" : "false")">
                                 <span class="card-summary-field">
                                     <small>Thuật ngữ</small>
                                     <strong class="card-term">@card.FrontText</strong>
@@ -160,8 +254,9 @@
                                 <button type="button" class="btn-move-down" aria-label="Đưa thẻ xuống" title="Đưa thẻ xuống">
                                     <i class="ph ph-arrow-down" aria-hidden="true"></i>
                                 </button>
-                                <button type="button" class="btn-toggle" aria-label="Thu gọn thẻ" aria-expanded="@(i == 0 ? "true" : "false")">
+                                <button type="button" class="btn-toggle" aria-label="@(i == 0 ? "Thu gọn thẻ" : "Mở rộng thẻ")" aria-expanded="@(i == 0 ? "true" : "false")">
                                     <i class="ph @(i == 0 ? "ph-caret-up" : "ph-caret-down")" aria-hidden="true"></i>
+                                    <span class="card-toggle-label">@(i == 0 ? "Thu gọn" : "Mở thẻ")</span>
                                 </button>
                                 <button type="button" class="btn-delete" aria-label="Xóa thẻ @card.FrontText">
                                     <i class="ph ph-trash" aria-hidden="true"></i>
@@ -211,13 +306,6 @@
                 Không có thẻ phù hợp. Thử từ khóa khác hoặc chọn “Tất cả thẻ”.
             </p>
 
-            <button id="btn-add-card" type="button" class="btn btn-add-card">
-                <i class="ph ph-plus-circle" aria-hidden="true"></i>
-                <span>
-                    <strong>Thêm thẻ mới</strong>
-                    <small>Tạo một hàng trống và bắt đầu nhập thuật ngữ.</small>
-                </span>
-            </button>
         </div>
     </section>
 

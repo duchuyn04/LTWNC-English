@@ -43,11 +43,14 @@ public class QuizService : IQuizService
     {
         // 1. Gọi `GetOwnedSetAsync` và lưu kết quả vào `set`.
         FlashcardSet set = await GetOwnedSetAsync(setId, userId);
+        int availableQuestionCount = await _context.Flashcards
+            .CountAsync(card => card.FlashcardSetId == set.Id);
         // 2. Tạo và trả dữ liệu cần thiết cho màn thiết lập.
         return new QuizSetupState
         {
             SetId = set.Id,
-            SetTitle = set.Title
+            SetTitle = set.Title,
+            AvailableQuestionCount = availableQuestionCount
         };
     }
 
@@ -82,6 +85,13 @@ public class QuizService : IQuizService
             // 7. Dừng xử lý và phát sinh lỗi `new QuizUnavailableException( "Không có thẻ phù hợp với bộ lọc hiện...`.
             throw new QuizUnavailableException(
                 "Không có thẻ phù hợp với bộ lọc hiện tại.");
+        }
+
+        if (questionCount.HasValue && questionCount.Value > sourceCards.Count)
+        {
+            throw new QuizUnavailableException(
+                $"Bộ thẻ hiện chỉ có {sourceCards.Count} câu hỏi phù hợp. "
+                + $"Vui lòng chọn tối đa {sourceCards.Count} câu.");
         }
 
         // 8. Tính giá trị và lưu vào `transaction` để dùng ở bước tiếp theo.

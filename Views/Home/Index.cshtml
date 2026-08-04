@@ -17,9 +17,11 @@
             <div class="home-hero-grid">
                 <div class="home-hero-copy">
                     <span class="home-eyebrow">Flashcard · Nghe chép · Hội thoại AI</span>
-                    <h1 id="home-hero-title">
-                        Học từ mới.
-                        <span>Dùng được thật.</span>
+                    <h1 id="home-hero-title" class="home-mask">
+                        <span class="home-mask-inner">
+                            Học từ mới.
+                            <span class="home-hero-accent">Dùng được thật.</span>
+                        </span>
                     </h1>
                     <p class="home-hero-summary">
                         Tạo bộ từ, luyện theo nhiều chế độ và theo dõi tiến độ sau từng buổi học.
@@ -39,12 +41,27 @@
                         <li><i class="ph ph-headphones" aria-hidden="true"></i> Nghe chép</li>
                         <li><i class="ph ph-chats-circle" aria-hidden="true"></i> English Mission</li>
                     </ul>
+                    <ul class="home-hero-stats" aria-label="Số liệu nổi bật">
+                        <li>
+                            <strong data-count="1000" data-suffix="+">0</strong>
+                            <span>từ vựng cộng đồng</span>
+                        </li>
+                        <li>
+                            <strong data-count="3">0</strong>
+                            <span>chế độ luyện tập</span>
+                        </li>
+                        <li>
+                            <strong data-count="5">0</strong>
+                            <span>phút mỗi buổi học</span>
+                        </li>
+                    </ul>
                 </div>
 
                 <div class="home-carousel-column">
                     <div class="home-carousel" data-home-carousel aria-label="Flashcard mẫu">
                         <div class="home-carousel-stage" id="heroCarousel">
                             <article class="home-carousel-item pos-center" data-carousel-item data-index="0" aria-hidden="false">
+                                <div class="home-carousel-float">
                                 <button class="flashcard-3d-card" type="button" data-carousel-card aria-label="Lật thẻ consistency" aria-pressed="false" tabindex="0">
                                     <span class="flashcard-face flashcard-front">
                                         <span class="flashcard-copy">
@@ -62,9 +79,11 @@
                                         </span>
                                     </span>
                                 </button>
+                                </div>
                             </article>
 
                             <article class="home-carousel-item pos-right" data-carousel-item data-index="1" aria-hidden="true">
+                                <div class="home-carousel-float">
                                 <button class="flashcard-3d-card" type="button" data-carousel-card aria-label="Lật thẻ fluency" aria-pressed="false" tabindex="-1">
                                     <span class="flashcard-face flashcard-front">
                                         <span class="flashcard-copy">
@@ -82,9 +101,11 @@
                                         </span>
                                     </span>
                                 </button>
+                                </div>
                             </article>
 
                             <article class="home-carousel-item pos-back" data-carousel-item data-index="2" aria-hidden="true">
+                                <div class="home-carousel-float">
                                 <button class="flashcard-3d-card" type="button" data-carousel-card aria-label="Lật thẻ vocabulary" aria-pressed="false" tabindex="-1">
                                     <span class="flashcard-face flashcard-front">
                                         <span class="flashcard-copy">
@@ -102,9 +123,11 @@
                                         </span>
                                     </span>
                                 </button>
+                                </div>
                             </article>
 
                             <article class="home-carousel-item pos-left" data-carousel-item data-index="3" aria-hidden="true">
+                                <div class="home-carousel-float">
                                 <button class="flashcard-3d-card" type="button" data-carousel-card aria-label="Lật thẻ persistence" aria-pressed="false" tabindex="-1">
                                     <span class="flashcard-face flashcard-front">
                                         <span class="flashcard-copy">
@@ -122,6 +145,7 @@
                                         </span>
                                     </span>
                                 </button>
+                                </div>
                             </article>
                         </div>
 
@@ -141,11 +165,32 @@
         </div>
     </section>
 
+    <div class="home-ticker" aria-hidden="true">
+        <div class="home-ticker-track">
+            <div class="home-ticker-group">
+                <span>consistency <em>sự nhất quán</em></span><i>•</i>
+                <span>fluency <em>sự trôi chảy</em></span><i>•</i>
+                <span>vocabulary <em>vốn từ vựng</em></span><i>•</i>
+                <span>persistence <em>sự kiên trì</em></span><i>•</i>
+                <span>context <em>ngữ cảnh</em></span><i>•</i>
+                <span>progress <em>tiến bộ</em></span><i>•</i>
+            </div>
+            <div class="home-ticker-group">
+                <span>consistency <em>sự nhất quán</em></span><i>•</i>
+                <span>fluency <em>sự trôi chảy</em></span><i>•</i>
+                <span>vocabulary <em>vốn từ vựng</em></span><i>•</i>
+                <span>persistence <em>sự kiên trì</em></span><i>•</i>
+                <span>context <em>ngữ cảnh</em></span><i>•</i>
+                <span>progress <em>tiến bộ</em></span><i>•</i>
+            </div>
+        </div>
+    </div>
+
     <section class="home-section home-feature" id="benefits" aria-labelledby="home-feature-title">
         <div class="container">
             <header class="home-editorial-header">
                 <span class="home-section-number" aria-hidden="true">01</span>
-                <h2 id="home-feature-title">Một thẻ, đủ để hiểu từ.</h2>
+                <h2 id="home-feature-title" class="home-mask"><span class="home-mask-inner">Một thẻ, đủ để hiểu từ.</span></h2>
                 <p>Nghĩa, cách đọc và trạng thái học nằm cùng một chỗ.</p>
             </header>
 
@@ -187,7 +232,7 @@
         <div class="container">
             <header class="home-editorial-header">
                 <span class="home-section-number" aria-hidden="true">02</span>
-                <h2 id="home-modes-title">Không chỉ có flashcard.</h2>
+                <h2 id="home-modes-title" class="home-mask"><span class="home-mask-inner">Không chỉ có flashcard.</span></h2>
                 <p>Chọn cách luyện phù hợp với mục tiêu của từng buổi học.</p>
             </header>
 
@@ -235,7 +280,7 @@
         <div class="container">
             <header class="home-editorial-header">
                 <span class="home-section-number" aria-hidden="true">03</span>
-                <h2 id="home-credits-title">Thêm lượt hội thoại khi bạn cần.</h2>
+                <h2 id="home-credits-title" class="home-mask"><span class="home-mask-inner">Thêm lượt hội thoại khi bạn cần.</span></h2>
                 <p>Mỗi phản hồi AI đã lưu dùng 1 tín dụng. Tín dụng không hết hạn và tạo mission luôn miễn phí.</p>
             </header>
 
@@ -300,7 +345,7 @@
                 <span class="home-section-number" aria-hidden="true">04</span>
                 <div>
                     <span class="home-eyebrow">Bộ thẻ cộng đồng</span>
-                    <h2 id="home-sets-title">Chọn một bộ thẻ và học ngay.</h2>
+                    <h2 id="home-sets-title" class="home-mask"><span class="home-mask-inner">Chọn một bộ thẻ và học ngay.</span></h2>
                 </div>
                 <form class="home-set-search" method="get" action="/">
                     <label for="public-set-search">Tìm bộ thẻ</label>
@@ -379,7 +424,7 @@
         <div class="container">
             <header class="home-editorial-header">
                 <span class="home-section-number" aria-hidden="true">05</span>
-                <h2 id="home-testimonials-title">Người học nói gì.</h2>
+                <h2 id="home-testimonials-title" class="home-mask"><span class="home-mask-inner">Người học nói gì.</span></h2>
                 <p>Những điều họ thấy hữu ích khi học theo nhiều chế độ.</p>
             </header>
 
@@ -405,7 +450,7 @@
             <div class="home-closing-grid">
                 <div>
                     <span class="home-eyebrow">Bắt đầu hôm nay</span>
-                    <h2 id="home-closing-title">Bắt đầu buổi học đầu tiên.</h2>
+                    <h2 id="home-closing-title" class="home-mask"><span class="home-mask-inner">Bắt đầu buổi học đầu tiên.</span></h2>
                     <p>Tạo bộ từ rồi chọn flashcard, nghe chép hoặc hội thoại tình huống.</p>
                     <div class="home-actions home-closing-actions">
                         <a class="home-closing-primary" href="/Account/Register">Đăng ký</a>

@@ -32,14 +32,21 @@ public sealed class LeaderboardController : Controller
     // Xử lý HTTP GET tại đường dẫn /Leaderboard
     [HttpGet("/Leaderboard")]
     public async Task<IActionResult> Index(
-        // Khoảng thời gian bảng xếp hạng;
-        // nếu không truyền thì mặc định là 7
         int period = 7,
-        // Cho phép hủy công việc khi request bị hủy
         CancellationToken cancellationToken = default)
     {
-        // Yêu cầu service tạo dữ liệu trang bảng xếp hạng
-        // dựa trên khoảng thời gian và người đang xem
+        var model = await _leaderboardService.GetPageAsync(
+            period,
+            _currentUser.UserId,
+            cancellationToken);
+        return View(model);
+    }
+
+    [HttpGet("/Leaderboard/Full")]
+    public async Task<IActionResult> Full(
+        int period = 7,
+        CancellationToken cancellationToken = default)
+    {
         var model = await _leaderboardService.GetPageAsync(
             period,
             _currentUser.UserId,

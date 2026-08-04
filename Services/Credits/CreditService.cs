@@ -108,8 +108,100 @@ public sealed class CreditService : ICreditService
             .OrderByDescending(entry => entry.CreatedAtUtc)
             .Take(50)
             .ToListAsync(cancellationToken);
+        DateTime currentPeriodStart = new(now.Year, now.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+        DateTime previousPeriodStart = currentPeriodStart.AddMonths(-1);
+        DateTime nextPeriodStart = currentPeriodStart.AddMonths(1);
+        List<CreditLedgerEntry> usageEntries = await _db.CreditLedgerEntries
+            .AsNoTracking()
+            .Where(entry => entry.UserId == userId
+                && entry.Type == CreditLedgerTypes.MissionTurn
+                && entry.Amount < 0
+                && entry.CreatedAtUtc >= previousPeriodStart
+                && entry.CreatedAtUtc < nextPeriodStart)
+            .ToListAsync(cancellationToken);
+        CreditUsageSummary usage = BuildUsageSummary(
+            usageEntries,
+            currentPeriodStart,
+            nextPeriodStart);
 
-        return new CreditAccountSnapshot(balance, packages, purchases, ledger);
+        return new CreditAccountSnapshot(balance, packages, purchases, ledger, usage);
+    }
+
+    private static CreditUsageSummary BuildUsageSummary(
+        IReadOnlyList<CreditLedgerEntry> entries,
+        DateTime currentPeriodStart,
+        DateTime nextPeriodStart)
+    {
+        DateTime previousPeriodStart = currentPeriodStart.AddMonths(-1);
+        int creditsUsedThisMonth = SumUsage(entries.Where(entry =>
+            entry.CreatedAtUtc >= currentPeriodStart
+            && entry.CreatedAtUtc < nextPeriodStart));
+        int creditsUsedPreviousMonth = SumUsage(entries.Where(entry =>
+            entry.CreatedAtUtc >= previousPeriodStart
+            && entry.CreatedAtUtc < currentPeriodStart));
+
+        List<(string Key, string Label, int Credits)> groups = entries
+            .Where(entry => entry.CreatedAtUtc >= currentPeriodStart
+                && entry.CreatedAtUtc < nextPeriodStart)
+            .GroupBy(entry => string.IsNullOrWhiteSpace(entry.SourceType)
+                ? "Other"
+                : entry.SourceType)
+            .Select(group =>
+            {
+                string key = group.Key;
+                string label = key switch
+                {
+                    "EnglishMissionTurn" => "English Mission",
+                    _ => "Tính năng AI khác"
+                };
+                return (Key: key, Label: label, Credits: SumUsage(group));
+            })
+            .Where(group => group.Credits > 0)
+            .OrderByDescending(group => group.Credits)
+            .ThenBy(group => group.Label, StringComparer.Ordinal)
+            .ToList();
+
+        IReadOnlyList<CreditUsageBreakdown> breakdown = BuildBreakdown(groups, creditsUsedThisMonth);
+        int? changePercent = creditsUsedPreviousMonth == 0
+            ? null
+            : (int)Math.Round(
+                (creditsUsedThisMonth - creditsUsedPreviousMonth) * 100d / creditsUsedPreviousMonth,
+                MidpointRounding.AwayFromZero);
+
+        return new CreditUsageSummary(
+            creditsUsedThisMonth,
+            creditsUsedPreviousMonth,
+            changePercent,
+            breakdown);
+    }
+
+    private static IReadOnlyList<CreditUsageBreakdown> BuildBreakdown(
+        IReadOnlyList<(string Key, string Label, int Credits)> groups,
+        int totalCredits)
+    {
+        if (totalCredits <= 0 || groups.Count == 0)
+            return [];
+
+        List<CreditUsageBreakdown> breakdown = [];
+        int assignedPercentage = 0;
+        for (int index = 0; index < groups.Count; index++)
+        {
+            (string key, string label, int credits) = groups[index];
+            int percentage = index == groups.Count - 1
+                ? 100 - assignedPercentage
+                : (int)Math.Floor(credits * 100d / totalCredits);
+            percentage = Math.Clamp(percentage, 0, 100);
+            assignedPercentage += percentage;
+            breakdown.Add(new CreditUsageBreakdown(key, label, credits, percentage));
+        }
+
+        return breakdown;
+    }
+
+    private static int SumUsage(IEnumerable<CreditLedgerEntry> entries)
+    {
+        long total = entries.Sum(entry => -(long)entry.Amount);
+        return (int)Math.Clamp(total, 0, int.MaxValue);
     }
 
     public async Task<SePayCheckoutForm> CreateCheckoutAsync(

@@ -13,7 +13,7 @@ public class UserProfile
 
     public string? AvatarPath { get; set; }
     public bool IsPublic { get; set; } = true;
-    public bool ShowStats { get; set; }
+    public bool ShowStats { get; set; } = true;
     public bool ShowBadges { get; set; }
     public bool ShowActivity { get; set; }
     public bool ShowPublicSets { get; set; }

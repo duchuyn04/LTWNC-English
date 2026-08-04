@@ -71,6 +71,18 @@ public sealed class PopupNotificationViewTests
         Assert.DoesNotContain("confirm(", editorScript);
     }
 
+    [Fact]
+    public void UnsavedEditorNavigationUsesSharedModalWithBrowserFallback()
+    {
+        string siteScript = Read("wwwroot/js/site.js");
+        string editorScript = Read("wwwroot/js/unified-editor.js");
+
+        Assert.Contains("window.createAppNavigationGuard", siteScript);
+        Assert.Contains("window.addEventListener('beforeunload'", siteScript);
+        Assert.Contains("window.createAppNavigationGuard(hasUnsavedChanges", editorScript);
+        Assert.Contains("Rời trình soạn thẻ?", editorScript);
+    }
+
     private static string Read(string relativePath) =>
         File.ReadAllText(Path.Combine(FindRepositoryRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar)));
 

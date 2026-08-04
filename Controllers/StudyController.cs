@@ -387,6 +387,7 @@ public class StudyController : Controller
             {
                 SetId = state.SetId,
                 SetTitle = state.SetTitle,
+                AvailableQuestionCount = state.AvailableQuestionCount,
                 TimingMode = QuizTimingMode.Preset,
                 SelectedPresetMinutes = QuizService.DefaultQuizMinutes
             });
@@ -434,11 +435,11 @@ public class StudyController : Controller
             QuizTimingMode.Untimed => null,
             _ => null
         };
-        if (input.QuestionCount is not (null or 10 or 20 or 30 or 50))
+        if (input.QuestionCount is <= 0)
         {
             ModelState.AddModelError(
                 nameof(QuizSetupViewModel.QuestionCount),
-                "Số câu đã chọn không hợp lệ.");
+                "Số câu phải lớn hơn 0.");
         }
 
         if (!hasValidTimingSelection)
@@ -471,7 +472,10 @@ public class StudyController : Controller
         }
         catch (QuizUnavailableException exception)
         {
-            ModelState.AddModelError(string.Empty, exception.Message);
+            string validationKey = input.QuestionCount.HasValue
+                ? nameof(QuizSetupViewModel.QuestionCount)
+                : string.Empty;
+            ModelState.AddModelError(validationKey, exception.Message);
             return await RenderQuizSetupAsync(setId, userId, input);
         }
         catch (ArgumentOutOfRangeException)
@@ -504,6 +508,7 @@ public class StudyController : Controller
             QuizSetupState state = await _quizService.GetSetupAsync(setId, userId);
             input.SetId = state.SetId;
             input.SetTitle = state.SetTitle;
+            input.AvailableQuestionCount = state.AvailableQuestionCount;
             return View("QuizSetup", input);
         }
         catch (KeyNotFoundException)

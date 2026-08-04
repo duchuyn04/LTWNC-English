@@ -27,14 +27,13 @@ public sealed class LeaderboardService : ILeaderboardService
         string? viewerUserId,
         CancellationToken cancellationToken = default)
     {
-        // Chỉ chấp nhận hai khoảng thời gian:
-        // - periodDays = 30 thì lấy 30 ngày;
-        // - mọi giá trị khác đều được chuyển thành 7 ngày.
-        int normalizedPeriod = periodDays == 30 ? 30 : 7;
+        // Chấp nhận 7 ngày, 30 ngày hoặc 0 cho toàn bộ thời gian.
+        int normalizedPeriod = periodDays is 0 or 30 ? periodDays : 7;
 
-        // Tính thời điểm bắt đầu dùng để lọc phiên học.
-        // Ví dụ bảng 7 ngày: lấy thời gian hiện tại trừ đi 7 ngày
-        DateTime cutoff = _timeProvider.GetUtcNow().UtcDateTime.AddDays(-normalizedPeriod);
+        // Bảng toàn thời gian không cần mốc bắt đầu.
+        DateTime? cutoff = normalizedPeriod > 0
+            ? _timeProvider.GetUtcNow().UtcDateTime.AddDays(-normalizedPeriod)
+            : null;
 
         // Lấy và tổng hợp dữ liệu học tập theo từng người dùng
         var grouped = await (
@@ -49,9 +48,8 @@ public sealed class LeaderboardService : ILeaderboardService
                 on session.UserId equals user.Id
             // Chỉ lấy những phiên học đủ điều kiện xuất hiện trên bảng xếp hạng
             where profile.IsPublic
-                && profile.ShowStats
                 && session.CompletedAt.HasValue
-                && session.CompletedAt.Value >= cutoff
+                && (!cutoff.HasValue || session.CompletedAt.Value >= cutoff.Value)
                 && session.DurationSeconds.HasValue
                 && session.DurationSeconds.Value > 0
 
@@ -118,6 +116,7 @@ public sealed class LeaderboardService : ILeaderboardService
         return new LeaderboardPageViewModel
         {
             PeriodDays = normalizedPeriod,
+            TotalEntryCount = ranked.Count,
             Entries = ranked.Take(TopEntryLimit).ToList(), // Chỉ hiển thị 20 người đứng đầu
             // Vẫn trả vị trí người đang xem,
             // kể cả khi họ không nằm trong top 20

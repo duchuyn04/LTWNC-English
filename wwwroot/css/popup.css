@@ -149,6 +149,11 @@
 
 /* ================= MODAL CONFIRM DIALOG ================= */
 
+html.app-confirm-open,
+html.app-confirm-open body {
+    overflow: hidden;
+}
+
 .app-confirm-backdrop {
     position: fixed;
     z-index: 1090;
@@ -158,6 +163,7 @@
     place-items: center;
     background: rgba(20, 22, 19, .58);
     backdrop-filter: blur(5px);
+    animation: app-confirm-backdrop-in 160ms ease-out both;
 }
 
 .app-confirm {
@@ -169,6 +175,7 @@
     background: var(--surface, #fffef9);
     box-shadow: 0 28px 80px rgba(15, 17, 14, .32);
     font-family: var(--font-body, "Be Vietnam Pro", sans-serif);
+    animation: app-confirm-in 200ms var(--ease-out, ease-out) both;
 }
 
 .app-confirm__mark {
@@ -182,6 +189,11 @@
     background: #f7e8e5;
     font-size: 1.3rem;
     font-weight: 800;
+}
+
+.app-confirm--warning .app-confirm__mark {
+    color: var(--brass-deep, #8f6115);
+    background: var(--brass-soft, #f5eedc);
 }
 
 .app-confirm h2 {
@@ -210,6 +222,11 @@
     font: inherit;
     font-weight: 700;
     cursor: pointer;
+    transition: background-color 150ms ease, border-color 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.app-confirm__actions button:active {
+    transform: translateY(1px);
 }
 
 .app-confirm__cancel {
@@ -224,9 +241,49 @@
     background: #303a31;
 }
 
+.app-confirm--warning .app-confirm__accept {
+    border-color: var(--brass-deep, #8f6115);
+    background: var(--brass-deep, #8f6115);
+}
+
+@media (hover: hover) {
+    .app-confirm__cancel:hover {
+        border-color: var(--ink-soft, #45503f);
+        background: var(--surface-sunken, #f0ebdd);
+    }
+
+    .app-confirm__accept:hover {
+        border-color: var(--ink-soft, #45503f);
+        background: var(--ink-soft, #45503f);
+    }
+}
+
 .app-confirm__actions button:focus-visible {
     outline: 3px solid rgba(76, 111, 85, .28);
     outline-offset: 2px;
+}
+
+@keyframes app-confirm-backdrop-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes app-confirm-in {
+    from {
+        opacity: 0;
+        transform: translateY(.75rem) scale(.98);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .app-confirm-backdrop,
+    .app-confirm {
+        animation-duration: 1ms;
+    }
 }
 
 @media (max-width: 640px) {

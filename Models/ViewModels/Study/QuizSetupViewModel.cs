@@ -11,6 +11,7 @@ public class QuizSetupViewModel
 {
     public int SetId { get; set; }
     public string SetTitle { get; set; } = string.Empty;
+    public int AvailableQuestionCount { get; set; }
     public QuizTimingMode? TimingMode { get; set; }
     public int? SelectedPresetMinutes { get; set; }
     public int? CustomMinutes { get; set; }

@@ -18,6 +18,10 @@
     --muted: #596155;
     --muted-light: #9AA092;
 
+    /* Deep surfaces (dark blocks sit a shade below body text for layer depth) */
+    --pine: #1B2418;
+    --pine-soft: #253020;
+
     /* Lines */
     --line: #E0E4DB;
     --line-strong: #C9CFC0;
@@ -27,7 +31,7 @@
     --sage-soft: #EDF2E7;
 
     /* Accent (used sparingly: stars, streaks, focus, highlights) */
-    --brass: #B7791F;
+    --brass: #C68A2E;
     --brass-deep: #8F6115;
     --brass-soft: #F5EEDC;
 

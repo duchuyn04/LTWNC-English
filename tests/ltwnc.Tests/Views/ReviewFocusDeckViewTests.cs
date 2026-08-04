@@ -128,6 +128,9 @@ public sealed class ReviewFocusDeckViewTests
         Assert.Contains("data-shortcut=\"2\" disabled", view);
         Assert.Contains("data-shortcut=\"3\" disabled", view);
         Assert.Contains("data-shortcut=\"4\" disabled", view);
+        Assert.Contains("id=\"review-rating-form\"", view);
+        Assert.Contains("if (rateForm) rateForm.hidden = false", view);
+        Assert.Contains("root.dataset.state = 'answer'", view);
     }
 
     [Fact]

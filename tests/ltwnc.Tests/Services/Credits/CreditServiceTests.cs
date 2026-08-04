@@ -282,7 +282,109 @@ public sealed class CreditServiceTests
         Assert.Equal("12:turn-1", entry.SourceId);
     }
 
-    private static CreditService CreateService(AppDbContext context)
+    [Fact]
+    public async Task GetAccountAsync_ComputesEnglishMissionUsageByUtcMonthAndIgnoresOtherLedgerTypes()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedUserAsync(context, balance: 6);
+        await SeedPackageAsync(context, "Starter", 25_000, 30);
+        context.CreditLedgerEntries.AddRange(
+            new CreditLedgerEntry
+            {
+                UserId = "user-1",
+                Amount = -1,
+                BalanceAfter = 5,
+                Type = CreditLedgerTypes.MissionTurn,
+                SourceType = "EnglishMissionTurn",
+                SourceId = "current-turn",
+                Description = "English Mission",
+                CreatedAtUtc = new DateTime(2026, 8, 1, 0, 0, 0, DateTimeKind.Utc)
+            },
+            new CreditLedgerEntry
+            {
+                UserId = "user-1",
+                Amount = -1,
+                BalanceAfter = 4,
+                Type = CreditLedgerTypes.MissionTurn,
+                SourceType = "EnglishMissionTurn",
+                SourceId = "previous-turn",
+                Description = "English Mission",
+                CreatedAtUtc = new DateTime(2026, 7, 31, 23, 59, 59, DateTimeKind.Utc)
+            },
+            new CreditLedgerEntry
+            {
+                UserId = "user-1",
+                Amount = 30,
+                BalanceAfter = 34,
+                Type = CreditLedgerTypes.Purchase,
+                SourceType = "CreditPurchase",
+                SourceId = "purchase-entry",
+                Description = "Mua gói Starter",
+                CreatedAtUtc = new DateTime(2026, 8, 1, 1, 0, 0, DateTimeKind.Utc)
+            },
+            new CreditLedgerEntry
+            {
+                UserId = "user-1",
+                Amount = -2,
+                BalanceAfter = 32,
+                Type = CreditLedgerTypes.AdminAdjustment,
+                SourceType = "AdminAdjustment",
+                SourceId = "admin-entry",
+                Description = "Điều chỉnh",
+                CreatedAtUtc = new DateTime(2026, 8, 1, 2, 0, 0, DateTimeKind.Utc)
+            },
+            new CreditLedgerEntry
+            {
+                UserId = "user-1",
+                Amount = -3,
+                BalanceAfter = 29,
+                Type = CreditLedgerTypes.MissionTurn,
+                SourceType = "EnglishMissionTurn",
+                SourceId = "next-turn",
+                Description = "English Mission",
+                CreatedAtUtc = new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc)
+            });
+        await context.SaveChangesAsync();
+
+        CreditAccountSnapshot snapshot = await CreateService(context).GetAccountAsync("user-1");
+
+        Assert.Equal(1, snapshot.Usage.CreditsUsedThisMonth);
+        Assert.Equal(1, snapshot.Usage.CreditsUsedPreviousMonth);
+        Assert.Equal(0, snapshot.Usage.ChangePercent);
+        CreditUsageBreakdown breakdown = Assert.Single(snapshot.Usage.Breakdown);
+        Assert.Equal("EnglishMissionTurn", breakdown.Key);
+        Assert.Equal("English Mission", breakdown.Label);
+        Assert.Equal(1, breakdown.Credits);
+        Assert.Equal(100, breakdown.Percentage);
+    }
+
+    [Fact]
+    public async Task GetAccountAsync_LeavesChangePercentEmptyWhenPreviousMonthHasNoUsage()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedUserAsync(context, balance: 2);
+        context.CreditLedgerEntries.Add(new CreditLedgerEntry
+        {
+            UserId = "user-1",
+            Amount = -1,
+            BalanceAfter = 1,
+            Type = CreditLedgerTypes.MissionTurn,
+            SourceType = "EnglishMissionTurn",
+            SourceId = "current-only",
+            Description = "English Mission",
+            CreatedAtUtc = FixedNow.UtcDateTime
+        });
+        await context.SaveChangesAsync();
+
+        CreditUsageSummary usage = (await CreateService(context).GetAccountAsync("user-1")).Usage;
+
+        Assert.Equal(1, usage.CreditsUsedThisMonth);
+        Assert.Equal(0, usage.CreditsUsedPreviousMonth);
+        Assert.Null(usage.ChangePercent);
+        Assert.Equal(100, Assert.Single(usage.Breakdown).Percentage);
+    }
+
+    private static CreditService CreateService(AppDbContext context, DateTimeOffset? now = null)
     {
         IConfiguration configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
@@ -294,7 +396,7 @@ public sealed class CreditServiceTests
                 ["SePay:Environment"] = "Sandbox"
             })
             .Build();
-        return new CreditService(context, configuration, new FixedTimeProvider(FixedNow));
+        return new CreditService(context, configuration, new FixedTimeProvider(now ?? FixedNow));
     }
 
     private static AppDbContext CreateContext()

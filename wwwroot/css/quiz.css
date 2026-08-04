@@ -248,12 +248,14 @@ body > header {
     color: var(--quiz-muted);
 }
 
-.quiz-count-select {
+.quiz-count-input {
+    width: min(100%, 11rem);
     min-height: 44px;
     border-color: var(--quiz-line-strong);
     border-radius: var(--radius-control);
     background-color: var(--quiz-paper);
     color: var(--quiz-ink);
+    font-variant-numeric: tabular-nums;
 }
 
 .quiz-count-field .quiz-validation-message {

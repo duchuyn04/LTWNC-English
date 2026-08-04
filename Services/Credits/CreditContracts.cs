@@ -3,11 +3,24 @@ using ltwnc.Models.Entities;
 
 namespace ltwnc.Services.Credits;
 
+public sealed record CreditUsageBreakdown(
+    string Key,
+    string Label,
+    int Credits,
+    int Percentage);
+
+public sealed record CreditUsageSummary(
+    int CreditsUsedThisMonth,
+    int CreditsUsedPreviousMonth,
+    int? ChangePercent,
+    IReadOnlyList<CreditUsageBreakdown> Breakdown);
+
 public sealed record CreditAccountSnapshot(
     int Balance,
     IReadOnlyList<CreditPackage> Packages,
     IReadOnlyList<CreditPurchase> Purchases,
-    IReadOnlyList<CreditLedgerEntry> Ledger);
+    IReadOnlyList<CreditLedgerEntry> Ledger,
+    CreditUsageSummary Usage);
 
 public sealed record SePayCheckoutForm(
     int PurchaseId,

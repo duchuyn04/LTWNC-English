@@ -21,8 +21,8 @@
         </header>
 
         <div class="quiz-page-intro">
-            <h2 id="quiz-setup-title">Bạn muốn làm bài trong bao lâu?</h2>
-            <p>Chọn thời lượng, sau đó bắt đầu với câu đầu tiên.</p>
+            <h2 id="quiz-setup-title">Bạn muốn làm bao nhiêu câu?</h2>
+            <p>Chọn số câu và thời lượng, sau đó bắt đầu với câu đầu tiên.</p>
         </div>
 
         <div class="quiz-setup-layout quiz-workspace" data-quiz-setup>
@@ -32,7 +32,7 @@
                         <i class="ph ph-timer"></i>
                     </span>
                     <div>
-                        <span class="quiz-context-label">Thiết lập thời gian</span>
+                        <span class="quiz-context-label">Thiết lập bài làm</span>
                         <h3>@Model.SetTitle</h3>
                     </div>
                 </div>
@@ -58,16 +58,25 @@
                     <div class="quiz-count-field">
                         <div>
                             <label asp-for="QuestionCount">Số câu</label>
-                            <small>Chọn số câu cho lượt làm bài này</small>
+                            <small id="quiz-question-count-help">
+                                Nhập từ 1 đến @Model.AvailableQuestionCount câu. Để trống để làm tất cả.
+                            </small>
                         </div>
-                        <select asp-for="QuestionCount" class="form-select quiz-count-select">
-                            <option value="">Tất cả câu</option>
-                            <option value="10">10 câu</option>
-                            <option value="20">20 câu</option>
-                            <option value="30">30 câu</option>
-                            <option value="50">50 câu</option>
-                        </select>
-                        <span asp-validation-for="QuestionCount" class="quiz-validation-message"></span>
+                        <input asp-for="QuestionCount"
+                               class="form-control quiz-count-input"
+                               type="number"
+                               min="1"
+                               max="@Model.AvailableQuestionCount"
+                               step="1"
+                               inputmode="numeric"
+                               placeholder="@Model.AvailableQuestionCount"
+                               aria-describedby="quiz-question-count-help quiz-question-count-validation"
+                               data-quiz-question-count />
+                        <span asp-validation-for="QuestionCount"
+                              id="quiz-question-count-validation"
+                              class="quiz-validation-message"
+                              role="alert"
+                              data-quiz-count-validation></span>
                     </div>
 
                     <fieldset class="quiz-timing-fieldset">

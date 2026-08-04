@@ -70,8 +70,8 @@ public sealed class ProfileService : IProfileService
             };
         }
 
-        // 10. Tính giá trị và lưu vào `showStats` để dùng ở bước tiếp theo.
-        bool showStats = isOwner || profile.ShowStats;
+        // Thống kê luôn được hiển thị trên hồ sơ công khai.
+        bool showStats = true;
         // 11. Tính giá trị và lưu vào `showBadges` để dùng ở bước tiếp theo.
         bool showBadges = isOwner || profile.ShowBadges;
         // 12. Tính giá trị và lưu vào `showActivity` để dùng ở bước tiếp theo.
@@ -219,8 +219,8 @@ public sealed class ProfileService : IProfileService
         profile.Bio = string.IsNullOrWhiteSpace(model.Bio) ? null : model.Bio.Trim();
         // 21. Cập nhật `profile.IsPublic` bằng giá trị mới.
         profile.IsPublic = model.IsPublic;
-        // 22. Cập nhật `profile.ShowStats` bằng giá trị mới.
-        profile.ShowStats = model.ShowStats;
+        // Thống kê là thông tin mặc định, không còn phụ thuộc vào tùy chọn hồ sơ.
+        profile.ShowStats = true;
         // 23. Cập nhật `profile.ShowBadges` bằng giá trị mới.
         profile.ShowBadges = model.ShowBadges;
         // 24. Cập nhật `profile.ShowActivity` bằng giá trị mới.
@@ -312,7 +312,7 @@ public sealed class ProfileService : IProfileService
         AvatarPath = profile.AvatarPath,
         AvatarInitial = AvatarInitial(user.UserName),
         IsPublic = profile.IsPublic,
-        ShowStats = profile.ShowStats,
+        ShowStats = true,
         ShowBadges = profile.ShowBadges,
         ShowActivity = profile.ShowActivity,
         ShowPublicSets = profile.ShowPublicSets

@@ -26,13 +26,27 @@
         context.drawImage(image, (canvas.width - width) / 2 + offsetX, (canvas.height - height) / 2 + offsetY, width, height);
     }
 
+    function loadImage(source, revokeUrl = false) {
+        const nextImage = new Image();
+        nextImage.onload = () => {
+            image = nextImage;
+            zoom = 1;
+            offsetX = 0;
+            offsetY = 0;
+            if (zoomInput) zoomInput.value = '1';
+            draw();
+            if (revokeUrl) URL.revokeObjectURL(source);
+        };
+        nextImage.onerror = () => {
+            if (revokeUrl) URL.revokeObjectURL(source);
+        };
+        nextImage.src = source;
+    }
+
     input?.addEventListener('change', () => {
         const file = input.files?.[0];
         if (!file) return;
-        const url = URL.createObjectURL(file);
-        image = new Image();
-        image.onload = () => { zoom = 1; offsetX = 0; offsetY = 0; draw(); URL.revokeObjectURL(url); };
-        image.src = url;
+        loadImage(URL.createObjectURL(file), true);
     });
 
     zoomInput?.addEventListener('input', () => { zoom = Number(zoomInput.value); draw(); });
@@ -72,5 +86,7 @@
         }, 'image/png');
     });
 
-    draw();
+    const avatarSource = cropper.dataset.avatarSource;
+    if (avatarSource) loadImage(avatarSource);
+    else draw();
 })();

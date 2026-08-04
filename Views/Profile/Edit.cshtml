@@ -1,6 +1,6 @@
 @model ProfileEditViewModel
 @{
-    ViewData["Title"] = "Chỉnh sửa profile";
+    ViewData["Title"] = "Chỉnh sửa hồ sơ";
 }
 @section Styles {
     <link rel="stylesheet" href="~/css/profile.css" asp-append-version="true" />
@@ -24,7 +24,7 @@
                 <span>@Model.Email</span>
             </div>
         </div>
-        <nav class="settings-nav" aria-label="Cài đặt profile">
+        <nav class="settings-nav" aria-label="Cài đặt hồ sơ">
             <a href="#section-avatar" class="settings-nav-link active" aria-current="location"><i class="ph ph-image-square"></i> Ảnh đại diện</a>
             <a href="#section-info" class="settings-nav-link"><i class="ph ph-user"></i> Thông tin</a>
             <a href="#section-privacy" class="settings-nav-link"><i class="ph ph-lock"></i> Quyền riêng tư</a>
@@ -36,9 +36,9 @@
         <header class="settings-heading">
             <a class="settings-back-link" asp-route="PublicProfile" asp-route-username="@Model.Username">
                 <i class="ph ph-arrow-left" aria-hidden="true"></i>
-                Về profile
+                Về hồ sơ
             </a>
-            <h1>Chỉnh sửa profile</h1>
+            <h1>Chỉnh sửa hồ sơ</h1>
             <p>Quản lý thông tin hiển thị và quyền riêng tư của bạn.</p>
         </header>
 
@@ -57,10 +57,10 @@
 
         <section id="section-avatar" class="settings-card" aria-labelledby="section-avatar-title">
             <h2 id="section-avatar-title">Ảnh đại diện</h2>
-            <p class="settings-card-desc">Ảnh hiển thị trên trang profile công khai của bạn.</p>
+            <p class="settings-card-desc">Ảnh hiển thị trên trang hồ sơ công khai của bạn.</p>
             <form asp-controller="Profile" asp-action="Avatar" method="post" enctype="multipart/form-data" class="settings-avatar-form" data-loading-form>
                 @Html.AntiForgeryToken()
-                <div class="avatar-cropper" data-avatar-cropper>
+                <div class="avatar-cropper" data-avatar-cropper data-avatar-source="@Model.AvatarPath">
                     <canvas class="avatar-crop-canvas" data-avatar-canvas width="240" height="240" tabindex="0" aria-label="Khung crop ảnh đại diện"></canvas>
                     <p id="avatar-crop-help" class="avatar-crop-help">Kéo ảnh hoặc dùng các phím mũi tên để căn chỉnh, sau đó điều chỉnh zoom.</p>
                     <input type="range" min="1" max="3" step="0.01" value="1" data-avatar-zoom aria-label="Zoom ảnh đại diện" />
@@ -82,36 +82,29 @@
             <section id="section-info" class="settings-card" aria-labelledby="section-info-title">
                 <h2 id="section-info-title">Thông tin cá nhân</h2>
                 <div class="settings-field">
-                    <label asp-for="Username">Username</label>
+                    <label asp-for="Username">Tên người dùng</label>
                     <input asp-for="Username" class="settings-input" autocomplete="username" spellcheck="false" aria-describedby="username-help" />
-                    <small id="username-help" class="settings-hint">3-50 ký tự; dùng chữ không dấu, số, ., _ hoặc -.</small>
+                    <small id="username-help" class="settings-hint">3–50 ký tự; dùng chữ không dấu, số, ., _ hoặc -.</small>
                     <span asp-validation-for="Username" class="text-danger"></span>
                 </div>
                 <div class="settings-field">
-                    <label asp-for="Bio">Bio</label>
+                    <label asp-for="Bio">Giới thiệu</label>
                     <textarea asp-for="Bio" rows="4" maxlength="500" class="settings-input" aria-describedby="bio-help"></textarea>
-                    <small id="bio-help" class="settings-hint">Tối đa 500 ký tự. Nội dung này xuất hiện trên profile công khai.</small>
+                    <small id="bio-help" class="settings-hint">Tối đa 500 ký tự. Nội dung này xuất hiện trên hồ sơ công khai.</small>
                     <span asp-validation-for="Bio" class="text-danger"></span>
                 </div>
             </section>
 
             <section id="section-privacy" class="settings-card" aria-labelledby="section-privacy-title">
                 <h2 id="section-privacy-title">Quyền riêng tư</h2>
-                <p class="settings-card-desc">Kiểm soát những gì người khác nhìn thấy trên profile của bạn.</p>
+                <p class="settings-card-desc">Kiểm soát những gì người khác nhìn thấy trên hồ sơ của bạn.</p>
                 <div class="settings-toggles">
                     <label class="settings-toggle-row">
                         <span class="settings-toggle-text">
-                            <strong>Profile công khai</strong>
-                            <small>Cho phép mọi người xem trang profile của bạn.</small>
+                            <strong>Hồ sơ công khai</strong>
+                            <small>Cho phép mọi người xem trang hồ sơ của bạn.</small>
                         </span>
                         <span class="settings-toggle"><input asp-for="IsPublic" /><span class="settings-toggle-slider"></span></span>
-                    </label>
-                    <label class="settings-toggle-row">
-                        <span class="settings-toggle-text">
-                            <strong>Hiển thị thống kê</strong>
-                            <small>Số thẻ đã học, chuỗi ngày học, tiến độ và thời gian trên bảng xếp hạng.</small>
-                        </span>
-                        <span class="settings-toggle"><input asp-for="ShowStats" /><span class="settings-toggle-slider"></span></span>
                     </label>
                     <label class="settings-toggle-row">
                         <span class="settings-toggle-text">
