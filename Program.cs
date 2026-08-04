@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.RateLimiting;
@@ -43,11 +44,40 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Auth tự quản dùng cookie và bảng AppUsers.
 builder.Services.AddHttpContextAccessor();
 
-builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
-    .AddCookie();
+builder.Services.Configure<SmtpOptions>(builder.Configuration.GetSection("Smtp"));
+builder.Services.Configure<GoogleAuthSettings>(
+    builder.Configuration.GetSection("Authentication:Google"));
+AuthenticationBuilder authenticationBuilder = builder.Services
+    .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
+    .AddCookie()
+    .AddCookie(AuthSchemes.ExternalCookie, options =>
+    {
+        options.ExpireTimeSpan = TimeSpan.FromMinutes(10);
+        options.SlidingExpiration = false;
+    });
+string googleClientId = builder.Configuration["Authentication:Google:ClientId"] ?? string.Empty;
+string googleClientSecret = builder.Configuration["Authentication:Google:ClientSecret"] ?? string.Empty;
+if (!string.IsNullOrWhiteSpace(googleClientId) &&
+    !string.IsNullOrWhiteSpace(googleClientSecret))
+{
+    authenticationBuilder.AddGoogle(options =>
+    {
+        options.ClientId = googleClientId;
+        options.ClientSecret = googleClientSecret;
+        options.SignInScheme = AuthSchemes.ExternalCookie;
+        options.Scope.Add("email");
+        options.Scope.Add("profile");
+        options.ClaimActions.MapJsonKey("urn:google:verified_email", "verified_email");
+        options.ClaimActions.MapJsonKey("email_verified", "email_verified");
+    });
+}
 builder.Services.AddScoped<IPasswordHasher<ltwnc.Models.Entities.AppUser>,
     PasswordHasher<ltwnc.Models.Entities.AppUser>>();
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<IEmailMessageSender, SmtpEmailMessageSender>();
+builder.Services.AddSingleton<IOtpCodeGenerator, OtpCodeGenerator>();
+builder.Services.AddScoped<IEmailOtpService, EmailOtpService>();
+builder.Services.AddScoped<IAccountSecurityService, AccountSecurityService>();
 
 builder.Services.AddAuthorization(options =>
 {

@@ -11,6 +11,8 @@ public class AppUser
     public string PasswordHash { get; set; } = string.Empty;
     public string SecurityStamp { get; set; } = Guid.NewGuid().ToString();
     public string ConcurrencyStamp { get; set; } = Guid.NewGuid().ToString();
+    public string? GoogleSubjectId { get; set; }
+    public bool EmailConfirmed { get; set; }
     public DateTimeOffset? LockoutEnd { get; set; }
     public int AccessFailedCount { get; set; }
     public bool IsAdmin { get; set; }

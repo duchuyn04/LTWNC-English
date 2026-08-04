@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
+using ltwnc.Services.Profiles;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Http;
@@ -36,56 +37,92 @@ public sealed class AuthService : IAuthService
         _timeProvider = timeProvider;
     }
 
-    public async Task<AuthResult> RegisterAsync(
+    public async Task<AuthResult> CreateVerifiedLocalUserAsync(
         string email,
         string userName,
-        string password,
+        string passwordHash,
         CancellationToken cancellationToken = default)
     {
-        // 1. Gọi `GetValidationError` và lưu kết quả vào `passwordError`.
-        AuthError? passwordError = PasswordPolicy.GetValidationError(password);
-        // 2. Kiểm tra `passwordError != null` để chọn nhánh xử lý phù hợp.
-        if (passwordError != null)
+        return await CreateUserAsync(
+            email,
+            userName,
+            passwordHash,
+            googleSubjectId: null,
+            cancellationToken);
+    }
+
+    public async Task<AuthResult> CreateGoogleUserAsync(
+        string email,
+        string userNameCandidate,
+        string googleSubjectId,
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(googleSubjectId))
         {
-            // 3. Trả kết quả từ `Failure` cho nơi gọi.
-            return AuthResult.Failure(passwordError);
+            return AuthResult.Failure(new AuthError("GoogleIdentityMissing", "Tài khoản Google không hợp lệ."));
         }
 
-        // 4. Gọi `ToUpperInvariant` và lưu kết quả vào `normalizedEmail`.
-        string normalizedEmail = email.ToUpperInvariant();
-        // 5. Gọi `ToUpperInvariant` và lưu kết quả vào `normalizedUserName`.
-        string normalizedUserName = userName.ToUpperInvariant();
+        if (await _db.AppUsers.AnyAsync(
+                user => user.GoogleSubjectId == googleSubjectId,
+                cancellationToken))
+        {
+            return AuthResult.Failure(new AuthError("GoogleAlreadyLinked", "Tài khoản Google đã được liên kết."));
+        }
 
-        // 6. Kiểm tra `await _db.AppUsers.AnyAsync(user => user.NormalizedEmail == normali...` để chọn nhánh xử lý phù hợp.
+        string? userName = await FindAvailableUserNameAsync(
+            userNameCandidate.Trim(),
+            cancellationToken);
+        if (userName == null)
+        {
+            return AuthResult.Failure(new AuthError("InvalidUserName", "Không thể tạo tên đăng nhập từ tài khoản Google."));
+        }
+
+        return await CreateUserAsync(
+            email,
+            userName,
+            passwordHash: string.Empty,
+            googleSubjectId,
+            cancellationToken);
+    }
+
+    private async Task<AuthResult> CreateUserAsync(
+        string email,
+        string userName,
+        string passwordHash,
+        string? googleSubjectId,
+        CancellationToken cancellationToken)
+    {
+        string normalizedEmail = email.Trim().ToUpperInvariant();
+        string normalizedUserName = userName.Trim().ToUpperInvariant();
         if (await _db.AppUsers.AnyAsync(user => user.NormalizedEmail == normalizedEmail, cancellationToken))
         {
-            // 7. Trả kết quả từ `Failure` cho nơi gọi.
             return AuthResult.Failure(new AuthError("DuplicateEmail", "Email đã được sử dụng."));
         }
 
-        // 8. Kiểm tra `await _db.AppUsers.AnyAsync(user => user.NormalizedUserName == norm...` để chọn nhánh xử lý phù hợp.
         if (await _db.AppUsers.AnyAsync(user => user.NormalizedUserName == normalizedUserName, cancellationToken))
         {
-            // 9. Trả kết quả từ `Failure` cho nơi gọi.
             return AuthResult.Failure(new AuthError("DuplicateUserName", "Tên đăng nhập đã được sử dụng."));
         }
 
-        // 10. Khởi tạo `user` với dữ liệu ban đầu cần thiết.
+        if (googleSubjectId != null && await _db.AppUsers.AnyAsync(
+                user => user.GoogleSubjectId == googleSubjectId,
+                cancellationToken))
+        {
+            return AuthResult.Failure(new AuthError("GoogleAlreadyLinked", "Tài khoản Google đã được liên kết."));
+        }
+
         var user = new AppUser
         {
-            Email = email,
+            Email = email.Trim(),
             NormalizedEmail = normalizedEmail,
-            UserName = userName,
-            NormalizedUserName = normalizedUserName
+            UserName = userName.Trim(),
+            NormalizedUserName = normalizedUserName,
+            PasswordHash = passwordHash,
+            GoogleSubjectId = googleSubjectId,
+            EmailConfirmed = true
         };
-        // 11. Cập nhật `user.PasswordHash` bằng giá trị mới.
-        user.PasswordHash = _passwordHasher.HashPassword(user, password);
-
-        // 12. Tính giá trị và lưu vào `now` để dùng ở bước tiếp theo.
         DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
-        // 13. Gọi `Add` để thực hiện bước nghiệp vụ này.
         _db.AppUsers.Add(user);
-        // 14. Gọi `Add` để thực hiện bước nghiệp vụ này.
         _db.UserProfiles.Add(new UserProfile { UserId = user.Id, CreatedAt = now, UpdatedAt = now });
         _db.CreditLedgerEntries.Add(new CreditLedgerEntry
         {
@@ -99,26 +136,43 @@ public sealed class AuthService : IAuthService
             CreatedAtUtc = now
         });
 
-        // 15. Thực hiện khối nghiệp vụ và chuyển lỗi sang nhánh xử lý tương ứng.
         try
         {
-            // 16. Gọi `SaveChangesAsync` để thực hiện bước nghiệp vụ này.
             await _db.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException exception) when (IsDuplicateViolation(exception))
         {
-            // 17. Gọi `Clear` để thực hiện bước nghiệp vụ này.
             _db.ChangeTracker.Clear();
-            // 18. Tính giá trị và lưu vào `message` để dùng ở bước tiếp theo.
             string message = exception.InnerException?.Message ?? exception.Message;
-            // 19. Trả `message.Contains("AppUserNameIndex", StringComparison.OrdinalIgnore...` cho nơi gọi.
             return message.Contains("AppUserNameIndex", StringComparison.OrdinalIgnoreCase)
                 ? AuthResult.Failure(new AuthError("DuplicateUserName", "Tên đăng nhập đã được sử dụng."))
                 : AuthResult.Failure(new AuthError("DuplicateEmail", "Email đã được sử dụng."));
         }
 
-        // 20. Trả kết quả từ `Success` cho nơi gọi.
         return AuthResult.Success();
+    }
+
+    private async Task<string?> FindAvailableUserNameAsync(
+        string candidate,
+        CancellationToken cancellationToken)
+    {
+        if (!string.IsNullOrWhiteSpace(UsernamePolicy.GetValidationError(candidate)))
+        {
+            return null;
+        }
+
+        for (int suffix = 0; suffix < 10_000; suffix++)
+        {
+            string value = suffix == 0 ? candidate : $"{candidate}{suffix + 1}";
+            if (!await _db.AppUsers.AnyAsync(
+                    user => user.NormalizedUserName == value.ToUpperInvariant(),
+                    cancellationToken))
+            {
+                return value;
+            }
+        }
+
+        return null;
     }
 
     public async Task<AppUser?> FindByEmailAsync(
@@ -130,6 +184,15 @@ public sealed class AuthService : IAuthService
         // 2. Trả kết quả từ `SingleOrDefaultAsync` cho nơi gọi.
         return await _db.AppUsers
             .SingleOrDefaultAsync(user => user.NormalizedEmail == normalizedEmail, cancellationToken);
+    }
+
+    public async Task<AppUser?> FindByUsernameAsync(
+        string userName,
+        CancellationToken cancellationToken = default)
+    {
+        string normalizedUserName = userName.Trim().ToUpperInvariant();
+        return await _db.AppUsers
+            .SingleOrDefaultAsync(user => user.NormalizedUserName == normalizedUserName, cancellationToken);
     }
 
     public async Task<AppUser?> FindByIdAsync(
@@ -155,7 +218,11 @@ public sealed class AuthService : IAuthService
             return AuthResult.LockedOut();
         }
 
-        // 4. Gọi `VerifyHashedPassword` và lưu kết quả vào `verification`.
+        if (string.IsNullOrWhiteSpace(user.PasswordHash))
+        {
+            return AuthResult.Failure(new AuthError("InvalidCredentials", "Tên đăng nhập hoặc mật khẩu không đúng."));
+        }
+
         PasswordVerificationResult verification =
             _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, password);
         // 5. Kiểm tra `verification == PasswordVerificationResult.Failed` để chọn nhánh xử lý phù hợp.
@@ -177,7 +244,7 @@ public sealed class AuthService : IAuthService
             // 11. Trả `user.LockoutEnd.HasValue && user.LockoutEnd.Value > now ? AuthResul...` cho nơi gọi.
             return user.LockoutEnd.HasValue && user.LockoutEnd.Value > now
                 ? AuthResult.LockedOut()
-                : AuthResult.Failure(new AuthError("InvalidCredentials", "Email hoặc mật khẩu không đúng."));
+                : AuthResult.Failure(new AuthError("InvalidCredentials", "Tên đăng nhập hoặc mật khẩu không đúng."));
         }
 
         // 12. Cập nhật `user.AccessFailedCount` bằng giá trị mới.
@@ -246,7 +313,11 @@ public sealed class AuthService : IAuthService
         string newPassword,
         CancellationToken cancellationToken = default)
     {
-        // 1. Gọi `VerifyHashedPassword` và lưu kết quả vào `verification`.
+        if (string.IsNullOrWhiteSpace(user.PasswordHash))
+        {
+            return AuthResult.Failure(new AuthError("PasswordMismatch", "Tài khoản chưa có mật khẩu ứng dụng. Hãy dùng OTP để tạo mật khẩu."));
+        }
+
         PasswordVerificationResult verification =
             _passwordHasher.VerifyHashedPassword(user, user.PasswordHash, currentPassword);
         // 2. Kiểm tra `verification == PasswordVerificationResult.Failed` để chọn nhánh xử lý phù hợp.
@@ -273,7 +344,48 @@ public sealed class AuthService : IAuthService
         user.ConcurrencyStamp = Guid.NewGuid().ToString();
         // 10. Gọi `SaveChangesAsync` để thực hiện bước nghiệp vụ này.
         await _db.SaveChangesAsync(cancellationToken);
-        // 11. Trả kết quả từ `Success` cho nơi gọi.
+        return AuthResult.Success();
+    }
+
+    public async Task<AuthResult> ResetPasswordAsync(
+        AppUser user,
+        string newPassword,
+        CancellationToken cancellationToken = default)
+    {
+        AuthError? policyError = PasswordPolicy.GetValidationError(newPassword);
+        if (policyError != null)
+        {
+            return AuthResult.Failure(policyError);
+        }
+
+        user.PasswordHash = _passwordHasher.HashPassword(user, newPassword);
+        user.EmailConfirmed = true;
+        user.SecurityStamp = Guid.NewGuid().ToString();
+        user.ConcurrencyStamp = Guid.NewGuid().ToString();
+        await _db.SaveChangesAsync(cancellationToken);
+        return AuthResult.Success();
+    }
+
+    public async Task<AuthResult> LinkGoogleAsync(
+        AppUser user,
+        string googleSubjectId,
+        CancellationToken cancellationToken = default)
+    {
+        if (user.IsAdmin || string.IsNullOrWhiteSpace(googleSubjectId))
+        {
+            return AuthResult.Failure(new AuthError("GoogleLinkDenied", "Không thể liên kết tài khoản Google."));
+        }
+
+        AppUser? linkedUser = await _db.AppUsers
+            .SingleOrDefaultAsync(item => item.GoogleSubjectId == googleSubjectId, cancellationToken);
+        if (linkedUser != null && linkedUser.Id != user.Id)
+        {
+            return AuthResult.Failure(new AuthError("GoogleAlreadyLinked", "Tài khoản Google đã được liên kết."));
+        }
+
+        user.GoogleSubjectId = googleSubjectId;
+        user.EmailConfirmed = true;
+        await _db.SaveChangesAsync(cancellationToken);
         return AuthResult.Success();
     }
 

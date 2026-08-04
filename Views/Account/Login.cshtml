@@ -10,18 +10,35 @@
     <h1 id="login-title" class="auth-title">Sẵn sàng học tiếp?</h1>
     <p class="auth-intro">Đăng nhập để mở lại bộ thẻ và tiếp tục tiến độ của bạn.</p>
 
+    @if (TempData["Error"] is string error)
+    {
+        <div class="auth-validation-summary" role="alert">@error</div>
+    }
+    @if (TempData["Success"] is string success)
+    {
+        <div class="auth-success" role="status">@success</div>
+    }
+
+    @if ((bool?)ViewData["GoogleLoginEnabled"] == true)
+    {
+        <a class="auth-submit auth-google-submit" href="@Url.Action("GoogleLogin", "Account")">
+            Tiếp tục với Google
+        </a>
+        <div class="auth-divider" aria-hidden="true"><span>hoặc</span></div>
+    }
+
     <form asp-action="Login" method="post" class="auth-form">
         <div asp-validation-summary="ModelOnly" class="auth-validation-summary" role="alert"></div>
 
         <div class="auth-field">
-            <label asp-for="Email" class="auth-label"></label>
-            <input asp-for="Email"
+            <label asp-for="Username" class="auth-label"></label>
+            <input asp-for="Username"
                    class="auth-input"
-                   placeholder="Nhập email của bạn"
-                   autocomplete="email"
-                   aria-describedby="Email-error"
+                   placeholder="Nhập tên đăng nhập"
+                   autocomplete="username"
+                   aria-describedby="Username-error"
                    autofocus />
-            <span asp-validation-for="Email" id="Email-error"></span>
+            <span asp-validation-for="Username" id="Username-error"></span>
         </div>
 
         <div class="auth-field">
@@ -49,6 +66,7 @@
         <button type="submit" class="auth-submit">Đăng nhập <span aria-hidden="true">→</span></button>
     </form>
 
+    <p class="auth-alt"><a href="/Account/ForgotPassword">Quên mật khẩu?</a></p>
     <p class="auth-alt">Chưa có tài khoản? <a href="/Account/Register">Đăng ký miễn phí</a></p>
 </section>
 

@@ -1,68 +1,79 @@
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text.Json;
 using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Account;
 using ltwnc.Services.Audit;
 using ltwnc.Services.Auth;
 using ltwnc.Services.Profiles;
+using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Authentication.Google;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Options;
 
 namespace ltwnc.Controllers;
 
-// Xử lý đăng ký, đăng nhập, đăng xuất và điều hướng người dùng sau khi xác thực.
+// Xử lý xác thực local, OTP email, đăng nhập Google và đăng xuất.
 public class AccountController : Controller
 {
-    // Thời gian duy trì đăng nhập cho từng trường hợp xác thực.
     private static readonly TimeSpan RegisterCookieLifetime = TimeSpan.FromDays(1);
     private static readonly TimeSpan RememberMeCookieLifetime = TimeSpan.FromDays(30);
     private static readonly TimeSpan SessionCookieLifetime = TimeSpan.FromDays(1);
 
-    // Service xác thực tài khoản và service ghi lịch sử đăng nhập của Admin.
     private readonly IAuthService _authService;
+    private readonly IAccountSecurityService _accountSecurityService;
     private readonly IAdminAuditService _adminAuditService;
+    private readonly GoogleAuthSettings _googleSettings;
+    private readonly ITimeLimitedDataProtector _googleLinkProtector;
 
-    // Nhận các service cần dùng qua dependency injection.
     public AccountController(
         IAuthService authService,
-        IAdminAuditService adminAuditService)
+        IAccountSecurityService accountSecurityService,
+        IAdminAuditService adminAuditService,
+        IOptions<GoogleAuthSettings> googleSettings,
+        IDataProtectionProvider dataProtectionProvider)
     {
-        // 1. Lưu các service để những action bên dưới có thể sử dụng lại.
         _authService = authService;
+        _accountSecurityService = accountSecurityService;
         _adminAuditService = adminAuditService;
+        _googleSettings = googleSettings.Value;
+        _googleLinkProtector = dataProtectionProvider
+            .CreateProtector("ltwnc.account.google-link")
+            .ToTimeLimitedDataProtector();
     }
 
-    // Hiển thị trang đăng ký; người đã đăng nhập được chuyển về khu vực phù hợp.
     [HttpGet]
     public IActionResult Register()
     {
-        // 1. Không cho người đã đăng nhập mở lại trang đăng ký.
         if (User?.Identity?.IsAuthenticated == true)
         {
             return Redirect(GetAuthenticatedLandingPath());
         }
 
-        // 2. Người chưa đăng nhập được hiển thị form đăng ký.
+        SetGoogleLoginViewData();
         return View();
     }
 
-    // Tạo tài khoản mới, đăng nhập ngay sau khi thành công và giới hạn tần suất gửi form.
     [HttpPost]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("auth")]
-    public async Task<IActionResult> Register(RegisterViewModel model)
+    public async Task<IActionResult> Register(
+        RegisterViewModel model,
+        CancellationToken cancellationToken)
     {
-        // 1. Chuyển người đã đăng nhập về đúng khu vực thay vì tạo thêm tài khoản.
         if (User?.Identity?.IsAuthenticated == true)
         {
             return Redirect(GetAuthenticatedLandingPath());
         }
 
-        // 2. Trả lại form nếu các validation attribute phát hiện dữ liệu không hợp lệ.
+        SetGoogleLoginViewData();
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        // 3. Kiểm tra thêm quy tắc riêng của username trước khi gọi service.
         string? usernameError = UsernamePolicy.GetValidationError(model.Username);
         if (usernameError != null)
         {
@@ -70,125 +81,574 @@ public class AccountController : Controller
             return View(model);
         }
 
-        // 4. Chuẩn hóa email, username rồi yêu cầu service tạo tài khoản.
-        AuthResult result = await _authService.RegisterAsync(
-            model.Email.Trim(),
-            model.Username.Trim(),
-            model.Password);
-        // 5. Đưa lỗi nghiệp vụ về ModelState để hiển thị trên form.
-        if (!result.Succeeded)
+        RegistrationStartResult result = await _accountSecurityService.StartLocalRegistrationAsync(
+            model.Email,
+            model.Username,
+            model.Password,
+            GetRequestIpAddress(),
+            cancellationToken);
+        if (!result.Succeeded || result.ChallengeId == null)
         {
-            foreach (AuthError error in result.Errors)
-            {
-                ModelState.AddModelError(string.Empty, error.Message);
-            }
-
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Không thể gửi mã xác thực.");
             return View(model);
         }
 
-        // 6. Tìm tài khoản vừa tạo và đăng nhập tự động trong một ngày.
-        AppUser? user = await _authService.FindByEmailAsync(model.Email.Trim());
-        if (user != null)
-        {
-            await _authService.SignInAsync(user, RegisterCookieLifetime);
-        }
-
-        // 7. Hoàn tất đăng ký và chuyển về trang chủ.
-        return RedirectToAction("Index", "Home");
+        return RedirectToAction(
+            nameof(VerifyRegistration),
+            new { challengeId = result.ChallengeId });
     }
 
-    // Hiển thị trang đăng nhập nếu người dùng chưa xác thực.
     [HttpGet]
-    public Task<IActionResult> Login()
+    public IActionResult VerifyRegistration(string challengeId)
     {
-        // 1. Người đã đăng nhập được chuyển thẳng về khu vực của mình.
-        if (User?.Identity?.IsAuthenticated == true)
+        if (string.IsNullOrWhiteSpace(challengeId))
         {
-            return Task.FromResult<IActionResult>(Redirect(GetAuthenticatedLandingPath()));
+            return RedirectToAction(nameof(Register));
         }
 
-        // 2. Người chưa đăng nhập được hiển thị form.
-        return Task.FromResult<IActionResult>(View());
+        return View(new VerifyRegistrationViewModel { ChallengeId = challengeId });
     }
 
-    // Kiểm tra thông tin đăng nhập, tạo cookie và chuyển Admin vào trang quản trị.
     [HttpPost]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("auth")]
-    public async Task<IActionResult> Login(LoginViewModel model)
+    public async Task<IActionResult> VerifyRegistration(
+        VerifyRegistrationViewModel model,
+        CancellationToken cancellationToken)
     {
-        // 1. Không xử lý đăng nhập lại nếu đã có phiên hợp lệ.
-        if (User?.Identity?.IsAuthenticated == true)
-        {
-            return Redirect(GetAuthenticatedLandingPath());
-        }
-
-        // 2. Dừng sớm khi dữ liệu form chưa hợp lệ.
         if (!ModelState.IsValid)
         {
             return View(model);
         }
 
-        // 3. Tìm tài khoản theo email đã loại bỏ khoảng trắng thừa.
-        AppUser? user = await _authService.FindByEmailAsync(model.Email.Trim());
-        if (user is null)
+        AccountSecurityResult result = await _accountSecurityService.VerifyRegistrationAsync(
+            model.ChallengeId,
+            model.Code,
+            cancellationToken);
+        if (!result.Succeeded || result.UserId == null)
         {
-            ModelState.AddModelError(string.Empty, "Email hoặc mật khẩu không đúng.");
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Mã OTP không hợp lệ.");
             return View(model);
         }
 
-        // 4. Kiểm tra mật khẩu và trạng thái khóa của tài khoản.
-        AuthResult result = await _authService.ValidateLoginAsync(user, model.Password);
+        AppUser? user = await _authService.FindByIdAsync(result.UserId, cancellationToken);
+        if (user == null)
+        {
+            ModelState.AddModelError(string.Empty, "Không thể hoàn tất đăng ký.");
+            return View(model);
+        }
+
+        await _authService.SignInAsync(user, RegisterCookieLifetime);
+        return RedirectToAction("Index", "Home");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ResendRegistrationOtp(
+        string challengeId,
+        CancellationToken cancellationToken)
+    {
+        RegistrationStartResult result = await _accountSecurityService.ResendOtpAsync(
+            challengeId,
+            GetRequestIpAddress(),
+            cancellationToken);
+        if (!result.Succeeded || result.ChallengeId == null)
+        {
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Không thể gửi lại mã OTP.");
+            return View("VerifyRegistration", new VerifyRegistrationViewModel
+            {
+                ChallengeId = challengeId
+            });
+        }
+
+        return RedirectToAction(nameof(VerifyRegistration), new { challengeId = result.ChallengeId });
+    }
+
+    [HttpGet]
+    public IActionResult Login()
+    {
+        if (User?.Identity?.IsAuthenticated == true)
+        {
+            return Redirect(GetAuthenticatedLandingPath());
+        }
+
+        SetGoogleLoginViewData();
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> Login(
+        LoginViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (User?.Identity?.IsAuthenticated == true)
+        {
+            return Redirect(GetAuthenticatedLandingPath());
+        }
+
+        if (!ModelState.IsValid)
+        {
+            SetGoogleLoginViewData();
+            return View(model);
+        }
+
+        AppUser? user = await _authService.FindByUsernameAsync(
+            model.Username.Trim(),
+            cancellationToken);
+        if (user is null)
+        {
+            ModelState.AddModelError(string.Empty, "Tên đăng nhập hoặc mật khẩu không đúng.");
+            SetGoogleLoginViewData();
+            return View(model);
+        }
+
+        AuthResult result = await _authService.ValidateLoginAsync(
+            user,
+            model.Password,
+            cancellationToken);
         if (!result.Succeeded)
         {
             if (result.IsLockedOut)
             {
                 AddLockedAccountMessage();
-                return View(model);
+            }
+            else
+            {
+                ModelState.AddModelError(string.Empty, "Tên đăng nhập hoặc mật khẩu không đúng.");
             }
 
-            ModelState.AddModelError(string.Empty, "Email hoặc mật khẩu không đúng.");
+            SetGoogleLoginViewData();
             return View(model);
         }
 
-        // 5. Chọn thời hạn cookie theo tùy chọn "Ghi nhớ đăng nhập".
-        TimeSpan lifetime = model.RememberMe ? RememberMeCookieLifetime : SessionCookieLifetime;
+        TimeSpan lifetime = model.RememberMe
+            ? RememberMeCookieLifetime
+            : SessionCookieLifetime;
         await _authService.SignInAsync(user, lifetime);
 
-        // 6. Admin được ghi audit rồi chuyển vào khu vực quản trị.
         if (user.IsAdmin)
         {
             await RecordAdminSignInAuditAsync(user);
             return Redirect("/Admin");
         }
 
-        // 7. Người dùng thường được chuyển vào thư viện cá nhân.
         return Redirect("/Set");
     }
 
-    // Xóa phiên đăng nhập hiện tại rồi quay về trang chủ.
+    [HttpGet]
+    [EnableRateLimiting("auth")]
+    public IActionResult GoogleLogin(string? returnUrl = null)
+    {
+        if (User?.Identity?.IsAuthenticated == true)
+        {
+            return Redirect(GetAuthenticatedLandingPath());
+        }
+
+        if (!_googleSettings.IsConfigured)
+        {
+            TempData["Error"] = "Đăng nhập Google chưa được cấu hình.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        string safeReturnUrl = GetSafeReturnUrl(returnUrl);
+        AuthenticationProperties properties = new()
+        {
+            RedirectUri = Url.Action(
+                nameof(GoogleCallback),
+                "Account",
+                new { returnUrl = safeReturnUrl })
+        };
+        return Challenge(properties, GoogleDefaults.AuthenticationScheme);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> GoogleCallback(
+        string? returnUrl,
+        CancellationToken cancellationToken)
+    {
+        AuthenticateResult external = await HttpContext.AuthenticateAsync(
+            AuthSchemes.ExternalCookie);
+        await HttpContext.SignOutAsync(AuthSchemes.ExternalCookie);
+
+        if (!external.Succeeded || external.Principal == null)
+        {
+            TempData["Error"] = "Không thể xác thực tài khoản Google.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        string? googleSubjectId = external.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
+        string? email = external.Principal.FindFirstValue(ClaimTypes.Email);
+        string? verifiedValue = external.Principal.FindFirstValue("urn:google:verified_email")
+            ?? external.Principal.FindFirstValue("email_verified")
+            ?? external.Principal.FindFirstValue("verified_email");
+        bool emailVerified = string.Equals(verifiedValue, "true", StringComparison.OrdinalIgnoreCase);
+
+        if (string.IsNullOrWhiteSpace(googleSubjectId) ||
+            string.IsNullOrWhiteSpace(email) ||
+            !emailVerified)
+        {
+            TempData["Error"] = "Google chưa xác nhận email của tài khoản này.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        AppUser? user = await _authService.FindByEmailAsync(email, cancellationToken);
+        int atIndex = email.IndexOf('@');
+        if (user == null && atIndex > 0)
+        {
+            string userNameCandidate = email[..atIndex];
+            AuthResult createResult = await _authService.CreateGoogleUserAsync(
+                email,
+                userNameCandidate,
+                googleSubjectId,
+                cancellationToken);
+            if (!createResult.Succeeded)
+            {
+                TempData["Error"] = createResult.Errors.FirstOrDefault()?.Message
+                    ?? "Không thể tạo tài khoản Google.";
+                return RedirectToAction(nameof(Login));
+            }
+
+            user = await _authService.FindByEmailAsync(email, cancellationToken);
+        }
+
+        if (user == null)
+        {
+            TempData["Error"] = "Không thể hoàn tất đăng nhập Google.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        if (user.IsAdmin)
+        {
+            TempData["Error"] = "Tài khoản Admin không sử dụng đăng nhập Google.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        if (string.Equals(user.GoogleSubjectId, googleSubjectId, StringComparison.Ordinal))
+        {
+            await _authService.SignInAsync(user, SessionCookieLifetime);
+            return Redirect(GetSafeReturnUrl(returnUrl, "/Set"));
+        }
+
+        if (!string.IsNullOrWhiteSpace(user.GoogleSubjectId))
+        {
+            TempData["Error"] = "Email này đã liên kết với tài khoản Google khác.";
+            return RedirectToAction(nameof(Login));
+        }
+
+        return View("LinkGoogle", new GoogleLinkViewModel
+        {
+            Ticket = ProtectGoogleLinkTicket(user.Id, user.Email, googleSubjectId),
+            Email = user.Email
+        });
+    }
+
+    [HttpGet]
+    public IActionResult LinkGoogle(string ticket)
+    {
+        return TryGetGoogleLink(ticket, out GoogleLinkPayload payload)
+            ? View(new GoogleLinkViewModel { Ticket = ticket, Email = payload.Email })
+            : RedirectToAction(nameof(Login));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> LinkGooglePassword(
+        GoogleLinkViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetGoogleLink(model.Ticket, out GoogleLinkPayload payload))
+        {
+            ModelState.AddModelError(string.Empty, "Yêu cầu liên kết đã hết hạn.");
+            return View("LinkGoogle", model);
+        }
+
+        model.Email = payload.Email;
+        if (!ModelState.IsValid)
+        {
+            return View("LinkGoogle", model);
+        }
+
+        AppUser? user = await _authService.FindByIdAsync(payload.UserId, cancellationToken);
+        if (user == null || user.IsAdmin)
+        {
+            ModelState.AddModelError(string.Empty, "Không thể liên kết tài khoản Google.");
+            return View("LinkGoogle", model);
+        }
+
+        AuthResult passwordResult = await _authService.ValidateLoginAsync(
+            user,
+            model.Password,
+            cancellationToken);
+        if (!passwordResult.Succeeded)
+        {
+            ModelState.AddModelError(string.Empty, "Mật khẩu hiện tại không đúng.");
+            return View("LinkGoogle", model);
+        }
+
+        AuthResult linkResult = await _authService.LinkGoogleAsync(
+            user,
+            payload.GoogleSubjectId,
+            cancellationToken);
+        if (!linkResult.Succeeded)
+        {
+            ModelState.AddModelError(string.Empty, linkResult.Errors.FirstOrDefault()?.Message
+                ?? "Không thể liên kết tài khoản Google.");
+            return View("LinkGoogle", model);
+        }
+
+        await _authService.SignInAsync(user, SessionCookieLifetime);
+        return Redirect("/Set");
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> SendGoogleLinkOtp(
+        string ticket,
+        CancellationToken cancellationToken)
+    {
+        if (!TryGetGoogleLink(ticket, out GoogleLinkPayload payload))
+        {
+            ModelState.AddModelError(string.Empty, "Yêu cầu liên kết đã hết hạn.");
+            return View("LinkGoogle", new GoogleLinkViewModel { Ticket = ticket });
+        }
+
+        RegistrationStartResult result = await _accountSecurityService.StartGoogleLinkOtpAsync(
+            payload.UserId,
+            payload.GoogleSubjectId,
+            GetRequestIpAddress(),
+            cancellationToken);
+        if (!result.Succeeded || result.ChallengeId == null)
+        {
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Không thể gửi OTP.");
+            return View("LinkGoogle", new GoogleLinkViewModel
+            {
+                Ticket = ticket,
+                Email = payload.Email
+            });
+        }
+
+        return RedirectToAction(nameof(LinkGoogleOtp), new { challengeId = result.ChallengeId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ResendGoogleLinkOtp(
+        string challengeId,
+        CancellationToken cancellationToken)
+    {
+        RegistrationStartResult result = await _accountSecurityService.ResendOtpAsync(
+            challengeId,
+            GetRequestIpAddress(),
+            cancellationToken);
+        if (!result.Succeeded)
+        {
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Không thể gửi lại mã OTP.");
+            return View("LinkGoogleOtp", new GoogleLinkOtpViewModel { ChallengeId = challengeId });
+        }
+
+        return RedirectToAction(
+            nameof(LinkGoogleOtp),
+            new { challengeId = result.ChallengeId ?? challengeId });
+    }
+
+    [HttpGet]
+    public IActionResult LinkGoogleOtp(string challengeId)
+    {
+        return View(new GoogleLinkOtpViewModel { ChallengeId = challengeId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> LinkGoogleOtp(
+        GoogleLinkOtpViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        AccountSecurityResult result = await _accountSecurityService.CompleteGoogleLinkOtpAsync(
+            model.ChallengeId,
+            model.Code,
+            cancellationToken);
+        if (!result.Succeeded || result.UserId == null)
+        {
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Mã OTP không hợp lệ.");
+            return View(model);
+        }
+
+        AppUser? user = await _authService.FindByIdAsync(result.UserId, cancellationToken);
+        if (user == null)
+        {
+            ModelState.AddModelError(string.Empty, "Không thể hoàn tất liên kết.");
+            return View(model);
+        }
+
+        await _authService.SignInAsync(user, SessionCookieLifetime);
+        return Redirect("/Set");
+    }
+
+    [HttpGet]
+    public IActionResult ForgotPassword()
+    {
+        return View();
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ForgotPassword(
+        ForgotPasswordViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        PasswordResetStartResult result = await _accountSecurityService.StartPasswordResetAsync(
+            model.Email,
+            GetRequestIpAddress(),
+            cancellationToken);
+        return RedirectToAction(nameof(ResetPassword), new { challengeId = result.ChallengeId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ResendPasswordResetOtp(
+        string challengeId,
+        CancellationToken cancellationToken)
+    {
+        RegistrationStartResult result = await _accountSecurityService.ResendOtpAsync(
+            challengeId,
+            GetRequestIpAddress(),
+            cancellationToken);
+        if (!result.Succeeded)
+        {
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Không thể gửi lại mã OTP.");
+            return View("ResetPassword", new ResetPasswordViewModel { ChallengeId = challengeId });
+        }
+
+        return RedirectToAction(
+            nameof(ResetPassword),
+            new { challengeId = result.ChallengeId ?? challengeId });
+    }
+
+    [HttpGet]
+    public IActionResult ResetPassword(string challengeId)
+    {
+        return View(new ResetPasswordViewModel { ChallengeId = challengeId });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    [EnableRateLimiting("auth")]
+    public async Task<IActionResult> ResetPassword(
+        ResetPasswordViewModel model,
+        CancellationToken cancellationToken)
+    {
+        if (!ModelState.IsValid)
+        {
+            return View(model);
+        }
+
+        AccountSecurityResult result = await _accountSecurityService.CompletePasswordResetAsync(
+            model.ChallengeId,
+            model.Code,
+            model.NewPassword,
+            cancellationToken);
+        if (!result.Succeeded)
+        {
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Không thể đặt lại mật khẩu.");
+            return View(model);
+        }
+
+        TempData["Success"] = "Mật khẩu đã được đặt lại. Vui lòng đăng nhập lại.";
+        return RedirectToAction(nameof(Login));
+    }
+
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
-        // 1. Xóa cookie và dữ liệu xác thực của phiên hiện tại.
         await _authService.SignOutAsync();
-
-        // 2. Chuyển người dùng về trang chủ công khai.
         return RedirectToAction("Index", "Home");
     }
 
-    // Chọn trang đích theo quyền Admin lưu trong claim của người dùng.
     private string GetAuthenticatedLandingPath()
     {
-        // 1. Đọc claim quyền và trả về đường dẫn tương ứng.
         return User.HasClaim(AppClaimTypes.IsAdmin, "true") ? "/Admin" : "/Set";
     }
 
-    // Ghi audit sau khi Admin đăng nhập thành công; không ghi mật khẩu hoặc thông tin nhạy cảm.
+    private void SetGoogleLoginViewData()
+    {
+        ViewData["GoogleLoginEnabled"] = _googleSettings.IsConfigured;
+    }
+
+    private string? GetRequestIpAddress()
+    {
+        return HttpContext.Connection.RemoteIpAddress?.ToString();
+    }
+
+    private string GetSafeReturnUrl(string? returnUrl, string fallback = "/Set")
+    {
+        return !string.IsNullOrWhiteSpace(returnUrl) && Url.IsLocalUrl(returnUrl)
+            ? returnUrl
+            : fallback;
+    }
+
+    private string ProtectGoogleLinkTicket(
+        string userId,
+        string email,
+        string googleSubjectId)
+    {
+        string payload = JsonSerializer.Serialize(new GoogleLinkPayload(
+            userId,
+            email,
+            googleSubjectId));
+        return _googleLinkProtector.Protect(payload, TimeSpan.FromMinutes(10));
+    }
+
+    private bool TryGetGoogleLink(
+        string ticket,
+        out GoogleLinkPayload payload)
+    {
+        try
+        {
+            string json = _googleLinkProtector.Unprotect(ticket);
+            payload = JsonSerializer.Deserialize<GoogleLinkPayload>(json)
+                ?? throw new InvalidOperationException("Google link ticket trống.");
+            return !string.IsNullOrWhiteSpace(payload.UserId) &&
+                !string.IsNullOrWhiteSpace(payload.GoogleSubjectId);
+        }
+        catch (CryptographicException)
+        {
+            payload = new GoogleLinkPayload(string.Empty, string.Empty, string.Empty);
+            return false;
+        }
+        catch (JsonException)
+        {
+            payload = new GoogleLinkPayload(string.Empty, string.Empty, string.Empty);
+            return false;
+        }
+        catch (ArgumentException)
+        {
+            payload = new GoogleLinkPayload(string.Empty, string.Empty, string.Empty);
+            return false;
+        }
+    }
+
     private async Task RecordAdminSignInAuditAsync(AppUser user)
     {
-        // 1. Ghi người thực hiện, kết quả và mã truy vết; không lưu dữ liệu bí mật.
         await _adminAuditService.RecordAsync(new AdminAuditEntry(
             ActorUserId: user.Id,
             ActorDisplay: user.Email,
@@ -199,12 +659,15 @@ public class AccountController : Controller
             CorrelationId: HttpContext.TraceIdentifier));
     }
 
-    // Thông báo chung cho tài khoản bị khóa, không lộ lý do nội bộ do Admin nhập.
     private void AddLockedAccountMessage()
     {
-        // 1. Thêm thông báo chung để không làm lộ nguyên nhân khóa nội bộ.
         ModelState.AddModelError(
             string.Empty,
             "Tài khoản hiện không thể đăng nhập. Vui lòng liên hệ bộ phận hỗ trợ để được kiểm tra.");
     }
+
+    private sealed record GoogleLinkPayload(
+        string UserId,
+        string Email,
+        string GoogleSubjectId);
 }

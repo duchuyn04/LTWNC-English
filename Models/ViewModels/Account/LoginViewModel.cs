@@ -5,11 +5,10 @@ namespace ltwnc.Models.ViewModels.Account;
 // Form đăng nhập (POST Account/Login)
 public class LoginViewModel
 {
-    // Email Identity
-    [Required(ErrorMessage = "Email không được để trống.")]
-    [EmailAddress(ErrorMessage = "Email không hợp lệ.")]
-    [Display(Name = "Email")]
-    public string Email { get; set; } = string.Empty;
+    // Username dùng cho đăng nhập local
+    [Required(ErrorMessage = "Tên đăng nhập không được để trống.")]
+    [Display(Name = "Tên đăng nhập")]
+    public string Username { get; set; } = string.Empty;
 
     // Mật khẩu
     [Required(ErrorMessage = "Mật khẩu không được để trống.")]

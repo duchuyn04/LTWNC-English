@@ -24,6 +24,8 @@ public class AppDbContext : DbContext
     public DbSet<DictationSessionQuestion> DictationSessionQuestions => Set<DictationSessionQuestion>();
     public DbSet<CardActionLog> CardActionLogs => Set<CardActionLog>();
     public DbSet<AppUser> AppUsers => Set<AppUser>();
+    public DbSet<PendingRegistration> PendingRegistrations => Set<PendingRegistration>();
+    public DbSet<EmailOtpChallenge> EmailOtpChallenges => Set<EmailOtpChallenge>();
     public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
 
     // Bảng thành tích (huy hiệu) user đã mở khóa — do Observer ghi khi có sự kiện học
@@ -50,6 +52,11 @@ public class AppDbContext : DbContext
             entity.Property(user => user.NormalizedEmail).HasMaxLength(256);
             entity.Property(user => user.UserName).HasMaxLength(256);
             entity.Property(user => user.NormalizedUserName).HasMaxLength(256);
+            entity.Property(user => user.GoogleSubjectId).HasMaxLength(256);
+            entity.HasIndex(user => user.GoogleSubjectId)
+                .IsUnique()
+                .HasDatabaseName("AppUserGoogleSubjectIndex")
+                .HasFilter("[GoogleSubjectId] IS NOT NULL");
             entity.HasIndex(user => user.NormalizedEmail)
                 .IsUnique()
                 .HasDatabaseName("AppUserEmailIndex")
@@ -60,6 +67,33 @@ public class AppDbContext : DbContext
                 .HasFilter("[NormalizedUserName] IS NOT NULL");
             entity.Property(user => user.CreditBalance).HasDefaultValue(10);
             entity.Property(user => user.CreditVersion).IsConcurrencyToken();
+        });
+
+        builder.Entity<PendingRegistration>(entity =>
+        {
+            entity.Property(item => item.Id).HasMaxLength(450);
+            entity.Property(item => item.Email).HasMaxLength(256).IsRequired();
+            entity.Property(item => item.NormalizedEmail).HasMaxLength(256).IsRequired();
+            entity.Property(item => item.UserName).HasMaxLength(256).IsRequired();
+            entity.Property(item => item.NormalizedUserName).HasMaxLength(256).IsRequired();
+            entity.Property(item => item.PasswordHash).HasMaxLength(500).IsRequired();
+            entity.HasIndex(item => item.NormalizedEmail).IsUnique();
+            entity.HasIndex(item => item.NormalizedUserName).IsUnique();
+        });
+
+        builder.Entity<EmailOtpChallenge>(entity =>
+        {
+            entity.Property(item => item.Id).HasMaxLength(450);
+            entity.Property(item => item.Purpose).HasConversion<string>().HasMaxLength(40);
+            entity.Property(item => item.Email).HasMaxLength(256).IsRequired();
+            entity.Property(item => item.NormalizedEmail).HasMaxLength(256).IsRequired();
+            entity.Property(item => item.UserId).HasMaxLength(450);
+            entity.Property(item => item.PendingRegistrationId).HasMaxLength(450);
+            entity.Property(item => item.GoogleSubjectId).HasMaxLength(256);
+            entity.Property(item => item.CodeHash).HasMaxLength(500).IsRequired();
+            entity.Property(item => item.RequestIpAddress).HasMaxLength(64);
+            entity.HasIndex(item => new { item.NormalizedEmail, item.CreatedAtUtc });
+            entity.HasIndex(item => new { item.RequestIpAddress, item.CreatedAtUtc });
         });
 
         builder.Entity<UserProfile>(entity =>

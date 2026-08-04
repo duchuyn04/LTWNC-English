@@ -1,0 +1,39 @@
+@model GoogleLinkViewModel
+@{
+    Layout = "_AuthLayout";
+    ViewData["Title"] = "Liên kết Google";
+}
+
+<section class="auth-form-card" aria-labelledby="link-google-title">
+    <p class="auth-eyebrow">Bảo vệ tài khoản</p>
+    <h1 id="link-google-title" class="auth-title">Xác nhận liên kết Google.</h1>
+    <p class="auth-intro">Email Google <strong>@Model.Email</strong> đã có tài khoản local. Xác nhận bằng mật khẩu hiện tại hoặc OTP email.</p>
+
+    <form asp-action="LinkGooglePassword" method="post" class="auth-form">
+        <div asp-validation-summary="ModelOnly" class="auth-validation-summary" role="alert"></div>
+        <input asp-for="Ticket" type="hidden" />
+        <input asp-for="Email" type="hidden" />
+        <div class="auth-field">
+            <label asp-for="Password" class="auth-label"></label>
+            <span class="auth-password">
+                <input asp-for="Password" class="auth-input" autocomplete="current-password" autofocus />
+                <button class="auth-password__toggle" type="button" data-password-toggle aria-controls="Password" aria-label="Hiện mật khẩu">Hiện</button>
+            </span>
+            <span asp-validation-for="Password"></span>
+        </div>
+        <button type="submit" class="auth-submit">Liên kết bằng mật khẩu <span aria-hidden="true">→</span></button>
+    </form>
+
+    <div class="auth-divider" aria-hidden="true"><span>hoặc</span></div>
+    <form asp-action="SendGoogleLinkOtp" method="post" class="auth-form">
+        @Html.AntiForgeryToken()
+        <input name="ticket" value="@Model.Ticket" type="hidden" />
+        <button type="submit" class="auth-submit auth-submit-secondary">Gửi OTP tới email</button>
+    </form>
+
+    <p class="auth-alt"><a href="/Account/Login">Hủy và quay lại đăng nhập</a></p>
+</section>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

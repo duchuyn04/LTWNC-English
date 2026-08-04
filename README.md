@@ -188,6 +188,22 @@ dotnet ef database update
 dotnet run
 ```
 
+### Email OTP và Google Login
+
+OTP dùng SMTP. Gmail cần bật 2-Step Verification và tạo App Password; không dùng mật khẩu Gmail chính. Google OAuth cần thêm redirect URI `https://your-domain.example/signin-google` trong Google Cloud Console.
+
+Cấu hình bằng User Secrets:
+
+```bash
+dotnet user-secrets set "Smtp:Host" "smtp.gmail.com"
+dotnet user-secrets set "Smtp:Port" "587"
+dotnet user-secrets set "Smtp:UserName" "your-sender@gmail.com"
+dotnet user-secrets set "Smtp:Password" "GMAIL_APP_PASSWORD"
+dotnet user-secrets set "Smtp:From" "your-sender@gmail.com"
+dotnet user-secrets set "Authentication:Google:ClientId" "GOOGLE_CLIENT_ID"
+dotnet user-secrets set "Authentication:Google:ClientSecret" "GOOGLE_CLIENT_SECRET"
+```
+
 ## AI provider
 
 Provider được cấu hình trong `AiProviders:Providers` của `appsettings.json`; project không còn màn hình Admin để chỉnh provider. `appsettings.json` đã nằm trong `.gitignore`, còn `appsettings.example.json` chỉ chứa giá trị mẫu không có API key thật.

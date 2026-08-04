@@ -5,7 +5,7 @@ namespace ltwnc.Models.ViewModels.Account;
 // Form đăng ký (POST Account/Register)
 public class RegisterViewModel
 {
-    // Email (cũng dùng login)
+    // Email dùng để xác thực và khôi phục mật khẩu
     [Required(ErrorMessage = "Email không được để trống.")]
     [EmailAddress(ErrorMessage = "Email không hợp lệ.")]
     [Display(Name = "Email")]

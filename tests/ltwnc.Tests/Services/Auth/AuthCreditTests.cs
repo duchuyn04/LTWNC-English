@@ -15,7 +15,7 @@ public sealed class AuthCreditTests
         new(2026, 8, 1, 3, 0, 0, TimeSpan.Zero);
 
     [Fact]
-    public async Task RegisterAsync_GrantsWelcomeCreditsVisibleThroughCreditService()
+    public async Task VerifiedRegistration_GrantsWelcomeCreditsVisibleThroughCreditService()
     {
         await using AppDbContext context = CreateContext();
         AuthService auth = new(
@@ -24,10 +24,14 @@ public sealed class AuthCreditTests
             new HttpContextAccessor(),
             new FixedTimeProvider(FixedNow));
 
-        AuthResult result = await auth.RegisterAsync(
+        PasswordHasher<AppUser> hasher = new();
+        string passwordHash = hasher.HashPassword(
+            new AppUser { Email = "learner@example.com" },
+            "Password1");
+        AuthResult result = await auth.CreateVerifiedLocalUserAsync(
             "learner@example.com",
             "learner",
-            "Password1");
+            passwordHash);
 
         AppUser user = await context.AppUsers.SingleAsync();
         CreditLedgerEntry entry = await context.CreditLedgerEntries.SingleAsync();
