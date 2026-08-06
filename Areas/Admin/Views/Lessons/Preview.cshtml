@@ -1,0 +1,21 @@
+@model AdminLessonEditViewModel
+@{
+    ViewData["Title"] = "Xem trước bài học";
+    ViewData["Heading"] = "Xem trước";
+}
+<link rel="stylesheet" href="~/css/lessons.css" asp-append-version="true" />
+
+<section class="admin-panel">
+    <p>
+        <a class="admin-text-link" href="/Admin/Lessons/@Model.Id/Edit">Sửa</a>
+        ·
+        <a class="admin-text-link" href="/Admin/Lessons">Danh sách</a>
+    </p>
+    <p class="admin-muted-line">Trạng thái: @(Model.Status == "Published" ? "Đã đăng" : "Nháp")</p>
+    <h2>@Model.Title</h2>
+    @if (!string.IsNullOrWhiteSpace(Model.Summary))
+    {
+        <p>@Model.Summary</p>
+    }
+    <div class="ls-prose">@Html.Raw(Model.PreviewHtml)</div>
+</section>

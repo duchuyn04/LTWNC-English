@@ -1,0 +1,63 @@
+@model AdminLessonIndexViewModel
+@{
+    ViewData["Title"] = "Bài học";
+    ViewData["Heading"] = "Bài học";
+}
+
+@if (TempData["AdminLessonsSuccess"] is string success)
+{
+    <div class="admin-alert admin-alert--success" data-popup="success">@success</div>
+}
+
+<section class="admin-panel">
+    <div class="admin-panel-header">
+        <div>
+            <h2>Danh sách bài học</h2>
+            <p>Soạn bài đọc và ngữ pháp. Bản nháp không hiện với người học.</p>
+        </div>
+        <a class="admin-filter-submit" href="/Admin/Lessons/Create">Tạo bài học</a>
+    </div>
+
+    @if (Model.Lessons.Count == 0)
+    {
+        <p class="admin-empty">Chưa có bài học nào.</p>
+    }
+    else
+    {
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Thứ tự</th>
+                        <th>Tiêu đề</th>
+                        <th>Trạng thái</th>
+                        <th>Câu hỏi</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                @foreach (AdminLessonRowViewModel lesson in Model.Lessons)
+                {
+                    <tr>
+                        <td>@lesson.SortOrder</td>
+                        <td>
+                            <strong>@lesson.Title</strong>
+                            @if (!string.IsNullOrWhiteSpace(lesson.Summary))
+                            {
+                                <small class="admin-muted-line">@lesson.Summary</small>
+                            }
+                        </td>
+                        <td>@(lesson.Status == "Published" ? "Đã đăng" : "Nháp")</td>
+                        <td>@lesson.QuestionCount</td>
+                        <td>
+                            <a class="admin-text-link" href="/Admin/Lessons/@lesson.Id/Edit">Sửa</a>
+                            ·
+                            <a class="admin-text-link" href="/Admin/Lessons/@lesson.Id/Preview">Xem trước</a>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+</section>

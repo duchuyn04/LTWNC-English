@@ -1,0 +1,35 @@
+@model LessonDetailsViewModel
+@{
+    ViewData["Title"] = Model.Title;
+}
+
+<link rel="stylesheet" href="~/css/lessons.css" asp-append-version="true" />
+
+<div class="ls-page ls-read">
+    <a class="ls-back" href="/Lessons">
+        <i class="ph ph-arrow-left" aria-hidden="true"></i>
+        Danh sách bài học
+    </a>
+
+    <article class="ls-read-frame">
+        <p class="ls-eyebrow">@Model.IndexLabel</p>
+        <h1>@Model.Title</h1>
+        @if (!string.IsNullOrWhiteSpace(Model.Summary))
+        {
+            <p class="ls-dek">@Model.Summary</p>
+        }
+        <div class="ls-rule" aria-hidden="true"></div>
+        <div class="ls-prose">@Html.Raw(Model.ContentHtml)</div>
+
+        <div class="ls-actions">
+            @if (Model.HasPractice)
+            {
+                <a class="btn-primary-custom" href="/Lessons/@Model.Id/Practice">Ôn tập</a>
+            }
+            else
+            {
+                <span class="ls-no-practice">Bài này chưa có câu ôn tập.</span>
+            }
+        </div>
+    </article>
+</div>

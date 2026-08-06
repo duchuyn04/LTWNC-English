@@ -1,0 +1,262 @@
+/* Lessons learner UI — prototype C (magazine grid), site tokens */
+
+.ls-page {
+    padding-bottom: 3rem;
+    color: var(--ink);
+    font-family: var(--font-body);
+}
+
+.ls-page a {
+    text-decoration: none;
+}
+
+.ls-eyebrow {
+    display: inline-block;
+    margin: 0;
+    color: var(--brass-deep);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+}
+
+.ls-hero {
+    position: relative;
+    overflow: hidden;
+    margin: clamp(1rem, 3vw, 1.5rem) 0 0;
+    padding: clamp(2rem, 5vw, 3.5rem);
+    border-radius: 24px;
+    background: var(--pine);
+    color: var(--surface);
+}
+
+.ls-hero::before {
+    content: "";
+    position: absolute;
+    width: 320px;
+    height: 320px;
+    right: -80px;
+    top: -120px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(198, 138, 46, 0.28), transparent 70%);
+    pointer-events: none;
+}
+
+.ls-hero .ls-eyebrow {
+    color: var(--brass);
+}
+
+.ls-hero h1 {
+    color: var(--surface);
+    max-width: 16ch;
+    margin: 0.5rem 0 0.75rem;
+}
+
+.ls-hero p {
+    color: rgba(255, 253, 247, 0.72);
+    max-width: 34rem;
+    margin: 0;
+    font-size: 1.02rem;
+}
+
+.ls-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.1rem;
+    margin-top: clamp(1.5rem, 4vw, 2.5rem);
+}
+
+.ls-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    color: inherit;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    padding: 1.35rem 1.35rem 1.2rem;
+    min-height: 220px;
+    box-shadow: var(--shadow-card);
+    transition: transform var(--duration-med) var(--ease-out),
+        box-shadow var(--duration-med) var(--ease-out);
+}
+
+.ls-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--shadow-lift);
+    color: inherit;
+}
+
+.ls-card-idx {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brass-deep);
+}
+
+.ls-card h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    letter-spacing: -0.02em;
+    flex: 1;
+}
+
+.ls-card p {
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+
+.ls-card-spacer {
+    visibility: hidden;
+}
+
+.ls-card footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--line);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--ink-soft);
+}
+
+.ls-card footer i {
+    color: var(--brass-deep);
+}
+
+.ls-qcount {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--muted);
+    font-size: 0.72rem;
+    font-weight: 600;
+}
+
+.ls-empty {
+    margin: 2rem 0;
+    color: var(--muted);
+}
+
+.ls-read {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: clamp(1.5rem, 4vw, 2.5rem) 0 3rem;
+}
+
+.ls-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: var(--muted);
+    font-size: 0.88rem;
+    font-weight: 600;
+    margin-bottom: 1.25rem;
+}
+
+.ls-back:hover {
+    color: var(--brass-deep);
+}
+
+.ls-read-frame {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: clamp(1.75rem, 4vw, 3rem);
+    box-shadow: var(--shadow-card);
+}
+
+.ls-read-frame .ls-eyebrow {
+    color: var(--brass-deep);
+}
+
+.ls-read-frame h1 {
+    margin: 0.35rem 0 0.5rem;
+}
+
+.ls-dek {
+    color: var(--muted);
+    font-size: 1.1rem;
+    margin: 0 0 0.25rem;
+}
+
+.ls-rule {
+    width: 3rem;
+    height: 3px;
+    background: var(--brass);
+    border-radius: 2px;
+    margin: 1rem 0 1.5rem;
+}
+
+.ls-prose {
+    font-size: 1.05rem;
+    line-height: 1.75;
+    color: var(--ink-soft);
+}
+
+.ls-prose h1,
+.ls-prose h2,
+.ls-prose h3 {
+    color: var(--ink);
+    margin: 1.75rem 0 0.75rem;
+}
+
+.ls-prose p {
+    margin: 0 0 1rem;
+}
+
+.ls-prose ul,
+.ls-prose ol {
+    margin: 0 0 1rem;
+    padding-left: 1.2rem;
+}
+
+.ls-prose li {
+    margin: 0.35rem 0;
+}
+
+.ls-prose strong {
+    color: var(--ink);
+    font-weight: 700;
+}
+
+.ls-prose a {
+    color: var(--brass-deep);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.ls-prose pre {
+    overflow: auto;
+    padding: 0.85rem 1rem;
+    border-radius: var(--radius-control);
+    background: var(--surface-sunken);
+    border: 1px solid var(--line);
+}
+
+.ls-prose code {
+    font-size: 0.92em;
+}
+
+.ls-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+    align-items: center;
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--line);
+}
+
+.ls-no-practice {
+    color: var(--muted);
+    font-size: 0.92rem;
+}
+
+.container:has(.ls-page) {
+    max-width: 1100px;
+}

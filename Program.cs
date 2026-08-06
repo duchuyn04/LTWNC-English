@@ -189,6 +189,7 @@ builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddScoped<IProfileService, ProfileService>();
 builder.Services.AddScoped<ICreditService, CreditService>();
 builder.Services.AddScoped<IAdminCreditService, AdminCreditService>();
+builder.Services.AddScoped<ltwnc.Services.Lessons.ILessonService, ltwnc.Services.Lessons.LessonService>();
 builder.Services.AddScoped<IAvatarService, AvatarService>();
 builder.Services.AddScoped<ILeaderboardService, LeaderboardService>();
 builder.Services.Configure<RouteOptions>(options =>

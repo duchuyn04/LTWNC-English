@@ -39,6 +39,7 @@ public class AppDbContext : DbContext
     public DbSet<CreditPackage> CreditPackages => Set<CreditPackage>();
     public DbSet<CreditPurchase> CreditPurchases => Set<CreditPurchase>();
     public DbSet<CreditLedgerEntry> CreditLedgerEntries => Set<CreditLedgerEntry>();
+    public DbSet<Lesson> Lessons => Set<Lesson>();
 
     // Cấu hình model — indexes, relationships, constraints
     protected override void OnModelCreating(ModelBuilder builder)
@@ -453,6 +454,17 @@ public class AppDbContext : DbContext
                 .OnDelete(DeleteBehavior.Restrict);
             entity.ToTable(table =>
                 table.HasCheckConstraint("CK_CreditLedgerEntries_BalanceAfter", "[BalanceAfter] >= 0"));
+        });
+
+        builder.Entity<Lesson>(entity =>
+        {
+            entity.Property(lesson => lesson.Title).HasMaxLength(200).IsRequired();
+            entity.Property(lesson => lesson.Summary).HasMaxLength(500);
+            entity.Property(lesson => lesson.ContentMarkdown).IsRequired();
+            entity.Property(lesson => lesson.Status).HasMaxLength(40).IsRequired();
+            entity.Property(lesson => lesson.CreatedByUserId).HasMaxLength(450);
+            entity.Property(lesson => lesson.UpdatedByUserId).HasMaxLength(450);
+            entity.HasIndex(lesson => new { lesson.Status, lesson.SortOrder });
         });
     }
 }

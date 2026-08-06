@@ -1,0 +1,72 @@
+@model AdminLessonEditViewModel
+@{
+    string title = Model.Id.HasValue ? "Sửa bài học" : "Tạo bài học";
+    ViewData["Title"] = title;
+    ViewData["Heading"] = title;
+}
+<link rel="stylesheet" href="~/css/lessons.css" asp-append-version="true" />
+
+@if (TempData["AdminLessonsSuccess"] is string success)
+{
+    <div class="admin-alert admin-alert--success" data-popup="success">@success</div>
+}
+
+<section class="admin-panel">
+    <p><a class="admin-text-link" href="/Admin/Lessons">Quay lại danh sách</a></p>
+
+    <form method="post" action="/Admin/Lessons/Save" class="admin-filter-form">
+        @Html.AntiForgeryToken()
+        <input asp-for="Id" type="hidden" />
+        <div asp-validation-summary="ModelOnly" class="admin-alert admin-alert--danger"></div>
+
+        <div class="admin-filter-field">
+            <label asp-for="Title"></label>
+            <input asp-for="Title" maxlength="200" />
+            <span asp-validation-for="Title"></span>
+        </div>
+
+        <div class="admin-filter-field">
+            <label asp-for="Summary"></label>
+            <textarea asp-for="Summary" maxlength="500" rows="2"></textarea>
+            <span asp-validation-for="Summary"></span>
+        </div>
+
+        <div class="admin-filter-field">
+            <label asp-for="ContentMarkdown"></label>
+            <textarea asp-for="ContentMarkdown" rows="16" class="admin-markdown-input"></textarea>
+            <span asp-validation-for="ContentMarkdown"></span>
+        </div>
+
+        <div class="admin-filter-field">
+            <label asp-for="Status"></label>
+            <select asp-for="Status">
+                <option value="Draft">Nháp</option>
+                <option value="Published">Đã đăng</option>
+            </select>
+        </div>
+
+        @if (Model.Id.HasValue)
+        {
+            <div class="admin-filter-field">
+                <label asp-for="SortOrder"></label>
+                <input asp-for="SortOrder" type="number" />
+            </div>
+        }
+
+        <div class="admin-form-actions" style="display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1rem">
+            <button type="submit" class="admin-filter-submit">Lưu</button>
+            @if (Model.Id.HasValue)
+            {
+                <a class="admin-text-link" href="/Admin/Lessons/@Model.Id/Preview">Xem trước</a>
+            }
+        </div>
+    </form>
+</section>
+
+@if (!string.IsNullOrEmpty(Model.PreviewHtml))
+{
+    <section class="admin-panel" style="margin-top:1rem">
+        <h2>Xem trước</h2>
+        <div class="ls-prose">@Html.Raw(Model.PreviewHtml)</div>
+    </section>
+}

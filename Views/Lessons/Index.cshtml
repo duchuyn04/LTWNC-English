@@ -1,0 +1,46 @@
+@model LessonIndexViewModel
+@{
+    ViewData["Title"] = "Bài học";
+}
+
+<link rel="stylesheet" href="~/css/lessons.css" asp-append-version="true" />
+
+<div class="ls-page">
+    <section class="ls-hero">
+        <p class="ls-eyebrow">Bài học</p>
+        <h1>Danh sách bài học</h1>
+        <p>Bài đọc và ngữ pháp do admin đăng. Có thể mở bất kỳ bài nào.</p>
+    </section>
+
+    @if (Model.Lessons.Count == 0)
+    {
+        <p class="ls-empty">Chưa có bài học nào.</p>
+    }
+    else
+    {
+        <div class="ls-grid">
+            @foreach (LessonCardViewModel lesson in Model.Lessons)
+            {
+                <a class="ls-card" href="/Lessons/@lesson.Id">
+                    <span class="ls-card-idx">@lesson.IndexLabel</span>
+                    <h2>@lesson.Title</h2>
+                    @if (!string.IsNullOrWhiteSpace(lesson.Summary))
+                    {
+                        <p>@lesson.Summary</p>
+                    }
+                    else
+                    {
+                        <p class="ls-card-spacer" aria-hidden="true">&nbsp;</p>
+                    }
+                    <footer>
+                        <span class="ls-qcount">
+                            <i class="ph ph-exam" aria-hidden="true"></i>
+                            @lesson.QuestionCount câu ôn
+                        </span>
+                        <span>Xem <i class="ph ph-arrow-up-right" aria-hidden="true"></i></span>
+                    </footer>
+                </a>
+            }
+        </div>
+    }
+</div>
