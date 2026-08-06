@@ -1,0 +1,71 @@
+@model LessonPracticeViewModel
+@{
+    ViewData["Title"] = "Ôn tập — " + Model.LessonTitle;
+    string[] letters = ["A", "B", "C", "D", "E", "F"];
+}
+
+<link rel="stylesheet" href="~/css/lessons.css" asp-append-version="true" />
+
+<div class="ls-page ls-prac">
+    <a class="ls-back" href="/Lessons/@Model.LessonId">
+        <i class="ph ph-arrow-left" aria-hidden="true"></i>
+        Về bài học
+    </a>
+
+    <div class="ls-prac-head">
+        <p class="ls-eyebrow">Ôn tập</p>
+        <h1>@Model.LessonTitle</h1>
+        <p>Câu @Model.Step / @Model.Total</p>
+    </div>
+
+    <div class="ls-prac-progress" aria-hidden="true">
+        <span style="width:@(Model.ShowFeedback ? (int)Math.Round(100.0 * Model.Step / Model.Total) : (int)Math.Round(100.0 * (Model.Step - 1) / Math.Max(Model.Total, 1)))%"></span>
+    </div>
+
+    @if (TempData["PracticeError"] is string practiceError)
+    {
+        <div class="ls-prac-feedback bad" role="alert">@practiceError</div>
+    }
+
+    <div class="ls-prac-card">
+        <span class="ls-prac-type">Trắc nghiệm</span>
+        <p class="ls-prac-q">@Model.Prompt</p>
+
+        @if (!Model.ShowFeedback)
+        {
+            <form method="post" action="/Lessons/@Model.LessonId/Practice/Answer" class="ls-prac-opts">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="QuestionId" value="@Model.QuestionId" />
+                @for (int i = 0; i < Model.Options.Count; i++)
+                {
+                    <button type="submit" name="SelectedIndex" value="@i" class="ls-prac-opt">
+                        <span class="ls-prac-key">@(i < letters.Length ? letters[i] : (i + 1).ToString())</span>
+                        <span>@Model.Options[i]</span>
+                    </button>
+                }
+            </form>
+        }
+        else
+        {
+            <div class="ls-prac-opts">
+                @for (int i = 0; i < Model.Options.Count; i++)
+                {
+                    string cls = "ls-prac-opt";
+                    if (Model.CorrectIndex == i) { cls += " is-correct"; }
+                    else if (Model.SelectedIndex == i) { cls += " is-wrong"; }
+                    <div class="@cls" aria-disabled="true">
+                        <span class="ls-prac-key">@(i < letters.Length ? letters[i] : (i + 1).ToString())</span>
+                        <span>@Model.Options[i]</span>
+                    </div>
+                }
+            </div>
+            <div class="ls-prac-feedback @(Model.IsCorrect ? "ok" : "bad")">
+                @(Model.IsCorrect ? "Đúng." : "Chưa đúng.")
+            </div>
+            <form method="post" action="/Lessons/@Model.LessonId/Practice/Next" class="ls-prac-footer">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn-primary-custom">Câu tiếp</button>
+            </form>
+        }
+    </div>
+</div>

@@ -80,3 +80,75 @@ public sealed class AdminLessonEditViewModel
         PreviewHtml = detail.ContentHtml
     };
 }
+
+public sealed class AdminLessonQuestionsViewModel
+{
+    public int LessonId { get; init; }
+    public string LessonTitle { get; init; } = string.Empty;
+    public IReadOnlyList<AdminLessonQuestionRowViewModel> Questions { get; init; } = [];
+    public AdminMcqQuestionForm Form { get; init; } = new();
+}
+
+public sealed class AdminLessonQuestionRowViewModel
+{
+    public int Id { get; init; }
+    public string TypeLabel { get; init; } = string.Empty;
+    public string Prompt { get; init; } = string.Empty;
+    public string Meta { get; init; } = string.Empty;
+}
+
+public sealed class AdminMcqQuestionForm
+{
+    public int LessonId { get; set; }
+
+    [Required(ErrorMessage = "Đề bài bắt buộc.")]
+    [Display(Name = "Đề bài")]
+    public string Prompt { get; set; } = string.Empty;
+
+    [Display(Name = "Lựa chọn A")]
+    public string? OptionA { get; set; }
+
+    [Display(Name = "Lựa chọn B")]
+    public string? OptionB { get; set; }
+
+    [Display(Name = "Lựa chọn C")]
+    public string? OptionC { get; set; }
+
+    [Display(Name = "Lựa chọn D")]
+    public string? OptionD { get; set; }
+
+    [Display(Name = "Đáp án đúng")]
+    public int CorrectOptionIndex { get; set; }
+}
+
+public sealed class LessonPracticeViewModel
+{
+    public int LessonId { get; init; }
+    public string LessonTitle { get; init; } = string.Empty;
+    public int Step { get; init; }
+    public int Total { get; init; }
+    public int Score { get; init; }
+    public int QuestionId { get; init; }
+    public string Prompt { get; init; } = string.Empty;
+    public IReadOnlyList<string> Options { get; init; } = [];
+    public bool ShowFeedback { get; init; }
+    public bool IsCorrect { get; init; }
+    public int? SelectedIndex { get; init; }
+    public int? CorrectIndex { get; init; }
+
+    public int ProgressPercent => Total <= 0 ? 0 : (int)Math.Round(100.0 * (Step - (ShowFeedback ? 0 : 1)) / Total);
+}
+
+public sealed class LessonPracticeAnswerForm
+{
+    public int QuestionId { get; set; }
+    public int SelectedIndex { get; set; }
+}
+
+public sealed class LessonPracticeResultViewModel
+{
+    public int LessonId { get; init; }
+    public string LessonTitle { get; init; } = string.Empty;
+    public int Score { get; init; }
+    public int Total { get; init; }
+}

@@ -31,7 +31,7 @@ public sealed class LessonsController : Controller
                 Summary = item.Summary,
                 Status = item.Status,
                 SortOrder = item.SortOrder,
-                QuestionCount = 0
+                QuestionCount = item.QuestionCount
             }).ToArray()
         });
     }
@@ -103,6 +103,99 @@ public sealed class LessonsController : Controller
     public IActionResult PreviewMarkdown([FromForm] string? contentMarkdown)
     {
         return PartialView("_MarkdownPreview", _lessons.RenderMarkdown(contentMarkdown ?? string.Empty));
+    }
+
+    [HttpGet("{id:int}/Questions")]
+    public async Task<IActionResult> Questions(int id, CancellationToken cancellationToken)
+    {
+        LessonDetail? lesson = await _lessons.GetForAdminAsync(id, cancellationToken);
+        if (lesson is null)
+        {
+            return NotFound();
+        }
+
+        IReadOnlyList<LessonQuestionAdminItem> questions =
+            await _lessons.ListQuestionsForAdminAsync(id, cancellationToken);
+
+        return View(new AdminLessonQuestionsViewModel
+        {
+            LessonId = lesson.Id,
+            LessonTitle = lesson.Title,
+            Questions = questions.Select(ToQuestionRow).ToArray(),
+            Form = new AdminMcqQuestionForm { LessonId = lesson.Id }
+        });
+    }
+
+    [HttpPost("{id:int}/Questions/AddMcq")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddMcq(
+        int id,
+        AdminMcqQuestionForm form,
+        CancellationToken cancellationToken)
+    {
+        LessonDetail? lesson = await _lessons.GetForAdminAsync(id, cancellationToken);
+        if (lesson is null)
+        {
+            return NotFound();
+        }
+
+        form.LessonId = id;
+        List<string> options = new[]
+            {
+                form.OptionA, form.OptionB, form.OptionC, form.OptionD
+            }
+            .Select(option => (option ?? string.Empty).Trim())
+            .Where(option => option.Length > 0)
+            .ToList();
+
+        LessonQuestionMutationResult result = await _lessons.AddMcqQuestionAsync(
+            new AddMcqQuestionCommand(id, form.Prompt ?? string.Empty, options, form.CorrectOptionIndex),
+            cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            IReadOnlyList<LessonQuestionAdminItem> questions =
+                await _lessons.ListQuestionsForAdminAsync(id, cancellationToken);
+            ModelState.AddModelError(string.Empty, result.Error ?? "Không thêm được câu hỏi.");
+            return View("Questions", new AdminLessonQuestionsViewModel
+            {
+                LessonId = lesson.Id,
+                LessonTitle = lesson.Title,
+                Questions = questions.Select(ToQuestionRow).ToArray(),
+                Form = form
+            });
+        }
+
+        TempData["AdminLessonsSuccess"] = "Đã thêm câu trắc nghiệm.";
+        return RedirectToAction(nameof(Questions), new { id });
+    }
+
+    [HttpPost("{id:int}/Questions/{questionId:int}/Delete")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> DeleteQuestion(
+        int id,
+        int questionId,
+        CancellationToken cancellationToken)
+    {
+        LessonQuestionMutationResult result =
+            await _lessons.DeleteQuestionAsync(id, questionId, cancellationToken);
+        TempData[result.Succeeded ? "AdminLessonsSuccess" : "AdminLessonsError"] =
+            result.Succeeded ? "Đã xóa câu hỏi." : (result.Error ?? "Không xóa được.");
+        return RedirectToAction(nameof(Questions), new { id });
+    }
+
+    private static AdminLessonQuestionRowViewModel ToQuestionRow(LessonQuestionAdminItem item)
+    {
+        string letter = item.CorrectOptionIndex >= 0 && item.CorrectOptionIndex < 26
+            ? ((char)('A' + item.CorrectOptionIndex)).ToString()
+            : (item.CorrectOptionIndex + 1).ToString();
+        return new AdminLessonQuestionRowViewModel
+        {
+            Id = item.Id,
+            TypeLabel = "Trắc nghiệm",
+            Prompt = item.Prompt,
+            Meta = $"{item.Options.Count} lựa chọn · đúng: {letter}"
+        };
     }
 
     private string? ActorUserId() =>

@@ -57,6 +57,7 @@
             <button type="submit" class="admin-filter-submit">Lưu</button>
             @if (Model.Id.HasValue)
             {
+                <a class="admin-text-link" href="/Admin/Lessons/@Model.Id/Questions">Câu hỏi</a>
                 <a class="admin-text-link" href="/Admin/Lessons/@Model.Id/Preview">Xem trước</a>
             }
         </div>

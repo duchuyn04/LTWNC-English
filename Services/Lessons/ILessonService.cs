@@ -13,4 +13,29 @@ public interface ILessonService
     Task<LessonSaveResult> SaveAsync(LessonSaveCommand command, CancellationToken cancellationToken = default);
 
     string RenderMarkdown(string markdown);
+
+    Task<IReadOnlyList<LessonQuestionAdminItem>> ListQuestionsForAdminAsync(
+        int lessonId,
+        CancellationToken cancellationToken = default);
+
+    Task<LessonQuestionMutationResult> AddMcqQuestionAsync(
+        AddMcqQuestionCommand command,
+        CancellationToken cancellationToken = default);
+
+    Task<LessonQuestionMutationResult> DeleteQuestionAsync(
+        int lessonId,
+        int questionId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>Published lesson with ≥1 question only; options without answers.</summary>
+    Task<PracticeBundle?> GetPracticeBundleAsync(
+        int lessonId,
+        CancellationToken cancellationToken = default);
+
+    Task<GradeMcqResult> GradeMcqAsync(
+        int lessonId,
+        int questionId,
+        int selectedIndex,
+        bool publishedOnly = true,
+        CancellationToken cancellationToken = default);
 }

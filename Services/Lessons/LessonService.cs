@@ -1,3 +1,4 @@
+using System.Text.Json;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +9,15 @@ public sealed class LessonService : ILessonService
 {
     private const int TitleMaxLength = 200;
     private const int SummaryMaxLength = 500;
+    private const int PromptMaxLength = 2000;
+    private const int OptionMaxLength = 500;
+    private const int MinMcqOptions = 2;
+    private const int MaxMcqOptions = 6;
+
+    private static readonly JsonSerializerOptions JsonOptions = new()
+    {
+        PropertyNamingPolicy = null
+    };
 
     private readonly AppDbContext _db;
     private readonly TimeProvider _timeProvider;
@@ -21,24 +31,36 @@ public sealed class LessonService : ILessonService
     public async Task<IReadOnlyList<LessonListItem>> ListForAdminAsync(
         CancellationToken cancellationToken = default)
     {
-        List<Lesson> rows = await _db.Lessons.AsNoTracking()
+        return await _db.Lessons.AsNoTracking()
             .OrderBy(lesson => lesson.SortOrder)
             .ThenBy(lesson => lesson.Id)
+            .Select(lesson => new LessonListItem(
+                lesson.Id,
+                lesson.Title,
+                lesson.Summary,
+                lesson.Status,
+                lesson.SortOrder,
+                lesson.UpdatedAtUtc,
+                lesson.Questions.Count))
             .ToListAsync(cancellationToken);
-
-        return rows.Select(ToListItem).ToArray();
     }
 
     public async Task<IReadOnlyList<LessonListItem>> ListPublishedAsync(
         CancellationToken cancellationToken = default)
     {
-        List<Lesson> rows = await _db.Lessons.AsNoTracking()
+        return await _db.Lessons.AsNoTracking()
             .Where(lesson => lesson.Status == LessonStatus.Published)
             .OrderBy(lesson => lesson.SortOrder)
             .ThenBy(lesson => lesson.Id)
+            .Select(lesson => new LessonListItem(
+                lesson.Id,
+                lesson.Title,
+                lesson.Summary,
+                lesson.Status,
+                lesson.SortOrder,
+                lesson.UpdatedAtUtc,
+                lesson.Questions.Count))
             .ToListAsync(cancellationToken);
-
-        return rows.Select(ToListItem).ToArray();
     }
 
     public Task<LessonDetail?> GetForAdminAsync(int id, CancellationToken cancellationToken = default)
@@ -87,7 +109,7 @@ public sealed class LessonService : ILessonService
         if (command.Id is null or 0)
         {
             int nextOrder = command.SortOrder
-                ?? await NextSortOrderAsync(cancellationToken);
+                ?? await NextLessonSortOrderAsync(cancellationToken);
 
             Lesson created = new()
             {
@@ -132,6 +154,194 @@ public sealed class LessonService : ILessonService
 
     public string RenderMarkdown(string markdown) => LessonMarkdownRenderer.ToHtml(markdown);
 
+    public async Task<IReadOnlyList<LessonQuestionAdminItem>> ListQuestionsForAdminAsync(
+        int lessonId,
+        CancellationToken cancellationToken = default)
+    {
+        bool exists = await _db.Lessons.AsNoTracking()
+            .AnyAsync(lesson => lesson.Id == lessonId, cancellationToken);
+        if (!exists)
+        {
+            return [];
+        }
+
+        List<LessonQuestion> rows = await _db.LessonQuestions.AsNoTracking()
+            .Where(question => question.LessonId == lessonId)
+            .OrderBy(question => question.SortOrder)
+            .ThenBy(question => question.Id)
+            .ToListAsync(cancellationToken);
+
+        return rows
+            .Where(question => question.Type == LessonQuestionTypes.MultipleChoice)
+            .Select(ToAdminItem)
+            .ToArray();
+    }
+
+    public async Task<LessonQuestionMutationResult> AddMcqQuestionAsync(
+        AddMcqQuestionCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        string prompt = (command.Prompt ?? string.Empty).Trim();
+        if (prompt.Length == 0 || prompt.Length > PromptMaxLength)
+        {
+            return new LessonQuestionMutationResult(false, "Đề bài bắt buộc.");
+        }
+
+        List<string> options = (command.Options ?? [])
+            .Select(option => (option ?? string.Empty).Trim())
+            .Where(option => option.Length > 0)
+            .ToList();
+
+        if (options.Count < MinMcqOptions)
+        {
+            return new LessonQuestionMutationResult(false, "Cần ít nhất 2 lựa chọn.");
+        }
+
+        if (options.Count > MaxMcqOptions)
+        {
+            return new LessonQuestionMutationResult(false, $"Tối đa {MaxMcqOptions} lựa chọn.");
+        }
+
+        if (options.Any(option => option.Length > OptionMaxLength))
+        {
+            return new LessonQuestionMutationResult(false, "Mỗi lựa chọn tối đa 500 ký tự.");
+        }
+
+        if (command.CorrectOptionIndex < 0 || command.CorrectOptionIndex >= options.Count)
+        {
+            return new LessonQuestionMutationResult(false, "Đáp án đúng không hợp lệ.");
+        }
+
+        bool lessonExists = await _db.Lessons.AnyAsync(lesson => lesson.Id == command.LessonId, cancellationToken);
+        if (!lessonExists)
+        {
+            return new LessonQuestionMutationResult(false, "Không tìm thấy bài học.");
+        }
+
+        DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
+        int nextOrder = await NextQuestionSortOrderAsync(command.LessonId, cancellationToken);
+
+        LessonQuestion question = new()
+        {
+            LessonId = command.LessonId,
+            Type = LessonQuestionTypes.MultipleChoice,
+            Prompt = prompt,
+            SortOrder = nextOrder,
+            OptionsJson = JsonSerializer.Serialize(options, JsonOptions),
+            CorrectOptionIndex = command.CorrectOptionIndex,
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now
+        };
+
+        _db.LessonQuestions.Add(question);
+        await _db.SaveChangesAsync(cancellationToken);
+        return new LessonQuestionMutationResult(true, QuestionId: question.Id);
+    }
+
+    public async Task<LessonQuestionMutationResult> DeleteQuestionAsync(
+        int lessonId,
+        int questionId,
+        CancellationToken cancellationToken = default)
+    {
+        LessonQuestion? question = await _db.LessonQuestions
+            .SingleOrDefaultAsync(
+                row => row.Id == questionId && row.LessonId == lessonId,
+                cancellationToken);
+
+        if (question is null)
+        {
+            return new LessonQuestionMutationResult(false, "Không tìm thấy câu hỏi.");
+        }
+
+        _db.LessonQuestions.Remove(question);
+        await _db.SaveChangesAsync(cancellationToken);
+        return new LessonQuestionMutationResult(true, QuestionId: questionId);
+    }
+
+    public async Task<PracticeBundle?> GetPracticeBundleAsync(
+        int lessonId,
+        CancellationToken cancellationToken = default)
+    {
+        Lesson? lesson = await _db.Lessons.AsNoTracking()
+            .SingleOrDefaultAsync(
+                row => row.Id == lessonId && row.Status == LessonStatus.Published,
+                cancellationToken);
+
+        if (lesson is null)
+        {
+            return null;
+        }
+
+        List<LessonQuestion> questions = await _db.LessonQuestions.AsNoTracking()
+            .Where(question =>
+                question.LessonId == lessonId
+                && question.Type == LessonQuestionTypes.MultipleChoice)
+            .OrderBy(question => question.SortOrder)
+            .ThenBy(question => question.Id)
+            .ToListAsync(cancellationToken);
+
+        if (questions.Count == 0)
+        {
+            return null;
+        }
+
+        IReadOnlyList<PracticeQuestionItem> items = questions
+            .Select(question => new PracticeQuestionItem(
+                question.Id,
+                question.Type,
+                question.Prompt,
+                ReadOptions(question.OptionsJson)))
+            .ToArray();
+
+        return new PracticeBundle(lesson.Id, lesson.Title, items);
+    }
+
+    public async Task<GradeMcqResult> GradeMcqAsync(
+        int lessonId,
+        int questionId,
+        int selectedIndex,
+        bool publishedOnly = true,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<Lesson> lessonQuery = _db.Lessons.AsNoTracking()
+            .Where(lesson => lesson.Id == lessonId);
+        if (publishedOnly)
+        {
+            lessonQuery = lessonQuery.Where(lesson => lesson.Status == LessonStatus.Published);
+        }
+
+        bool lessonOk = await lessonQuery.AnyAsync(cancellationToken);
+        if (!lessonOk)
+        {
+            return new GradeMcqResult(false, Error: "Bài học không khả dụng.");
+        }
+
+        LessonQuestion? question = await _db.LessonQuestions.AsNoTracking()
+            .SingleOrDefaultAsync(
+                row =>
+                    row.Id == questionId
+                    && row.LessonId == lessonId
+                    && row.Type == LessonQuestionTypes.MultipleChoice,
+                cancellationToken);
+
+        if (question is null || question.CorrectOptionIndex is null)
+        {
+            return new GradeMcqResult(false, Error: "Không tìm thấy câu hỏi.");
+        }
+
+        IReadOnlyList<string> options = ReadOptions(question.OptionsJson);
+        if (selectedIndex < 0 || selectedIndex >= options.Count)
+        {
+            return new GradeMcqResult(false, Error: "Lựa chọn không hợp lệ.");
+        }
+
+        int correct = question.CorrectOptionIndex.Value;
+        return new GradeMcqResult(
+            Succeeded: true,
+            IsCorrect: selectedIndex == correct,
+            CorrectOptionIndex: correct);
+    }
+
     private async Task<LessonDetail?> GetDetailAsync(
         int id,
         bool publishedOnly,
@@ -143,20 +353,32 @@ public sealed class LessonService : ILessonService
             query = query.Where(lesson => lesson.Status == LessonStatus.Published);
         }
 
-        Lesson? lesson = await query.SingleOrDefaultAsync(cancellationToken);
-        return lesson is null ? null : ToDetail(lesson);
+        var row = await query
+            .Select(lesson => new
+            {
+                Lesson = lesson,
+                QuestionCount = lesson.Questions.Count
+            })
+            .SingleOrDefaultAsync(cancellationToken);
+
+        return row is null ? null : ToDetail(row.Lesson, row.QuestionCount);
     }
 
-    private async Task<int> NextSortOrderAsync(CancellationToken cancellationToken)
+    private async Task<int> NextLessonSortOrderAsync(CancellationToken cancellationToken)
     {
         int? max = await _db.Lessons.MaxAsync(lesson => (int?)lesson.SortOrder, cancellationToken);
         return (max ?? 0) + 1;
     }
 
-    private static LessonListItem ToListItem(Lesson lesson) =>
-        new(lesson.Id, lesson.Title, lesson.Summary, lesson.Status, lesson.SortOrder, lesson.UpdatedAtUtc);
+    private async Task<int> NextQuestionSortOrderAsync(int lessonId, CancellationToken cancellationToken)
+    {
+        int? max = await _db.LessonQuestions
+            .Where(question => question.LessonId == lessonId)
+            .MaxAsync(question => (int?)question.SortOrder, cancellationToken);
+        return (max ?? 0) + 1;
+    }
 
-    private LessonDetail ToDetail(Lesson lesson) =>
+    private LessonDetail ToDetail(Lesson lesson, int questionCount) =>
         new(
             lesson.Id,
             lesson.Title,
@@ -166,5 +388,32 @@ public sealed class LessonService : ILessonService
             lesson.Status,
             lesson.SortOrder,
             lesson.CreatedAtUtc,
-            lesson.UpdatedAtUtc);
+            lesson.UpdatedAtUtc,
+            questionCount);
+
+    private static LessonQuestionAdminItem ToAdminItem(LessonQuestion question) =>
+        new(
+            question.Id,
+            question.Type,
+            question.Prompt,
+            question.SortOrder,
+            ReadOptions(question.OptionsJson),
+            question.CorrectOptionIndex ?? 0);
+
+    private static IReadOnlyList<string> ReadOptions(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return [];
+        }
+
+        try
+        {
+            return JsonSerializer.Deserialize<List<string>>(json, JsonOptions) ?? [];
+        }
+        catch (JsonException)
+        {
+            return [];
+        }
+    }
 }

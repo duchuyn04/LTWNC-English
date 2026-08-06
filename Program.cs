@@ -341,6 +341,14 @@ builder.Services.AddScoped<ltwnc.Services.EnglishMission.IEnglishMissionService,
 
 
 // Add MVC
+builder.Services.AddDistributedMemoryCache();
+builder.Services.AddSession(options =>
+{
+    options.Cookie.Name = ".ltwnc.Session";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
+    options.IdleTimeout = TimeSpan.FromHours(2);
+});
 builder.Services.AddControllersWithViews(options =>
     options.Conventions.Add(new AdminAreaAuthorizationConvention()));
 builder.Services.AddScoped<ltwnc.Controllers.ApiExceptionFilter>();
@@ -390,6 +398,7 @@ app.Use(async (context, next) =>
 });
 app.UseStaticFiles();
 app.UseRouting();
+app.UseSession();
 app.UseAuthentication();
 app.UseRateLimiter();
 app.UseAuthorization();

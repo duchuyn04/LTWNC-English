@@ -40,6 +40,7 @@ public class AppDbContext : DbContext
     public DbSet<CreditPurchase> CreditPurchases => Set<CreditPurchase>();
     public DbSet<CreditLedgerEntry> CreditLedgerEntries => Set<CreditLedgerEntry>();
     public DbSet<Lesson> Lessons => Set<Lesson>();
+    public DbSet<LessonQuestion> LessonQuestions => Set<LessonQuestion>();
 
     // Cấu hình model — indexes, relationships, constraints
     protected override void OnModelCreating(ModelBuilder builder)
@@ -465,6 +466,17 @@ public class AppDbContext : DbContext
             entity.Property(lesson => lesson.CreatedByUserId).HasMaxLength(450);
             entity.Property(lesson => lesson.UpdatedByUserId).HasMaxLength(450);
             entity.HasIndex(lesson => new { lesson.Status, lesson.SortOrder });
+        });
+
+        builder.Entity<LessonQuestion>(entity =>
+        {
+            entity.Property(question => question.Type).HasMaxLength(40).IsRequired();
+            entity.Property(question => question.Prompt).IsRequired();
+            entity.HasIndex(question => new { question.LessonId, question.SortOrder });
+            entity.HasOne(question => question.Lesson)
+                .WithMany(lesson => lesson.Questions)
+                .HasForeignKey(question => question.LessonId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

@@ -30,6 +30,8 @@ public class Lesson
 
     [MaxLength(450)]
     public string? UpdatedByUserId { get; set; }
+
+    public ICollection<LessonQuestion> Questions { get; set; } = new List<LessonQuestion>();
 }
 
 public static class LessonStatus

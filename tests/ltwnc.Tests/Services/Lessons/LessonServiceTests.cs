@@ -157,6 +157,125 @@ public sealed class LessonServiceTests
         Assert.DoesNotContain("<script>", html, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public async Task AddMcqQuestionAsync_PersistsAndListsWithCount()
+    {
+        await using AppDbContext db = CreateContext();
+        Lesson lesson = await SeedLessonAsync(db, "Pub", LessonStatus.Published, 1);
+        LessonService service = CreateService(db);
+
+        LessonQuestionMutationResult result = await service.AddMcqQuestionAsync(new AddMcqQuestionCommand(
+            lesson.Id,
+            "Câu nào đúng?",
+            ["A wrong", "B right", "C wrong"],
+            CorrectOptionIndex: 1));
+
+        Assert.True(result.Succeeded);
+        LessonQuestion question = await db.LessonQuestions.SingleAsync();
+        Assert.Equal(LessonQuestionTypes.MultipleChoice, question.Type);
+        Assert.Equal(1, question.SortOrder);
+        Assert.Equal(1, question.CorrectOptionIndex);
+
+        IReadOnlyList<LessonQuestionAdminItem> adminList =
+            await service.ListQuestionsForAdminAsync(lesson.Id);
+        Assert.Single(adminList);
+        Assert.Equal(3, adminList[0].Options.Count);
+
+        LessonDetail? detail = await service.GetPublishedAsync(lesson.Id);
+        Assert.Equal(1, detail!.QuestionCount);
+
+        IReadOnlyList<LessonListItem> published = await service.ListPublishedAsync();
+        Assert.Equal(1, published[0].QuestionCount);
+    }
+
+    [Fact]
+    public async Task AddMcqQuestionAsync_RejectsInvalidOptionsAndIndex()
+    {
+        await using AppDbContext db = CreateContext();
+        Lesson lesson = await SeedLessonAsync(db, "Pub", LessonStatus.Published, 1);
+        LessonService service = CreateService(db);
+
+        Assert.False((await service.AddMcqQuestionAsync(new AddMcqQuestionCommand(
+            lesson.Id, "Q", ["only-one"], 0))).Succeeded);
+
+        Assert.False((await service.AddMcqQuestionAsync(new AddMcqQuestionCommand(
+            lesson.Id, "Q", ["a", "b"], CorrectOptionIndex: 5))).Succeeded);
+
+        Assert.False((await service.AddMcqQuestionAsync(new AddMcqQuestionCommand(
+            lesson.Id, "  ", ["a", "b"], 0))).Succeeded);
+
+        Assert.Equal(0, await db.LessonQuestions.CountAsync());
+    }
+
+    [Fact]
+    public async Task DeleteQuestionAsync_RemovesRow()
+    {
+        await using AppDbContext db = CreateContext();
+        Lesson lesson = await SeedLessonAsync(db, "Pub", LessonStatus.Published, 1);
+        LessonService service = CreateService(db);
+        LessonQuestionMutationResult added = await service.AddMcqQuestionAsync(new AddMcqQuestionCommand(
+            lesson.Id, "Q", ["a", "b"], 0));
+
+        LessonQuestionMutationResult deleted =
+            await service.DeleteQuestionAsync(lesson.Id, added.QuestionId!.Value);
+
+        Assert.True(deleted.Succeeded);
+        Assert.Equal(0, await db.LessonQuestions.CountAsync());
+    }
+
+    [Fact]
+    public async Task GetPracticeBundleAsync_NullForDraftOrNoQuestions_HidesAnswer()
+    {
+        await using AppDbContext db = CreateContext();
+        Lesson draft = await SeedLessonAsync(db, "Draft", LessonStatus.Draft, 1);
+        Lesson published = await SeedLessonAsync(db, "Pub", LessonStatus.Published, 2);
+        LessonService service = CreateService(db);
+
+        await service.AddMcqQuestionAsync(new AddMcqQuestionCommand(
+            draft.Id, "Draft Q", ["a", "b"], 1));
+        await service.AddMcqQuestionAsync(new AddMcqQuestionCommand(
+            published.Id, "Pub Q", ["a", "b"], 1));
+
+        Assert.Null(await service.GetPracticeBundleAsync(draft.Id));
+        Assert.Null(await service.GetPracticeBundleAsync(published.Id + 99));
+
+        // empty published
+        Lesson empty = await SeedLessonAsync(db, "Empty", LessonStatus.Published, 3);
+        Assert.Null(await service.GetPracticeBundleAsync(empty.Id));
+
+        PracticeBundle? bundle = await service.GetPracticeBundleAsync(published.Id);
+        Assert.NotNull(bundle);
+        Assert.Single(bundle!.Questions);
+        Assert.Equal(["a", "b"], bundle.Questions[0].Options);
+        // PracticeQuestionItem has no correct index field — grade separately
+    }
+
+    [Fact]
+    public async Task GradeMcqAsync_ScoresCorrectAndWrong_BlocksDraftForLearner()
+    {
+        await using AppDbContext db = CreateContext();
+        Lesson draft = await SeedLessonAsync(db, "Draft", LessonStatus.Draft, 1);
+        Lesson published = await SeedLessonAsync(db, "Pub", LessonStatus.Published, 2);
+        LessonService service = CreateService(db);
+
+        int draftQ = (await service.AddMcqQuestionAsync(new AddMcqQuestionCommand(
+            draft.Id, "D", ["a", "b"], 1))).QuestionId!.Value;
+        int pubQ = (await service.AddMcqQuestionAsync(new AddMcqQuestionCommand(
+            published.Id, "P", ["a", "b"], 1))).QuestionId!.Value;
+
+        GradeMcqResult draftGrade = await service.GradeMcqAsync(draft.Id, draftQ, 1, publishedOnly: true);
+        Assert.False(draftGrade.Succeeded);
+
+        GradeMcqResult wrong = await service.GradeMcqAsync(published.Id, pubQ, 0);
+        Assert.True(wrong.Succeeded);
+        Assert.False(wrong.IsCorrect);
+        Assert.Equal(1, wrong.CorrectOptionIndex);
+
+        GradeMcqResult right = await service.GradeMcqAsync(published.Id, pubQ, 1);
+        Assert.True(right.Succeeded);
+        Assert.True(right.IsCorrect);
+    }
+
     private static LessonSaveCommand ValidCreate() =>
         new(null, "Title", null, "Content body", LessonStatus.Draft, null, "admin-1");
 

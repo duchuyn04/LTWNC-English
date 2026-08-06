@@ -1,0 +1,95 @@
+@model AdminLessonQuestionsViewModel
+@{
+    ViewData["Title"] = "Câu hỏi";
+    ViewData["Heading"] = "Câu hỏi ôn tập";
+}
+
+@if (TempData["AdminLessonsSuccess"] is string success)
+{
+    <div class="admin-alert admin-alert--success" data-popup="success">@success</div>
+}
+@if (TempData["AdminLessonsError"] is string error)
+{
+    <div class="admin-alert admin-alert--danger" data-popup="error">@error</div>
+}
+
+<section class="admin-panel">
+    <p>
+        <a class="admin-text-link" href="/Admin/Lessons">Danh sách</a>
+        ·
+        <a class="admin-text-link" href="/Admin/Lessons/@Model.LessonId/Edit">Sửa bài</a>
+    </p>
+    <h2>@Model.LessonTitle</h2>
+    <p class="admin-muted-line">Thêm câu trắc nghiệm. Thứ tự theo danh sách dưới.</p>
+
+    @if (Model.Questions.Count == 0)
+    {
+        <p class="admin-empty">Chưa có câu hỏi. Thêm bên dưới.</p>
+    }
+    else
+    {
+        <div class="admin-table-wrapper" style="margin-bottom:1.25rem">
+            <table class="admin-table">
+                <thead>
+                    <tr><th>Loại</th><th>Đề</th><th>Chi tiết</th><th></th></tr>
+                </thead>
+                <tbody>
+                @foreach (AdminLessonQuestionRowViewModel q in Model.Questions)
+                {
+                    <tr>
+                        <td>@q.TypeLabel</td>
+                        <td><strong>@q.Prompt</strong></td>
+                        <td>@q.Meta</td>
+                        <td>
+                            <form method="post" action="/Admin/Lessons/@Model.LessonId/Questions/@q.Id/Delete" class="admin-inline-action-form"
+                                  onsubmit="return confirm('Xóa câu hỏi này?');">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" class="admin-text-link" style="background:none;border:0;cursor:pointer;padding:0">Xóa</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <h3>Thêm câu trắc nghiệm</h3>
+    <form method="post" action="/Admin/Lessons/@Model.LessonId/Questions/AddMcq" class="admin-filter-form">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Form.LessonId" />
+        <div asp-validation-summary="ModelOnly" class="admin-alert admin-alert--danger"></div>
+
+        <div class="admin-filter-field">
+            <label asp-for="Form.Prompt"></label>
+            <textarea asp-for="Form.Prompt" rows="3" required></textarea>
+            <span asp-validation-for="Form.Prompt"></span>
+        </div>
+        <div class="admin-filter-field">
+            <label asp-for="Form.OptionA"></label>
+            <input asp-for="Form.OptionA" required />
+        </div>
+        <div class="admin-filter-field">
+            <label asp-for="Form.OptionB"></label>
+            <input asp-for="Form.OptionB" required />
+        </div>
+        <div class="admin-filter-field">
+            <label asp-for="Form.OptionC"></label>
+            <input asp-for="Form.OptionC" />
+        </div>
+        <div class="admin-filter-field">
+            <label asp-for="Form.OptionD"></label>
+            <input asp-for="Form.OptionD" />
+        </div>
+        <div class="admin-filter-field">
+            <label asp-for="Form.CorrectOptionIndex"></label>
+            <select asp-for="Form.CorrectOptionIndex">
+                <option value="0">A</option>
+                <option value="1">B</option>
+                <option value="2">C</option>
+                <option value="3">D</option>
+            </select>
+        </div>
+        <button type="submit" class="admin-filter-submit">Thêm câu</button>
+    </form>
+</section>
