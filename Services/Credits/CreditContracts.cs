@@ -61,13 +61,44 @@ public sealed class InsufficientCreditsException : Exception
     }
 }
 
+/// <summary>
+/// Kết quả trừ tín dụng cho một lượt English Mission (đã commit DB).
+/// WasNewlyCharged = false khi lượt này đã trừ trước đó (idempotent).
+/// </summary>
+public sealed record MissionTurnDebitResult(int BalanceAfter, bool WasNewlyCharged);
+
 public interface ICreditService
 {
     Task<int> GetBalanceAsync(string userId, CancellationToken cancellationToken = default);
     Task<IReadOnlyList<CreditPackage>> GetActivePackagesAsync(int limit = 3, CancellationToken cancellationToken = default);
     Task EnsureCanSpendAsync(string userId, CancellationToken cancellationToken = default);
-    Task<int> PrepareMissionTurnDebitAsync(string userId, int missionId, string clientTurnId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Trừ 1 tín dụng và commit ngay (idempotent theo missionId+clientTurnId).
+    /// Gọi trước khi gọi AI để tránh race hai request cùng balance=1.
+    /// </summary>
+    Task<MissionTurnDebitResult> PrepareMissionTurnDebitAsync(
+        string userId,
+        int missionId,
+        string clientTurnId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Hoàn 1 tín dụng đã trừ cho lượt chưa lưu turn thành công (AI lỗi / lưu mission fail).
+    /// Idempotent: không có debit thì no-op.
+    /// </summary>
+    Task RefundMissionTurnDebitAsync(
+        string userId,
+        int missionId,
+        string clientTurnId,
+        CancellationToken cancellationToken = default);
+
     Task<CreditAccountSnapshot> GetAccountAsync(string userId, CancellationToken cancellationToken = default);
+    Task<CreditPurchaseStatsSnapshot> GetPurchaseStatsAsync(
+        string userId,
+        DateOnly? from = null,
+        DateOnly? to = null,
+        CancellationToken cancellationToken = default);
     Task<SePayCheckoutForm> CreateCheckoutAsync(string userId, int packageId, CancellationToken cancellationToken = default);
     Task<CreditPurchase?> GetPurchaseAsync(string userId, int purchaseId, CancellationToken cancellationToken = default);
     bool VerifyIpnSecret(string? suppliedSecret);

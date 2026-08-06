@@ -6,6 +6,10 @@ namespace ltwnc.Services.Credits;
 public interface IAdminCreditService
 {
     Task<AdminCreditOverview> GetOverviewAsync(CancellationToken cancellationToken = default);
+    Task<CreditPurchaseStatsSnapshot> GetStatsAsync(
+        DateOnly? from = null,
+        DateOnly? to = null,
+        CancellationToken cancellationToken = default);
     Task<CreditPackage?> GetPackageAsync(int id, CancellationToken cancellationToken = default);
     Task<AdminCreditOperationResult> SavePackageAsync(AdminCreditPackageCommand command, CancellationToken cancellationToken = default);
     Task<AdminCreditOperationResult> SetPackageArchivedAsync(AdminCreditPackageLifecycleCommand command, CancellationToken cancellationToken = default);

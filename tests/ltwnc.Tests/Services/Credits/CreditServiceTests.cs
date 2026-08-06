@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Text;
+using ltwnc.Areas.Admin;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Credits;
@@ -259,27 +260,66 @@ public sealed class CreditServiceTests
     }
 
     [Fact]
-    public async Task PrepareMissionTurnDebitAsync_SameMissionTurnIsIdempotentAfterSave()
+    public async Task PrepareMissionTurnDebitAsync_CommitsImmediatelyAndIsIdempotent()
     {
         await using AppDbContext context = CreateContext();
         await SeedUserAsync(context, balance: 2);
         CreditService service = CreateService(context);
 
-        int firstBalance = await service.PrepareMissionTurnDebitAsync("user-1", 12, "turn-1");
-        await context.SaveChangesAsync();
-        int retryBalance = await service.PrepareMissionTurnDebitAsync("user-1", 12, "turn-1");
-        await context.SaveChangesAsync();
+        MissionTurnDebitResult first = await service.PrepareMissionTurnDebitAsync("user-1", 12, "turn-1");
+        MissionTurnDebitResult retry = await service.PrepareMissionTurnDebitAsync("user-1", 12, "turn-1");
 
-        AppUser user = await context.AppUsers.SingleAsync();
-        CreditLedgerEntry entry = await context.CreditLedgerEntries.SingleAsync();
-        Assert.Equal(1, firstBalance);
-        Assert.Equal(1, retryBalance);
+        AppUser user = await context.AppUsers.AsNoTracking().SingleAsync();
+        CreditLedgerEntry entry = await context.CreditLedgerEntries.AsNoTracking().SingleAsync();
+        Assert.True(first.WasNewlyCharged);
+        Assert.False(retry.WasNewlyCharged);
+        Assert.Equal(1, first.BalanceAfter);
+        Assert.Equal(1, retry.BalanceAfter);
         Assert.Equal(1, user.CreditBalance);
         Assert.Equal(1, user.CreditVersion);
         Assert.Equal(-1, entry.Amount);
         Assert.Equal(1, entry.BalanceAfter);
         Assert.Equal(CreditLedgerTypes.MissionTurn, entry.Type);
         Assert.Equal("12:turn-1", entry.SourceId);
+    }
+
+    [Fact]
+    public async Task RefundMissionTurnDebitAsync_RestoresBalanceAndAllowsRedebit()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedUserAsync(context, balance: 2);
+        CreditService service = CreateService(context);
+
+        await service.PrepareMissionTurnDebitAsync("user-1", 12, "turn-1");
+        await service.RefundMissionTurnDebitAsync("user-1", 12, "turn-1");
+        await service.RefundMissionTurnDebitAsync("user-1", 12, "turn-1"); // idempotent
+
+        AppUser afterRefund = await context.AppUsers.AsNoTracking().SingleAsync();
+        Assert.Equal(2, afterRefund.CreditBalance);
+        Assert.Empty(await context.CreditLedgerEntries.AsNoTracking().ToListAsync());
+
+        MissionTurnDebitResult redebit = await service.PrepareMissionTurnDebitAsync("user-1", 12, "turn-1");
+        Assert.True(redebit.WasNewlyCharged);
+        Assert.Equal(1, redebit.BalanceAfter);
+        Assert.Single(await context.CreditLedgerEntries.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task PrepareMissionTurnDebitAsync_SecondDistinctTurnWithBalanceOneFails()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedUserAsync(context, balance: 1);
+        CreditService service = CreateService(context);
+
+        MissionTurnDebitResult first = await service.PrepareMissionTurnDebitAsync("user-1", 12, "turn-a");
+        Assert.True(first.WasNewlyCharged);
+        Assert.Equal(0, first.BalanceAfter);
+
+        await Assert.ThrowsAsync<InsufficientCreditsException>(() =>
+            service.PrepareMissionTurnDebitAsync("user-1", 12, "turn-b"));
+
+        Assert.Equal(0, (await context.AppUsers.AsNoTracking().SingleAsync()).CreditBalance);
+        Assert.Single(await context.CreditLedgerEntries.AsNoTracking().ToListAsync());
     }
 
     [Fact]
@@ -382,6 +422,59 @@ public sealed class CreditServiceTests
         Assert.Equal(0, usage.CreditsUsedPreviousMonth);
         Assert.Null(usage.ChangePercent);
         Assert.Equal(100, Assert.Single(usage.Breakdown).Percentage);
+    }
+
+    [Fact]
+    public async Task GetPurchaseStatsAsync_OnlyIncludesCurrentUserPaidRows()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedUserAsync(context, balance: 0);
+        context.AppUsers.Add(new AppUser
+        {
+            Id = "user-2",
+            Email = "other@example.com",
+            NormalizedEmail = "OTHER@EXAMPLE.COM",
+            UserName = "other",
+            NormalizedUserName = "OTHER",
+            CreditBalance = 0
+        });
+        context.CreditPurchases.AddRange(
+            new CreditPurchase
+            {
+                UserId = "user-1",
+                InvoiceNumber = "U1",
+                PackageName = "Basic",
+                PriceVnd = 25_000,
+                Credits = 30,
+                Status = CreditPurchaseStatuses.Paid,
+                CreatedAtUtc = FixedNow.UtcDateTime.AddHours(-3),
+                ExpiresAtUtc = FixedNow.UtcDateTime.AddHours(-2),
+                PaidAtUtc = FixedNow.UtcDateTime.AddHours(-2)
+            },
+            new CreditPurchase
+            {
+                UserId = "user-2",
+                InvoiceNumber = "U2",
+                PackageName = "Pro",
+                PriceVnd = 100_000,
+                Credits = 150,
+                Status = CreditPurchaseStatuses.Paid,
+                CreatedAtUtc = FixedNow.UtcDateTime.AddHours(-3),
+                ExpiresAtUtc = FixedNow.UtcDateTime.AddHours(-2),
+                PaidAtUtc = FixedNow.UtcDateTime.AddHours(-2)
+            });
+        await context.SaveChangesAsync();
+        CreditService service = CreateService(context);
+
+        DateOnly todayVn = DateOnly.FromDateTime(AdminTimeZone.ToVietnamTime(FixedNow.UtcDateTime).DateTime);
+        CreditPurchaseStatsSnapshot snap = await service.GetPurchaseStatsAsync(
+            "user-1", todayVn.AddDays(-6), todayVn);
+
+        Assert.Equal(25_000, snap.TotalPaidVnd);
+        Assert.Equal(1, snap.PaidOrderCount);
+        Assert.Null(snap.PendingCount);
+        Assert.Null(snap.StatusCounts);
+        Assert.DoesNotContain(snap.Packages, package => package.PackageName == "Pro");
     }
 
     private static CreditService CreateService(AppDbContext context, DateTimeOffset? now = null)

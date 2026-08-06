@@ -1,3 +1,4 @@
+using ltwnc.Areas.Admin;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Audit;
@@ -18,6 +19,40 @@ public sealed class AdminCreditService : IAdminCreditService
         _db = db;
         _audit = audit;
         _timeProvider = timeProvider;
+    }
+
+    public async Task<CreditPurchaseStatsSnapshot> GetStatsAsync(
+        DateOnly? requestedFrom = null,
+        DateOnly? requestedTo = null,
+        CancellationToken cancellationToken = default)
+    {
+        DateTime nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+        DateOnly todayVn = DateOnly.FromDateTime(AdminTimeZone.ToVietnamTime(nowUtc).DateTime);
+        (DateOnly from, DateOnly to, string? error) = CreditPurchaseStatsBuilder.ResolveRange(
+            requestedFrom, requestedTo, todayVn);
+
+        DateTime startUtc = CreditPurchaseStatsBuilder.ToUtc(from, TimeOnly.MinValue);
+        DateTime endUtc = CreditPurchaseStatsBuilder.ToUtc(to.AddDays(1), TimeOnly.MinValue);
+
+        List<CreditPurchaseStatsSourceRow> rows = await (
+            from purchase in _db.CreditPurchases.AsNoTracking()
+            join user in _db.AppUsers.AsNoTracking() on purchase.UserId equals user.Id
+            where (purchase.PaidAtUtc != null && purchase.PaidAtUtc >= startUtc && purchase.PaidAtUtc < endUtc)
+                || (purchase.CreatedAtUtc >= startUtc && purchase.CreatedAtUtc < endUtc)
+                || (purchase.VoidedAtUtc != null && purchase.VoidedAtUtc >= startUtc && purchase.VoidedAtUtc < endUtc)
+            select new CreditPurchaseStatsSourceRow(
+                purchase.Id,
+                purchase.UserId,
+                user.UserName,
+                purchase.PackageName,
+                purchase.PriceVnd,
+                purchase.Status,
+                purchase.CreatedAtUtc,
+                purchase.PaidAtUtc,
+                purchase.VoidedAtUtc))
+            .ToListAsync(cancellationToken);
+
+        return CreditPurchaseStatsBuilder.Build(rows, from, to, todayVn, error, includeAdminExtras: true);
     }
 
     public async Task<AdminCreditOverview> GetOverviewAsync(CancellationToken cancellationToken = default)

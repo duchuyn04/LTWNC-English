@@ -2,6 +2,7 @@ using System.Data;
 using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
+using ltwnc.Areas.Admin;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -52,35 +53,130 @@ public sealed class CreditService : ICreditService
             throw new InsufficientCreditsException();
     }
 
-    public async Task<int> PrepareMissionTurnDebitAsync(
+    public async Task<MissionTurnDebitResult> PrepareMissionTurnDebitAsync(
         string userId,
         int missionId,
         string clientTurnId,
         CancellationToken cancellationToken = default)
     {
-        string sourceId = $"{missionId}:{clientTurnId}";
-        CreditLedgerEntry? existing = await _db.CreditLedgerEntries
-            .AsNoTracking()
-            .SingleOrDefaultAsync(entry => entry.SourceType == "EnglishMissionTurn" && entry.SourceId == sourceId, cancellationToken);
-        if (existing != null) return existing.BalanceAfter;
+        string sourceId = BuildMissionTurnSourceId(missionId, clientTurnId);
+        const int maxAttempts = 5;
 
-        AppUser user = await _db.AppUsers.SingleAsync(item => item.Id == userId, cancellationToken);
-        if (user.CreditBalance < 1) throw new InsufficientCreditsException();
-        user.CreditBalance--;
-        user.CreditVersion++;
-        _db.CreditLedgerEntries.Add(new CreditLedgerEntry
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
         {
-            UserId = userId,
-            Amount = -1,
-            BalanceAfter = user.CreditBalance,
-            Type = CreditLedgerTypes.MissionTurn,
-            SourceType = "EnglishMissionTurn",
-            SourceId = sourceId,
-            Description = "Phản hồi English Mission",
-            CreatedAtUtc = _timeProvider.GetUtcNow().UtcDateTime
-        });
-        return user.CreditBalance;
+            CreditLedgerEntry? existing = await _db.CreditLedgerEntries
+                .AsNoTracking()
+                .SingleOrDefaultAsync(
+                    entry => entry.SourceType == "EnglishMissionTurn" && entry.SourceId == sourceId,
+                    cancellationToken);
+            if (existing != null)
+                return new MissionTurnDebitResult(existing.BalanceAfter, WasNewlyCharged: false);
+
+            // Detach prior failed attempts so concurrency tokens reload cleanly.
+            foreach (var entry in _db.ChangeTracker.Entries<AppUser>()
+                         .Where(e => e.Entity.Id == userId)
+                         .ToList())
+            {
+                entry.State = EntityState.Detached;
+            }
+
+            AppUser user = await _db.AppUsers.SingleAsync(item => item.Id == userId, cancellationToken);
+            if (user.CreditBalance < 1)
+                throw new InsufficientCreditsException();
+
+            user.CreditBalance--;
+            user.CreditVersion++;
+            CreditLedgerEntry ledger = new()
+            {
+                UserId = userId,
+                Amount = -1,
+                BalanceAfter = user.CreditBalance,
+                Type = CreditLedgerTypes.MissionTurn,
+                SourceType = "EnglishMissionTurn",
+                SourceId = sourceId,
+                Description = "Phản hồi English Mission",
+                CreatedAtUtc = _timeProvider.GetUtcNow().UtcDateTime
+            };
+            _db.CreditLedgerEntries.Add(ledger);
+
+            try
+            {
+                await _db.SaveChangesAsync(cancellationToken);
+                return new MissionTurnDebitResult(user.CreditBalance, WasNewlyCharged: true);
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _db.ChangeTracker.Clear();
+            }
+            catch (DbUpdateException)
+            {
+                // Unique (SourceType, SourceId) — request song song đã trừ trước.
+                _db.ChangeTracker.Clear();
+                CreditLedgerEntry? winner = await _db.CreditLedgerEntries
+                    .AsNoTracking()
+                    .SingleOrDefaultAsync(
+                        entry => entry.SourceType == "EnglishMissionTurn" && entry.SourceId == sourceId,
+                        cancellationToken);
+                if (winner != null)
+                    return new MissionTurnDebitResult(winner.BalanceAfter, WasNewlyCharged: false);
+            }
+        }
+
+        throw new InvalidOperationException("Không thể trừ tín dụng do xung đột đồng thời. Vui lòng thử lại.");
     }
+
+    public async Task RefundMissionTurnDebitAsync(
+        string userId,
+        int missionId,
+        string clientTurnId,
+        CancellationToken cancellationToken = default)
+    {
+        string sourceId = BuildMissionTurnSourceId(missionId, clientTurnId);
+        const int maxAttempts = 5;
+
+        for (int attempt = 0; attempt < maxAttempts; attempt++)
+        {
+            CreditLedgerEntry? debit = await _db.CreditLedgerEntries
+                .SingleOrDefaultAsync(
+                    entry => entry.SourceType == "EnglishMissionTurn"
+                        && entry.SourceId == sourceId
+                        && entry.UserId == userId
+                        && entry.Amount < 0,
+                    cancellationToken);
+            if (debit == null)
+                return;
+
+            foreach (var entry in _db.ChangeTracker.Entries<AppUser>()
+                         .Where(e => e.Entity.Id == userId)
+                         .ToList())
+            {
+                entry.State = EntityState.Detached;
+            }
+
+            AppUser user = await _db.AppUsers.SingleAsync(item => item.Id == userId, cancellationToken);
+            user.CreditBalance = checked(user.CreditBalance - debit.Amount); // Amount is negative
+            user.CreditVersion++;
+            _db.CreditLedgerEntries.Remove(debit);
+
+            try
+            {
+                await _db.SaveChangesAsync(cancellationToken);
+                return;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _db.ChangeTracker.Clear();
+            }
+            catch (DbUpdateException)
+            {
+                _db.ChangeTracker.Clear();
+                return;
+            }
+        }
+    }
+
+    private static string BuildMissionTurnSourceId(int missionId, string clientTurnId)
+        => $"{missionId}:{clientTurnId}";
 
     public async Task<CreditAccountSnapshot> GetAccountAsync(
         string userId,
@@ -125,6 +221,40 @@ public sealed class CreditService : ICreditService
             nextPeriodStart);
 
         return new CreditAccountSnapshot(balance, packages, purchases, ledger, usage);
+    }
+
+    public async Task<CreditPurchaseStatsSnapshot> GetPurchaseStatsAsync(
+        string userId,
+        DateOnly? requestedFrom = null,
+        DateOnly? requestedTo = null,
+        CancellationToken cancellationToken = default)
+    {
+        DateTime nowUtc = _timeProvider.GetUtcNow().UtcDateTime;
+        DateOnly todayVn = DateOnly.FromDateTime(AdminTimeZone.ToVietnamTime(nowUtc).DateTime);
+        (DateOnly from, DateOnly to, string? error) = CreditPurchaseStatsBuilder.ResolveRange(
+            requestedFrom, requestedTo, todayVn);
+
+        DateTime startUtc = CreditPurchaseStatsBuilder.ToUtc(from, TimeOnly.MinValue);
+        DateTime endUtc = CreditPurchaseStatsBuilder.ToUtc(to.AddDays(1), TimeOnly.MinValue);
+
+        List<CreditPurchaseStatsSourceRow> rows = await _db.CreditPurchases.AsNoTracking()
+            .Where(purchase => purchase.UserId == userId
+                && ((purchase.PaidAtUtc != null && purchase.PaidAtUtc >= startUtc && purchase.PaidAtUtc < endUtc)
+                    || (purchase.CreatedAtUtc >= startUtc && purchase.CreatedAtUtc < endUtc)
+                    || (purchase.VoidedAtUtc != null && purchase.VoidedAtUtc >= startUtc && purchase.VoidedAtUtc < endUtc)))
+            .Select(purchase => new CreditPurchaseStatsSourceRow(
+                purchase.Id,
+                purchase.UserId,
+                null,
+                purchase.PackageName,
+                purchase.PriceVnd,
+                purchase.Status,
+                purchase.CreatedAtUtc,
+                purchase.PaidAtUtc,
+                purchase.VoidedAtUtc))
+            .ToListAsync(cancellationToken);
+
+        return CreditPurchaseStatsBuilder.Build(rows, from, to, todayVn, error, includeAdminExtras: false);
     }
 
     private static CreditUsageSummary BuildUsageSummary(

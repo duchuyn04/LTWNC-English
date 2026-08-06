@@ -1,3 +1,4 @@
+using ltwnc.Areas.Admin;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
 using ltwnc.Services.Audit;
@@ -197,6 +198,61 @@ public sealed class AdminCreditServiceTests
         string name = "Starter") =>
         new(id, version, name, "Entry package", 25_000, 30, 1, true, reason, Actor);
 
+    [Fact]
+    public async Task GetStatsAsync_AggregatesPaidInRange_AndIgnoresOtherUsersPendingOutsideRevenue()
+    {
+        await using AppDbContext context = CreateContext();
+        await SeedUserAsync(context, id: "user-1", userName: "learner", normalized: "LEARNER");
+        await SeedUserAsync(context, id: "user-2", userName: "other", normalized: "OTHER");
+        context.CreditPurchases.AddRange(
+            new CreditPurchase
+            {
+                UserId = "user-1",
+                InvoiceNumber = "A1",
+                PackageName = "Basic",
+                PriceVnd = 25_000,
+                Credits = 30,
+                Status = CreditPurchaseStatuses.Paid,
+                CreatedAtUtc = FixedNow.UtcDateTime.AddDays(-2),
+                ExpiresAtUtc = FixedNow.UtcDateTime.AddDays(-2).AddMinutes(30),
+                PaidAtUtc = FixedNow.UtcDateTime.AddHours(-5)
+            },
+            new CreditPurchase
+            {
+                UserId = "user-2",
+                InvoiceNumber = "A2",
+                PackageName = "Pro",
+                PriceVnd = 100_000,
+                Credits = 150,
+                Status = CreditPurchaseStatuses.Paid,
+                CreatedAtUtc = FixedNow.UtcDateTime.AddDays(-1),
+                ExpiresAtUtc = FixedNow.UtcDateTime.AddDays(-1).AddMinutes(30),
+                PaidAtUtc = FixedNow.UtcDateTime.AddHours(-2)
+            },
+            new CreditPurchase
+            {
+                UserId = "user-1",
+                InvoiceNumber = "A3",
+                PackageName = "Basic",
+                PriceVnd = 25_000,
+                Credits = 30,
+                Status = CreditPurchaseStatuses.Pending,
+                CreatedAtUtc = FixedNow.UtcDateTime.AddHours(-1),
+                ExpiresAtUtc = FixedNow.UtcDateTime.AddMinutes(29)
+            });
+        await context.SaveChangesAsync();
+        AdminCreditService service = CreateService(context);
+
+        DateOnly todayVn = DateOnly.FromDateTime(AdminTimeZone.ToVietnamTime(FixedNow.UtcDateTime).DateTime);
+        CreditPurchaseStatsSnapshot snap = await service.GetStatsAsync(todayVn.AddDays(-6), todayVn);
+
+        Assert.Equal(125_000, snap.TotalPaidVnd);
+        Assert.Equal(2, snap.PaidOrderCount);
+        Assert.Equal(1, snap.PendingCount);
+        Assert.Contains(snap.RecentRows, row => row.UserName == "learner");
+        Assert.Contains(snap.Packages, package => package.PackageName == "Pro" && package.PaidVnd == 100_000);
+    }
+
     private static AdminCreditService CreateService(
         AppDbContext context,
         IAdminAuditService? audit = null)
@@ -251,6 +307,24 @@ public sealed class AdminCreditServiceTests
         context.AppUsers.Add(user);
         await context.SaveChangesAsync();
         return user;
+    }
+
+    private static async Task SeedUserAsync(
+        AppDbContext context,
+        string id,
+        string userName,
+        string normalized)
+    {
+        context.AppUsers.Add(new AppUser
+        {
+            Id = id,
+            Email = $"{userName}@example.com",
+            NormalizedEmail = $"{normalized}@EXAMPLE.COM",
+            UserName = userName,
+            NormalizedUserName = normalized,
+            CreditBalance = 0
+        });
+        await context.SaveChangesAsync();
     }
 
     private sealed class FixedTimeProvider(DateTimeOffset value) : TimeProvider
