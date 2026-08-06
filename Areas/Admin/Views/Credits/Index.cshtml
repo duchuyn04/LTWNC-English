@@ -1,5 +1,9 @@
 @model AdminCreditIndexViewModel
 @{
+    // FILE: Admin danh sách gói tín dụng + shortcut Users credits.
+    // Model: AdminCreditIndexViewModel (packages, recent purchases summary).
+    // Link Create/Edit package; IsActive/IsArchived; TempData success/error.
+    // AdminCreditService + audit reason khi đổi gói.
     ViewData["Title"] = "Tín dụng";
     ViewData["Heading"] = "Gói và giao dịch tín dụng";
 }
@@ -21,7 +25,11 @@
         </div>
         <a class="admin-filter-submit" href="/Admin/Credits/Create">Tạo gói</a>
     </div>
-    <p><a class="admin-text-link" href="/Admin/Credits/Users">Điều chỉnh số dư người dùng</a></p>
+    <p>
+            <a class="admin-text-link" href="/Admin/Credits/Stats">Thống kê</a>
+            ·
+            <a class="admin-text-link" href="/Admin/Credits/Users">Điều chỉnh số dư người dùng</a>
+        </p>
 
     <div class="admin-table-wrapper">
         <table class="admin-table">

@@ -20,6 +20,15 @@ public sealed class CreditsController : Controller
         _service = service;
     }
 
+    [HttpGet("Stats")]
+    public async Task<IActionResult> Stats(
+        DateOnly? from,
+        DateOnly? to,
+        CancellationToken cancellationToken)
+    {
+        return View(await _service.GetStatsAsync(from, to, cancellationToken));
+    }
+
     [HttpGet("")]
     public async Task<IActionResult> Index(CancellationToken cancellationToken)
     {

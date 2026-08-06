@@ -1,0 +1,212 @@
+@model ltwnc.Services.Credits.CreditPurchaseStatsSnapshot
+@using System.Globalization
+@using ltwnc.Areas.Admin
+@using ltwnc.Services.Credits
+@{
+    ViewData["Title"] = "Thống kê tín dụng";
+    ViewData["Heading"] = "Thống kê mua gói";
+    CultureInfo vi = CultureInfo.GetCultureInfo("vi-VN");
+    bool hasPaid = Model.PaidOrderCount > 0;
+    DateOnly today = Model.Today;
+    DateOnly d7 = today.AddDays(-6);
+    DateOnly d30 = today.AddDays(-29);
+    DateOnly monthStart = new(today.Year, today.Month, 1);
+    DateOnly d90 = today.AddDays(-89);
+    DateOnly ytd = new(today.Year, 1, 1);
+
+    bool IsRange(DateOnly from, DateOnly to) => Model.From == from && Model.To == to;
+    string Href(DateOnly from, DateOnly to) =>
+        $"/Admin/Credits/Stats?from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}";
+
+    string chartDataJson = System.Text.Json.JsonSerializer.Serialize(new
+    {
+        labels = Model.Buckets.Select(b => b.Label),
+        paidVnd = Model.Buckets.Select(b => b.PaidVnd),
+        paidCount = Model.Buckets.Select(b => b.PaidCount),
+        packages = Model.Packages.Select(p => new { label = p.PackageName, vnd = p.PaidVnd, count = p.PaidCount }),
+        statuses = (Model.StatusCounts ?? Array.Empty<CreditPurchaseStatsStatusCount>())
+            .Select(s => new { label = s.Status, count = s.Count })
+    });
+}
+
+<section class="admin-dashboard">
+    <section class="admin-dashboard-filter" aria-labelledby="credit-stats-range-heading">
+        <div>
+            <h2 id="credit-stats-range-heading">Doanh thu mua gói</h2>
+            <p>@Model.From.ToString("dd/MM/yyyy") – @Model.To.ToString("dd/MM/yyyy") · bucket @Model.BucketKind</p>
+        </div>
+        <div class="admin-dashboard-filter-actions">
+            <nav class="admin-dashboard-quick-ranges" aria-label="Chọn nhanh khoảng thời gian">
+                <a class="@(IsRange(d7, today) ? "active" : null)" href="@Href(d7, today)">7 ngày</a>
+                <a class="@(IsRange(d30, today) ? "active" : null)" href="@Href(d30, today)">30 ngày</a>
+                <a class="@(IsRange(monthStart, today) ? "active" : null)" href="@Href(monthStart, today)">Tháng này</a>
+                <a class="@(IsRange(d90, today) ? "active" : null)" href="@Href(d90, today)">90 ngày</a>
+                <a class="@(IsRange(ytd, today) ? "active" : null)" href="@Href(ytd, today)">Năm nay</a>
+            </nav>
+            <form method="get" action="/Admin/Credits/Stats">
+                <label>
+                    <span>Từ ngày</span>
+                    <input type="date" name="from" value="@Model.From.ToString("yyyy-MM-dd")" required />
+                </label>
+                <label>
+                    <span>Đến ngày</span>
+                    <input type="date" name="to" value="@Model.To.ToString("yyyy-MM-dd")" required />
+                </label>
+                <button type="submit">Áp dụng</button>
+            </form>
+        </div>
+    </section>
+
+    <p><a class="admin-text-link" href="/Admin/Credits">← Quản lý gói</a></p>
+
+    @if (Model.RangeError != null)
+    {
+        <p class="admin-alert admin-alert--warning" data-popup="error">@Model.RangeError Đang hiển thị 30 ngày gần nhất.</p>
+    }
+
+    <div class="admin-dashboard-status-grid">
+        <section class="admin-dashboard-card">
+            <i class="ph ph-currency-circle-dollar" aria-hidden="true"></i>
+            <div>
+                <h2>Tổng tiền paid</h2>
+                <strong>@Model.TotalPaidVnd.ToString("N0", vi) đ</strong>
+                <p>Chỉ đơn đã thanh toán.</p>
+            </div>
+        </section>
+        <section class="admin-dashboard-card">
+            <i class="ph ph-receipt" aria-hidden="true"></i>
+            <div>
+                <h2>Đơn paid</h2>
+                <strong>@Model.PaidOrderCount</strong>
+                <p>Số giao dịch thành công.</p>
+            </div>
+        </section>
+        <section class="admin-dashboard-card">
+            <i class="ph ph-chart-bar" aria-hidden="true"></i>
+            <div>
+                <h2>AOV</h2>
+                <strong>@Model.AverageOrderValueVnd.ToString("N0", vi) đ</strong>
+                <p>Trung bình tiền / đơn paid.</p>
+            </div>
+        </section>
+        <section class="admin-dashboard-card">
+            <i class="ph ph-hourglass" aria-hidden="true"></i>
+            <div>
+                <h2>Pending</h2>
+                <strong>@(Model.PendingCount ?? 0)</strong>
+                <p>Đơn chờ thanh toán trong kỳ.</p>
+            </div>
+        </section>
+    </div>
+
+    <div class="admin-dashboard-charts">
+        <section class="admin-dashboard-chart @(hasPaid ? null : "is-empty")">
+            <header>
+                <div>
+                    <h2>Tiền và số đơn</h2>
+                    <p>Cột = VND · đường = số đơn paid.</p>
+                </div>
+            </header>
+            @if (!hasPaid)
+            {
+                <div class="admin-chart-empty" role="status">
+                    <strong>Chưa có đơn paid</strong>
+                    <p>Không có giao dịch thành công trong khoảng đã chọn.</p>
+                    <a class="admin-filter-submit" href="/Admin/Credits">Quản lý gói</a>
+                </div>
+            }
+            else
+            {
+                <div class="admin-line-chart-canvas" style="min-height:280px">
+                    <canvas data-credit-stats-chart="revenue" role="img" aria-label="Biểu đồ doanh thu và số đơn"></canvas>
+                </div>
+            }
+        </section>
+
+        <section class="admin-dashboard-chart @(hasPaid ? null : "is-empty")">
+            <header>
+                <div>
+                    <h2>Theo gói</h2>
+                    <p>Tỷ trọng doanh thu theo tên gói lúc mua.</p>
+                </div>
+            </header>
+            @if (hasPaid)
+            {
+                <div class="admin-line-chart-canvas" style="min-height:280px">
+                    <canvas data-credit-stats-chart="packages" role="img" aria-label="Biểu đồ theo gói"></canvas>
+                </div>
+            }
+        </section>
+
+        <section class="admin-dashboard-chart">
+            <header>
+                <div>
+                    <h2>Trạng thái đơn</h2>
+                    <p>Funnel checkout trong kỳ (không phải doanh thu).</p>
+                </div>
+            </header>
+            @if (Model.StatusCounts is { Count: > 0 })
+            {
+                <div class="admin-line-chart-canvas" style="min-height:240px">
+                    <canvas data-credit-stats-chart="status" role="img" aria-label="Biểu đồ trạng thái đơn"></canvas>
+                </div>
+            }
+            else
+            {
+                <div class="admin-chart-empty" role="status">
+                    <strong>Chưa có đơn</strong>
+                    <p>Không có giao dịch nào trong khoảng đã chọn.</p>
+                </div>
+            }
+        </section>
+    </div>
+
+    <section class="admin-panel" style="margin-top:1.25rem">
+        <div class="admin-panel-header">
+            <div>
+                <h2>Đơn gần đây</h2>
+                <p>Tối đa 20 đơn trong kỳ.</p>
+            </div>
+        </div>
+        <div class="admin-table-wrapper">
+            <table class="admin-table">
+                <thead>
+                    <tr>
+                        <th>Thời điểm</th>
+                        <th>Người dùng</th>
+                        <th>Gói</th>
+                        <th>Tiền</th>
+                        <th>Trạng thái</th>
+                    </tr>
+                </thead>
+                <tbody>
+                @if (Model.RecentRows.Count == 0)
+                {
+                    <tr><td colspan="5">Không có đơn trong khoảng này.</td></tr>
+                }
+                else
+                {
+                    foreach (CreditPurchaseStatsRow row in Model.RecentRows)
+                    {
+                        <tr>
+                            <td>@AdminTimeZone.ToVietnamTime(row.TimestampUtc).ToString("HH:mm dd/MM/yyyy")</td>
+                            <td>@(row.UserName ?? "—")</td>
+                            <td>@row.PackageName</td>
+                            <td>@row.PriceVnd.ToString("N0", vi) đ</td>
+                            <td>@row.Status</td>
+                        </tr>
+                    }
+                }
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <script id="credit-purchase-stats-data" type="application/json">@Html.Raw(chartDataJson)</script>
+</section>
+
+@section Scripts
+{
+    <script src="~/lib/chart.js/chart.umd.min.js" asp-append-version="true"></script>
+    <script src="~/js/credit-purchase-stats-chart.js" asp-append-version="true"></script>
+}

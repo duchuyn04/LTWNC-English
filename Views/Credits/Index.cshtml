@@ -3,12 +3,23 @@
 @using ltwnc.Models.Entities
 @using ltwnc.Services.Credits
 @{
+    // FILE: Tài khoản tín dụng AI — CreditsController.Index [Authorize].
+    // Model: CreditAccountSnapshot (Balance, Packages, Purchases, Ledger, Usage summary).
+    // English Mission trừ 1 credit / turn AI lưu thành công (backend CreditService).
+    // Mua gói: form POST Buy/{packageId} → Checkout SePay (rate-limit payments).
+    // UI: số dư, lịch sử mua (collapse thêm), usage theo tháng, offcanvas chọn gói.
+    // CultureInfo vi-VN format tiền VND; TempData CreditError/Success.
+    // CSS credits; Bootstrap offcanvas/collapse.
     ViewData["Title"] = "Tín dụng AI";
+    // Format tiền VND / số theo locale Việt.
     CultureInfo vietnameseCulture = CultureInfo.GetCultureInfo("vi-VN");
+    // UI: 4 giao dịch mới nhất + collapse phần còn lại.
     IReadOnlyList<CreditPurchase> recentPurchases = Model.Purchases.Take(4).ToList();
     IReadOnlyList<CreditPurchase> additionalPurchases = Model.Purchases.Skip(4).ToList();
     bool hasUsage = Model.Usage.CreditsUsedThisMonth > 0;
+    // ChangePercent null khi tháng trước = 0 (backend không chia cho 0).
     int changePercent = Model.Usage.ChangePercent ?? 0;
+    // --- Khối so sánh usage tháng này vs tháng trước (chỉ UI, data đã aggregate sẵn) ---
     string usageTrendClass;
     string usageTrendIcon;
     string usageTrendTitle;
@@ -80,6 +91,7 @@
         <span class="credit-intro-kicker">ENGLISH MISSION</span>
         <h1>Tín dụng AI</h1>
         <p>Quản lý hạn mức sử dụng trí tuệ nhân tạo cho việc học tập và nghiên cứu của bạn.</p>
+        <p><a href="/Credits/Stats">Thống kê nạp</a></p>
     </header>
 
     <section class="credit-hero" aria-labelledby="creditHeroTitle">

@@ -28,6 +28,17 @@ public sealed class CreditsController : Controller
         return View(await _credits.GetAccountAsync(userId, cancellationToken));
     }
 
+    [HttpGet("Stats")]
+    public async Task<IActionResult> Stats(
+        DateOnly? from,
+        DateOnly? to,
+        CancellationToken cancellationToken)
+    {
+        string? userId = _currentUser.UserId;
+        if (userId == null) return Challenge();
+        return View(await _credits.GetPurchaseStatsAsync(userId, from, to, cancellationToken));
+    }
+
     [HttpPost("Buy/{packageId:int}")]
     [ValidateAntiForgeryToken]
     [EnableRateLimiting("payments")]
@@ -88,7 +99,8 @@ public sealed class CreditsController : Controller
         }
         catch (Exception exception) when (exception is ArgumentException or KeyNotFoundException)
         {
-            return BadRequest(new { success = false, error = exception.Message });
+            // Không trả exception.Message ra ngoài — tránh lộ chi tiết nội bộ.
+            return BadRequest(new { success = false, error = "Invalid payment notification." });
         }
     }
 }
