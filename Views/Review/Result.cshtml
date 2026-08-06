@@ -1,13 +1,18 @@
 @model ReviewSessionViewModel
 
 @{
+    // FILE: Kết quả sau khi session Completed/Ended.
+    // Model: ReviewSessionViewModel tổng kết; progressPercent = rated/total.
+    // Link ôn tiếp / về set; HideLayoutChrome.
     ViewData["Title"] = "Kết quả ôn tập";
     ViewData["HideLayoutChrome"] = true;
 
+    // % hoàn thành theo số thẻ đã rate trong session (không phải % nhớ lâu dài).
     int progressPercent = Model.TotalCards == 0
         ? 0
         : (int)Math.Round(Model.RatedCards * 100d / Model.TotalCards);
 
+    // Map enum backend → nhãn tiếng Việt trên bảng tóm tắt.
     string StageLabel(ReviewStage stage) => stage switch
     {
         ReviewStage.New => "Thẻ mới",

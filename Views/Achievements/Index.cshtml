@@ -1,6 +1,11 @@
 @model IReadOnlyList<ltwnc.Models.ViewModels.Achievements.AchievementListItemViewModel>
 @{
-    // Trang danh sách huy hiệu: tiến độ, CTA, và banner khi vừa mở khóa
+    // FILE: Thành tích/huy hiệu — AchievementsController.Index [Authorize].
+    // Model: IReadOnlyList<AchievementListItemViewModel> (code, title, progress, IsUnlocked...).
+    // Backend: AchievementStudyObserver (pattern Observer) mở khóa khi học xong session.
+    // TempData["AchievementUnlock"]: banner một lần khi vừa unlock (data-popup).
+    // CSS: ~/css/achievements.css; đếm unlockedCount để hiện CTA/tiến độ tổng.
+    // Chỉ hiển thị catalog + progress — không form ghi dữ liệu.
     ViewData["Title"] = "Thành tích";
     var unlockedCount = Model.Count(a => a.IsUnlocked);
 }

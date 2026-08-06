@@ -1,26 +1,38 @@
 @model ReviewSessionViewModel
 
 @{
+    // FILE: Phiên ôn đang chạy — ReviewController Session + Rate.
+    // Model: ReviewSessionViewModel (Cards, RatedCards, Settings, SessionId).
+    // Chọn card chưa rate; form POST /Review/{id}/Rate name=rating Again|Hard|Good|Easy.
+    // Settings ShowFront*/ShowBack* điều khiển mặt trước/sau (giống flashcard settings).
+    // data-review-session + JS shortcut 1-4; End sớm POST End (giữ quota thẻ mới đã assign).
+    // Backend ReviewStateMachine: New/Learning/Reviewing/Relearning (pattern State).
     ViewData["Title"] = "Ôn tập đến hạn";
+    // Ẩn chrome layout — màn focus full-width (@section FullWidth).
     ViewData["HideLayoutChrome"] = true;
 
+    // Ưu tiên thẻ chưa rate; fallback thẻ đầu (session rỗng/lỗi).
     ReviewCardViewModel? card = Model.Cards.FirstOrDefault(value => !value.IsRated)
         ?? Model.Cards.FirstOrDefault();
+    // Preview khoảng lặp lại sau mỗi rating (backend tính trước, UI hiện dưới nút).
     ReviewRatingPreviewViewModel? againPreview = card?.RatingPreviews.FirstOrDefault(value => value.Rating == ReviewRating.Again);
     ReviewRatingPreviewViewModel? hardPreview = card?.RatingPreviews.FirstOrDefault(value => value.Rating == ReviewRating.Hard);
     ReviewRatingPreviewViewModel? goodPreview = card?.RatingPreviews.FirstOrDefault(value => value.Rating == ReviewRating.Good);
     ReviewRatingPreviewViewModel? easyPreview = card?.RatingPreviews.FirstOrDefault(value => value.Rating == ReviewRating.Easy);
 
+    // Số thứ tự thẻ đang làm (1-based); progress bar theo RatedCards/TotalCards.
     int currentNumber = Model.TotalCards == 0
         ? 0
         : Math.Min(Model.RatedCards + 1, Model.TotalCards);
     int progressPercent = Model.TotalCards == 0
         ? 0
         : (int)Math.Round(Model.RatedCards * 100d / Model.TotalCards);
+    // Session scoped theo set → về hub set; legacy multi-set → /Review.
     string backUrl = Model.SetId.HasValue
         ? $"/Review/Set/{Model.SetId.Value}"
         : "/Review";
 
+    // Nhãn stage hiện tại của ReviewProgress (State pattern).
     string StageLabel(ReviewStage stage) => stage switch
     {
         ReviewStage.New => "Thẻ mới",

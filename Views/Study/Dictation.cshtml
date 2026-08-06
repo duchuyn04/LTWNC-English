@@ -1,5 +1,10 @@
 @model DictationStudyViewModel
 @{
+    // FILE: Nghe chép — StudyController Dictation + DictationService.
+    // Model: DictationStudyViewModel (session, current card, content mode term/sentence).
+    // POST CheckAnswer antiforgery → chấm word-level; CompleteSession khi xong.
+    // CSS flashcard.css + dictation-redesign.css; Web Speech / audio tùy implement JS.
+    // UserProgress cập nhật khi đúng (backend).
     ViewData["Title"] = "Nghe chép chính tả";
 }
 

@@ -1,5 +1,11 @@
 @model GoogleLinkViewModel
 @{
+    // FILE: Liên kết Google vào tài khoản local đã tồn tại (email trùng).
+    // Model: GoogleLinkViewModel (Ticket, Email) — ticket từ external cookie Google tạm.
+    // Hai đường xác nhận: (1) form LinkGooglePassword — mật khẩu hiện tại;
+    //   (2) form SendGoogleLinkOtp — gửi OTP email rồi sang LinkGoogleOtp.
+    // Không tự động link email trùng (bắt buộc chứng minh ownership).
+    // AntiForgery: form Tag Helper tự có; form OTP thứ 2 dùng @Html.AntiForgeryToken() thủ công.
     Layout = "_AuthLayout";
     ViewData["Title"] = "Liên kết Google";
 }

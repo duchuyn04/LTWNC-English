@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Preview — Quiz session</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/phosphor-icons@1.4.2/src/css/icons.css" />
+<link rel="stylesheet" href="/css/site.css" />
+<link rel="stylesheet" href="/css/quiz.css" />
+<link rel="stylesheet" href="/css/quiz-focus.css" />
+</head>
+<body>
+<div class="qz qz-session" data-quiz-root data-question-id="101" data-quiz-review-only="false"
+     data-answer-url="#" data-quiz-deadline-utc="" data-quiz-remaining-seconds="432"
+     data-quiz-timeout-url="#" aria-busy="false">
+    <input name="__RequestVerificationToken" type="hidden" value="preview" />
+
+    <header class="qz-session-bar">
+        <div class="qz-session-bar-left">
+            <form method="post"><button type="button" class="qz-icon-btn" aria-label="Thoát bài trắc nghiệm"><i class="ph ph-x" aria-hidden="true"></i></button></form>
+            <form method="post"><button type="button" class="qz-text-btn"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i><span>Làm lại</span></button></form>
+        </div>
+
+        <div class="qz-session-bar-mid">
+            <p class="qz-session-set">Unit 5 · Environment &amp; Sustainability</p>
+            <div class="qz-track" data-quiz-progress role="progressbar" aria-label="Tiến độ câu đã trả lời"
+                 aria-valuemin="0" aria-valuemax="20" aria-valuenow="2" style="--qz-segments: 20">
+                <span data-quiz-progress-bar style="--quiz-progress-value: 0.1"></span>
+            </div>
+            <p class="qz-session-count" data-quiz-progress-count>Câu 3 / 20 · Đã trả lời 2</p>
+        </div>
+
+        <div class="qz-session-bar-right">
+            <div class="qz-stat" aria-label="Số câu đúng"><strong>2</strong><span>đúng</span></div>
+            <div class="qz-timer" role="timer" aria-live="off" aria-label="Thời gian còn lại">
+                <i class="ph ph-clock" aria-hidden="true"></i>
+                <span data-quiz-timer>07:12</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="qz-stage">
+        <article class="qz-q" aria-labelledby="quiz-prompt">
+            <span class="qz-q-ghost" aria-hidden="true">03</span>
+
+            <div class="qz-q-meta">
+                <span class="qz-direction">Chọn nghĩa đúng</span>
+                <span class="qz-q-index">Câu 03<span class="qz-q-index-total">/ 20</span></span>
+            </div>
+
+            <h1 id="quiz-prompt" class="qz-prompt">sustainable</h1>
+
+            <div class="qz-choices" role="group" aria-label="Các lựa chọn">
+                <button type="button" class="qz-choice" data-quiz-answer data-choice-index="0" aria-keyshortcuts="1">
+                    <span class="qz-choice-key" aria-hidden="true">A</span>
+                    <span class="qz-choice-text" data-quiz-choice-text>ô nhiễm, độc hại</span>
+                    <span class="qz-choice-state" aria-hidden="true"></span>
+                </button>
+                <button type="button" class="qz-choice" data-quiz-answer data-choice-index="1" aria-keyshortcuts="2">
+                    <span class="qz-choice-key" aria-hidden="true">B</span>
+                    <span class="qz-choice-text" data-quiz-choice-text>bền vững, có thể duy trì lâu dài</span>
+                    <span class="qz-choice-state" aria-hidden="true"></span>
+                </button>
+                <button type="button" class="qz-choice" data-quiz-answer data-choice-index="2" aria-keyshortcuts="3">
+                    <span class="qz-choice-key" aria-hidden="true">C</span>
+                    <span class="qz-choice-text" data-quiz-choice-text>tái chế, dùng lại</span>
+                    <span class="qz-choice-state" aria-hidden="true"></span>
+                </button>
+                <button type="button" class="qz-choice" data-quiz-answer data-choice-index="3" aria-keyshortcuts="4">
+                    <span class="qz-choice-key" aria-hidden="true">D</span>
+                    <span class="qz-choice-text" data-quiz-choice-text>tuyệt chủng, biến mất hoàn toàn</span>
+                    <span class="qz-choice-state" aria-hidden="true"></span>
+                </button>
+            </div>
+
+            <p class="qz-feedback quiz-feedback" data-quiz-feedback role="status" aria-live="polite"></p>
+
+            <div class="qz-actions quiz-actions">
+                <a class="qz-ghost quiz-previous" href="#"><i class="ph ph-arrow-left" aria-hidden="true"></i>Câu trước</a>
+                <a class="qz-cta quiz-next" data-quiz-next href="#" hidden>
+                    <span data-quiz-next-label>Câu tiếp theo</span>
+                    <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                </a>
+            </div>
+        </article>
+
+        <p class="qz-hint" aria-hidden="true">Phím <kbd>1</kbd>–<kbd>4</kbd> chọn đáp án nhanh</p>
+    </main>
+</div>
+<script>
+    // Preview-only: giả lập chấm câu để xem trạng thái graded + feedback + next.
+    const params = new URLSearchParams(location.search);
+    if (params.has('js')) {
+        document.write('<script src="/js/quiz.js"><\/script>');
+    }
+    const root = document.querySelector('[data-quiz-root]');
+    if (params.get('graded')) {
+        const buttons = root.querySelectorAll('[data-quiz-answer]');
+        const feedback = root.querySelector('[data-quiz-feedback]');
+        const next = root.querySelector('[data-quiz-next]');
+        if (params.get('graded') === 'wrong') {
+            buttons[2].classList.add('is-wrong');
+            buttons[1].classList.add('is-correct');
+            feedback.textContent = 'Chưa đúng. Đáp án đúng: bền vững, có thể duy trì lâu dài.';
+            feedback.className = 'quiz-feedback is-wrong';
+        } else {
+            buttons[1].classList.add('is-correct');
+            feedback.textContent = 'Chính xác!';
+            feedback.className = 'quiz-feedback is-correct';
+        }
+        next.hidden = false;
+    }
+    if (params.get('warning')) {
+        root?.querySelector('[data-quiz-timer]')?.classList.add('is-warning');
+        const t = document.querySelector('[data-quiz-timer]');
+        if (t) t.textContent = '00:47';
+    }
+</script>
+</body>
+</html>

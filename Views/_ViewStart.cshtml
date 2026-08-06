@@ -1,3 +1,8 @@
-﻿@{
+@{
+    // FILE: Views/_ViewStart.cshtml — chạy tự động TRƯỚC mỗi view (trừ khi Layout=null).
+    // Việc làm: gán Layout = "_Layout" (shell nav/footer chung).
+    // View auth có thể ghi đè: Layout = "_AuthLayout".
+    // View fullscreen (Study/Review) thường set ViewData["HideLayoutChrome"]=true trong chính view.
+    // Admin Area dùng _ViewStart khác → _AdminLayout.
     Layout = "_Layout";
 }

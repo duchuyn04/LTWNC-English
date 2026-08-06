@@ -51,7 +51,14 @@
             '--quiz-progress-value',
             String(total > 0 ? answered / total : 0));
         if (progressCount) {
-            progressCount.textContent = `Đã trả lời ${answered} / ${total}`;
+            // Giữ format gần UI: "Câu x / n · Đã trả lời k"
+            const currentLabel = progressCount.textContent || '';
+            const match = currentLabel.match(/Câu\s+(\d+)\s*\/\s*(\d+)/i);
+            if (match) {
+                progressCount.textContent = `Câu ${match[1]} / ${match[2]} · Đã trả lời ${answered}`;
+            } else {
+                progressCount.textContent = `Đã trả lời ${answered} / ${total}`;
+            }
         }
     };
 

@@ -1,9 +1,14 @@
 @model DictationResultViewModel
 @{
+    // FILE: Kết quả 1 phiên dictation.
+    // Model: DictationResultViewModel (CorrectCount, TotalCards, ContentMode, items).
+    // Tính % đúng/sai trong @{ }; link history câu sai, học lại, về hub.
     ViewData["Title"] = "Kết quả nghe chép";
+    // Metric tóm tắt — data-* cho chart/animation JS nếu có.
     var wrongCount = Model.TotalCards - Model.CorrectCount;
     var correctPct = Model.TotalCards > 0 ? (int)Math.Round((double)Model.CorrectCount / Model.TotalCards * 100) : 0;
     var wrongPct = 100 - correctPct;
+    // ContentMode: nghe "thuật ngữ" vs "câu ví dụ" — đổi copy UI.
     var isSentence = Model.ContentMode == DictationContentMode.ExampleSentence;
 }
 

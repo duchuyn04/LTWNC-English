@@ -1,6 +1,11 @@
 @model SetDetailViewModel
 @using ltwnc.Areas.Admin
 @{
+    // FILE: Chi tiết 1 bộ thẻ — FlashcardSetController.Details (owner hoặc public active).
+    // Model: SetDetailViewModel (meta, cards preview, quyền, moderation quarantine).
+    // Owner: Edit, Study hub, Review, delete/copy; Guest: copy public nếu IsPublic & Active.
+    // ModerationStatus Quarantined: ẩn public library, owner thấy lý do public reason.
+    // CSS set-management.css.
     ViewData["Title"] = Model.Title;
 }
 

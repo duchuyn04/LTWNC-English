@@ -1,5 +1,9 @@
 @model List<ltwnc.Models.ViewModels.FlashcardSet.FlashcardSetListItemViewModel>
 @{
+    // FILE: "Bộ thẻ của tôi" — FlashcardSetController.Index [Authorize].
+    // Model: List<FlashcardSetListItemViewModel> (Id, Title, card count, public, moderation...).
+    // Link Create / Details / Edit / Study; CSS set-management.css.
+    // Chỉ set UserId = current user (owned).
     ViewData["Title"] = "Bộ thẻ của tôi";
 }
 

@@ -1,152 +1,190 @@
 @model QuizSetupViewModel
 @{
-    ViewData["Title"] = "Thiết lập trắc nghiệm";
+    // FILE: Quiz setup - focus redesign 2026-08 (preserve LTWNC warm editorial).
+    // Layout: asymmetric split - narrative left, controls right; mobile stacks.
+    // Hooks JS quiz-setup.js: data-quiz-* giữ nguyên.
+    ViewData["Title"] = "Bắt đầu trắc nghiệm";
+    ViewData["HideLayoutChrome"] = true;
+
+    int available = Math.Max(1, Model.AvailableQuestionCount);
+    int[] countPresets = new[] { 5, 10, 15, 20 }
+        .Where(n => n < available)
+        .Distinct()
+        .ToArray();
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/quiz.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/quiz-focus.css" asp-append-version="true" />
 }
 
-<div class="quiz-shell quiz-shell-setup">
-    <main class="quiz-stage quiz-stage-setup">
-        <header class="quiz-header quiz-header-setup">
-            <a class="quiz-exit" asp-action="Index" asp-route-setId="@Model.SetId">
-                <i class="ph ph-arrow-left" aria-hidden="true"></i>
-                <span>Thoát</span>
-            </a>
-            <div class="quiz-heading">
-                <span class="quiz-eyebrow">Trắc nghiệm</span>
-                <h1>@Model.SetTitle</h1>
-            </div>
-        </header>
+<div class="qz" data-quiz-setup data-available-count="@available">
+    <header class="qz-bar">
+        <a class="qz-back" asp-action="Index" asp-route-setId="@Model.SetId">
+            <i class="ph ph-arrow-left" aria-hidden="true"></i>
+            Study hub
+        </a>
+        <p class="qz-bar-meta">
+            <span class="qz-steps" aria-hidden="true">
+                <span class="qz-step is-on">1</span>
+                <span class="qz-step">2</span>
+                <span class="qz-step">3</span>
+            </span>
+            Thiết lập · Làm bài · Kết quả
+        </p>
+    </header>
 
-        <div class="quiz-page-intro">
-            <h2 id="quiz-setup-title">Bạn muốn làm bao nhiêu câu?</h2>
-            <p>Chọn số câu và thời lượng, sau đó bắt đầu với câu đầu tiên.</p>
-        </div>
+    <div class="qz-setup">
+        <aside class="qz-setup-story">
+            <p class="qz-kicker">Trắc nghiệm</p>
+            <h1 class="qz-display">Bắt đầu<br>làm bài.</h1>
+            <span class="qz-display-rule" aria-hidden="true"></span>
+            <p class="qz-deck">
+                Bộ <strong>@Model.SetTitle</strong> có
+                <strong>@available</strong> câu sẵn sàng. Chọn số câu và thời lượng, rồi vào luôn.
+            </p>
+            <ul class="qz-setup-points">
+                <li>
+                    <i class="ph ph-check-circle" aria-hidden="true"></i>
+                    Mỗi câu 4 lựa chọn, phím tắt 1-4
+                </li>
+                <li>
+                    <i class="ph ph-check-circle" aria-hidden="true"></i>
+                    Có thể làm lại hoặc thoát giữa chừng
+                </li>
+                <li>
+                    <i class="ph ph-check-circle" aria-hidden="true"></i>
+                    Xem kết quả và câu sai sau khi xong
+                </li>
+            </ul>
+        </aside>
 
-        <div class="quiz-setup-layout quiz-workspace" data-quiz-setup>
-            <aside class="quiz-context-panel quiz-context-panel-setup" aria-label="Thông tin bài trắc nghiệm">
-                <div class="quiz-context-heading">
-                    <span class="quiz-context-icon" aria-hidden="true">
-                        <i class="ph ph-timer"></i>
-                    </span>
-                    <div>
-                        <span class="quiz-context-label">Thiết lập bài làm</span>
-                        <h3>@Model.SetTitle</h3>
-                    </div>
+        <form asp-route="QuizStartPost"
+              asp-route-setId="@Model.SetId"
+              method="post"
+              class="qz-setup-panel">
+            @Html.AntiForgeryToken()
+            <input asp-for="TimingMode" type="hidden" data-quiz-mode-input />
+            <input asp-for="SelectedPresetMinutes" type="hidden" data-quiz-preset-input />
+
+            <div asp-validation-summary="ModelOnly" class="qz-alert" role="alert"></div>
+
+            <fieldset class="qz-field">
+                <legend><span class="qz-field-num" aria-hidden="true">1</span> Số câu hỏi</legend>
+                <p class="qz-help">Chạm gợi ý, hoặc nhập số. Để trống = tất cả @available câu.</p>
+
+                <div class="qz-chips" role="group" aria-label="Gợi ý số câu">
+                    @foreach (int n in countPresets)
+                    {
+                        <button type="button" class="qz-chip" data-quiz-count-chip="@n">@n</button>
+                    }
+                    <button type="button" class="qz-chip" data-quiz-count-chip="@available">
+                        Tất cả
+                    </button>
                 </div>
 
-                <ol class="quiz-steps" aria-label="Các bước làm bài">
-                    <li class="is-current" aria-current="step"><span>1</span> Thiết lập</li>
-                    <li><span>2</span> Làm bài</li>
-                    <li><span>3</span> Kết quả</li>
-                </ol>
-            </aside>
+                <div class="qz-count-row">
+                    <label asp-for="QuestionCount" class="visually-hidden">Số câu</label>
+                    <input asp-for="QuestionCount"
+                           class="qz-count-input"
+                           type="number"
+                           min="1"
+                           max="@available"
+                           step="1"
+                           inputmode="numeric"
+                           placeholder="@available"
+                           data-quiz-question-count
+                           aria-describedby="quiz-count-hint quiz-count-err" />
+                    <span class="qz-count-max">/ @available câu</span>
+                </div>
+                <p id="quiz-count-hint" class="qz-help qz-help-sub">Tối đa theo số thẻ đủ dữ liệu quiz.</p>
+                <span asp-validation-for="QuestionCount"
+                      id="quiz-count-err"
+                      class="qz-err"
+                      role="alert"
+                      data-quiz-count-validation></span>
+            </fieldset>
 
-            <section class="quiz-setup-main" aria-labelledby="quiz-timing-title">
+            <fieldset class="qz-field">
+                <legend><span class="qz-field-num" aria-hidden="true">2</span> Thời lượng</legend>
+                <p class="qz-help">Chọn một mức. Mặc định 10 phút.</p>
 
-                <form asp-route="QuizStartPost"
-                      asp-route-setId="@Model.SetId"
-                      method="post">
-                    @Html.AntiForgeryToken()
-                    <input asp-for="TimingMode" type="hidden" data-quiz-mode-input />
-                    <input asp-for="SelectedPresetMinutes" type="hidden" data-quiz-preset-input />
-                    <div asp-validation-summary="All" role="alert"></div>
-                    <span asp-validation-for="TimingMode" class="quiz-validation-message"></span>
-
-                    <div class="quiz-count-field">
-                        <div>
-                            <label asp-for="QuestionCount">Số câu</label>
-                            <small id="quiz-question-count-help">
-                                Nhập từ 1 đến @Model.AvailableQuestionCount câu. Để trống để làm tất cả.
-                            </small>
-                        </div>
-                        <input asp-for="QuestionCount"
-                               class="form-control quiz-count-input"
-                               type="number"
-                               min="1"
-                               max="@Model.AvailableQuestionCount"
-                               step="1"
-                               inputmode="numeric"
-                               placeholder="@Model.AvailableQuestionCount"
-                               aria-describedby="quiz-question-count-help quiz-question-count-validation"
-                               data-quiz-question-count />
-                        <span asp-validation-for="QuestionCount"
-                              id="quiz-question-count-validation"
-                              class="quiz-validation-message"
-                              role="alert"
-                              data-quiz-count-validation></span>
-                    </div>
-
-                    <fieldset class="quiz-timing-fieldset">
-                        <legend id="quiz-timing-title">Thời lượng</legend>
-                        <div class="quiz-timing-grid">
-                            @foreach (int minutes in new[] { 5, 10, 15, 20 })
-                            {
-                                <label class="quiz-timing-card" data-quiz-preset="@minutes">
-                                    <input type="radio"
-                                           name="TimingChoice"
-                                           value="preset-@minutes"
-                                           data-quiz-option
-                                           data-quiz-mode="Preset"
-                                           data-quiz-minutes="@minutes" />
-                                    <span>
-                                        <strong>@minutes phút</strong>
-                                        <small>Nhịp độ gợi ý</small>
-                                    </span>
-                                </label>
-                            }
-                        </div>
-
-                        <label class="quiz-timing-card quiz-timing-card-untimed"
-                               data-quiz-timing="untimed">
+                <div class="qz-time-grid">
+                    @foreach (int minutes in new[] { 5, 10, 15, 20 })
+                    {
+                        <label class="qz-time" data-quiz-preset="@minutes">
                             <input type="radio"
                                    name="TimingChoice"
-                                   value="untimed"
+                                   value="preset-@minutes"
                                    data-quiz-option
-                                   data-quiz-mode="Untimed" />
-                            <span class="quiz-timing-icon" aria-hidden="true">∞</span>
-                            <span>
-                                <strong>Không giới hạn thời gian</strong>
-                                <small>Làm bài theo tốc độ của bạn</small>
+                                   data-quiz-mode="Preset"
+                                   data-quiz-minutes="@minutes" />
+                            <span class="qz-time-face">
+                                <strong>@minutes</strong>
+                                <small>phút</small>
                             </span>
                         </label>
+                    }
+                </div>
 
-                        <div class="quiz-timing-card quiz-timing-card-custom" data-quiz-custom>
-                            <input type="radio"
-                                   id="quiz-timing-custom"
-                                   name="TimingChoice"
-                                   value="custom"
-                                   data-quiz-option
-                                   data-quiz-mode="Custom" />
-                            <label for="quiz-timing-custom">
-                                <strong>Thời lượng tùy chỉnh</strong>
-                                <small>Chọn từ 1 đến 120 phút</small>
-                            </label>
-                            <span class="quiz-custom-input">
-                                <label asp-for="CustomMinutes" class="visually-hidden">Số phút tùy chỉnh</label>
-                                <input asp-for="CustomMinutes"
-                                       type="number"
-                                       min="1"
-                                       max="120"
-                                       step="1"
-                                       data-quiz-custom-input />
-                                <span>phút</span>
-                            </span>
-                        </div>
-                        <span asp-validation-for="CustomMinutes"></span>
-                    </fieldset>
+                <label class="qz-time qz-time-wide" data-quiz-timing="untimed">
+                    <input type="radio"
+                           name="TimingChoice"
+                           value="untimed"
+                           data-quiz-option
+                           data-quiz-mode="Untimed" />
+                    <span class="qz-time-face qz-time-face-row">
+                        <i class="ph ph-infinity" aria-hidden="true"></i>
+                        <span>
+                            <strong>Không giới hạn</strong>
+                            <small>Làm theo nhịp của bạn</small>
+                        </span>
+                    </span>
+                </label>
 
-                    <div class="quiz-submit-dock">
-                        <button type="submit"
-                                class="quiz-action quiz-action-primary quiz-setup-submit"
-                                data-quiz-submit-label>Bắt đầu bài kiểm tra</button>
-                    </div>
-                </form>
-            </section>
-        </div>
-    </main>
+                <div class="qz-time qz-time-wide qz-time-custom" data-quiz-custom>
+                    <input type="radio"
+                           id="quiz-timing-custom"
+                           name="TimingChoice"
+                           value="custom"
+                           data-quiz-option
+                           data-quiz-mode="Custom" />
+                    <label for="quiz-timing-custom" class="qz-time-face qz-time-face-row">
+                        <i class="ph ph-sliders-horizontal" aria-hidden="true"></i>
+                        <span>
+                            <strong>Tùy chỉnh</strong>
+                            <small>1-120 phút</small>
+                        </span>
+                    </label>
+                    <span class="qz-custom-mins">
+                        <label asp-for="CustomMinutes" class="visually-hidden">Số phút</label>
+                        <input asp-for="CustomMinutes"
+                               type="number"
+                               min="1"
+                               max="120"
+                               step="1"
+                               data-quiz-custom-input />
+                        <span>phút</span>
+                    </span>
+                </div>
+                <span asp-validation-for="CustomMinutes" class="qz-err"></span>
+                <span asp-validation-for="TimingMode" class="qz-err"></span>
+            </fieldset>
+
+            <div class="qz-setup-foot">
+                <p class="qz-summary">
+                    <span class="qz-summary-label">Bài của bạn</span>
+                    <span data-quiz-summary-text>Tất cả @available câu · 10 phút</span>
+                </p>
+                <button type="submit"
+                        class="qz-cta"
+                        data-quiz-submit-label>
+                    Bắt đầu làm bài
+                    <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
 
 @section Scripts {

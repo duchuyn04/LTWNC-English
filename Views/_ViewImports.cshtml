@@ -1,3 +1,10 @@
+@{
+    // FILE: Views/_ViewImports.cshtml — cấu hình chung cho mọi view trong Views/.
+    // Việc làm: import namespace ViewModel/Entity + bật Tag Helpers MVC.
+    // Tag Helpers quan trọng: asp-for, asp-action, asp-controller, asp-validation-for, asp-append-version.
+    // Không render HTML; chỉ ảnh hưởng cách biên dịch Razor.
+    // Admin Area có _ViewImports riêng (Areas/Admin/Views) — không dùng file này.
+}
 @using ltwnc
 @using ltwnc.Models
 @using ltwnc.Models.ViewModels.Account

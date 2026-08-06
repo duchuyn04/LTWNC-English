@@ -1,5 +1,10 @@
 @model FlashcardStudyViewModel
 @{
+    // FILE: Partial tab chuyển Flashcard | Dictation | Quiz | Mission | Review.
+    // Model: FlashcardStudyViewModel (hoặc tương thích SetId/title); modeOrder mảng StudyMode.
+    // Highlight mode hiện tại; link deep vào từng action controller.
+    // Phản ánh pattern Strategy phía server (IStudyModeStrategy).
+    // Thứ tự tab cố định UI (không phụ thuộc thứ tự list Modes từ server).
     var modeOrder = new[]
     {
         StudyMode.Flashcard,

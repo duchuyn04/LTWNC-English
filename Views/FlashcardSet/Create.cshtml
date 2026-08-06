@@ -1,5 +1,9 @@
 @model CreateSetViewModel
 @{
+    // FILE: Form tạo bộ thẻ — FlashcardSetController.Create GET/POST.
+    // Model: CreateSetViewModel (Title, Description, IsPublic, NewCardQuota, ReviewPaused...).
+    // POST thành công → redirect Details hoặc Editor.
+    // Tag Helpers + antiforgery; set-management.css.
     ViewData["Title"] = "Tạo bộ thẻ mới";
 }
 

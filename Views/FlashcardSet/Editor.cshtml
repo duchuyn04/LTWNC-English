@@ -1,6 +1,13 @@
 @model ltwnc.Models.ViewModels.FlashcardSet.EditorViewModel
 @using ltwnc.Areas.Admin
 @{
+    // FILE: Editor thống nhất SPA-lite — FlashcardsApiController /api/flashcards/*.
+    // Model: EditorViewModel (Id?, Title, Description, IsPublic, Cards, quarantine flags).
+    // data-* bootstrap JS unified-editor.js: create/update set+cards, reorder, star, batch.
+    // Antiforgery: token ẩn + header RequestVerificationToken cho fetch API.
+    // AutoValidateAntiforgeryToken trên API; quarantine → UI hạn chế chỉnh.
+    // CSS unified-editor.css; offcanvas settings (public, review pause, quota).
+    // Id null = tạo mới (POST create set); Id có = update (PUT) + load cards.
     ViewData["Title"] = Model.Id.HasValue ? "Chỉnh sửa bộ thẻ" : "Tạo bộ thẻ";
 }
 

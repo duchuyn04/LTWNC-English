@@ -1,11 +1,11 @@
 @model ltwnc.Models.ViewModels.Leaderboard.LeaderboardPageViewModel
 @{
-    // FILE: Bảng xếp hạng học tập — LeaderboardController.Index AllowAnonymous.
+    // FILE: Bảng xếp hạng học tập — LeaderboardController.Full AllowAnonymous.
     // Model: LeaderboardPageViewModel (PeriodDays, Entries top 20, ViewerEntry, TotalEntryCount).
     // Xếp theo tổng DurationSeconds phiên Completed + profile IsPublic.
     // Kỳ: 7 / 30 ngày (query ?period=); CSS leaderboard.css.
     ViewData["Title"] = "Bảng xếp hạng";
-    string PeriodLink(int period) => $"/Leaderboard?period={period}";
+    string PeriodLink(int period) => $"/Leaderboard/Full?period={period}";
 }
 
 @section Styles {

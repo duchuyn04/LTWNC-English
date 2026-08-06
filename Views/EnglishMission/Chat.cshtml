@@ -1,6 +1,14 @@
 @model ltwnc.Models.ViewModels.EnglishMission.EnglishMissionChatViewModel
 @{
+    // FILE: Màn chat mission — EnglishMissionController.Chat + AJAX Respond.
+    // Model: EnglishMissionChatViewModel (Mission, TargetWords, Turns, CreditBalance).
+    // data-* trên root: setId, sessionId, npc, opening, credit, maxTurns=8 cho JS.
+    // Gửi turn: fetch POST Respond (clientTurnId UUID idempotent) + antiforgery header/form.
+    // Backend: trừ credit TRƯỚC AI, refund nếu AI/lưu fail; 402 nếu hết credit.
+    // HideLayoutChrome: ẩn nav layout; chip từ mục tiêu đánh is-used khi AI báo used.
+    // JS/CSS: english-mission.*; progress bar theo TurnCount.
     ViewData["Title"] = Model.Mission.Title;
+    // Fullscreen chat — không vẽ app-header/_Layout footer.
     ViewData["HideLayoutChrome"] = true;
 }
 

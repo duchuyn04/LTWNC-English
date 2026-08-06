@@ -1,5 +1,11 @@
 @model ReviewSetViewModel
 @{
+    // FILE: Hub Review 1 bộ thẻ — ReviewController Set/{id} [Authorize].
+    // Model: ReviewSetViewModel (due/new counts, settings, set meta, active session?).
+    // Start: POST Start → ReviewService.StartAsync(userId, setId) — State machine + quota thẻ mới/ngày.
+    // HideLayoutChrome + review.css; partial _SettingsPanel nhúng cài đặt.
+    // 1 user chỉ 1 session Review active (unique index DB).
+    // Timezone quota: Asia/Ho_Chi_Minh (backend).
     ViewData["Title"] = "Ôn tập đến hạn";
     ViewData["HideLayoutChrome"] = true;
 }

@@ -1,5 +1,9 @@
 @model QuizResultViewModel
 @{
+    // FILE: Kết quả quiz + danh sách câu sai.
+    // Model: QuizResultViewModel; partial _QuizResultActions render 2 lần (top/bottom) qua ViewDataDictionary modifier.
+    // WrongAnswers → link học lại subset; QuizQuestionFactory backend tạo câu.
+    // Partial _QuizResultActions dùng chung: truyền modifier class qua ViewData (không nhân đôi markup).
     ViewDataDictionary topActionsViewData = new(ViewData)
     {
         ["ResultActionsModifier"] = "quiz-result-actions--top"

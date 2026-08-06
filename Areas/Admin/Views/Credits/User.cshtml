@@ -1,5 +1,9 @@
 @model AdminCreditUserViewModel
 @{
+    // FILE: Admin điều chỉnh số dư user (cộng/trừ ledger).
+    // Model: AdminCreditUserViewModel (Search, balance, form adjust amount/reason).
+    // Search GET exact email/username; POST adjust concurrency CreditVersion.
+    // Ledger type AdminAdjustment; không đụng SePay.
     ViewData["Title"] = "Điều chỉnh tín dụng";
     ViewData["Heading"] = "Tín dụng người dùng";
 }

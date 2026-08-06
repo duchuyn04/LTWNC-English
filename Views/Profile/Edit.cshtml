@@ -1,5 +1,10 @@
 @model ProfileEditViewModel
 @{
+    // FILE: Chỉnh hồ sơ + avatar — ProfileController.Edit [Authorize].
+    // Model: ProfileEditViewModel (bio, IsPublic, ShowStats, avatar file).
+    // Upload avatar: IFormFile → AvatarService ImageSharp (JPG/PNG/WebP, vuông, max 5MB).
+    // multipart/form-data + antiforgery; rate-limit uploads.
+    // CSS profile.css.
     ViewData["Title"] = "Chỉnh sửa hồ sơ";
 }
 @section Styles {

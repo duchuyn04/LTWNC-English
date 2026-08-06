@@ -1,5 +1,8 @@
-﻿@model ErrorViewModel
+@model ErrorViewModel
 @{
+    // FILE: Lỗi server — Home/Error hoặc exception handler pipeline.
+    // Model: ErrorViewModel (RequestId, ShowRequestId).
+    // Không hiện stack trace production; chỉ RequestId để support.
     ViewData["Title"] = "Có lỗi xảy ra";
 }
 

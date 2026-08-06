@@ -5,8 +5,10 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.Google;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Caching.Memory;
 using System.Security.Claims;
 using System.Threading.RateLimiting;
 using ltwnc.Areas.Admin;
@@ -87,13 +89,19 @@ builder.Services.AddAuthorization(options =>
     });
 });
 
-builder.Services.Configure<CookieAuthenticationOptions>(
+// Named cookie options — dùng PostConfigure để tránh nhầm overload Configure + BinderOptions.
+builder.Services.PostConfigure<CookieAuthenticationOptions>(
     CookieAuthenticationDefaults.AuthenticationScheme,
     options =>
     {
         options.LoginPath = "/Account/Login";
         options.LogoutPath = "/Account/Logout";
         options.AccessDeniedPath = "/Account/Login";
+        options.Cookie.HttpOnly = true;
+        options.Cookie.IsEssential = true;
+        options.Cookie.SameSite = SameSiteMode.Lax;
+        // Production/HTTPS: Always. Local HTTP dev: SameAsRequest.
+        options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
         options.Events.OnRedirectToLogin = context =>
         {
             if (context.Request.Headers["X-Requested-With"] == "XMLHttpRequest")
@@ -118,13 +126,23 @@ builder.Services.Configure<CookieAuthenticationOptions>(
         };
         options.Events.OnValidatePrincipal = async context =>
         {
-            // Kiểm tra mỗi request: user còn tồn tại, security stamp khớp, không bị khóa.
+            // Kiểm tra: user còn tồn tại, security stamp khớp, không bị khóa.
+            // Cache ngắn (15s) theo userId+stamp để giảm query DB mỗi request.
+            // Force-logout sau đổi stamp có thể trễ tối đa ~15s.
             string? userId = context.Principal?.FindFirstValue(ClaimTypes.NameIdentifier);
             string? stamp = context.Principal?.FindFirstValue(AppClaimTypes.SecurityStamp);
             if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(stamp))
             {
                 context.RejectPrincipal();
                 await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                return;
+            }
+
+            IMemoryCache memoryCache =
+                context.HttpContext.RequestServices.GetRequiredService<IMemoryCache>();
+            string cacheKey = $"auth:principal-ok:{userId}:{stamp}";
+            if (memoryCache.TryGetValue(cacheKey, out object? cached) && cached is true)
+            {
                 return;
             }
 
@@ -140,13 +158,23 @@ builder.Services.Configure<CookieAuthenticationOptions>(
             bool locked = user?.LockoutEnd != null && user.LockoutEnd > now;
             if (user == null || user.SecurityStamp != stamp || locked)
             {
+                memoryCache.Remove(cacheKey);
                 context.RejectPrincipal();
                 await context.HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+                return;
             }
+
+            memoryCache.Set(
+                cacheKey,
+                true,
+                new MemoryCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(15)
+                });
         };
         options.ExpireTimeSpan = TimeSpan.FromDays(30);
         options.SlidingExpiration = true;
-});
+    });
 
 builder.Services.AddScoped<ICurrentUser, CurrentUser>();
 builder.Services.AddScoped<ltwnc.Services.Audit.IAdminAuditService, ltwnc.Services.Audit.AdminAuditService>();
@@ -337,6 +365,28 @@ app.Use(async (context, next) =>
     }
 });
 app.UseHttpsRedirection();
+app.Use(async (context, next) =>
+{
+    // Security headers tối thiểu cho mọi response.
+    context.Response.Headers.TryAdd("X-Content-Type-Options", "nosniff");
+    context.Response.Headers.TryAdd("X-Frame-Options", "DENY");
+    context.Response.Headers.TryAdd("Referrer-Policy", "strict-origin-when-cross-origin");
+    context.Response.Headers.TryAdd("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    // CSP: self + CDN font/icon hiện dùng (Google Fonts, Phosphor unpkg); form SePay.
+    context.Response.Headers.TryAdd(
+        "Content-Security-Policy",
+        "default-src 'self'; " +
+        "script-src 'self' 'unsafe-inline'; " +
+        "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; " +
+        "style-src-elem 'self' 'unsafe-inline' https://fonts.googleapis.com https://unpkg.com; " +
+        "img-src 'self' data: blob: https:; " +
+        "font-src 'self' data: https://fonts.gstatic.com https://unpkg.com; " +
+        "connect-src 'self'; " +
+        "frame-ancestors 'none'; " +
+        "base-uri 'self'; " +
+        "form-action 'self' https://pay.sepay.vn https://pay-sandbox.sepay.vn");
+    await next();
+});
 app.UseStaticFiles();
 app.UseRouting();
 app.UseAuthentication();

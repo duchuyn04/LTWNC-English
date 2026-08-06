@@ -7,6 +7,11 @@ public interface IReviewService
 {
     Task<ReviewSessionViewModel?> GetActiveSessionAsync(string userId);
 
+    /// <summary>
+    /// Legacy: bắt đầu ôn trên mọi bộ thẻ của user.
+    /// Controller/UI hiện chỉ dùng <see cref="StartAsync(string, int)"/> (per-set).
+    /// Giữ overload này cho test và tương thích ngược — không wire route mới.
+    /// </summary>
     Task<ReviewSessionViewModel?> StartAsync(string userId);
 
     Task<ReviewSetViewModel?> GetSetAsync(string userId, int setId);

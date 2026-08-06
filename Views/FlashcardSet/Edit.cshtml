@@ -1,7 +1,14 @@
 @model EditSetPageViewModel
 @{
+    // FILE: Quản lý thẻ truyền thống (server-render) — Edit + Import + BatchAction.
+    // Model: EditSetPageViewModel (Id, meta, Cards list).
+    // Import: multipart CSV/XLSX → FlashcardImportService (rate-limit uploads); lỗi theo dòng trong TempData JSON.
+    // Batch: form CardActions/BatchAction (Delete/Star/Unstar) — pattern Command + Memento Undo.
+    // TempData UndoLogId: form Undo sau khi batch; data-popup-persist giữ banner.
+    // Antiforgery mọi POST; batch-toolbar JS chọn nhiều thẻ.
     ViewData["Title"] = "Quản lý bộ thẻ";
     var cards = Model.Cards;
+    // Import lỗi serialize JSON trong TempData (flash 1 request) — deserialize để list theo dòng.
     var importErrorsJson = TempData["ImportErrors"] as string;
     var importErrors = string.IsNullOrWhiteSpace(importErrorsJson)
         ? Array.Empty<ltwnc.Models.ViewModels.FlashcardSet.FlashcardImportError>()

@@ -1,5 +1,11 @@
 @model VerifyRegistrationViewModel
 @{
+    // FILE: Xác thực email OTP sau đăng ký — AccountController.VerifyRegistration.
+    // Model: VerifyRegistrationViewModel (ChallengeId, Code).
+    // ChallengeId: id EmailOtpChallenge (hidden) — server kiểm tra hash OTP, TTL 5 phút, max 3 lần sai.
+    // Form resend: ResendRegistrationOtp (cooldown 1 phút, max 5/giờ theo backend).
+    // inputmode=numeric maxlength=6 cho UX mobile.
+    // Thành công → tạo user + cookie login.
     Layout = "_AuthLayout";
     ViewData["Title"] = "Xác thực email";
 }

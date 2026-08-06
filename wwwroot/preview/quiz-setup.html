@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Preview — Quiz setup</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/lib/bootstrap/dist/css/bootstrap.min.css" />
+<link rel="stylesheet" href="https://unpkg.com/phosphor-icons@1.4.2/src/css/icons.css" />
+<link rel="stylesheet" href="/css/site.css" />
+<link rel="stylesheet" href="/css/quiz.css" />
+<link rel="stylesheet" href="/css/quiz-focus.css" />
+</head>
+<body>
+<div class="qz" data-quiz-setup data-available-count="24">
+    <header class="qz-bar">
+        <a class="qz-back" href="#"><i class="ph ph-arrow-left" aria-hidden="true"></i>Study hub</a>
+        <p class="qz-bar-meta">
+            <span class="qz-steps" aria-hidden="true">
+                <span class="qz-step is-on">1</span>
+                <span class="qz-step">2</span>
+                <span class="qz-step">3</span>
+            </span>
+            Thiết lập · Làm bài · Kết quả
+        </p>
+    </header>
+
+    <div class="qz-setup">
+        <aside class="qz-setup-story">
+            <p class="qz-kicker">Trắc nghiệm</p>
+            <h1 class="qz-display">Vào đề<br>ngay thôi.</h1>
+            <span class="qz-display-rule" aria-hidden="true"></span>
+            <p class="qz-deck">
+                Bộ <strong>Unit 5 · Environment &amp; Sustainability</strong> có
+                <strong>24</strong> câu sẵn sàng. Chọn số câu và thời lượng, rồi vào luôn.
+            </p>
+            <ul class="qz-setup-points">
+                <li><i class="ph ph-check-circle" aria-hidden="true"></i>Mỗi câu 4 lựa chọn, phím tắt 1–4</li>
+                <li><i class="ph ph-check-circle" aria-hidden="true"></i>Có thể làm lại hoặc thoát giữa chừng</li>
+                <li><i class="ph ph-check-circle" aria-hidden="true"></i>Xem kết quả và câu sai sau khi xong</li>
+            </ul>
+        </aside>
+
+        <form class="qz-setup-panel" method="post" action="#">
+            <input name="__RequestVerificationToken" type="hidden" value="preview" />
+            <input type="hidden" name="TimingMode" value="Preset" data-quiz-mode-input />
+            <input type="hidden" name="SelectedPresetMinutes" value="10" data-quiz-preset-input />
+
+            <div class="qz-alert" role="alert" hidden></div>
+
+            <fieldset class="qz-field">
+                <legend><span class="qz-field-num" aria-hidden="true">1</span> Số câu hỏi</legend>
+                <p class="qz-help">Chạm gợi ý, hoặc nhập số. Để trống = tất cả 24 câu.</p>
+
+                <div class="qz-chips" role="group" aria-label="Gợi ý số câu">
+                    <button type="button" class="qz-chip" data-quiz-count-chip="5">5</button>
+                    <button type="button" class="qz-chip" data-quiz-count-chip="10">10</button>
+                    <button type="button" class="qz-chip" data-quiz-count-chip="15">15</button>
+                    <button type="button" class="qz-chip" data-quiz-count-chip="20">20</button>
+                    <button type="button" class="qz-chip" data-quiz-count-chip="24">Tất cả</button>
+                </div>
+
+                <div class="qz-count-row">
+                    <label class="visually-hidden" for="QuestionCount">Số câu</label>
+                    <input id="QuestionCount" name="QuestionCount" class="qz-count-input" type="number"
+                           min="1" max="24" step="1" inputmode="numeric" placeholder="24"
+                           data-quiz-question-count aria-describedby="quiz-count-hint quiz-count-err" />
+                    <span class="qz-count-max">/ 24 câu</span>
+                </div>
+                <p id="quiz-count-hint" class="qz-help qz-help-sub">Tối đa theo số thẻ đủ dữ liệu quiz.</p>
+                <span id="quiz-count-err" class="qz-err" role="alert" data-quiz-count-validation></span>
+            </fieldset>
+
+            <fieldset class="qz-field">
+                <legend><span class="qz-field-num" aria-hidden="true">2</span> Thời lượng</legend>
+                <p class="qz-help">Chọn một mức. Mặc định 10 phút.</p>
+
+                <div class="qz-time-grid">
+                    <label class="qz-time" data-quiz-preset="5">
+                        <input type="radio" name="TimingChoice" value="preset-5" data-quiz-option data-quiz-mode="Preset" data-quiz-minutes="5" />
+                        <span class="qz-time-face"><strong>5</strong><small>phút</small></span>
+                    </label>
+                    <label class="qz-time" data-quiz-preset="10">
+                        <input type="radio" name="TimingChoice" value="preset-10" data-quiz-option data-quiz-mode="Preset" data-quiz-minutes="10" checked />
+                        <span class="qz-time-face"><strong>10</strong><small>phút</small></span>
+                    </label>
+                    <label class="qz-time" data-quiz-preset="15">
+                        <input type="radio" name="TimingChoice" value="preset-15" data-quiz-option data-quiz-mode="Preset" data-quiz-minutes="15" />
+                        <span class="qz-time-face"><strong>15</strong><small>phút</small></span>
+                    </label>
+                    <label class="qz-time" data-quiz-preset="20">
+                        <input type="radio" name="TimingChoice" value="preset-20" data-quiz-option data-quiz-mode="Preset" data-quiz-minutes="20" />
+                        <span class="qz-time-face"><strong>20</strong><small>phút</small></span>
+                    </label>
+                </div>
+
+                <label class="qz-time qz-time-wide" data-quiz-timing="untimed">
+                    <input type="radio" name="TimingChoice" value="untimed" data-quiz-option data-quiz-mode="Untimed" />
+                    <span class="qz-time-face qz-time-face-row">
+                        <i class="ph ph-infinity" aria-hidden="true"></i>
+                        <span><strong>Không giới hạn</strong><small>Làm theo nhịp của bạn</small></span>
+                    </span>
+                </label>
+
+                <div class="qz-time qz-time-wide qz-time-custom" data-quiz-custom>
+                    <input type="radio" id="quiz-timing-custom" name="TimingChoice" value="custom" data-quiz-option data-quiz-mode="Custom" />
+                    <label for="quiz-timing-custom" class="qz-time-face qz-time-face-row">
+                        <i class="ph ph-sliders-horizontal" aria-hidden="true"></i>
+                        <span><strong>Tùy chỉnh</strong><small>1–120 phút</small></span>
+                    </label>
+                    <span class="qz-custom-mins">
+                        <label class="visually-hidden" for="CustomMinutes">Số phút</label>
+                        <input id="CustomMinutes" name="CustomMinutes" type="number" min="1" max="120" step="1" data-quiz-custom-input />
+                        <span>phút</span>
+                    </span>
+                </div>
+            </fieldset>
+
+            <div class="qz-setup-foot">
+                <p class="qz-summary">
+                    <span class="qz-summary-label">Bài của bạn</span>
+                    <span data-quiz-summary-text>Tất cả 24 câu · 10 phút</span>
+                </p>
+                <button type="button" class="qz-cta" data-quiz-submit-label>
+                    Bắt đầu làm bài
+                    <i class="ph ph-arrow-right" aria-hidden="true"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+    const params = new URLSearchParams(location.search);
+    if (params.has('js')) {
+        document.write('<script src="/js/quiz-setup.js"><\/script>');
+    }
+</script>
+</body>
+</html>

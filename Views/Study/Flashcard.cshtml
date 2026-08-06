@@ -1,6 +1,14 @@
 @model FlashcardStudyViewModel
 @{
+    // FILE: Học lật thẻ — StudyController Flashcard mode [Authorize phần lớn].
+    // Model: FlashcardStudyViewModel (SetId, cards, settings, vocabulary list).
+    // HideLayoutChrome; AntiForgeryToken root cho AJAX ToggleStar/SaveSettings.
+    // Cuối trang: @Html.Raw(JsonSerializer.Serialize(...)) nhúng data cho JS (không XSS nếu serialize đúng).
+    // Settings panel: filter StarredOnly/UnlearnedOnly, mặt trước/sau, ẩn ảnh — POST /Study/Settings.
+    // CSS/JS: flashcard.css + inline/adjacent script; Strategy FlashcardModeStrategy chọn thẻ.
+    // Partial điều hướng mode: thường dùng _StudyModeNavigation ở header.
     ViewData["Title"] = "Học flashcard";
+    // Fullscreen study — layout ẩn nav (xem _Layout hideLayoutChrome).
     ViewData["HideLayoutChrome"] = true;
 }
 
@@ -308,6 +316,9 @@
 
 @section Scripts {
     <script>
+        // === Bridge Razor → JS ===
+        // JsonSerializer + Html.Raw: JSON an toàn (escape <>&); KHÔNG nối string user thô.
+        // flashcards: payload học; Image ưu tiên upload local hơn URL ngoài.
         let flashcards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Flashcards.Select(c => new
         {
             c.Id,
@@ -319,9 +330,11 @@
             c.IsStarred,
             Image = !string.IsNullOrWhiteSpace(c.UploadedImagePath) ? c.UploadedImagePath : c.ImageUrl
         })));
+        // UserStudySettings: filter sao/chưa học + layout mặt trước/sau + ảnh.
         const initialSettings = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Settings));
         const isAuthenticated = @Json.Serialize(Model.IsAuthenticated);
         const settings = { ...initialSettings };
+        // setId/sessionId dùng AJAX ToggleStar, complete session, save settings.
         const setId = @Model.SetId;
         const sessionId = @Model.SessionId;
         const vocabularyCards = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.VocabularyCards.Select(c =>

@@ -1,5 +1,8 @@
 @model QuizResultViewModel
 @{
+    // FILE: Partial nút hành động sau quiz (học lại sai / làm mới / hub).
+    // Model: QuizResultViewModel; ViewData["ResultActionsModifier"] = class BEM bổ sung.
+    // Tái sử dụng 2 vị trí trên QuizResult để DRY.
     string modifier = ViewData["ResultActionsModifier"] as string ?? string.Empty;
 }
 

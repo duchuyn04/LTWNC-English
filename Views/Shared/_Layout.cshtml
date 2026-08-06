@@ -1,3 +1,13 @@
+@{
+    // FILE: Layout chính toàn site (trừ Auth/Admin/404 standalone).
+    // @inject ICreditService — đọc số dư hiện trên nav (user đã login).
+    // ViewData HideLayoutChrome: ẩn top nav/footer cho Study/Review fullscreen.
+    // Sections: Styles, Scripts, FullWidth (nội dung full-bleed).
+    // Menu: Study sets, Library, Credits, Profile, Admin nếu claim IsAdmin=true.
+    // TempData SuccessMessage/ErrorMessage → data-popup global.
+    // Logout: form POST Account/Logout + antiforgery.
+    // CSS/JS global: site.css, Bootstrap, Phosphor icons, popup helper.
+}
 @inject ltwnc.Services.Credits.ICreditService CreditService
 <!DOCTYPE html>
 <html lang="vi">
@@ -17,11 +27,15 @@
 </head>
 <body>
     @{
+        // --- Biến layout dùng xuyên suốt nav/footer ---
+        // HideLayoutChrome: Study/Review/Mission fullscreen không vẽ header/footer.
         var hideLayoutChrome = ViewData["HideLayoutChrome"] as bool? == true;
         var signedIn = User.Identity?.IsAuthenticated == true;
         var currentPath = Context.Request.Path.Value ?? "/";
         int? creditBalance = null;
+        // Claim NameIdentifier = AppUser.Id (cookie auth tự quản).
         string? layoutUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        // Chỉ query số dư khi có nav (tránh tốn DB trên màn fullscreen).
         if (signedIn && !hideLayoutChrome && layoutUserId != null)
         {
             creditBalance = await CreditService.GetBalanceAsync(layoutUserId);

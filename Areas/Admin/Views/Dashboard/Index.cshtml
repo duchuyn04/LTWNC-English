@@ -1,13 +1,22 @@
 @model AdminDashboardViewModel
 @{
+    // FILE: KPI dashboard — Admin DashboardController + AdminDashboardService.
+    // Model: AdminDashboardViewModel (Activity, NewUsers, Reports theo ngày, range From/To).
+    // chartDataJson = JsonSerializer → Chart.js (labels, completed, abandoned...).
+    // Quick ranges 7/14/30 ngày; query string đổi khoảng.
+    // Chỉ admin; số liệu study sessions completed/abandoned.
     ViewData["Title"] = "Tổng quan";
+    // Heading hiển thị trên _AdminLayout (breadcrumb/title bar admin).
     ViewData["Heading"] = "Tổng quan";
+    // Cờ empty-state: ẩn chart khi series toàn 0.
     bool hasActivity = Model.Activity.Any(day => day.Completed > 0 || day.Abandoned > 0);
     bool hasNewUsers = Model.NewUsers.Any(day => day.Count > 0);
     bool hasReports = Model.Reports.Any(day => day.Count > 0);
     int newUserTotal = Model.NewUsers.Sum(day => day.Count);
     int reportTotal = Model.Reports.Sum(day => day.Count);
+    // Nút chọn nhanh khoảng ngày → query ?days= trên GET Index.
     int[] quickRanges = [7, 14, 30];
+    // Payload Chart.js: serialize 1 lần, nhúng data-* hoặc <script type="application/json">.
     string chartDataJson = System.Text.Json.JsonSerializer.Serialize(new
     {
         labels = Model.Activity.Select(day => day.Date.ToString("dd/MM")),

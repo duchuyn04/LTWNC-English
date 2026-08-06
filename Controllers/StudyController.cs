@@ -291,7 +291,11 @@ public class StudyController : Controller
         {
             return Forbid();
         }
-        catch (Exception)
+        catch (ArgumentException)
+        {
+            return BadRequest();
+        }
+        catch (InvalidOperationException)
         {
             return BadRequest();
         }
@@ -338,7 +342,11 @@ public class StudyController : Controller
                 settings = StudySettingsMapper.ToViewModel(saved)
             });
         }
-        catch (Exception)
+        catch (ArgumentException exception)
+        {
+            return BadRequest(new { success = false, message = exception.Message });
+        }
+        catch (InvalidOperationException)
         {
             return StatusCode(500, new { success = false, message = "Could not save study settings." });
         }

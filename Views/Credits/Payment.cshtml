@@ -1,10 +1,18 @@
 @model ltwnc.Models.Entities.CreditPurchase
 @using ltwnc.Models.Entities
 @{
+    // FILE: Kết quả thanh toán / chờ IPN — CreditsController.Payment.
+    // Model: CreditPurchase (Status Pending/Paid/Cancelled/Expired...).
+    // ViewData PaymentResult: query ?result=success|cancel|error từ redirect SePay.
+    // shouldPoll: nếu chưa Paid và không cancel → JS poll GET Payment/{id}/Status.
+    // Lưu ý: redirect browser KHÔNG tin cậy để cộng tiền; chỉ hiển thị UI.
     ViewData["Title"] = "Kết quả thanh toán";
+    // paid = true chỉ khi IPN đã ghi Status=Paid (DB), không phải vì ?result=success.
     bool paid = Model.Status == CreditPurchaseStatuses.Paid;
     string? callbackResult = ViewData["PaymentResult"] as string;
+    // User bấm hủy/lỗi trên SePay → không poll.
     bool cancelled = callbackResult is "cancel" or "error";
+    // Pending: poll JSON Status đến khi Paid hoặc user rời trang.
     bool shouldPoll = !paid && !cancelled;
 }
 <section class="credit-payment-result text-center mx-auto" data-purchase-id="@Model.Id" data-paid="@paid.ToString().ToLowerInvariant()">

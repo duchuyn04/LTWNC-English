@@ -1,5 +1,10 @@
 @model ltwnc.Models.ViewModels.EnglishMission.EnglishMissionTopicViewModel
 @{
+    // FILE: Chọn chủ đề mission — EnglishMissionController.SelectTopic/Start.
+    // Model: EnglishMissionTopicViewModel (SetId, SetTitle, Topics cố định).
+    // POST Start(topic) → AI sinh mission (title, situation, NPC, goals) — chưa trừ credit.
+    // Rate-limit policy "ai"; lỗi AI → TempData MissionError quay lại trang này.
+    // CSS english-mission.css; form antiforgery.
     ViewData["Title"] = "Chọn English Mission";
 }
 

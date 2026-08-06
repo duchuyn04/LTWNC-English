@@ -1,5 +1,11 @@
 @model RegisterViewModel
 @{
+    // FILE: Đăng ký local — AccountController.Register.
+    // Model: RegisterViewModel (Email, UserName, Password, Confirm...).
+    // Luồng: POST lưu PendingRegistration → gửi OTP email → VerifyRegistration → tạo AppUser.
+    // Có thể đăng ký bằng Google (cùng OAuth flow, tạo user nếu email mới).
+    // Layout _AuthLayout; Tag Helpers + client validation.
+    // Sau OTP đúng: auto sign-in cookie, credit welcome bonus (backend).
     Layout = "_AuthLayout";
     ViewData["Title"] = "Đăng ký";
 }

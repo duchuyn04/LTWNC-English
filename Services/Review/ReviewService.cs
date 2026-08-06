@@ -33,6 +33,7 @@ public sealed class ReviewService : IReviewService
         return session == null ? null : await MapSessionAsync(session);
     }
 
+    // Legacy multi-set start — không được ReviewController gọi. Xem IReviewService.
     public async Task<ReviewSessionViewModel?> StartAsync(string userId)
     {
         ReviewSessionViewModel? active = await GetActiveSessionAsync(userId);

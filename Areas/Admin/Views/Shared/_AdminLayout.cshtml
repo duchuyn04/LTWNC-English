@@ -1,4 +1,8 @@
 @{
+    // FILE: Shell Admin — sidebar, heading ViewData["Heading"], active menu.
+    // currentController từ RouteData; GetMenuClass / GetAriaCurrent cho a11y.
+    // Menu: Dashboard, Users, ContentReports, Credits, AuditLogs.
+    // CSS admin-*; không dùng nav user thường.
     string pageHeading = ViewData["Heading"] as string ?? "Quản trị hệ thống";
 
     // Tên controller cho biết mục menu nào đang được mở.

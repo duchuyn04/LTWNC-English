@@ -1,5 +1,9 @@
 @model AdminUserIndexViewModel
 @{
+    // FILE: Danh sách user — Admin UsersController.Index.
+    // Model: AdminUserIndexViewModel (Search, Status filter, paging, items).
+    // GET filter (không antiforgery); status: unlocked|locked|admin.
+    // Link Details; AdminUserAccountService backend.
     ViewData["Title"] = "Người dùng";
     ViewData["Heading"] = "Quản lý người dùng";
 }

@@ -1,7 +1,13 @@
 @model HomeViewModel
 @using System.Globalization
 @{
+    // FILE: Landing trang chủ — HomeController.Index (AllowAnonymous).
+    // Model: HomeViewModel (gói credit preview, stats marketing nếu có).
+    // CTA: đã login → /Set/Create & /Credits; chưa → /Account/Register.
+    // User.Identity?.IsAuthenticated để nhánh UI; CultureInfo format giá.
+    // Không form nghiệp vụ nặng — chủ yếu marketing + deep link.
     ViewData["Title"] = "Trang chủ";
+    // CTA theo trạng thái cookie: guest → Register; đã login → tạo set / mua credit.
     var primaryCta = User.Identity?.IsAuthenticated == true ? "/Set/Create" : "/Account/Register";
     var creditCta = User.Identity?.IsAuthenticated == true ? "/Credits" : "/Account/Register";
 }

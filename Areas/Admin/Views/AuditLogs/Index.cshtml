@@ -1,5 +1,9 @@
 @model AdminAuditLogIndexViewModel
 @{
+    // FILE: Audit log readonly — AdminAuditLogsController.
+    // Model: AdminAuditLogIndexViewModel (filter action/actor/date, paging).
+    // GET filter; AdminAuditService ghi khi admin đổi user/credits/moderation.
+    // Không form mutate (chỉ đọc).
     ViewData["Title"] = "Bản ghi kiểm toán quản trị";
     ViewData["Heading"] = "Bản ghi kiểm toán quản trị";
 }

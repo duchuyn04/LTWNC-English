@@ -1,5 +1,9 @@
 @model PublicProfileViewModel
 @{
+    // FILE: Hồ sơ công khai /u/{username} — ProfileController.
+    // Model: PublicProfileViewModel (avatar, bio, stats, activity timeline).
+    // Route constraint profileUsername; IsPublic && ShowStats quyết định field hiển thị.
+    // CSS profile.css; không form chỉnh (dùng Edit).
     ViewData["Title"] = $"Hồ sơ của {Model.Username}";
 }
 @section Styles {

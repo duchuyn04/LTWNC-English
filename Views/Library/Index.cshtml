@@ -1,6 +1,11 @@
 @model ltwnc.Models.ViewModels.Library.LibraryIndexViewModel
 @using ltwnc.Services.PublicLibrary
 @{
+    // FILE: Thư viện public — LibraryController.Index AllowAnonymous.
+    // Model: LibraryIndexViewModel (items, sort, search, paging).
+    // Backend: IPublicLibraryService + CachedPublicLibraryServiceDecorator (pattern Decorator/cache).
+    // Sort: PublicLibrarySort.Popular | Recent — tab đổi query string.
+    // Chỉ set IsPublic && ModerationStatus Active; copy set dùng Prototype backend.
     ViewData["Title"] = "Thư viện bộ thẻ";
     var sortTabs = new[]
     {

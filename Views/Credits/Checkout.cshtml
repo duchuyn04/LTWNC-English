@@ -1,5 +1,10 @@
 @model ltwnc.Services.Credits.SePayCheckoutForm
 @{
+    // FILE: Trung gian redirect SePay — CreditsController.Buy trả View Checkout.
+    // Model: SePayCheckoutForm (ActionUrl + list field name/value đã ký HMAC).
+    // Trang gần như trống: spinner + form ẩn → JS auto-submit POST sang SePay.
+    // Không cộng credit ở đây — chỉ IPN ORDER_PAID (POST /api/payments/sepay/ipn) mới cộng.
+    // Field quan trọng: order_invoice_number, order_amount, signature, success/cancel URL.
     ViewData["Title"] = "Chuyển đến SePay";
 }
 <div class="text-center py-5">

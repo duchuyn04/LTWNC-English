@@ -1,7 +1,13 @@
 @model StudyModeSelectorViewModel
 @{
+    // FILE: Study Hub chọn chế độ — StudyController hub theo setId.
+    // Model: StudyModeSelectorViewModel (SetTitle, stats thời gian, modes available).
+    // Các mode map Strategy backend: Flashcard, Dictation, Quiz, EnglishMission, Review.
+    // FormatTime helper local trong @{ }; link /Study/{id}/..., /Review/Set/{id}.
+    // Require login hầu hết mode; một số GET AllowAnonymous redirect login.
     ViewData["Title"] = $"Học: {Model.SetTitle}";
 
+    // Hiển thị thời lượng gợi ý (giây → phút tròn lên) trên card mode.
     string FormatTime(int totalSeconds)
     {
         if (totalSeconds <= 0) return "< 1 phút";
@@ -9,9 +15,11 @@
         return minutes >= 2 ? $"{minutes} phút" : "1 phút";
     }
 
+    // CTA lớn: mode recommended (backend gợi ý) hoặc mode available đầu tiên.
     var primaryMode = Model.Modes.FirstOrDefault(m => m.IsRecommended)
         ?? Model.Modes.FirstOrDefault(m => m.IsAvailable);
 
+    // Guest có thể xem hub nhưng Start mode yêu cầu login (controller Challenge).
     var signedIn = User.Identity?.IsAuthenticated == true;
 }
 

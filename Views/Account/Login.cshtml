@@ -1,5 +1,13 @@
 @model LoginViewModel
 @{
+    // FILE: Đăng nhập — AccountController.Login (GET hiển thị / POST xử lý).
+    // Model: LoginViewModel (UserName, Password, RememberMe nếu có).
+    // Luồng: form POST → AuthService cookie auth → redirect returnUrl hoặc Home.
+    // Google: nếu ViewData["GoogleLoginEnabled"] thì hiện link GoogleLogin (OAuth external cookie).
+    // Layout: _AuthLayout (UI auth riêng, không nav app đầy đủ).
+    // Kỹ thuật: Tag Helpers form (antiforgery token tự chèn), TempData Error/Success, validation unobtrusive.
+    // JS: data-password-toggle hiện/ẩn mật khẩu; section Scripts nạp _ValidationScriptsPartial.
+    // Bảo mật: rate-limit policy "auth" ở controller; không log password.
     Layout = "_AuthLayout";
     ViewData["Title"] = "Đăng nhập";
 }

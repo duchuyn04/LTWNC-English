@@ -220,162 +220,164 @@ public sealed class EnglishMissionService : IEnglishMissionService
         // 10. Kiểm tra `mission.TurnCount >= MaxTurns` để chọn nhánh xử lý phù hợp.
         if (mission.TurnCount >= MaxTurns) throw new ArgumentException("Mission đã đạt số lượt tối đa.");
 
-        await _credits.EnsureCanSpendAsync(userId, cancellationToken);
-
-        // 11. Gọi `Parse` và lưu kết quả vào `goals`.
-        List<GoalPayload> goals = Parse<List<GoalPayload>>(mission.GoalsJson, "Dữ liệu mục tiêu mission không hợp lệ.");
-        // 12. Gọi `ToList` và lưu kết quả vào `turns`.
-        List<EnglishMissionTurn> turns = mission.Turns.OrderBy(turn => turn.TurnNumber).ToList();
-        // 13. Gọi `Join` và lưu kết quả vào `transcript`.
-        string transcript = string.Join("\n", turns.Select(turn => $"Người học: {turn.UserText}\nNPC: {turn.NpcText}"));
-        // 14. Gọi `Join` và lưu kết quả vào `words`.
-        string words = string.Join(", ", mission.TargetWords.Select(word => word.Term));
-
-        // 15. Gọi `CompleteAsync` và lưu kết quả vào `ai`.
-        AiCompletionResult ai = await _router.CompleteAsync(
-            new AiCompletionRequest(
-                BuildTurnSystemPrompt(),
-                $"Mission: {mission.Title}\nTình huống: {mission.Situation}\nNPC: {mission.NpcName} - {mission.NpcRole}\nMục tiêu: {JsonSerializer.Serialize(goals)}\nTừ mục tiêu: {words}\nLịch sử:\n{transcript}\nNgười học vừa nói: {userText}",
-                1200),
-            IsValidTurnPayload,
-            cancellationToken);
-        // 16. Gọi `Parse` và lưu kết quả vào `payload`.
-        TurnPayload payload = Parse<TurnPayload>(ai.Content, "AI không trả được phản hồi hội thoại hợp lệ.");
-
-        // 17. Gọi `ToHashSet` và lưu kết quả vào `validWords`.
-        HashSet<string> validWords = mission.TargetWords.Select(word => word.Term).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        // 18. Gọi `ToHashSet` và lưu kết quả vào `usedWords`.
-        HashSet<string> usedWords = (payload.UsedTargetWords ?? []).Where(validWords.Contains).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        // 19. Gọi `ToHashSet` và lưu kết quả vào `validGoals`.
-        HashSet<string> validGoals = goals.Select(goal => goal.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        // 20. Gọi `ToHashSet` và lưu kết quả vào `achievedGoals`.
-        HashSet<string> achievedGoals = (payload.AchievedGoalIds ?? []).Where(validGoals.Contains).ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-        // 21. Khởi tạo `turn` với dữ liệu ban đầu cần thiết.
-        EnglishMissionTurn turn = new()
-        {
-            EnglishMissionId = mission.Id,
-            TurnNumber = mission.TurnCount + 1,
-            ClientTurnId = clientTurnId,
-            UserText = userText.Trim(),
-            NpcText = Limit(payload.NpcReply, 2000),
-            FeedbackVi = LimitNullable(payload.FeedbackVi, 1000),
-            CorrectionEn = LimitNullable(payload.CorrectionEn, 1000),
-            CorrectionExplanationVi = LimitNullable(payload.CorrectionExplanationVi, 1000),
-            UsedWordsJson = JsonSerializer.Serialize(usedWords),
-            AchievedGoalsJson = JsonSerializer.Serialize(achievedGoals),
-            ProviderName = ai.ProviderName,
-            ModelId = ai.ModelId
-        };
-        mission.SuggestedReplyEn = LimitNullable(payload.SuggestedReplyEn, 1000);
-        mission.SuggestedReplyVi = LimitNullable(payload.SuggestedReplyVi, 1000);
-        // 22. Gọi `Add` để thực hiện bước nghiệp vụ này.
-        _context.EnglishMissionTurns.Add(turn);
-        // 23. Duyệt từng `word` trong `mission.TargetWords.Where(word => usedWords.Contains(word.Term))` để xử lý lần lượt.
-        foreach (EnglishMissionTargetWord word in mission.TargetWords.Where(word => usedWords.Contains(word.Term)))
-        {
-            // 24. Cập nhật `word.IsUsed` bằng giá trị mới.
-            word.IsUsed = true;
-            // 25. Cập nhật `word.FirstUsedTurn` bằng giá trị mới.
-            word.FirstUsedTurn ??= turn.TurnNumber;
-        }
-        // 26. Cập nhật bộ đếm hoặc trạng thái `mission.TurnCount`.
-        mission.TurnCount++;
-        int creditBalance = await _credits.PrepareMissionTurnDebitAsync(
+        // Trừ tín dụng và commit TRƯỚC khi gọi AI — chặn race hai request cùng balance=1.
+        // Lỗi AI / chưa lưu turn thành công sẽ refund (xem finally logic bên dưới).
+        MissionTurnDebitResult debit = await _credits.PrepareMissionTurnDebitAsync(
             userId,
             mission.Id,
             clientTurnId,
             cancellationToken);
-        // 27. Gọi `ToList` và lưu kết quả vào `allAchieved`.
-        List<string> allAchieved = turns
-            .SelectMany(item => Parse<List<string>>(item.AchievedGoalsJson, "[]"))
-            .Concat(achievedGoals)
-            .Distinct(StringComparer.OrdinalIgnoreCase)
-            .ToList();
-        // 28. Tính giá trị và lưu vào `complete` để dùng ở bước tiếp theo.
-        bool complete = payload.MissionCompleted == true || goals.All(goal => allAchieved.Contains(goal.Id, StringComparer.OrdinalIgnoreCase));
-        // 29. Kiểm tra `complete || mission.TurnCount >= MaxTurns` để chọn nhánh xử lý phù hợp.
-        if (complete || mission.TurnCount >= MaxTurns)
-        {
-            // 30. Cập nhật `mission.Status` bằng giá trị mới.
-            mission.Status = "Completed";
-            // 31. Cập nhật `mission.CompletedAt` bằng giá trị mới.
-            mission.CompletedAt = _timeProvider.GetUtcNow().UtcDateTime;
-            // 32. Cập nhật `mission.Score` bằng giá trị mới.
-            mission.Score = CalculateScore(goals.Count, allAchieved.Count, mission.TargetWords.Count(word => word.IsUsed), mission.TurnCount);
-            // 33. Cập nhật `mission.StudySession!.CompletedAt` bằng giá trị mới.
-            mission.StudySession!.CompletedAt = mission.CompletedAt;
-            // 34. Cập nhật `mission.StudySession.DurationSeconds` bằng giá trị mới.
-            mission.StudySession.DurationSeconds = (int)Math.Clamp((mission.CompletedAt.Value - mission.StudySession.StartedAt).TotalSeconds, 0, 14400);
-            // 35. Cập nhật `mission.StudySession.Score` bằng giá trị mới.
-            mission.StudySession.Score = mission.Score;
-        }
-        // 36. Thực hiện khối nghiệp vụ và chuyển lỗi sang nhánh xử lý tương ứng.
+        int creditBalance = debit.BalanceAfter;
+        bool turnPersisted = false;
+
         try
         {
-            // 37. Gọi `SaveWithCurrentSetAccessAsync` để thực hiện bước nghiệp vụ này.
-            await SaveWithCurrentSetAccessAsync(userId, setId, cancellationToken);
-        }
-        catch (DbUpdateConcurrencyException)
-        {
-            // 38. Gọi `Clear` để thực hiện bước nghiệp vụ này.
-            _context.ChangeTracker.Clear();
-            // 39. Gọi `GetMissionAsync` và lưu kết quả vào `latest`.
-            MissionEntity latest = await GetMissionAsync(userId, setId, sessionId, cancellationToken);
-            // 40. Gọi `FirstOrDefault` và lưu kết quả vào `persisted`.
-            EnglishMissionTurn? persisted = latest.Turns.FirstOrDefault(item => item.ClientTurnId == clientTurnId);
-            // 41. Kiểm tra `persisted != null` để chọn nhánh xử lý phù hợp.
-            if (persisted != null)
+            List<GoalPayload> goals = Parse<List<GoalPayload>>(mission.GoalsJson, "Dữ liệu mục tiêu mission không hợp lệ.");
+            List<EnglishMissionTurn> turns = mission.Turns.OrderBy(turn => turn.TurnNumber).ToList();
+            string transcript = string.Join("\n", turns.Select(turn => $"Người học: {turn.UserText}\nNPC: {turn.NpcText}"));
+            string words = string.Join(", ", mission.TargetWords.Select(word => word.Term));
+
+            AiCompletionResult ai = await _router.CompleteAsync(
+                new AiCompletionRequest(
+                    BuildTurnSystemPrompt(),
+                    $"Mission: {mission.Title}\nTình huống: {mission.Situation}\nNPC: {mission.NpcName} - {mission.NpcRole}\nMục tiêu: {JsonSerializer.Serialize(goals)}\nTừ mục tiêu: {words}\nLịch sử:\n{transcript}\nNgười học vừa nói: {userText}",
+                    1200),
+                IsValidTurnPayload,
+                cancellationToken);
+            TurnPayload payload = Parse<TurnPayload>(ai.Content, "AI không trả được phản hồi hội thoại hợp lệ.");
+
+            HashSet<string> validWords = mission.TargetWords.Select(word => word.Term).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> usedWords = (payload.UsedTargetWords ?? []).Where(validWords.Contains).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> validGoals = goals.Select(goal => goal.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            HashSet<string> achievedGoals = (payload.AchievedGoalIds ?? []).Where(validGoals.Contains).ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            EnglishMissionTurn turn = new()
             {
-                // 42. Tạo và trả đối tượng kết quả cho nơi gọi.
-                return new EnglishMissionRespondResult
-                {
-                    Turn = persisted,
-                    Mission = latest,
-                    TargetWords = latest.TargetWords.OrderBy(word => word.Id).ToList(),
-                    CreditBalance = await _credits.GetBalanceAsync(userId, cancellationToken)
-                };
-            }
-            // 43. Dừng xử lý và phát sinh lỗi `new ArgumentException("Mission vừa được cập nhật ở một yêu cầu khác...`.
-            throw new ArgumentException("Mission vừa được cập nhật ở một yêu cầu khác. Vui lòng gửi lại câu trả lời.");
-        }
-        catch (DbUpdateException)
-        {
-            // 44. Gọi `Clear` để thực hiện bước nghiệp vụ này.
-            _context.ChangeTracker.Clear();
-            // 45. Gọi `GetMissionAsync` và lưu kết quả vào `latest`.
-            MissionEntity latest = await GetMissionAsync(userId, setId, sessionId, cancellationToken);
-            // 46. Gọi `FirstOrDefault` và lưu kết quả vào `persisted`.
-            EnglishMissionTurn? persisted = latest.Turns.FirstOrDefault(item => item.ClientTurnId == clientTurnId);
-            // 47. Kiểm tra `persisted != null` để chọn nhánh xử lý phù hợp.
-            if (persisted != null)
+                EnglishMissionId = mission.Id,
+                TurnNumber = mission.TurnCount + 1,
+                ClientTurnId = clientTurnId,
+                UserText = userText.Trim(),
+                NpcText = Limit(payload.NpcReply, 2000),
+                FeedbackVi = LimitNullable(payload.FeedbackVi, 1000),
+                CorrectionEn = LimitNullable(payload.CorrectionEn, 1000),
+                CorrectionExplanationVi = LimitNullable(payload.CorrectionExplanationVi, 1000),
+                UsedWordsJson = JsonSerializer.Serialize(usedWords),
+                AchievedGoalsJson = JsonSerializer.Serialize(achievedGoals),
+                ProviderName = ai.ProviderName,
+                ModelId = ai.ModelId
+            };
+            mission.SuggestedReplyEn = LimitNullable(payload.SuggestedReplyEn, 1000);
+            mission.SuggestedReplyVi = LimitNullable(payload.SuggestedReplyVi, 1000);
+            _context.EnglishMissionTurns.Add(turn);
+            foreach (EnglishMissionTargetWord word in mission.TargetWords.Where(word => usedWords.Contains(word.Term)))
             {
-                // 48. Tạo và trả đối tượng kết quả cho nơi gọi.
-                return new EnglishMissionRespondResult
-                {
-                    Turn = persisted,
-                    Mission = latest,
-                    TargetWords = latest.TargetWords.OrderBy(word => word.Id).ToList(),
-                    CreditBalance = await _credits.GetBalanceAsync(userId, cancellationToken)
-                };
+                word.IsUsed = true;
+                word.FirstUsedTurn ??= turn.TurnNumber;
             }
-            // 49. Phát sinh lại lỗi hiện tại để tầng gọi xử lý.
-            throw;
+            mission.TurnCount++;
+            List<string> allAchieved = turns
+                .SelectMany(item => Parse<List<string>>(item.AchievedGoalsJson, "[]"))
+                .Concat(achievedGoals)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            bool complete = payload.MissionCompleted == true
+                || goals.All(goal => allAchieved.Contains(goal.Id, StringComparer.OrdinalIgnoreCase));
+            if (complete || mission.TurnCount >= MaxTurns)
+            {
+                mission.Status = "Completed";
+                mission.CompletedAt = _timeProvider.GetUtcNow().UtcDateTime;
+                mission.Score = CalculateScore(
+                    goals.Count,
+                    allAchieved.Count,
+                    mission.TargetWords.Count(word => word.IsUsed),
+                    mission.TurnCount);
+                mission.StudySession!.CompletedAt = mission.CompletedAt;
+                mission.StudySession.DurationSeconds = (int)Math.Clamp(
+                    (mission.CompletedAt.Value - mission.StudySession.StartedAt).TotalSeconds,
+                    0,
+                    14400);
+                mission.StudySession.Score = mission.Score;
+            }
+
+            try
+            {
+                await SaveWithCurrentSetAccessAsync(userId, setId, cancellationToken);
+                turnPersisted = true;
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                _context.ChangeTracker.Clear();
+                MissionEntity latest = await GetMissionAsync(userId, setId, sessionId, cancellationToken);
+                EnglishMissionTurn? persisted = latest.Turns.FirstOrDefault(item => item.ClientTurnId == clientTurnId);
+                if (persisted != null)
+                {
+                    turnPersisted = true;
+                    return new EnglishMissionRespondResult
+                    {
+                        Turn = persisted,
+                        Mission = latest,
+                        TargetWords = latest.TargetWords.OrderBy(word => word.Id).ToList(),
+                        CreditBalance = await _credits.GetBalanceAsync(userId, cancellationToken)
+                    };
+                }
+
+                throw new ArgumentException(
+                    "Mission vừa được cập nhật ở một yêu cầu khác. Vui lòng gửi lại câu trả lời.");
+            }
+            catch (DbUpdateException)
+            {
+                _context.ChangeTracker.Clear();
+                MissionEntity latest = await GetMissionAsync(userId, setId, sessionId, cancellationToken);
+                EnglishMissionTurn? persisted = latest.Turns.FirstOrDefault(item => item.ClientTurnId == clientTurnId);
+                if (persisted != null)
+                {
+                    turnPersisted = true;
+                    return new EnglishMissionRespondResult
+                    {
+                        Turn = persisted,
+                        Mission = latest,
+                        TargetWords = latest.TargetWords.OrderBy(word => word.Id).ToList(),
+                        CreditBalance = await _credits.GetBalanceAsync(userId, cancellationToken)
+                    };
+                }
+
+                throw;
+            }
+
+            if (mission.Status == "Completed")
+            {
+                await PublishCompletedAsync(mission, cancellationToken);
+            }
+
+            return new EnglishMissionRespondResult
+            {
+                Turn = turn,
+                Mission = mission,
+                TargetWords = mission.TargetWords.OrderBy(word => word.Id).ToList(),
+                CreditBalance = creditBalance
+            };
         }
-        // 50. Kiểm tra `mission.Status == "Completed"` để chọn nhánh xử lý phù hợp.
-        if (mission.Status == "Completed")
+        finally
         {
-            // 51. Gọi `PublishCompletedAsync` để thực hiện bước nghiệp vụ này.
-            await PublishCompletedAsync(mission, cancellationToken);
+            // AI lỗi hoặc chưa lưu turn: hoàn tín dụng để retry cùng clientTurnId không mất tiền oan.
+            if (!turnPersisted)
+            {
+                // Bỏ pending mission/turn trên context trước khi credit service SaveChanges.
+                _context.ChangeTracker.Clear();
+                try
+                {
+                    await _credits.RefundMissionTurnDebitAsync(
+                        userId,
+                        mission.Id,
+                        clientTurnId,
+                        cancellationToken);
+                }
+                catch
+                {
+                    // Không che exception gốc của RespondAsync; refund best-effort.
+                }
+            }
         }
-        // 52. Tạo và trả đối tượng kết quả cho nơi gọi.
-        return new EnglishMissionRespondResult
-        {
-            Turn = turn,
-            Mission = mission,
-            TargetWords = mission.TargetWords.OrderBy(word => word.Id).ToList(),
-            CreditBalance = creditBalance
-        };
     }
 
     // Kết thúc nhiệm vụ thủ công, cập nhật phiên học và phát sự kiện hoàn thành đúng một lần.

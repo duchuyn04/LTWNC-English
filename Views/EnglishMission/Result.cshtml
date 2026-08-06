@@ -1,5 +1,9 @@
 @model ltwnc.Models.ViewModels.EnglishMission.EnglishMissionChatViewModel
 @{
+    // FILE: Kết quả mission đã Completed — EnglishMissionController.Result.
+    // Model: cùng ChatViewModel (Mission.Score, Turns, TargetWords).
+    // Hiển thị điểm, số từ dùng, transcript; link về Study hub.
+    // Không gọi AI; chỉ đọc state đã lưu.
     ViewData["Title"] = "Kết quả English Mission";
     var used = Model.TargetWords.Count(word => word.IsUsed);
 }

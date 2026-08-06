@@ -1,5 +1,10 @@
 @model AdminUserDetailsViewModel
 @{
+    // FILE: Chi tiết + khóa/mở user — concurrency stamp.
+    // Model: AdminUserDetailsViewModel (Id, email, lockout, IsAdmin, ConcurrencyStamp).
+    // POST Lock/Unlock kèm ConcurrencyStamp + antiforgery; conflict → TempData error.
+    // Rotate security stamp khi lock → cookie user bị reject.
+    // Audit log ghi hành động admin.
     ViewData["Title"] = "Chi tiết người dùng";
     ViewData["Heading"] = "Chi tiết tài khoản";
 }

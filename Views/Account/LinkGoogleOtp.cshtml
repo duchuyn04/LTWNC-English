@@ -1,5 +1,9 @@
 @model GoogleLinkOtpViewModel
 @{
+    // FILE: Nhập OTP hoàn tất liên kết Google.
+    // Model: GoogleLinkOtpViewModel (ChallengeId, Code).
+    // POST LinkGoogleOtp → gắn GoogleSubjectId vào AppUser + đăng nhập.
+    // ResendGoogleLinkOtp: gửi lại mã (cùng rule rate OTP backend).
     Layout = "_AuthLayout";
     ViewData["Title"] = "Xác nhận liên kết Google";
 }

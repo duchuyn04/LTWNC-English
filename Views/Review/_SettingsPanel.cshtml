@@ -1,5 +1,11 @@
 @model ReviewSettingsPanelViewModel
 
+@{
+    // FILE: Partial cài đặt Review — nhúng trong Index (và có thể Session).
+    // Model: ReviewSettingsPanelViewModel (session size, new card quota, max interval, pause).
+    // UI details/summary; form POST lưu qua ReviewSettingsService (per-user + per-set).
+    // data-review-settings cho JS; antiforgery trên form.
+}
 <details class="review-settings" data-review-settings>
     <summary class="review-settings__trigger" aria-label="Mở cài đặt Review">
         <i class="ph ph-gear" aria-hidden="true"></i>

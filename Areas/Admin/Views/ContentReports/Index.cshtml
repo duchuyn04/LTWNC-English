@@ -1,5 +1,9 @@
 @model AdminContentReportIndexViewModel
 @{
+    // FILE: Hàng đợi báo cáo nội dung + set đã quarantine.
+    // Model: AdminContentReportIndexViewModel (Items, status tab, paging).
+    // Actions: Dismiss, QuarantineFromReport, RestoreSet — POST antiforgery + moderation version.
+    // ContentReportModerationService; set public bị ẩn khi Quarantined.
     ViewData["Title"] = "Báo cáo nội dung";
     ViewData["Heading"] = "Báo cáo cần xử lý";
 }

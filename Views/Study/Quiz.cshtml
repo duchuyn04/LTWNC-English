@@ -1,114 +1,118 @@
 @model QuizStudyViewModel
 @{
+    // FILE: Quiz session - focus exam stage (redesign 2026-08).
+    // Hooks JS quiz.js: data-quiz-root/answer/feedback/next/timer/progress* — giữ nguyên.
+    // JS set className feedback = "quiz-feedback is-*" → CSS phải style .qz .quiz-feedback.
+    ViewData["Title"] = "Làm bài trắc nghiệm";
+    ViewData["HideLayoutChrome"] = true;
+
     string? deadlineUtc = Model.DeadlineUtc?.ToUniversalTime().ToString("O");
     string? timeoutUrl = Url.Action("QuizTimeout", "Study", new { setId = Model.SetId, sessionId = Model.SessionId });
-    ViewData["Title"] = "Trắc nghiệm";
     string directionLabel = Model.Direction == QuizQuestionDirection.TermToDefinition
         ? "Chọn nghĩa đúng"
         : "Chọn từ phù hợp";
+    double progressRatio = Model.TotalQuestions > 0
+        ? Model.AnsweredCount / (double)Model.TotalQuestions
+        : 0;
+    string progressCss = progressRatio.ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
 }
 
 @section Styles {
     <link rel="stylesheet" href="~/css/quiz.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/css/quiz-focus.css" asp-append-version="true" />
 }
 
-<div class="quiz-shell quiz-shell-question">
-    <main class="quiz-stage"
-          data-quiz-root
-          data-question-id="@Model.QuestionId"
-          data-quiz-review-only="@Model.IsReviewOnly.ToString().ToLowerInvariant()"
-          data-answer-url="@Url.Action("QuizAnswer", "Study", new { setId = Model.SetId, sessionId = Model.SessionId })"
-          data-quiz-deadline-utc="@deadlineUtc"
-          data-quiz-remaining-seconds="@Model.RemainingSeconds"
-          data-quiz-timeout-url="@timeoutUrl">
-        @Html.AntiForgeryToken()
+<div class="qz qz-session"
+     data-quiz-root
+     data-question-id="@Model.QuestionId"
+     data-quiz-review-only="@Model.IsReviewOnly.ToString().ToLowerInvariant()"
+     data-answer-url="@Url.Action("QuizAnswer", "Study", new { setId = Model.SetId, sessionId = Model.SessionId })"
+     data-quiz-deadline-utc="@deadlineUtc"
+     data-quiz-remaining-seconds="@Model.RemainingSeconds"
+     data-quiz-timeout-url="@timeoutUrl"
+     aria-busy="false">
+    @Html.AntiForgeryToken()
 
-        <header class="quiz-header">
-            <div class="quiz-header-actions">
-                <form asp-action="QuizAbandon"
-                      asp-route-setId="@Model.SetId"
-                      asp-route-sessionId="@Model.SessionId"
-                      method="post">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="quiz-exit">
-                        <i class="ph ph-arrow-left" aria-hidden="true"></i>
-                        <span>Thoát</span>
-                    </button>
-                </form>
-                <form asp-action="QuizRestart"
-                      asp-route-setId="@Model.SetId"
-                      asp-route-sessionId="@Model.SessionId"
-                      method="post"
-                      data-confirm="Làm lại từ đầu sẽ xóa các câu trả lời hiện tại.">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="quiz-restart">Làm lại từ đầu</button>
-                </form>
-            </div>
-            <div class="quiz-session-meta">
-                <div class="quiz-score" aria-label="Số câu đúng">
-                    <strong>@Model.CorrectCount</strong>
-                    <span>đúng</span>
-                </div>
-                @if (Model.DeadlineUtc.HasValue)
-                {
-                    <div class="quiz-timer"
-                         data-quiz-timer
-                         role="timer"
-                         aria-live="off"
-                         aria-label="Thời gian còn lại">--:--</div>
-                    <span class="visually-hidden"
-                          data-quiz-timer-announcement
-                          aria-live="polite"></span>
-                }
-            </div>
-        </header>
-
-        @if (TempData["Message"] is string message)
-        {
-            <div class="quiz-alert" data-popup="info">@message</div>
-        }
-
-        <div class="quiz-page-intro quiz-page-intro-question">
-            <span class="quiz-eyebrow">Trắc nghiệm</span>
-            <h1>@Model.SetTitle</h1>
+    <header class="qz-session-bar">
+        <div class="qz-session-bar-left">
+            <form asp-action="QuizAbandon"
+                  asp-route-setId="@Model.SetId"
+                  asp-route-sessionId="@Model.SessionId"
+                  method="post">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="qz-icon-btn" aria-label="Thoát bài trắc nghiệm">
+                    <i class="ph ph-x" aria-hidden="true"></i>
+                </button>
+            </form>
+            <form asp-action="QuizRestart"
+                  asp-route-setId="@Model.SetId"
+                  asp-route-sessionId="@Model.SessionId"
+                  method="post"
+                  data-confirm="Làm lại từ đầu sẽ xóa các câu trả lời hiện tại.">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="qz-text-btn">
+                    <i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>
+                    <span>Làm lại</span>
+                </button>
+            </form>
         </div>
 
-        <div class="quiz-workspace quiz-workspace-question">
-            <aside class="quiz-context-panel" aria-label="Tiến độ bài trắc nghiệm">
-                <div class="quiz-question-index">
-                    <span>Câu hiện tại</span>
-                    <strong>@Model.CurrentNumber <small>/ @Model.TotalQuestions</small></strong>
-                </div>
+        <div class="qz-session-bar-mid">
+            <p class="qz-session-set">@Model.SetTitle</p>
+            <div class="qz-track"
+                 data-quiz-progress
+                 role="progressbar"
+                 aria-label="Tiến độ câu đã trả lời"
+                 aria-valuemin="0"
+                 aria-valuemax="@Model.TotalQuestions"
+                 aria-valuenow="@Model.AnsweredCount"
+                 style="--qz-segments: @Model.TotalQuestions">
+                <span data-quiz-progress-bar style="--quiz-progress-value: @progressCss"></span>
+            </div>
+            <p class="qz-session-count" data-quiz-progress-count>
+                Câu @Model.CurrentNumber / @Model.TotalQuestions · Đã trả lời @Model.AnsweredCount
+            </p>
+        </div>
 
-                <div class="quiz-progress">
-                    <span data-quiz-progress-count>Đã trả lời @Model.AnsweredCount / @Model.TotalQuestions</span>
-                    <div class="quiz-progress-track"
-                         data-quiz-progress
-                         role="progressbar"
-                         aria-label="Số câu đã trả lời"
-                         aria-valuemin="0"
-                         aria-valuemax="@Model.TotalQuestions"
-                         aria-valuenow="@Model.AnsweredCount">
-                        <span data-quiz-progress-bar
-                              style="--quiz-progress-value: @(Model.AnsweredCount / (double)Math.Max(Model.TotalQuestions, 1))"></span>
-                    </div>
-                </div>
+        <div class="qz-session-bar-right">
+            <div class="qz-stat" aria-label="Số câu đúng">
+                <strong>@Model.CorrectCount</strong>
+                <span>đúng</span>
+            </div>
+            @if (Model.DeadlineUtc.HasValue)
+            {
+                <div class="qz-timer"
+                     data-quiz-timer
+                     role="timer"
+                     aria-live="off"
+                     aria-label="Thời gian còn lại">--:--</div>
+                <span class="visually-hidden"
+                      data-quiz-timer-announcement
+                      aria-live="polite"></span>
+            }
+        </div>
+    </header>
 
-                <ol class="quiz-steps" aria-label="Các bước làm bài">
-                    <li><span>1</span> Thiết lập</li>
-                    <li class="is-current" aria-current="step"><span>2</span> Làm bài</li>
-                    <li><span>3</span> Kết quả</li>
-                </ol>
-            </aside>
+    @if (TempData["Message"] is string message)
+    {
+        <div class="qz-alert" data-popup="info">@message</div>
+    }
 
-            <section class="quiz-card" aria-labelledby="quiz-prompt">
-                <p class="quiz-direction">@directionLabel</p>
-                <h2 id="quiz-prompt" class="quiz-prompt">@Model.PromptText</h2>
+    <main class="qz-stage">
+        <article class="qz-q" aria-labelledby="quiz-prompt">
+            <div class="qz-q-meta">
+                <span class="qz-direction">@directionLabel</span>
+                <span class="qz-q-index">
+                    Câu @Model.CurrentNumber.ToString("00")<span class="qz-q-index-total">/ @Model.TotalQuestions.ToString("00")</span>
+                </span>
+            </div>
 
-                <div class="quiz-choices" role="group" aria-label="Các lựa chọn trả lời">
+            <h1 id="quiz-prompt" class="qz-prompt">@Model.PromptText</h1>
+
+            <div class="qz-choices" role="group" aria-label="Các lựa chọn">
                 @for (int index = 0; index < Model.Choices.Count; index++)
                 {
-                    string choiceClass = "quiz-choice";
+                    string choiceClass = "qz-choice";
                     if (Model.IsReviewOnly && index == Model.CorrectChoiceIndex)
                     {
                         choiceClass += " is-correct";
@@ -124,8 +128,9 @@
                             data-choice-index="@index"
                             aria-keyshortcuts="@(index + 1)"
                             disabled="@Model.IsReviewOnly">
-                        <span class="quiz-choice-key" aria-hidden="true">@(index + 1)</span>
-                        <span data-quiz-choice-text>@Model.Choices[index]</span>
+                        <span class="qz-choice-key" aria-hidden="true">@((char)('A' + index))</span>
+                        <span class="qz-choice-text" data-quiz-choice-text>@Model.Choices[index]</span>
+                        <span class="qz-choice-state" aria-hidden="true"></span>
                         @if (Model.IsReviewOnly && index == Model.CorrectChoiceIndex)
                         {
                             <span class="visually-hidden">Đáp án đúng</span>
@@ -136,20 +141,20 @@
                         }
                     </button>
                 }
-                </div>
+            </div>
 
-                <p class="quiz-feedback" data-quiz-feedback role="status" aria-live="polite"></p>
+            <p class="qz-feedback quiz-feedback" data-quiz-feedback role="status" aria-live="polite"></p>
 
-                <div class="quiz-actions">
+            <div class="qz-actions quiz-actions">
                 @if (Model.PreviousQuestionId.HasValue)
                 {
-                    <a class="quiz-previous"
+                    <a class="qz-ghost quiz-previous"
                        asp-action="Quiz"
                        asp-route-setId="@Model.SetId"
                        asp-route-sessionId="@Model.SessionId"
                        asp-route-questionId="@Model.PreviousQuestionId">
                         <i class="ph ph-arrow-left" aria-hidden="true"></i>
-                        <span>Câu trước</span>
+                        Câu trước
                     </a>
                 }
 
@@ -157,12 +162,12 @@
                     && Model.NextQuestionId.HasValue
                     && Model.NextQuestionId != Model.CurrentPendingQuestionId)
                 {
-                    <a class="quiz-next-question"
+                    <a class="qz-cta quiz-next-question"
                        asp-action="Quiz"
                        asp-route-setId="@Model.SetId"
                        asp-route-sessionId="@Model.SessionId"
                        asp-route-questionId="@Model.NextQuestionId">
-                        <span>Câu tiếp theo</span>
+                        Câu tiếp
                         <i class="ph ph-arrow-right" aria-hidden="true"></i>
                     </a>
                 }
@@ -171,22 +176,23 @@
                     && Model.CurrentPendingQuestionId.HasValue
                     && Model.CurrentPendingQuestionId != Model.QuestionId)
                 {
-                    <a class="quiz-return-current"
+                    <a class="qz-ghost quiz-return-current"
                        asp-action="Quiz"
                        asp-route-setId="@Model.SetId"
                        asp-route-sessionId="@Model.SessionId"
                        asp-route-questionId="@Model.CurrentPendingQuestionId">
-                        Quay lại câu đang làm
+                        Về câu đang làm
                     </a>
                 }
 
-                <a class="quiz-next" data-quiz-next href="#" hidden>
+                <a class="qz-cta quiz-next" data-quiz-next href="#" hidden>
                     <span data-quiz-next-label>Câu tiếp theo</span>
                     <i class="ph ph-arrow-right" aria-hidden="true"></i>
                 </a>
-                </div>
-            </section>
-        </div>
+            </div>
+        </article>
+
+        <p class="qz-hint" aria-hidden="true">Phím <kbd>1</kbd>-<kbd>@Model.Choices.Count</kbd> chọn đáp án nhanh</p>
     </main>
 </div>
 

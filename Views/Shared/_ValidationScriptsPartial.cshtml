@@ -1,2 +1,8 @@
-﻿<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
+@{
+    // FILE: Partial scripts jQuery Validate + Unobtrusive.
+    // Dùng: @await Html.PartialAsync("_ValidationScriptsPartial") trong @section Scripts.
+    // Kích hoạt [Required]/ [EmailAddress]... từ data-val-* do Tag Helpers sinh.
+    // Cần jQuery load trước (thường trong layout auth/main).
+}
+<script src="~/lib/jquery-validation/dist/jquery.validate.min.js"></script>
 <script src="~/lib/jquery-validation-unobtrusive/dist/jquery.validate.unobtrusive.min.js"></script>

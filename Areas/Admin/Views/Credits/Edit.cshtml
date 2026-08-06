@@ -1,5 +1,8 @@
 @model AdminCreditPackageEditViewModel
 @{
+    // FILE: Tạo/sửa gói — hidden Id + Version (optimistic concurrency).
+    // Model: AdminCreditPackageEditViewModel; Reason bắt buộc cho audit trail.
+    // POST /Admin/Credits/Packages/Save antiforgery; PriceVnd, Credits, DisplayOrder, IsActive.
     string title = Model.Id.HasValue ? "Sửa gói tín dụng" : "Tạo gói tín dụng";
     ViewData["Title"] = title;
     ViewData["Heading"] = title;
