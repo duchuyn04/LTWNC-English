@@ -1,173 +1,374 @@
-/* Lessons learner UI — prototype C (magazine grid), site tokens */
+/* ============================================================
+   LTWNC Lessons — Warm editorial study surface
+   Tokens from site.css. Be Vietnam Pro. Magazine + practice.
+   ============================================================ */
 
 .ls-page {
-    padding-bottom: 3rem;
+    --ls-measure: 40rem;
+    position: relative;
+    padding: 0 0 clamp(3.5rem, 7vw, 5.5rem);
     color: var(--ink);
     font-family: var(--font-body);
+    isolation: isolate;
 }
 
 .ls-page a {
     text-decoration: none;
 }
 
+.container:has(.ls-page) {
+    max-width: 1120px;
+}
+
+/* ---------- Shared chrome ---------- */
+
 .ls-eyebrow {
-    display: inline-block;
-    margin: 0;
-    color: var(--brass-deep);
-    font-size: 0.75rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-}
-
-.ls-hero {
-    position: relative;
-    overflow: hidden;
-    margin: clamp(1rem, 3vw, 1.5rem) 0 0;
-    padding: clamp(2rem, 5vw, 3.5rem);
-    border-radius: 24px;
-    background: var(--pine);
-    color: var(--surface);
-}
-
-.ls-hero::before {
-    content: "";
-    position: absolute;
-    width: 320px;
-    height: 320px;
-    right: -80px;
-    top: -120px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(198, 138, 46, 0.28), transparent 70%);
-    pointer-events: none;
-}
-
-.ls-hero .ls-eyebrow {
-    color: var(--brass);
-}
-
-.ls-hero h1 {
-    color: var(--surface);
-    max-width: 16ch;
-    margin: 0.5rem 0 0.75rem;
-}
-
-.ls-hero p {
-    color: rgba(255, 253, 247, 0.72);
-    max-width: 34rem;
-    margin: 0;
-    font-size: 1.02rem;
-}
-
-.ls-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 1.1rem;
-    margin-top: clamp(1.5rem, 4vw, 2.5rem);
-}
-
-.ls-card {
-    display: flex;
-    flex-direction: column;
-    gap: 0.75rem;
-    color: inherit;
-    background: var(--surface);
-    border: 1px solid var(--line);
-    border-radius: var(--radius-card);
-    padding: 1.35rem 1.35rem 1.2rem;
-    min-height: 220px;
-    box-shadow: var(--shadow-card);
-    transition: transform var(--duration-med) var(--ease-out),
-        box-shadow var(--duration-med) var(--ease-out);
-}
-
-.ls-card:hover {
-    transform: translateY(-3px);
-    box-shadow: var(--shadow-lift);
-    color: inherit;
-}
-
-.ls-card-idx {
-    font-size: 0.72rem;
-    font-weight: 800;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
-    color: var(--brass-deep);
-}
-
-.ls-card h2 {
-    margin: 0;
-    font-size: 1.25rem;
-    letter-spacing: -0.02em;
-    flex: 1;
-}
-
-.ls-card p {
-    margin: 0;
-    color: var(--muted);
-    font-size: 0.9rem;
-    line-height: 1.45;
-}
-
-.ls-card-spacer {
-    visibility: hidden;
-}
-
-.ls-card footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 0.85rem;
-    border-top: 1px solid var(--line);
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--ink-soft);
-}
-
-.ls-card footer i {
-    color: var(--brass-deep);
-}
-
-.ls-qcount {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    color: var(--muted);
+    gap: 0.45rem;
+    margin: 0;
+    color: var(--brass-deep);
     font-size: 0.72rem;
-    font-weight: 600;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
 }
 
-.ls-empty {
-    margin: 2rem 0;
-    color: var(--muted);
-}
-
-.ls-read {
-    max-width: 720px;
-    margin: 0 auto;
-    padding: clamp(1.5rem, 4vw, 2.5rem) 0 3rem;
+.ls-eyebrow::before {
+    content: "";
+    width: 1.1rem;
+    height: 1px;
+    background: currentColor;
+    opacity: 0.7;
 }
 
 .ls-back {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.45rem;
+    margin: 0 0 1.35rem;
+    padding: 0.35rem 0;
     color: var(--muted);
     font-size: 0.88rem;
     font-weight: 600;
-    margin-bottom: 1.25rem;
+    transition: color var(--duration-fast) var(--ease-out),
+        transform var(--duration-fast) var(--ease-out);
+}
+
+.ls-back i {
+    font-size: 1.05rem;
+    transition: transform var(--duration-med) var(--ease-out);
 }
 
 .ls-back:hover {
     color: var(--brass-deep);
 }
 
-.ls-read-frame {
-    background: var(--surface);
+.ls-back:hover i {
+    transform: translateX(-3px);
+}
+
+.ls-back:focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 4px;
+    border-radius: 4px;
+}
+
+/* ---------- List hero ---------- */
+
+.ls-hero {
+    position: relative;
+    overflow: hidden;
+    display: grid;
+    gap: 1rem;
+    margin: clamp(0.75rem, 2vw, 1.25rem) 0 0;
+    padding: clamp(2.1rem, 5vw, 3.4rem) clamp(1.4rem, 4vw, 2.75rem);
+    border-radius: 28px;
+    background:
+        radial-gradient(ellipse 70% 90% at 100% 0%, rgba(198, 138, 46, 0.22), transparent 55%),
+        radial-gradient(ellipse 50% 70% at 0% 100%, rgba(223, 233, 215, 0.12), transparent 50%),
+        linear-gradient(145deg, #1b2418 0%, #243020 48%, #1a2217 100%);
+    color: var(--surface);
+    box-shadow: 0 24px 48px rgba(27, 36, 24, 0.18);
+}
+
+.ls-hero::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 253, 247, 0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 253, 247, 0.03) 1px, transparent 1px);
+    background-size: 28px 28px;
+    mask-image: radial-gradient(ellipse 80% 70% at 70% 30%, black, transparent);
+    pointer-events: none;
+    opacity: 0.55;
+}
+
+.ls-hero > * {
+    position: relative;
+    z-index: 1;
+}
+
+.ls-hero .ls-eyebrow {
+    color: var(--brass);
+}
+
+.ls-hero .ls-eyebrow::before {
+    background: var(--brass);
+}
+
+.ls-hero h1 {
+    margin: 0;
+    max-width: 12ch;
+    color: var(--surface);
+    font-size: clamp(2.15rem, 5.5vw, 3.35rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    line-height: 1.05;
+    text-wrap: balance;
+}
+
+.ls-hero p {
+    margin: 0;
+    max-width: 34rem;
+    color: rgba(255, 253, 247, 0.72);
+    font-size: 1.05rem;
+    line-height: 1.55;
+    text-wrap: pretty;
+}
+
+.ls-hero-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.35rem;
+}
+
+.ls-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    min-height: 1.85rem;
+    padding: 0.2rem 0.7rem;
+    border: 1px solid rgba(255, 253, 247, 0.14);
+    border-radius: var(--radius-pill);
+    background: rgba(255, 253, 247, 0.06);
+    color: rgba(255, 253, 247, 0.82);
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+/* ---------- Card grid (asymmetric bento lean) ---------- */
+
+.ls-grid {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: clamp(0.95rem, 2vw, 1.25rem);
+    margin-top: clamp(1.5rem, 3.5vw, 2.25rem);
+}
+
+.ls-card {
+    position: relative;
+    grid-column: span 4;
+    display: flex;
+    flex-direction: column;
+    gap: 0.7rem;
+    min-height: 15.5rem;
+    padding: 1.35rem 1.35rem 1.15rem;
+    overflow: hidden;
     border: 1px solid var(--line);
     border-radius: 20px;
-    padding: clamp(1.75rem, 4vw, 3rem);
+    background:
+        linear-gradient(180deg, rgba(255, 253, 247, 0.95), var(--surface) 40%),
+        var(--surface);
+    color: inherit;
     box-shadow: var(--shadow-card);
+    transition:
+        transform var(--duration-med) var(--ease-out),
+        box-shadow var(--duration-med) var(--ease-out),
+        border-color var(--duration-fast) var(--ease-out);
+}
+
+.ls-card:nth-child(1) {
+    grid-column: span 8;
+    min-height: 17rem;
+    padding: 1.6rem 1.6rem 1.3rem;
+}
+
+.ls-card:nth-child(1) h2 {
+    font-size: clamp(1.45rem, 2.4vw, 1.85rem);
+    max-width: 18ch;
+}
+
+.ls-card:nth-child(2),
+.ls-card:nth-child(3) {
+    grid-column: span 4;
+}
+
+.ls-card::before {
+    content: attr(data-index);
+    position: absolute;
+    right: -0.15rem;
+    top: -0.55rem;
+    font-size: clamp(4.5rem, 8vw, 6.5rem);
+    font-weight: 800;
+    letter-spacing: -0.06em;
+    line-height: 1;
+    color: var(--sage);
+    opacity: 0.45;
+    pointer-events: none;
+    user-select: none;
+}
+
+.ls-card:hover {
+    transform: translateY(-4px);
+    border-color: color-mix(in srgb, var(--brass) 35%, var(--line-strong));
+    box-shadow:
+        0 18px 40px rgba(41, 50, 38, 0.1),
+        0 0 0 1px color-mix(in srgb, var(--brass) 18%, transparent);
+    color: inherit;
+}
+
+.ls-card:focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 3px;
+}
+
+.ls-card:active {
+    transform: translateY(-1px) scale(0.995);
+}
+
+.ls-card-idx {
+    position: relative;
+    z-index: 1;
+    width: fit-content;
+    padding: 0.18rem 0.55rem;
+    border-radius: var(--radius-pill);
+    background: var(--brass-soft);
+    color: var(--brass-deep);
+    font-size: 0.68rem;
+    font-weight: 800;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.ls-card h2 {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    font-size: 1.2rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    text-wrap: balance;
+}
+
+.ls-card p {
+    position: relative;
+    z-index: 1;
+    flex: 1;
+    margin: 0;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+    text-wrap: pretty;
+}
+
+.ls-card footer {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    margin-top: auto;
+    padding-top: 0.95rem;
+    border-top: 1px solid color-mix(in srgb, var(--line) 85%, transparent);
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--ink-soft);
+}
+
+.ls-card-go {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    color: var(--brass-deep);
+    transition: gap var(--duration-fast) var(--ease-out);
+}
+
+.ls-card:hover .ls-card-go {
+    gap: 0.5rem;
+}
+
+.ls-qcount {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: var(--muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+}
+
+.ls-qcount i {
+    font-size: 0.95rem;
+    color: var(--ink-soft);
+}
+
+.ls-empty {
+    display: grid;
+    place-items: center;
+    gap: 0.65rem;
+    margin-top: 1.75rem;
+    padding: clamp(2.5rem, 6vw, 3.5rem) 1.5rem;
+    border: 1px dashed var(--line-strong);
+    border-radius: 22px;
+    background:
+        radial-gradient(circle at 20% 20%, var(--sage-soft), transparent 45%),
+        var(--surface);
+    text-align: center;
+    color: var(--muted);
+}
+
+.ls-empty strong {
+    display: block;
+    color: var(--ink);
+    font-size: 1.15rem;
+    font-weight: 700;
+}
+
+/* ---------- Reading ---------- */
+
+.ls-read {
+    max-width: 760px;
+    margin: 0 auto;
+    padding-top: clamp(1.25rem, 3vw, 2rem);
+}
+
+.ls-read-frame {
+    position: relative;
+    padding: clamp(1.85rem, 4.5vw, 3rem);
+    border: 1px solid var(--line);
+    border-radius: 24px;
+    background:
+        linear-gradient(180deg, #fffef9 0%, var(--surface) 28%),
+        var(--surface);
+    box-shadow:
+        var(--shadow-card),
+        0 1px 0 rgba(255, 253, 247, 0.8) inset;
+}
+
+.ls-read-frame::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 1.5rem;
+    bottom: 1.5rem;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    background: linear-gradient(180deg, var(--brass), color-mix(in srgb, var(--brass) 20%, transparent));
+    opacity: 0.85;
 }
 
 .ls-read-frame .ls-eyebrow {
@@ -175,48 +376,84 @@
 }
 
 .ls-read-frame h1 {
-    margin: 0.35rem 0 0.5rem;
+    margin: 0.45rem 0 0.55rem;
+    max-width: 18ch;
+    font-size: clamp(1.85rem, 4vw, 2.55rem);
+    letter-spacing: -0.03em;
+    line-height: 1.12;
+    text-wrap: balance;
 }
 
 .ls-dek {
+    margin: 0 0 0.35rem;
+    max-width: var(--ls-measure);
     color: var(--muted);
-    font-size: 1.1rem;
-    margin: 0 0 0.25rem;
+    font-size: 1.08rem;
+    line-height: 1.55;
+    text-wrap: pretty;
 }
 
 .ls-rule {
-    width: 3rem;
+    width: 2.75rem;
     height: 3px;
-    background: var(--brass);
-    border-radius: 2px;
-    margin: 1rem 0 1.5rem;
+    margin: 1.15rem 0 1.6rem;
+    border-radius: 99px;
+    background: linear-gradient(90deg, var(--brass), color-mix(in srgb, var(--brass) 10%, transparent));
 }
 
 .ls-prose {
-    font-size: 1.05rem;
-    line-height: 1.75;
+    max-width: var(--ls-measure);
     color: var(--ink-soft);
+    font-size: 1.0625rem;
+    line-height: 1.78;
+}
+
+.ls-prose > :first-child {
+    margin-top: 0;
 }
 
 .ls-prose h1,
 .ls-prose h2,
 .ls-prose h3 {
     color: var(--ink);
+    letter-spacing: -0.02em;
+    text-wrap: balance;
+}
+
+.ls-prose h1 {
     margin: 1.75rem 0 0.75rem;
+    font-size: 1.55rem;
+}
+
+.ls-prose h2 {
+    margin: 1.85rem 0 0.7rem;
+    font-size: 1.3rem;
+}
+
+.ls-prose h3 {
+    margin: 1.5rem 0 0.55rem;
+    font-size: 1.1rem;
+    font-weight: 650;
 }
 
 .ls-prose p {
-    margin: 0 0 1rem;
+    margin: 0 0 1.05rem;
+    text-wrap: pretty;
 }
 
 .ls-prose ul,
 .ls-prose ol {
-    margin: 0 0 1rem;
+    margin: 0 0 1.05rem;
     padding-left: 1.2rem;
 }
 
 .ls-prose li {
-    margin: 0.35rem 0;
+    margin: 0.4rem 0;
+    padding-left: 0.15rem;
+}
+
+.ls-prose li::marker {
+    color: var(--brass-deep);
 }
 
 .ls-prose strong {
@@ -227,219 +464,399 @@
 .ls-prose a {
     color: var(--brass-deep);
     text-decoration: underline;
+    text-decoration-thickness: 1px;
     text-underline-offset: 3px;
+}
+
+.ls-prose a:hover {
+    color: var(--ink);
+}
+
+.ls-prose blockquote {
+    margin: 1.25rem 0;
+    padding: 0.35rem 0 0.35rem 1rem;
+    border-left: 3px solid var(--brass);
+    color: var(--ink-soft);
+    font-style: italic;
 }
 
 .ls-prose pre {
     overflow: auto;
-    padding: 0.85rem 1rem;
-    border-radius: var(--radius-control);
-    background: var(--surface-sunken);
+    margin: 0 0 1.05rem;
+    padding: 0.95rem 1.05rem;
     border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--surface-sunken);
 }
 
 .ls-prose code {
     font-size: 0.92em;
 }
 
+.ls-prose :not(pre) > code {
+    padding: 0.1em 0.35em;
+    border-radius: 6px;
+    background: var(--sage-soft);
+    color: var(--ink);
+}
+
 .ls-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.65rem;
+    gap: 0.75rem;
     align-items: center;
-    margin-top: 1.75rem;
-    padding-top: 1.25rem;
+    margin-top: 2rem;
+    padding: 1.15rem 0 0;
     border-top: 1px solid var(--line);
 }
 
+.ls-actions .btn-primary-custom {
+    min-height: 2.85rem;
+    padding-inline: 1.35rem;
+    border-radius: 12px;
+    box-shadow: 0 8px 18px rgba(41, 50, 38, 0.12);
+}
+
+.ls-actions .btn-primary-custom:hover {
+    transform: translateY(-1px);
+}
+
 .ls-no-practice {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
     color: var(--muted);
     font-size: 0.92rem;
 }
 
-.container:has(.ls-page) {
-    max-width: 1100px;
-}
+/* ---------- Practice ---------- */
 
-/* Practice */
 .ls-prac {
-    max-width: 720px;
+    max-width: 740px;
     margin: 0 auto;
-    padding: clamp(1.5rem, 4vw, 2.5rem) 0 3rem;
+    padding-top: clamp(1.25rem, 3vw, 2rem);
 }
 
 .ls-prac-head {
-    margin-bottom: 1.25rem;
+    margin-bottom: 1rem;
 }
 
 .ls-prac-head h1 {
-    margin: 0.25rem 0;
-    font-size: clamp(1.5rem, 3vw, 2rem);
+    margin: 0.3rem 0 0.35rem;
+    font-size: clamp(1.55rem, 3.2vw, 2.1rem);
+    letter-spacing: -0.03em;
+    text-wrap: balance;
 }
 
 .ls-prac-head p {
     margin: 0;
     color: var(--muted);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
 }
 
 .ls-prac-progress {
-    height: 4px;
-    background: var(--line);
-    border-radius: 2px;
-    margin: 0 0 1.5rem;
+    height: 6px;
+    margin: 0 0 1.45rem;
     overflow: hidden;
+    border-radius: 99px;
+    background: var(--surface-sunken);
+    border: 1px solid var(--line);
 }
 
 .ls-prac-progress > span {
     display: block;
     height: 100%;
-    background: var(--brass);
+    border-radius: inherit;
+    background: linear-gradient(90deg, var(--brass-deep), var(--brass));
+    box-shadow: 0 0 12px color-mix(in srgb, var(--brass) 40%, transparent);
+    transition: width 220ms var(--ease-out);
 }
 
 .ls-prac-card {
-    background: var(--surface);
+    padding: clamp(1.35rem, 3vw, 1.85rem);
     border: 1px solid var(--line);
-    border-radius: var(--radius-card);
-    padding: 1.5rem;
-    box-shadow: var(--shadow-card);
+    border-radius: 22px;
+    background: var(--surface);
+    box-shadow:
+        var(--shadow-card),
+        0 1px 0 rgba(255, 253, 247, 0.9) inset;
 }
 
 .ls-prac-type {
     display: inline-flex;
-    min-height: 26px;
     align-items: center;
-    padding: 0.2rem 0.65rem;
+    min-height: 1.7rem;
+    margin-bottom: 0.9rem;
+    padding: 0.18rem 0.7rem;
+    border: 1px solid color-mix(in srgb, var(--brass) 22%, var(--line));
     border-radius: var(--radius-pill);
-    background: var(--sage-soft);
-    border: 1px solid var(--line);
+    background: var(--brass-soft);
+    color: var(--brass-deep);
     font-size: 0.68rem;
     font-weight: 800;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--ink-soft);
-    margin-bottom: 0.85rem;
 }
 
 .ls-prac-q {
-    margin: 0 0 1.15rem;
-    font-size: 1.15rem;
+    margin: 0 0 1.25rem;
+    color: var(--ink);
+    font-size: clamp(1.12rem, 2.2vw, 1.28rem);
     font-weight: 700;
+    letter-spacing: -0.015em;
     line-height: 1.4;
+    text-wrap: pretty;
 }
 
 .ls-prac-opts {
     display: grid;
-    gap: 0.55rem;
+    gap: 0.65rem;
 }
 
 .ls-prac-opt {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.85rem;
     align-items: flex-start;
-    text-align: left;
     width: 100%;
-    padding: 0.9rem 1rem;
-    border-radius: var(--radius-control);
+    padding: 0.95rem 1.05rem;
     border: 1px solid var(--line-strong);
+    border-radius: 14px;
     background: var(--paper);
-    font: inherit;
     color: inherit;
+    font: inherit;
+    text-align: left;
     cursor: pointer;
-    transition: border-color var(--duration-fast), background var(--duration-fast);
+    transition:
+        border-color var(--duration-fast) var(--ease-out),
+        background var(--duration-fast) var(--ease-out),
+        transform var(--duration-fast) var(--ease-out),
+        box-shadow var(--duration-fast) var(--ease-out);
 }
 
 button.ls-prac-opt:hover {
     border-color: var(--ink);
+    background: var(--surface);
+    box-shadow: 0 6px 16px rgba(41, 50, 38, 0.07);
+    transform: translateY(-1px);
+}
+
+button.ls-prac-opt:active {
+    transform: translateY(0) scale(0.99);
+}
+
+button.ls-prac-opt:focus-visible {
+    outline: 2px solid var(--brass);
+    outline-offset: 2px;
 }
 
 .ls-prac-opt.is-correct {
     border-color: var(--success);
     background: var(--success-bg);
+    box-shadow: none;
 }
 
 .ls-prac-opt.is-wrong {
     border-color: var(--error);
     background: var(--error-bg);
+    box-shadow: none;
 }
 
 .ls-prac-key {
     flex: 0 0 auto;
-    width: 1.6rem;
-    height: 1.6rem;
-    border-radius: 50%;
     display: grid;
     place-items: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--surface);
+    color: var(--ink-soft);
     font-size: 0.75rem;
     font-weight: 800;
-    background: var(--surface);
-    border: 1px solid var(--line);
+    font-variant-numeric: tabular-nums;
+}
+
+.ls-prac-opt.is-correct .ls-prac-key {
+    border-color: color-mix(in srgb, var(--success) 40%, var(--line));
+    background: color-mix(in srgb, var(--success) 12%, var(--surface));
+    color: var(--success);
+}
+
+.ls-prac-opt.is-wrong .ls-prac-key {
+    border-color: color-mix(in srgb, var(--error) 40%, var(--line));
+    background: color-mix(in srgb, var(--error) 10%, var(--surface));
+    color: var(--error);
 }
 
 .ls-prac-feedback {
     margin-top: 1rem;
-    padding: 0.85rem 1rem;
-    border-radius: var(--radius-control);
-    font-size: 0.92rem;
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+    font-size: 0.94rem;
+    font-weight: 600;
+    line-height: 1.45;
 }
 
 .ls-prac-feedback.ok {
+    border: 1px solid color-mix(in srgb, var(--success) 28%, transparent);
     background: var(--success-bg);
     color: var(--success);
 }
 
 .ls-prac-feedback.bad {
+    border: 1px solid color-mix(in srgb, var(--error) 28%, transparent);
     background: var(--error-bg);
     color: var(--error);
 }
 
 .ls-prac-footer {
-    margin-top: 1.25rem;
+    margin-top: 1.2rem;
+}
+
+.ls-prac-footer .btn-primary-custom {
+    min-height: 2.75rem;
+    border-radius: 12px;
 }
 
 .ls-prac-write {
     width: 100%;
-    min-height: 6rem;
-    resize: vertical;
+    min-height: 7rem;
+    padding: 0.95rem 1.05rem;
     border: 1px solid var(--line-strong);
-    border-radius: var(--radius-control);
+    border-radius: 14px;
     background: var(--paper);
     color: var(--ink);
-    padding: 0.85rem 1rem;
     font: inherit;
-    line-height: 1.5;
+    line-height: 1.55;
+    resize: vertical;
+    transition: border-color var(--duration-fast) var(--ease-out),
+        box-shadow var(--duration-fast) var(--ease-out);
+}
+
+.ls-prac-write:hover {
+    border-color: var(--ink-soft);
 }
 
 .ls-prac-write:focus {
-    outline: 2px solid var(--brass);
-    outline-offset: 2px;
+    outline: none;
+    border-color: var(--brass);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--brass) 22%, transparent);
 }
 
 .ls-prac-write:disabled {
-    opacity: 0.9;
+    opacity: 0.92;
+    color: var(--ink-soft);
 }
 
 .ls-prac-result {
-    background: var(--surface);
+    padding: clamp(2rem, 5vw, 2.75rem) 1.5rem;
     border: 1px solid var(--line);
-    border-radius: var(--radius-card);
-    padding: 2rem;
+    border-radius: 24px;
+    background:
+        radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--brass) 14%, transparent), transparent 55%),
+        var(--surface);
     text-align: center;
     box-shadow: var(--shadow-card);
 }
 
+.ls-prac-result .ls-eyebrow {
+    justify-content: center;
+}
+
+.ls-prac-result .ls-eyebrow::before {
+    display: none;
+}
+
 .ls-prac-result h1 {
-    margin: 0.35rem 0;
-    font-size: 1.35rem;
+    margin: 0.45rem 0 0.25rem;
+    font-size: clamp(1.35rem, 3vw, 1.65rem);
+    letter-spacing: -0.025em;
 }
 
 .ls-prac-score {
-    font-size: clamp(2.5rem, 6vw, 3.5rem);
+    margin: 0.35rem 0 0.25rem;
+    color: var(--ink);
+    font-size: clamp(3rem, 8vw, 4.25rem);
     font-weight: 800;
-    letter-spacing: -0.04em;
-    margin: 0.5rem 0;
+    letter-spacing: -0.05em;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
 }
 
 .ls-prac-result > p {
-    color: var(--muted);
     margin: 0;
+    color: var(--muted);
+}
+
+.ls-prac-result .ls-actions {
+    justify-content: center;
+    margin-top: 1.6rem;
+    padding-top: 0;
+    border: 0;
+}
+
+.ls-prac-result .btn-secondary-custom {
+    min-height: 2.75rem;
+    border-radius: 12px;
+}
+
+/* ---------- Responsive ---------- */
+
+@media (max-width: 900px) {
+    .ls-card,
+    .ls-card:nth-child(1),
+    .ls-card:nth-child(2),
+    .ls-card:nth-child(3) {
+        grid-column: span 6;
+    }
+
+    .ls-card:nth-child(1) {
+        min-height: 15.5rem;
+    }
+}
+
+@media (max-width: 640px) {
+    .ls-hero {
+        border-radius: 22px;
+        padding: 1.6rem 1.25rem 1.75rem;
+    }
+
+    .ls-card,
+    .ls-card:nth-child(1),
+    .ls-card:nth-child(2),
+    .ls-card:nth-child(3) {
+        grid-column: span 12;
+        min-height: 13.5rem;
+    }
+
+    .ls-read-frame,
+    .ls-prac-card,
+    .ls-prac-result {
+        border-radius: 18px;
+    }
+
+    .ls-read-frame {
+        padding: 1.35rem 1.15rem 1.5rem;
+    }
+
+    .ls-read-frame::before {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .ls-card,
+    .ls-back,
+    .ls-prac-opt,
+    .ls-prac-progress > span,
+    .ls-actions .btn-primary-custom {
+        transition: none;
+    }
+
+    .ls-card:hover,
+    button.ls-prac-opt:hover,
+    .ls-actions .btn-primary-custom:hover {
+        transform: none;
+    }
 }

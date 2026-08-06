@@ -1,6 +1,7 @@
 @model LessonIndexViewModel
 @{
     ViewData["Title"] = "Bài học";
+    int totalQuestions = Model.Lessons.Sum(l => l.QuestionCount);
 }
 
 <link rel="stylesheet" href="~/css/lessons.css" asp-append-version="true" />
@@ -10,18 +11,34 @@
         <p class="ls-eyebrow">Bài học</p>
         <h1>Danh sách bài học</h1>
         <p>Bài đọc và ngữ pháp do admin đăng. Có thể mở bất kỳ bài nào.</p>
+        @if (Model.Lessons.Count > 0)
+        {
+            <div class="ls-hero-meta">
+                <span class="ls-chip">@Model.Lessons.Count bài</span>
+                <span class="ls-chip">@totalQuestions câu ôn</span>
+            </div>
+        }
     </section>
 
     @if (Model.Lessons.Count == 0)
     {
-        <p class="ls-empty">Chưa có bài học nào.</p>
+        <div class="ls-empty">
+            <strong>Chưa có bài học</strong>
+            <span>Khi admin đăng bài, danh sách sẽ hiện ở đây.</span>
+        </div>
     }
     else
     {
         <div class="ls-grid">
+            @{
+                int i = 0;
+            }
             @foreach (LessonCardViewModel lesson in Model.Lessons)
             {
-                <a class="ls-card" href="/Lessons/@lesson.Id">
+                i++;
+                <a class="ls-card"
+                   href="/Lessons/@lesson.Id"
+                   data-index="@(i.ToString("00"))">
                     <span class="ls-card-idx">@lesson.IndexLabel</span>
                     <h2>@lesson.Title</h2>
                     @if (!string.IsNullOrWhiteSpace(lesson.Summary))
@@ -30,14 +47,17 @@
                     }
                     else
                     {
-                        <p class="ls-card-spacer" aria-hidden="true">&nbsp;</p>
+                        <p>Mở bài để đọc nội dung.</p>
                     }
                     <footer>
                         <span class="ls-qcount">
                             <i class="ph ph-exam" aria-hidden="true"></i>
                             @lesson.QuestionCount câu ôn
                         </span>
-                        <span>Xem <i class="ph ph-arrow-up-right" aria-hidden="true"></i></span>
+                        <span class="ls-card-go">
+                            Xem
+                            <i class="ph ph-arrow-up-right" aria-hidden="true"></i>
+                        </span>
                     </footer>
                 </a>
             }
