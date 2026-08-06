@@ -2,6 +2,8 @@
 
 Thin browser smoke for Lessons (ticket 04).
 
+Throwaway `wwwroot/preview/lessons-ui.html` was removed after tickets 01–04 (ticket 05).
+
 ## One command
 
 ```bash
