@@ -61,6 +61,10 @@ artifacts/
 ## Tests
 tests/*
 !tests/ltwnc.Tests/
+!tests/smoke/
+tests/smoke/node_modules/
+tests/smoke/test-results/
+tests/smoke/playwright-report/
 
 ## Node.js
 node_modules/
