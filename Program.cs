@@ -355,6 +355,14 @@ builder.Services.AddScoped<ltwnc.Controllers.ApiExceptionFilter>();
 
 var app = builder.Build();
 
+if (string.Equals(
+        Environment.GetEnvironmentVariable("SMOKE_FIXTURES"),
+        "1",
+        StringComparison.Ordinal))
+{
+    await ltwnc.Services.Lessons.SmokeLessonFixtures.ApplyAsync(app.Services);
+}
+
 // Cấu hình middleware pipeline
 // Cấu hình pipeline middleware
 if (!app.Environment.IsDevelopment())
