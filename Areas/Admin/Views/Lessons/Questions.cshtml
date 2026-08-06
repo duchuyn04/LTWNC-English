@@ -3,6 +3,7 @@
     ViewData["Title"] = "Câu hỏi";
     ViewData["Heading"] = "Câu hỏi ôn tập";
 }
+<link rel="stylesheet" href="~/css/admin/lessons.css" asp-append-version="true" />
 
 @if (TempData["AdminLessonsSuccess"] is string success)
 {
@@ -14,13 +15,18 @@
 }
 
 <section class="admin-panel">
-    <p>
-        <a class="admin-text-link" href="/Admin/Lessons">Danh sách</a>
-        ·
+    <p class="admin-lesson-meta-links">
+        <a class="admin-text-link" href="/Admin/Lessons">← Danh sách</a>
+        <span aria-hidden="true">·</span>
         <a class="admin-text-link" href="/Admin/Lessons/@Model.LessonId/Edit">Sửa bài</a>
     </p>
-    <h2>@Model.LessonTitle</h2>
-    <p class="admin-muted-line">Thêm câu trắc nghiệm hoặc câu viết. Thứ tự theo danh sách dưới.</p>
+
+    <div class="admin-panel-header" style="margin-bottom:1rem">
+        <div>
+            <h2>@Model.LessonTitle</h2>
+            <p>Thêm câu trắc nghiệm hoặc câu viết. Thứ tự theo danh sách dưới.</p>
+        </div>
+    </div>
 
     @if (Model.Questions.Count == 0)
     {
@@ -28,7 +34,7 @@
     }
     else
     {
-        <div class="admin-table-wrapper" style="margin-bottom:1.25rem">
+        <div class="admin-table-wrapper" style="margin-bottom:1.5rem">
             <table class="admin-table">
                 <thead>
                     <tr><th>Loại</th><th>Đề</th><th>Chi tiết</th><th></th></tr>
@@ -56,58 +62,70 @@
 
     <div asp-validation-summary="ModelOnly" class="admin-alert admin-alert--danger"></div>
 
-    <h3>Thêm câu trắc nghiệm</h3>
-    <form method="post" action="/Admin/Lessons/@Model.LessonId/Questions/AddMcq" class="admin-filter-form" style="margin-bottom:2rem">
-        @Html.AntiForgeryToken()
-        <input type="hidden" asp-for="McqForm.LessonId" />
+    <div class="admin-lesson-section">
+        <h3>Thêm câu trắc nghiệm</h3>
+        <form method="post" action="/Admin/Lessons/@Model.LessonId/Questions/AddMcq" class="admin-lesson-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="McqForm.LessonId" />
 
-        <div class="admin-filter-field">
-            <label asp-for="McqForm.Prompt"></label>
-            <textarea asp-for="McqForm.Prompt" rows="3" required></textarea>
-        </div>
-        <div class="admin-filter-field">
-            <label asp-for="McqForm.OptionA"></label>
-            <input asp-for="McqForm.OptionA" required />
-        </div>
-        <div class="admin-filter-field">
-            <label asp-for="McqForm.OptionB"></label>
-            <input asp-for="McqForm.OptionB" required />
-        </div>
-        <div class="admin-filter-field">
-            <label asp-for="McqForm.OptionC"></label>
-            <input asp-for="McqForm.OptionC" />
-        </div>
-        <div class="admin-filter-field">
-            <label asp-for="McqForm.OptionD"></label>
-            <input asp-for="McqForm.OptionD" />
-        </div>
-        <div class="admin-filter-field">
-            <label asp-for="McqForm.CorrectOptionIndex"></label>
-            <select asp-for="McqForm.CorrectOptionIndex">
-                <option value="0">A</option>
-                <option value="1">B</option>
-                <option value="2">C</option>
-                <option value="3">D</option>
-            </select>
-        </div>
-        <button type="submit" class="admin-filter-submit">Thêm trắc nghiệm</button>
-    </form>
+            <div class="admin-filter-field">
+                <label asp-for="McqForm.Prompt"></label>
+                <textarea asp-for="McqForm.Prompt" rows="3" required></textarea>
+            </div>
+            <div class="admin-lesson-form-row">
+                <div class="admin-filter-field">
+                    <label asp-for="McqForm.OptionA"></label>
+                    <input asp-for="McqForm.OptionA" required />
+                </div>
+                <div class="admin-filter-field">
+                    <label asp-for="McqForm.OptionB"></label>
+                    <input asp-for="McqForm.OptionB" required />
+                </div>
+            </div>
+            <div class="admin-lesson-form-row">
+                <div class="admin-filter-field">
+                    <label asp-for="McqForm.OptionC"></label>
+                    <input asp-for="McqForm.OptionC" />
+                </div>
+                <div class="admin-filter-field">
+                    <label asp-for="McqForm.OptionD"></label>
+                    <input asp-for="McqForm.OptionD" />
+                </div>
+            </div>
+            <div class="admin-filter-field" style="max-width:12rem">
+                <label asp-for="McqForm.CorrectOptionIndex"></label>
+                <select asp-for="McqForm.CorrectOptionIndex">
+                    <option value="0">A</option>
+                    <option value="1">B</option>
+                    <option value="2">C</option>
+                    <option value="3">D</option>
+                </select>
+            </div>
+            <div class="admin-lesson-form-actions">
+                <button type="submit" class="admin-filter-submit">Thêm trắc nghiệm</button>
+            </div>
+        </form>
+    </div>
 
-    <h3>Thêm câu viết</h3>
-    <form method="post" action="/Admin/Lessons/@Model.LessonId/Questions/AddWriting" class="admin-filter-form">
-        @Html.AntiForgeryToken()
-        <input type="hidden" asp-for="WritingForm.LessonId" />
+    <div class="admin-lesson-section">
+        <h3>Thêm câu viết</h3>
+        <form method="post" action="/Admin/Lessons/@Model.LessonId/Questions/AddWriting" class="admin-lesson-form">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="WritingForm.LessonId" />
 
-        <div class="admin-filter-field">
-            <label asp-for="WritingForm.Prompt"></label>
-            <textarea asp-for="WritingForm.Prompt" rows="3" required></textarea>
-        </div>
-        <div class="admin-filter-field">
-            <label asp-for="WritingForm.AcceptedAnswersText"></label>
-            <textarea asp-for="WritingForm.AcceptedAnswersText" rows="4" required
-                      placeholder="works&#10;work"></textarea>
-            <small class="admin-muted-line">Mỗi dòng một đáp án. Chấm không phân biệt hoa thường, bỏ khoảng trắng thừa.</small>
-        </div>
-        <button type="submit" class="admin-filter-submit">Thêm câu viết</button>
-    </form>
+            <div class="admin-filter-field">
+                <label asp-for="WritingForm.Prompt"></label>
+                <textarea asp-for="WritingForm.Prompt" rows="3" required></textarea>
+            </div>
+            <div class="admin-filter-field">
+                <label asp-for="WritingForm.AcceptedAnswersText"></label>
+                <textarea asp-for="WritingForm.AcceptedAnswersText" rows="4" required
+                          placeholder="works&#10;work"></textarea>
+                <small class="admin-muted-line">Mỗi dòng một đáp án. Chấm không phân biệt hoa thường, bỏ khoảng trắng thừa.</small>
+            </div>
+            <div class="admin-lesson-form-actions">
+                <button type="submit" class="admin-filter-submit">Thêm câu viết</button>
+            </div>
+        </form>
+    </div>
 </section>

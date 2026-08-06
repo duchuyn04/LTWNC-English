@@ -3,6 +3,7 @@
     ViewData["Title"] = "Bài học";
     ViewData["Heading"] = "Bài học";
 }
+<link rel="stylesheet" href="~/css/admin/lessons.css" asp-append-version="true" />
 
 @if (TempData["AdminLessonsSuccess"] is string success)
 {
@@ -50,11 +51,13 @@
                         <td>@(lesson.Status == "Published" ? "Đã đăng" : "Nháp")</td>
                         <td>@lesson.QuestionCount</td>
                         <td>
-                            <a class="admin-text-link" href="/Admin/Lessons/@lesson.Id/Edit">Sửa</a>
-                            ·
-                            <a class="admin-text-link" href="/Admin/Lessons/@lesson.Id/Questions">Câu hỏi</a>
-                            ·
-                            <a class="admin-text-link" href="/Admin/Lessons/@lesson.Id/Preview">Xem trước</a>
+                            <div class="admin-lesson-meta-links" style="margin:0;justify-content:flex-end">
+                                <a class="admin-text-link" href="/Admin/Lessons/@lesson.Id/Edit">Sửa</a>
+                                <span aria-hidden="true">·</span>
+                                <a class="admin-text-link" href="/Admin/Lessons/@lesson.Id/Questions">Câu hỏi</a>
+                                <span aria-hidden="true">·</span>
+                                <a class="admin-text-link" href="/Admin/Lessons/@lesson.Id/Preview">Xem trước</a>
+                            </div>
                         </td>
                     </tr>
                 }

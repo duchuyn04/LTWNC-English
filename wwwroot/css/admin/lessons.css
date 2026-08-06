@@ -1,0 +1,96 @@
+/* Admin Lessons — stacked edit forms (not filter-row layout) */
+
+.admin-lesson-form {
+    display: grid;
+    gap: 1rem;
+    max-width: 46rem;
+}
+
+.admin-lesson-form .admin-filter-field {
+    min-width: 0;
+    width: 100%;
+}
+
+.admin-lesson-form .admin-filter-field input,
+.admin-lesson-form .admin-filter-field select,
+.admin-lesson-form .admin-filter-field textarea {
+    width: 100%;
+    max-width: none;
+    white-space: normal;
+}
+
+.admin-lesson-form textarea {
+    min-height: 5.5rem;
+    resize: vertical;
+    line-height: 1.45;
+}
+
+.admin-lesson-form textarea.admin-markdown-input {
+    min-height: 18rem;
+    font-family: ui-monospace, "Cascadia Mono", "Segoe UI Mono", monospace;
+    font-size: 0.875rem;
+    line-height: 1.5;
+    white-space: pre-wrap;
+}
+
+.admin-lesson-form-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.admin-lesson-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    align-items: center;
+    padding-top: 0.25rem;
+}
+
+.admin-lesson-form-actions .admin-filter-submit {
+    margin: 0;
+}
+
+.admin-lesson-preview {
+    max-width: 46rem;
+    margin-top: 1rem;
+}
+
+.admin-lesson-preview h2 {
+    margin: 0 0 0.75rem;
+    font-size: 1.15rem;
+}
+
+.admin-lesson-preview .ls-prose {
+    max-width: none;
+}
+
+.admin-lesson-preview .ls-prose h1 {
+    font-size: 1.5rem;
+    margin-top: 0;
+}
+
+.admin-lesson-meta-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.75rem;
+    align-items: center;
+    margin: 0 0 1rem;
+}
+
+.admin-lesson-section + .admin-lesson-section {
+    margin-top: 1.75rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--line);
+}
+
+.admin-lesson-section h3 {
+    margin: 0 0 0.85rem;
+    font-size: 1.05rem;
+}
+
+@media (max-width: 720px) {
+    .admin-lesson-form-row {
+        grid-template-columns: 1fr;
+    }
+}
