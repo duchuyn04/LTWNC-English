@@ -1,0 +1,95 @@
+@model ltwnc.Models.ViewModels.Leaderboard.LeaderboardPageViewModel
+@{
+    ViewData["Title"] = "Bảng xếp hạng";
+    string PeriodLink(int period) => $"/Leaderboard?period={period}";
+}
+
+@section Styles {
+    <link rel="stylesheet" href="~/css/leaderboard.css" asp-append-version="true" />
+}
+
+<div class="lb-production">
+    <header class="lb-header">
+        <div>
+            <span class="lb-eyebrow">Bảng xếp hạng học tập</span>
+            <h1>Ai dành nhiều thời gian học nhất?</h1>
+            <p>Tổng hợp thời gian học chủ động của những người đã bật hiển thị thống kê.</p>
+        </div>
+        <nav class="lb-period" aria-label="Chọn khoảng thời gian">
+            <a class="@(Model.PeriodDays == 7 ? "active" : "")" href="@PeriodLink(7)">7 ngày</a>
+            <a class="@(Model.PeriodDays == 30 ? "active" : "")" href="@PeriodLink(30)">30 ngày</a>
+        </nav>
+    </header>
+
+    @if (Model.IsEmpty)
+    {
+        <section class="lb-empty" aria-labelledby="lb-empty-title">
+            <i class="ph ph-hourglass-medium"></i>
+            <h1 id="lb-empty-title">@Model.EmptyMessage</h1>
+            <p>Hãy hoàn thành một buổi học và bật “Hiển thị thống kê” trong profile để xuất hiện trên bảng.</p>
+        </section>
+    }
+    else
+    {
+        var champion = Model.Entries[0];
+        <section class="lb-podium" aria-label="Ba vị trí dẫn đầu">
+            <article class="lb-champion">
+                <div class="lb-medal lb-medal--gold"><i class="ph ph-medal" aria-hidden="true"></i><span>Hạng 1</span></div>
+                <div class="lb-rank-mark">01</div>
+                <div class="lb-avatar lb-avatar--large">@champion.AvatarInitial</div>
+                <div>
+                    <span class="lb-small-label">Dẫn đầu @Model.PeriodDays ngày</span>
+                    <h2>@champion.Username</h2>
+                    <strong>@Duration(champion.TotalSeconds)</strong>
+                    <small>@champion.SessionCount buổi học</small>
+                </div>
+            </article>
+            <div class="lb-podium-side">
+                @for (var i = 1; i < Math.Min(3, Model.Entries.Count); i++)
+                {
+                    var entry = Model.Entries[i];
+                    <article class="lb-runner">
+                        <span class="lb-rank-mark">@(i + 1 < 10 ? $"0{i + 1}" : (i + 1).ToString())</span>
+                        <span class="lb-avatar">@entry.AvatarInitial</span>
+                        <span><strong>@entry.Username</strong><small>@entry.SessionCount buổi học</small></span>
+                        <b>@Duration(entry.TotalSeconds)</b>
+                    </article>
+                }
+            </div>
+        </section>
+
+        @if (Model.ViewerEntry is not null && Model.ViewerEntry.Rank > Model.Entries.Count)
+        {
+            var viewer = Model.ViewerEntry;
+            <section class="lb-current" aria-label="Vị trí của bạn">
+                <span class="lb-current-label">Vị trí của bạn</span>
+                <span class="lb-current-rank">#@viewer.Rank</span>
+                <span class="lb-person"><span class="lb-avatar">@viewer.AvatarInitial</span><span><strong>@viewer.Username</strong><small>@viewer.SessionCount buổi học</small></span></span>
+                <span class="lb-current-progress">Bạn đang nằm ngoài top 20</span>
+                <span class="lb-duration">@Duration(viewer.TotalSeconds)</span>
+            </section>
+        }
+
+        <ol class="lb-list" start="4" aria-label="Các vị trí từ 4 đến 20">
+            @for (var i = 3; i < Model.Entries.Count; i++)
+            {
+                var entry = Model.Entries[i];
+                <li class="lb-row @(entry.IsViewer ? "is-viewer" : "")">
+                    <span class="lb-row-rank">@(entry.Rank < 10 ? $"0{entry.Rank}" : entry.Rank.ToString())</span>
+                    <span class="lb-person"><span class="lb-avatar">@entry.AvatarInitial</span><span><strong>@entry.Username</strong><small>@entry.SessionCount buổi học</small></span></span>
+                    <span class="lb-duration">@Duration(entry.TotalSeconds)</span>
+                </li>
+            }
+        </ol>
+    }
+</div>
+
+@functions {
+    private static string Duration(long seconds)
+    {
+        var duration = TimeSpan.FromSeconds(seconds);
+        return duration.TotalHours >= 1
+            ? $"{(int)duration.TotalHours} giờ {duration.Minutes:00} phút"
+            : $"{duration.Minutes} phút";
+    }
+}
