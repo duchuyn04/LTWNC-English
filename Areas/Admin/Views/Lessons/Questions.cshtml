@@ -20,7 +20,7 @@
         <a class="admin-text-link" href="/Admin/Lessons/@Model.LessonId/Edit">Sửa bài</a>
     </p>
     <h2>@Model.LessonTitle</h2>
-    <p class="admin-muted-line">Thêm câu trắc nghiệm. Thứ tự theo danh sách dưới.</p>
+    <p class="admin-muted-line">Thêm câu trắc nghiệm hoặc câu viết. Thứ tự theo danh sách dưới.</p>
 
     @if (Model.Questions.Count == 0)
     {
@@ -54,42 +54,60 @@
         </div>
     }
 
+    <div asp-validation-summary="ModelOnly" class="admin-alert admin-alert--danger"></div>
+
     <h3>Thêm câu trắc nghiệm</h3>
-    <form method="post" action="/Admin/Lessons/@Model.LessonId/Questions/AddMcq" class="admin-filter-form">
+    <form method="post" action="/Admin/Lessons/@Model.LessonId/Questions/AddMcq" class="admin-filter-form" style="margin-bottom:2rem">
         @Html.AntiForgeryToken()
-        <input type="hidden" asp-for="Form.LessonId" />
-        <div asp-validation-summary="ModelOnly" class="admin-alert admin-alert--danger"></div>
+        <input type="hidden" asp-for="McqForm.LessonId" />
 
         <div class="admin-filter-field">
-            <label asp-for="Form.Prompt"></label>
-            <textarea asp-for="Form.Prompt" rows="3" required></textarea>
-            <span asp-validation-for="Form.Prompt"></span>
+            <label asp-for="McqForm.Prompt"></label>
+            <textarea asp-for="McqForm.Prompt" rows="3" required></textarea>
         </div>
         <div class="admin-filter-field">
-            <label asp-for="Form.OptionA"></label>
-            <input asp-for="Form.OptionA" required />
+            <label asp-for="McqForm.OptionA"></label>
+            <input asp-for="McqForm.OptionA" required />
         </div>
         <div class="admin-filter-field">
-            <label asp-for="Form.OptionB"></label>
-            <input asp-for="Form.OptionB" required />
+            <label asp-for="McqForm.OptionB"></label>
+            <input asp-for="McqForm.OptionB" required />
         </div>
         <div class="admin-filter-field">
-            <label asp-for="Form.OptionC"></label>
-            <input asp-for="Form.OptionC" />
+            <label asp-for="McqForm.OptionC"></label>
+            <input asp-for="McqForm.OptionC" />
         </div>
         <div class="admin-filter-field">
-            <label asp-for="Form.OptionD"></label>
-            <input asp-for="Form.OptionD" />
+            <label asp-for="McqForm.OptionD"></label>
+            <input asp-for="McqForm.OptionD" />
         </div>
         <div class="admin-filter-field">
-            <label asp-for="Form.CorrectOptionIndex"></label>
-            <select asp-for="Form.CorrectOptionIndex">
+            <label asp-for="McqForm.CorrectOptionIndex"></label>
+            <select asp-for="McqForm.CorrectOptionIndex">
                 <option value="0">A</option>
                 <option value="1">B</option>
                 <option value="2">C</option>
                 <option value="3">D</option>
             </select>
         </div>
-        <button type="submit" class="admin-filter-submit">Thêm câu</button>
+        <button type="submit" class="admin-filter-submit">Thêm trắc nghiệm</button>
+    </form>
+
+    <h3>Thêm câu viết</h3>
+    <form method="post" action="/Admin/Lessons/@Model.LessonId/Questions/AddWriting" class="admin-filter-form">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="WritingForm.LessonId" />
+
+        <div class="admin-filter-field">
+            <label asp-for="WritingForm.Prompt"></label>
+            <textarea asp-for="WritingForm.Prompt" rows="3" required></textarea>
+        </div>
+        <div class="admin-filter-field">
+            <label asp-for="WritingForm.AcceptedAnswersText"></label>
+            <textarea asp-for="WritingForm.AcceptedAnswersText" rows="4" required
+                      placeholder="works&#10;work"></textarea>
+            <small class="admin-muted-line">Mỗi dòng một đáp án. Chấm không phân biệt hoa thường, bỏ khoảng trắng thừa.</small>
+        </div>
+        <button type="submit" class="admin-filter-submit">Thêm câu viết</button>
     </form>
 </section>

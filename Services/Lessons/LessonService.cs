@@ -171,10 +171,7 @@ public sealed class LessonService : ILessonService
             .ThenBy(question => question.Id)
             .ToListAsync(cancellationToken);
 
-        return rows
-            .Where(question => question.Type == LessonQuestionTypes.MultipleChoice)
-            .Select(ToAdminItem)
-            .ToArray();
+        return rows.Select(ToAdminItem).ToArray();
     }
 
     public async Task<LessonQuestionMutationResult> AddMcqQuestionAsync(
@@ -238,6 +235,57 @@ public sealed class LessonService : ILessonService
         return new LessonQuestionMutationResult(true, QuestionId: question.Id);
     }
 
+    public async Task<LessonQuestionMutationResult> AddWritingQuestionAsync(
+        AddWritingQuestionCommand command,
+        CancellationToken cancellationToken = default)
+    {
+        string prompt = (command.Prompt ?? string.Empty).Trim();
+        if (prompt.Length == 0 || prompt.Length > PromptMaxLength)
+        {
+            return new LessonQuestionMutationResult(false, "Đề bài bắt buộc.");
+        }
+
+        List<string> answers = (command.AcceptedAnswers ?? [])
+            .Select(answer => (answer ?? string.Empty).Trim())
+            .Where(answer => answer.Length > 0)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+
+        if (answers.Count == 0)
+        {
+            return new LessonQuestionMutationResult(false, "Cần ít nhất một đáp án chấp nhận.");
+        }
+
+        if (answers.Any(answer => answer.Length > OptionMaxLength))
+        {
+            return new LessonQuestionMutationResult(false, "Mỗi đáp án tối đa 500 ký tự.");
+        }
+
+        bool lessonExists = await _db.Lessons.AnyAsync(lesson => lesson.Id == command.LessonId, cancellationToken);
+        if (!lessonExists)
+        {
+            return new LessonQuestionMutationResult(false, "Không tìm thấy bài học.");
+        }
+
+        DateTime now = _timeProvider.GetUtcNow().UtcDateTime;
+        int nextOrder = await NextQuestionSortOrderAsync(command.LessonId, cancellationToken);
+
+        LessonQuestion question = new()
+        {
+            LessonId = command.LessonId,
+            Type = LessonQuestionTypes.Writing,
+            Prompt = prompt,
+            SortOrder = nextOrder,
+            AcceptedAnswersJson = JsonSerializer.Serialize(answers, JsonOptions),
+            CreatedAtUtc = now,
+            UpdatedAtUtc = now
+        };
+
+        _db.LessonQuestions.Add(question);
+        await _db.SaveChangesAsync(cancellationToken);
+        return new LessonQuestionMutationResult(true, QuestionId: question.Id);
+    }
+
     public async Task<LessonQuestionMutationResult> DeleteQuestionAsync(
         int lessonId,
         int questionId,
@@ -275,7 +323,8 @@ public sealed class LessonService : ILessonService
         List<LessonQuestion> questions = await _db.LessonQuestions.AsNoTracking()
             .Where(question =>
                 question.LessonId == lessonId
-                && question.Type == LessonQuestionTypes.MultipleChoice)
+                && (question.Type == LessonQuestionTypes.MultipleChoice
+                    || question.Type == LessonQuestionTypes.Writing))
             .OrderBy(question => question.SortOrder)
             .ThenBy(question => question.Id)
             .ToListAsync(cancellationToken);
@@ -290,7 +339,9 @@ public sealed class LessonService : ILessonService
                 question.Id,
                 question.Type,
                 question.Prompt,
-                ReadOptions(question.OptionsJson)))
+                question.Type == LessonQuestionTypes.MultipleChoice
+                    ? ReadStringList(question.OptionsJson)
+                    : Array.Empty<string>()))
             .ToArray();
 
         return new PracticeBundle(lesson.Id, lesson.Title, items);
@@ -329,7 +380,7 @@ public sealed class LessonService : ILessonService
             return new GradeMcqResult(false, Error: "Không tìm thấy câu hỏi.");
         }
 
-        IReadOnlyList<string> options = ReadOptions(question.OptionsJson);
+        IReadOnlyList<string> options = ReadStringList(question.OptionsJson);
         if (selectedIndex < 0 || selectedIndex >= options.Count)
         {
             return new GradeMcqResult(false, Error: "Lựa chọn không hợp lệ.");
@@ -340,6 +391,71 @@ public sealed class LessonService : ILessonService
             Succeeded: true,
             IsCorrect: selectedIndex == correct,
             CorrectOptionIndex: correct);
+    }
+
+    public async Task<GradeWritingResult> GradeWritingAsync(
+        int lessonId,
+        int questionId,
+        string answer,
+        bool publishedOnly = true,
+        CancellationToken cancellationToken = default)
+    {
+        IQueryable<Lesson> lessonQuery = _db.Lessons.AsNoTracking()
+            .Where(lesson => lesson.Id == lessonId);
+        if (publishedOnly)
+        {
+            lessonQuery = lessonQuery.Where(lesson => lesson.Status == LessonStatus.Published);
+        }
+
+        bool lessonOk = await lessonQuery.AnyAsync(cancellationToken);
+        if (!lessonOk)
+        {
+            return new GradeWritingResult(false, Error: "Bài học không khả dụng.");
+        }
+
+        LessonQuestion? question = await _db.LessonQuestions.AsNoTracking()
+            .SingleOrDefaultAsync(
+                row =>
+                    row.Id == questionId
+                    && row.LessonId == lessonId
+                    && row.Type == LessonQuestionTypes.Writing,
+                cancellationToken);
+
+        if (question is null)
+        {
+            return new GradeWritingResult(false, Error: "Không tìm thấy câu hỏi.");
+        }
+
+        IReadOnlyList<string> accepted = ReadStringList(question.AcceptedAnswersJson);
+        if (accepted.Count == 0)
+        {
+            return new GradeWritingResult(false, Error: "Câu hỏi chưa có đáp án.");
+        }
+
+        string normalized = NormalizeWritingAnswer(answer);
+        if (normalized.Length == 0)
+        {
+            return new GradeWritingResult(false, Error: "Hãy nhập câu trả lời.");
+        }
+
+        bool isCorrect = accepted.Any(item => NormalizeWritingAnswer(item) == normalized);
+        return new GradeWritingResult(
+            Succeeded: true,
+            IsCorrect: isCorrect,
+            AcceptedAnswers: accepted);
+    }
+
+    public static string NormalizeWritingAnswer(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return string.Empty;
+        }
+
+        return System.Text.RegularExpressions.Regex.Replace(
+            value.Trim().ToLowerInvariant(),
+            "\\s+",
+            " ");
     }
 
     private async Task<LessonDetail?> GetDetailAsync(
@@ -397,10 +513,11 @@ public sealed class LessonService : ILessonService
             question.Type,
             question.Prompt,
             question.SortOrder,
-            ReadOptions(question.OptionsJson),
-            question.CorrectOptionIndex ?? 0);
+            ReadStringList(question.OptionsJson),
+            question.CorrectOptionIndex,
+            ReadStringList(question.AcceptedAnswersJson));
 
-    private static IReadOnlyList<string> ReadOptions(string? json)
+    private static IReadOnlyList<string> ReadStringList(string? json)
     {
         if (string.IsNullOrWhiteSpace(json))
         {

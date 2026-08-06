@@ -22,12 +22,16 @@ public interface ILessonService
         AddMcqQuestionCommand command,
         CancellationToken cancellationToken = default);
 
+    Task<LessonQuestionMutationResult> AddWritingQuestionAsync(
+        AddWritingQuestionCommand command,
+        CancellationToken cancellationToken = default);
+
     Task<LessonQuestionMutationResult> DeleteQuestionAsync(
         int lessonId,
         int questionId,
         CancellationToken cancellationToken = default);
 
-    /// <summary>Published lesson with ≥1 question only; options without answers.</summary>
+    /// <summary>Published lesson with ≥1 question only; answers not exposed.</summary>
     Task<PracticeBundle?> GetPracticeBundleAsync(
         int lessonId,
         CancellationToken cancellationToken = default);
@@ -36,6 +40,13 @@ public interface ILessonService
         int lessonId,
         int questionId,
         int selectedIndex,
+        bool publishedOnly = true,
+        CancellationToken cancellationToken = default);
+
+    Task<GradeWritingResult> GradeWritingAsync(
+        int lessonId,
+        int questionId,
+        string answer,
         bool publishedOnly = true,
         CancellationToken cancellationToken = default);
 }

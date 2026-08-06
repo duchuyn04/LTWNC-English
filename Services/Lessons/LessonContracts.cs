@@ -41,13 +41,19 @@ public sealed record LessonQuestionAdminItem(
     string Prompt,
     int SortOrder,
     IReadOnlyList<string> Options,
-    int CorrectOptionIndex);
+    int? CorrectOptionIndex,
+    IReadOnlyList<string> AcceptedAnswers);
 
 public sealed record AddMcqQuestionCommand(
     int LessonId,
     string Prompt,
     IReadOnlyList<string> Options,
     int CorrectOptionIndex);
+
+public sealed record AddWritingQuestionCommand(
+    int LessonId,
+    string Prompt,
+    IReadOnlyList<string> AcceptedAnswers);
 
 public sealed record LessonQuestionMutationResult(
     bool Succeeded,
@@ -70,4 +76,10 @@ public sealed record GradeMcqResult(
     bool Succeeded,
     bool IsCorrect = false,
     int? CorrectOptionIndex = null,
+    string? Error = null);
+
+public sealed record GradeWritingResult(
+    bool Succeeded,
+    bool IsCorrect = false,
+    IReadOnlyList<string>? AcceptedAnswers = null,
     string? Error = null);

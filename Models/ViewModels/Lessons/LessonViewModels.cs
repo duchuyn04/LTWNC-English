@@ -86,7 +86,8 @@ public sealed class AdminLessonQuestionsViewModel
     public int LessonId { get; init; }
     public string LessonTitle { get; init; } = string.Empty;
     public IReadOnlyList<AdminLessonQuestionRowViewModel> Questions { get; init; } = [];
-    public AdminMcqQuestionForm Form { get; init; } = new();
+    public AdminMcqQuestionForm McqForm { get; init; } = new();
+    public AdminWritingQuestionForm WritingForm { get; init; } = new();
 }
 
 public sealed class AdminLessonQuestionRowViewModel
@@ -121,6 +122,19 @@ public sealed class AdminMcqQuestionForm
     public int CorrectOptionIndex { get; set; }
 }
 
+public sealed class AdminWritingQuestionForm
+{
+    public int LessonId { get; set; }
+
+    [Required(ErrorMessage = "Đề bài bắt buộc.")]
+    [Display(Name = "Đề bài")]
+    public string Prompt { get; set; } = string.Empty;
+
+    [Required(ErrorMessage = "Cần ít nhất một đáp án.")]
+    [Display(Name = "Đáp án chấp nhận (mỗi dòng một đáp án)")]
+    public string AcceptedAnswersText { get; set; } = string.Empty;
+}
+
 public sealed class LessonPracticeViewModel
 {
     public int LessonId { get; init; }
@@ -129,20 +143,24 @@ public sealed class LessonPracticeViewModel
     public int Total { get; init; }
     public int Score { get; init; }
     public int QuestionId { get; init; }
+    public string QuestionType { get; init; } = LessonQuestionTypes.MultipleChoice;
     public string Prompt { get; init; } = string.Empty;
     public IReadOnlyList<string> Options { get; init; } = [];
     public bool ShowFeedback { get; init; }
     public bool IsCorrect { get; init; }
     public int? SelectedIndex { get; init; }
     public int? CorrectIndex { get; init; }
+    public string? WrittenAnswer { get; init; }
+    public IReadOnlyList<string> AcceptedAnswers { get; init; } = [];
 
-    public int ProgressPercent => Total <= 0 ? 0 : (int)Math.Round(100.0 * (Step - (ShowFeedback ? 0 : 1)) / Total);
+    public bool IsWriting => QuestionType == LessonQuestionTypes.Writing;
 }
 
 public sealed class LessonPracticeAnswerForm
 {
     public int QuestionId { get; set; }
     public int SelectedIndex { get; set; }
+    public string? WrittenAnswer { get; set; }
 }
 
 public sealed class LessonPracticeResultViewModel

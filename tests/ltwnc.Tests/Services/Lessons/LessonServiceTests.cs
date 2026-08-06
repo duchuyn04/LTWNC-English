@@ -251,6 +251,47 @@ public sealed class LessonServiceTests
     }
 
     [Fact]
+    public async Task AddWritingQuestionAsync_RejectsEmptyAnswers_AndGradesWithNormalize()
+    {
+        await using AppDbContext db = CreateContext();
+        Lesson published = await SeedLessonAsync(db, "Pub", LessonStatus.Published, 1);
+        Lesson draft = await SeedLessonAsync(db, "Draft", LessonStatus.Draft, 2);
+        LessonService service = CreateService(db);
+
+        Assert.False((await service.AddWritingQuestionAsync(new AddWritingQuestionCommand(
+            published.Id, "Fill",
+            []))).Succeeded);
+
+        LessonQuestionMutationResult added = await service.AddWritingQuestionAsync(
+            new AddWritingQuestionCommand(published.Id, "She ____ (work)", ["works", "Work"]));
+        Assert.True(added.Succeeded);
+
+        int draftQ = (await service.AddWritingQuestionAsync(
+            new AddWritingQuestionCommand(draft.Id, "D", ["x"]))).QuestionId!.Value;
+
+        PracticeBundle? bundle = await service.GetPracticeBundleAsync(published.Id);
+        Assert.NotNull(bundle);
+        Assert.Contains(bundle!.Questions, q => q.Type == LessonQuestionTypes.Writing);
+
+        GradeWritingResult draftBlocked = await service.GradeWritingAsync(
+            draft.Id, draftQ, "x", publishedOnly: true);
+        Assert.False(draftBlocked.Succeeded);
+
+        GradeWritingResult wrong = await service.GradeWritingAsync(
+            published.Id, added.QuestionId!.Value, "worked");
+        Assert.True(wrong.Succeeded);
+        Assert.False(wrong.IsCorrect);
+        Assert.Contains("works", wrong.AcceptedAnswers!);
+
+        GradeWritingResult right = await service.GradeWritingAsync(
+            published.Id, added.QuestionId!.Value, "  WORKS  ");
+        Assert.True(right.Succeeded);
+        Assert.True(right.IsCorrect);
+
+        Assert.Equal("hello world", LessonService.NormalizeWritingAnswer("  Hello   WORLD "));
+    }
+
+    [Fact]
     public async Task GradeMcqAsync_ScoresCorrectAndWrong_BlocksDraftForLearner()
     {
         await using AppDbContext db = CreateContext();

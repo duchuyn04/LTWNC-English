@@ -396,6 +396,28 @@ button.ls-prac-opt:hover {
     margin-top: 1.25rem;
 }
 
+.ls-prac-write {
+    width: 100%;
+    min-height: 6rem;
+    resize: vertical;
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-control);
+    background: var(--paper);
+    color: var(--ink);
+    padding: 0.85rem 1rem;
+    font: inherit;
+    line-height: 1.5;
+}
+
+.ls-prac-write:focus {
+    outline: 2px solid var(--brass);
+    outline-offset: 2px;
+}
+
+.ls-prac-write:disabled {
+    opacity: 0.9;
+}
+
 .ls-prac-result {
     background: var(--surface);
     border: 1px solid var(--line);

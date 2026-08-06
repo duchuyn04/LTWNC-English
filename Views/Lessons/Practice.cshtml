@@ -28,10 +28,44 @@
     }
 
     <div class="ls-prac-card">
-        <span class="ls-prac-type">Trắc nghiệm</span>
+        <span class="ls-prac-type">@(Model.IsWriting ? "Câu viết" : "Trắc nghiệm")</span>
         <p class="ls-prac-q">@Model.Prompt</p>
 
-        @if (!Model.ShowFeedback)
+        @if (Model.IsWriting)
+        {
+            if (!Model.ShowFeedback)
+            {
+                <form method="post" action="/Lessons/@Model.LessonId/Practice/Answer">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="QuestionId" value="@Model.QuestionId" />
+                    <label class="visually-hidden" for="WrittenAnswer">Câu trả lời</label>
+                    <textarea id="WrittenAnswer" name="WrittenAnswer" class="ls-prac-write" rows="4"
+                              placeholder="Nhập câu trả lời" required></textarea>
+                    <div class="ls-prac-footer">
+                        <button type="submit" class="btn-primary-custom">Kiểm tra</button>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <textarea class="ls-prac-write" rows="4" disabled>@Model.WrittenAnswer</textarea>
+                <div class="ls-prac-feedback @(Model.IsCorrect ? "ok" : "bad")">
+                    @if (Model.IsCorrect)
+                    {
+                        <text>Đúng.</text>
+                    }
+                    else
+                    {
+                        <text>Chưa đúng. Đáp án: @string.Join(" / ", Model.AcceptedAnswers)</text>
+                    }
+                </div>
+                <form method="post" action="/Lessons/@Model.LessonId/Practice/Next" class="ls-prac-footer">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn-primary-custom">Câu tiếp</button>
+                </form>
+            }
+        }
+        else if (!Model.ShowFeedback)
         {
             <form method="post" action="/Lessons/@Model.LessonId/Practice/Answer" class="ls-prac-opts">
                 @Html.AntiForgeryToken()

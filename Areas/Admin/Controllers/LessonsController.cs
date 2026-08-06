@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Lessons;
 using ltwnc.Services.Lessons;
 using Microsoft.AspNetCore.Authorization;
@@ -117,20 +118,14 @@ public sealed class LessonsController : Controller
         IReadOnlyList<LessonQuestionAdminItem> questions =
             await _lessons.ListQuestionsForAdminAsync(id, cancellationToken);
 
-        return View(new AdminLessonQuestionsViewModel
-        {
-            LessonId = lesson.Id,
-            LessonTitle = lesson.Title,
-            Questions = questions.Select(ToQuestionRow).ToArray(),
-            Form = new AdminMcqQuestionForm { LessonId = lesson.Id }
-        });
+        return View(BuildQuestionsPage(lesson, questions));
     }
 
     [HttpPost("{id:int}/Questions/AddMcq")]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> AddMcq(
         int id,
-        AdminMcqQuestionForm form,
+        AdminMcqQuestionForm mcqForm,
         CancellationToken cancellationToken)
     {
         LessonDetail? lesson = await _lessons.GetForAdminAsync(id, cancellationToken);
@@ -139,17 +134,17 @@ public sealed class LessonsController : Controller
             return NotFound();
         }
 
-        form.LessonId = id;
+        mcqForm.LessonId = id;
         List<string> options = new[]
             {
-                form.OptionA, form.OptionB, form.OptionC, form.OptionD
+                mcqForm.OptionA, mcqForm.OptionB, mcqForm.OptionC, mcqForm.OptionD
             }
             .Select(option => (option ?? string.Empty).Trim())
             .Where(option => option.Length > 0)
             .ToList();
 
         LessonQuestionMutationResult result = await _lessons.AddMcqQuestionAsync(
-            new AddMcqQuestionCommand(id, form.Prompt ?? string.Empty, options, form.CorrectOptionIndex),
+            new AddMcqQuestionCommand(id, mcqForm.Prompt ?? string.Empty, options, mcqForm.CorrectOptionIndex),
             cancellationToken);
 
         if (!result.Succeeded)
@@ -157,16 +152,45 @@ public sealed class LessonsController : Controller
             IReadOnlyList<LessonQuestionAdminItem> questions =
                 await _lessons.ListQuestionsForAdminAsync(id, cancellationToken);
             ModelState.AddModelError(string.Empty, result.Error ?? "Không thêm được câu hỏi.");
-            return View("Questions", new AdminLessonQuestionsViewModel
-            {
-                LessonId = lesson.Id,
-                LessonTitle = lesson.Title,
-                Questions = questions.Select(ToQuestionRow).ToArray(),
-                Form = form
-            });
+            return View("Questions", BuildQuestionsPage(lesson, questions, mcqForm: mcqForm));
         }
 
         TempData["AdminLessonsSuccess"] = "Đã thêm câu trắc nghiệm.";
+        return RedirectToAction(nameof(Questions), new { id });
+    }
+
+    [HttpPost("{id:int}/Questions/AddWriting")]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> AddWriting(
+        int id,
+        AdminWritingQuestionForm writingForm,
+        CancellationToken cancellationToken)
+    {
+        LessonDetail? lesson = await _lessons.GetForAdminAsync(id, cancellationToken);
+        if (lesson is null)
+        {
+            return NotFound();
+        }
+
+        writingForm.LessonId = id;
+        List<string> answers = (writingForm.AcceptedAnswersText ?? string.Empty)
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Where(answer => answer.Length > 0)
+            .ToList();
+
+        LessonQuestionMutationResult result = await _lessons.AddWritingQuestionAsync(
+            new AddWritingQuestionCommand(id, writingForm.Prompt ?? string.Empty, answers),
+            cancellationToken);
+
+        if (!result.Succeeded)
+        {
+            IReadOnlyList<LessonQuestionAdminItem> questions =
+                await _lessons.ListQuestionsForAdminAsync(id, cancellationToken);
+            ModelState.AddModelError(string.Empty, result.Error ?? "Không thêm được câu viết.");
+            return View("Questions", BuildQuestionsPage(lesson, questions, writingForm: writingForm));
+        }
+
+        TempData["AdminLessonsSuccess"] = "Đã thêm câu viết.";
         return RedirectToAction(nameof(Questions), new { id });
     }
 
@@ -184,11 +208,39 @@ public sealed class LessonsController : Controller
         return RedirectToAction(nameof(Questions), new { id });
     }
 
+    private static AdminLessonQuestionsViewModel BuildQuestionsPage(
+        LessonDetail lesson,
+        IReadOnlyList<LessonQuestionAdminItem> questions,
+        AdminMcqQuestionForm? mcqForm = null,
+        AdminWritingQuestionForm? writingForm = null) =>
+        new()
+        {
+            LessonId = lesson.Id,
+            LessonTitle = lesson.Title,
+            Questions = questions.Select(ToQuestionRow).ToArray(),
+            McqForm = mcqForm ?? new AdminMcqQuestionForm { LessonId = lesson.Id },
+            WritingForm = writingForm ?? new AdminWritingQuestionForm { LessonId = lesson.Id }
+        };
+
     private static AdminLessonQuestionRowViewModel ToQuestionRow(LessonQuestionAdminItem item)
     {
-        string letter = item.CorrectOptionIndex >= 0 && item.CorrectOptionIndex < 26
-            ? ((char)('A' + item.CorrectOptionIndex)).ToString()
-            : (item.CorrectOptionIndex + 1).ToString();
+        if (item.Type == LessonQuestionTypes.Writing)
+        {
+            return new AdminLessonQuestionRowViewModel
+            {
+                Id = item.Id,
+                TypeLabel = "Câu viết",
+                Prompt = item.Prompt,
+                Meta = item.AcceptedAnswers.Count == 0
+                    ? "Chưa có đáp án"
+                    : $"Đáp án: {string.Join(" / ", item.AcceptedAnswers)}"
+            };
+        }
+
+        int correct = item.CorrectOptionIndex ?? 0;
+        string letter = correct >= 0 && correct < 26
+            ? ((char)('A' + correct)).ToString()
+            : (correct + 1).ToString();
         return new AdminLessonQuestionRowViewModel
         {
             Id = item.Id,

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using ltwnc.Models.Entities;
 using ltwnc.Models.ViewModels.Lessons;
 using ltwnc.Services.Lessons;
 using Microsoft.AspNetCore.Authorization;
@@ -85,18 +86,7 @@ public sealed class LessonsController : Controller
         }
 
         PracticeQuestionItem question = bundle.Questions.First(q => q.Id == state.QuestionIds[state.Index]);
-        return View(new LessonPracticeViewModel
-        {
-            LessonId = bundle.LessonId,
-            LessonTitle = bundle.LessonTitle,
-            Step = state.Index + 1,
-            Total = state.QuestionIds.Count,
-            Score = state.Score,
-            QuestionId = question.Id,
-            Prompt = question.Prompt,
-            Options = question.Options,
-            ShowFeedback = false
-        });
+        return View(ToPracticeView(bundle, state, question, showFeedback: false));
     }
 
     [HttpPost("{id:int}/Practice/Answer")]
@@ -124,32 +114,83 @@ public sealed class LessonsController : Controller
             return RedirectToAction(nameof(Practice), new { id });
         }
 
-        GradeMcqResult grade = await _lessons.GradeMcqAsync(
+        PracticeQuestionItem question = bundle.Questions.First(q => q.Id == expectedQuestionId);
+
+        if (question.Type == LessonQuestionTypes.Writing)
+        {
+            GradeWritingResult grade = await _lessons.GradeWritingAsync(
+                id,
+                form.QuestionId,
+                form.WrittenAnswer ?? string.Empty,
+                publishedOnly: true,
+                cancellationToken);
+
+            if (!grade.Succeeded)
+            {
+                TempData["PracticeError"] = grade.Error ?? "Không chấm được câu trả lời.";
+                return RedirectToAction(nameof(Practice), new { id });
+            }
+
+            if (grade.IsCorrect)
+            {
+                state.Score += 1;
+            }
+
+            state.AwaitingNext = true;
+            WriteRun(id, state);
+
+            return View("Practice", ToPracticeView(
+                bundle,
+                state,
+                question,
+                showFeedback: true,
+                isCorrect: grade.IsCorrect,
+                writtenAnswer: form.WrittenAnswer,
+                acceptedAnswers: grade.AcceptedAnswers ?? []));
+        }
+
+        GradeMcqResult mcq = await _lessons.GradeMcqAsync(
             id,
             form.QuestionId,
             form.SelectedIndex,
             publishedOnly: true,
             cancellationToken);
 
-        if (!grade.Succeeded)
+        if (!mcq.Succeeded)
         {
-            TempData["PracticeError"] = grade.Error ?? "Không chấm được câu trả lời.";
+            TempData["PracticeError"] = mcq.Error ?? "Không chấm được câu trả lời.";
             return RedirectToAction(nameof(Practice), new { id });
         }
 
-        PracticeQuestionItem question = bundle.Questions.First(q => q.Id == expectedQuestionId);
-        if (grade.IsCorrect)
+        if (mcq.IsCorrect)
         {
             state.Score += 1;
         }
 
         state.AwaitingNext = true;
-        state.LastCorrect = grade.IsCorrect;
-        state.LastSelectedIndex = form.SelectedIndex;
-        state.LastCorrectIndex = grade.CorrectOptionIndex;
         WriteRun(id, state);
 
-        return View("Practice", new LessonPracticeViewModel
+        return View("Practice", ToPracticeView(
+            bundle,
+            state,
+            question,
+            showFeedback: true,
+            isCorrect: mcq.IsCorrect,
+            selectedIndex: form.SelectedIndex,
+            correctIndex: mcq.CorrectOptionIndex));
+    }
+
+    private static LessonPracticeViewModel ToPracticeView(
+        PracticeBundle bundle,
+        PracticeRunState state,
+        PracticeQuestionItem question,
+        bool showFeedback,
+        bool isCorrect = false,
+        int? selectedIndex = null,
+        int? correctIndex = null,
+        string? writtenAnswer = null,
+        IReadOnlyList<string>? acceptedAnswers = null) =>
+        new()
         {
             LessonId = bundle.LessonId,
             LessonTitle = bundle.LessonTitle,
@@ -157,14 +198,16 @@ public sealed class LessonsController : Controller
             Total = state.QuestionIds.Count,
             Score = state.Score,
             QuestionId = question.Id,
+            QuestionType = question.Type,
             Prompt = question.Prompt,
             Options = question.Options,
-            ShowFeedback = true,
-            IsCorrect = grade.IsCorrect,
-            SelectedIndex = form.SelectedIndex,
-            CorrectIndex = grade.CorrectOptionIndex
-        });
-    }
+            ShowFeedback = showFeedback,
+            IsCorrect = isCorrect,
+            SelectedIndex = selectedIndex,
+            CorrectIndex = correctIndex,
+            WrittenAnswer = writtenAnswer,
+            AcceptedAnswers = acceptedAnswers ?? []
+        };
 
     [HttpPost("{id:int}/Practice/Next")]
     [ValidateAntiForgeryToken]
