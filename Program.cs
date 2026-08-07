@@ -359,8 +359,10 @@ builder.Services.AddScoped<ltwnc.Controllers.ApiExceptionFilter>();
 
 var app = builder.Build();
 
+string? applyDatabaseMigrations = builder.Configuration["APPLY_DATABASE_MIGRATIONS"]
+    ?? Environment.GetEnvironmentVariable("APPLY_DATABASE_MIGRATIONS");
 if (string.Equals(
-        Environment.GetEnvironmentVariable("APPLY_DATABASE_MIGRATIONS"),
+        applyDatabaseMigrations,
         "1",
         StringComparison.Ordinal))
 {
