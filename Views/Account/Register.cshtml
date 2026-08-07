@@ -11,17 +11,17 @@
 }
 
 <section class="auth-form-card" aria-labelledby="register-title">
-    <div class="auth-progress" aria-hidden="true"><span></span><span></span><span></span></div>
-    <p class="auth-eyebrow">Thiết lập hồ sơ học</p>
-    <h1 id="register-title" class="auth-title">Tạo góc học tập.</h1>
-    <p class="auth-intro">Đăng ký để lưu bộ thẻ và theo dõi tiến độ của bạn. Email sẽ được xác thực bằng OTP.</p>
+
+    <p class="auth-eyebrow">Tài khoản mới</p>
+    <h1 id="register-title" class="auth-title">Tạo tài khoản</h1>
+    <p class="auth-intro">Điền thông tin bên dưới. Mã xác thực sẽ được gửi đến email của bạn.</p>
 
     @if ((bool?)ViewData["GoogleLoginEnabled"] == true)
     {
         <a class="auth-submit auth-google-submit" href="@Url.Action("GoogleLogin", "Account")">
             Đăng ký bằng Google
         </a>
-        <div class="auth-divider" aria-hidden="true"><span>hoặc đăng ký bằng email</span></div>
+        <div class="auth-divider"><span>Hoặc đăng ký bằng email</span></div>
     }
 
     <form asp-action="Register" method="post" class="auth-form">

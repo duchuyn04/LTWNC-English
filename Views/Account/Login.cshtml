@@ -13,10 +13,10 @@
 }
 
 <section class="auth-form-card" aria-labelledby="login-title">
-    <div class="auth-progress" aria-hidden="true"><span></span><span></span><span></span></div>
-    <p class="auth-eyebrow">Phiên học của bạn</p>
-    <h1 id="login-title" class="auth-title">Sẵn sàng học tiếp?</h1>
-    <p class="auth-intro">Đăng nhập để mở lại bộ thẻ và tiếp tục tiến độ của bạn.</p>
+
+    <p class="auth-eyebrow">Tài khoản</p>
+    <h1 id="login-title" class="auth-title">Đăng nhập</h1>
+    <p class="auth-intro">Nhập thông tin tài khoản để tiếp tục.</p>
 
     @if (TempData["Error"] is string error)
     {
@@ -30,9 +30,9 @@
     @if ((bool?)ViewData["GoogleLoginEnabled"] == true)
     {
         <a class="auth-submit auth-google-submit" href="@Url.Action("GoogleLogin", "Account")">
-            Tiếp tục với Google
+            Đăng nhập bằng Google
         </a>
-        <div class="auth-divider" aria-hidden="true"><span>hoặc</span></div>
+        <div class="auth-divider"><span>Hoặc đăng nhập bằng tài khoản</span></div>
     }
 
     <form asp-action="Login" method="post" class="auth-form">
@@ -68,14 +68,14 @@
 
         <label class="auth-check">
             <input asp-for="RememberMe" />
-            <span>Ghi nhớ đăng nhập trên thiết bị này</span>
+            <span>Duy trì đăng nhập trên thiết bị này</span>
         </label>
 
-        <button type="submit" class="auth-submit">Đăng nhập <span aria-hidden="true">→</span></button>
+        <button type="submit" class="auth-submit">Đăng nhập</button>
     </form>
 
     <p class="auth-alt"><a href="/Account/ForgotPassword">Quên mật khẩu?</a></p>
-    <p class="auth-alt">Chưa có tài khoản? <a href="/Account/Register">Đăng ký miễn phí</a></p>
+    <p class="auth-alt">Chưa có tài khoản? <a href="/Account/Register">Đăng ký</a></p>
 </section>
 
 @section Scripts {
