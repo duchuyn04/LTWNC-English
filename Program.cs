@@ -359,21 +359,6 @@ builder.Services.AddScoped<ltwnc.Controllers.ApiExceptionFilter>();
 
 var app = builder.Build();
 
-// Temporary one-time production repair endpoint; remove after migration.
-app.MapPost("/__ltwnc_repair_migration", async (HttpRequest request, AppDbContext dbContext) =>
-{
-    if (!string.Equals(
-            request.Headers["X-LTWNC-Repair"].ToString(),
-            "1",
-            StringComparison.Ordinal))
-    {
-        return Results.NotFound();
-    }
-
-    await dbContext.Database.MigrateAsync();
-    return Results.Ok();
-});
-
 string? applyDatabaseMigrations = builder.Configuration["APPLY_DATABASE_MIGRATIONS"]
     ?? Environment.GetEnvironmentVariable("APPLY_DATABASE_MIGRATIONS");
 if (string.Equals(
@@ -381,12 +366,6 @@ if (string.Equals(
         "1",
         StringComparison.Ordinal))
 {
-    string migrationProbePath = Path.Combine(
-        app.Environment.ContentRootPath,
-        "App_Data",
-        "migration-probe.txt");
-    await File.WriteAllTextAsync(migrationProbePath, DateTimeOffset.UtcNow.ToString("O"));
-
     using IServiceScope scope = app.Services.CreateScope();
     AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await dbContext.Database.MigrateAsync();
