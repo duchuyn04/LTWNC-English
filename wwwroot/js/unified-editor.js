@@ -927,7 +927,9 @@
             return;
         }
 
-        window.location.href = '/Set';
+        const setId = getSetId();
+        const studyUrl = setId ? `/Study/${setId}/Flashcard` : '';
+        window.location.href = setId ? studyUrl : '/Set';
     }
 
     btnFinish.addEventListener('click', finishEditor);

@@ -84,6 +84,16 @@ public sealed class CardActionEditorViewTests
         Assert.Contains(".flashcard-card:last-child .card-add-after-wrap", css);
     }
 
+    [Fact]
+    public void Editor_finishes_to_flashcard_study_route()
+    {
+        string script = Read("wwwroot/js/unified-editor.js");
+
+        Assert.Contains("const setId = getSetId();", script);
+        Assert.Contains("`/Study/${setId}/Flashcard`", script);
+        Assert.Contains("window.location.href = setId ? studyUrl : '/Set';", script);
+    }
+
     private static string Read(string relativePath) =>
         File.ReadAllText(Path.Combine(FindRepositoryRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar)));
 
