@@ -359,6 +359,20 @@ builder.Services.AddScoped<ltwnc.Controllers.ApiExceptionFilter>();
 
 var app = builder.Build();
 
+app.MapPost("/__ltwnc_repair_migration", async (HttpRequest request, AppDbContext dbContext) =>
+{
+    if (!string.Equals(
+            request.Headers["X-LTWNC-Repair"].ToString(),
+            "1",
+            StringComparison.Ordinal))
+    {
+        return Results.NotFound();
+    }
+
+    await dbContext.Database.MigrateAsync();
+    return Results.Ok();
+});
+
 string? applyDatabaseMigrations = builder.Configuration["APPLY_DATABASE_MIGRATIONS"]
     ?? Environment.GetEnvironmentVariable("APPLY_DATABASE_MIGRATIONS");
 if (string.Equals(
