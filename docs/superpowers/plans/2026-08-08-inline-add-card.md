@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add an accessible `+` control below every flashcard that inserts a new card immediately after it and focuses the new term field.
+**Goal:** Add an accessible `+` control below the last flashcard that inserts a new card after it and focuses the new term field.
 
 **Architecture:** Keep the existing client-side editor and autosave flow. Add the same footer control to server-rendered cards and dynamically-created cards, then centralize insertion in `addCardAfter(card)` so numbering, event binding, and focus stay consistent.
 
@@ -48,6 +48,7 @@ public void Editor_exposes_inline_add_card_control()
     Assert.Contains("function addCardAfter(card)", script);
     Assert.Contains("container.insertBefore(newCard, card.nextElementSibling)", script);
     Assert.Contains(".btn-add-after", css);
+    Assert.Contains(".flashcard-card:last-child .card-add-after-wrap", css);
 }
 ```
 
@@ -124,10 +125,14 @@ Add to `wwwroot/css/unified-editor.css` near the existing `.card-body` styles:
 
 ```css
 .card-add-after-wrap {
-    display: flex;
+    display: none;
     justify-content: center;
     padding: 0 var(--ue-space-md) var(--ue-space-sm);
     background: var(--ue-surface);
+}
+
+.flashcard-card:last-child .card-add-after-wrap {
+    display: flex;
 }
 
 .btn-add-after {
@@ -176,7 +181,7 @@ git commit -m "feat(editor): add inline card button"
 
 Push the commit to `master`, wait for the GitHub Actions deployment to succeed, then open a production editor page and verify:
 
-1. Clicking the bottom `+` on card 1 inserts a new card between card 1 and card 2.
-2. The new card is expanded and its term input is focused.
+1. Only the last card shows the bottom `+` control.
+2. Clicking it inserts a new last card, expands it, and focuses its term input.
 3. Typing a term and definition uses the existing autosave.
 4. The toolbar `Thêm thẻ` still appends at the end.
