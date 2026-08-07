@@ -44,6 +44,8 @@ public sealed class ReviewRatingPreviewViewModel
     public TimeSpan Delay { get; set; }
 
     public string DelayLabel { get; set; } = string.Empty;
+
+    public string NextReviewLabel { get; set; } = string.Empty;
 }
 
 public sealed class ReviewSessionViewModel

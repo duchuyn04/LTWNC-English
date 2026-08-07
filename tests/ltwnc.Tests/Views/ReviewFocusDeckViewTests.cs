@@ -124,6 +124,10 @@ public sealed class ReviewFocusDeckViewTests
         Assert.Contains("@hardPreview?.DelayLabel", view);
         Assert.Contains("@goodPreview?.DelayLabel", view);
         Assert.Contains("@easyPreview?.DelayLabel", view);
+        Assert.Contains("@againPreview?.NextReviewLabel", view);
+        Assert.Contains("@hardPreview?.NextReviewLabel", view);
+        Assert.Contains("@goodPreview?.NextReviewLabel", view);
+        Assert.Contains("@easyPreview?.NextReviewLabel", view);
         Assert.Contains("data-shortcut=\"1\" disabled", view);
         Assert.Contains("data-shortcut=\"2\" disabled", view);
         Assert.Contains("data-shortcut=\"3\" disabled", view);

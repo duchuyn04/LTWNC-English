@@ -30,6 +30,8 @@ public sealed class ReviewServiceTests
         Assert.Equal(4, session.Cards[0].RatingPreviews.Count);
         Assert.Equal(TimeSpan.FromMinutes(10),
             session.Cards[0].RatingPreviews.Single(value => value.Rating == ReviewRating.Again).Delay);
+        Assert.Equal("hôm nay 15:40",
+            session.Cards[0].RatingPreviews.Single(value => value.Rating == ReviewRating.Again).NextReviewLabel);
         Assert.Empty(await context.ReviewProgresses.ToListAsync());
     }
 
@@ -95,6 +97,7 @@ public sealed class ReviewServiceTests
 
         Assert.Equal(TimeSpan.FromDays(1), preview.Delay);
         Assert.Equal("1 ngày", preview.DelayLabel);
+        Assert.Equal("ngày mai 15:30", preview.NextReviewLabel);
         Assert.Equal(10, preview.LongTermIntervalDays);
     }
 

@@ -186,25 +186,37 @@
                                     type="submit" name="rating" value="Again" data-shortcut="1" disabled>
                                 <kbd aria-hidden="true">1</kbd>
                                 <span><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i>Quên</span>
-                                <small>@againPreview?.DelayLabel</small>
+                                <small class="review-focus__rating-schedule">
+                                    <span class="review-focus__rating-delay">@againPreview?.DelayLabel</span>
+                                    <span class="review-focus__rating-next">@againPreview?.NextReviewLabel</span>
+                                </small>
                             </button>
                             <button class="review-focus__rating review-focus__rating--hard js-rating"
                                     type="submit" name="rating" value="Hard" data-shortcut="2" disabled>
                                 <kbd aria-hidden="true">2</kbd>
                                 <span><i class="ph ph-minus-circle" aria-hidden="true"></i>Khó</span>
-                                <small>@hardPreview?.DelayLabel</small>
+                                <small class="review-focus__rating-schedule">
+                                    <span class="review-focus__rating-delay">@hardPreview?.DelayLabel</span>
+                                    <span class="review-focus__rating-next">@hardPreview?.NextReviewLabel</span>
+                                </small>
                             </button>
                             <button class="review-focus__rating review-focus__rating--good js-rating"
                                     type="submit" name="rating" value="Good" data-shortcut="3" disabled>
                                 <kbd aria-hidden="true">3</kbd>
                                 <span><i class="ph ph-check-circle" aria-hidden="true"></i>Tốt</span>
-                                <small>@goodPreview?.DelayLabel</small>
+                                <small class="review-focus__rating-schedule">
+                                    <span class="review-focus__rating-delay">@goodPreview?.DelayLabel</span>
+                                    <span class="review-focus__rating-next">@goodPreview?.NextReviewLabel</span>
+                                </small>
                             </button>
                             <button class="review-focus__rating review-focus__rating--easy js-rating"
                                     type="submit" name="rating" value="Easy" data-shortcut="4" disabled>
                                 <kbd aria-hidden="true">4</kbd>
                                 <span><i class="ph ph-lightning" aria-hidden="true"></i>Dễ</span>
-                                <small>@easyPreview?.DelayLabel</small>
+                                <small class="review-focus__rating-schedule">
+                                    <span class="review-focus__rating-delay">@easyPreview?.DelayLabel</span>
+                                    <span class="review-focus__rating-next">@easyPreview?.NextReviewLabel</span>
+                                </small>
                             </button>
                         </div>
                     </form>

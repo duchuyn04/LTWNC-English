@@ -781,10 +781,21 @@
 }
 
 .review-focus__rating small {
-    color: var(--muted);
-    font-size: .58rem;
+    display: grid;
+    gap: .1rem;
+    color: var(--ink-soft);
+    font-size: .68rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
+}
+
+.review-focus__rating-delay {
+    font-weight: 700;
+}
+
+.review-focus__rating-next {
+    color: var(--muted);
+    font-weight: 600;
 }
 
 .review-focus__rating:disabled {

@@ -664,7 +664,8 @@ public sealed class ReviewService : IReviewService
                     NextReviewAtUtc = transition.NextReviewAtUtc,
                     LongTermIntervalDays = transition.LongTermIntervalDays,
                     Delay = delay,
-                    DelayLabel = FormatDelay(delay, transition.LongTermIntervalDays)
+                    DelayLabel = FormatDelay(delay, transition.LongTermIntervalDays),
+                    NextReviewLabel = FormatNextReview(transition.NextReviewAtUtc, now)
                 };
             })
             .ToList();
@@ -679,6 +680,27 @@ public sealed class ReviewService : IReviewService
 
         int days = Math.Max(1, (int)Math.Ceiling(delay.TotalDays));
         return $"{days} ngày";
+    }
+
+    // Nhãn thời điểm ôn lại theo giờ Việt Nam: "hôm nay 20:30", "ngày mai 08:00", "12/08 08:00".
+    private static string FormatNextReview(DateTimeOffset nextReviewAtUtc, DateTimeOffset nowUtc)
+    {
+        TimeZoneInfo vietnamTimeZone = GetVietnamTimeZone();
+        DateTime nextLocal = TimeZoneInfo.ConvertTime(nextReviewAtUtc, vietnamTimeZone).DateTime;
+        DateTime nowLocal = TimeZoneInfo.ConvertTime(nowUtc, vietnamTimeZone).DateTime;
+        string time = nextLocal.ToString("HH:mm");
+
+        if (nextLocal.Date == nowLocal.Date)
+        {
+            return $"hôm nay {time}";
+        }
+
+        if (nextLocal.Date == nowLocal.Date.AddDays(1))
+        {
+            return $"ngày mai {time}";
+        }
+
+        return $"{nextLocal:dd/MM} {time}";
     }
 
     private static IEnumerable<T> Shuffle<T>(IEnumerable<T> values)
@@ -736,21 +758,23 @@ public sealed class ReviewService : IReviewService
 
     private static DateTime GetVietnamDate(DateTimeOffset utcNow)
     {
-        TimeZoneInfo vietnamTimeZone;
+        return TimeZoneInfo.ConvertTime(utcNow, GetVietnamTimeZone()).Date;
+    }
+
+    private static TimeZoneInfo GetVietnamTimeZone()
+    {
         try
         {
-            vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
+            return TimeZoneInfo.FindSystemTimeZoneById("Asia/Ho_Chi_Minh");
         }
         catch (TimeZoneNotFoundException)
         {
-            vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
         }
         catch (InvalidTimeZoneException)
         {
-            vietnamTimeZone = TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
+            return TimeZoneInfo.FindSystemTimeZoneById("SE Asia Standard Time");
         }
-
-        return TimeZoneInfo.ConvertTime(utcNow, vietnamTimeZone).Date;
     }
 
     private sealed class NewCardAssignment
