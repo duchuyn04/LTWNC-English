@@ -37,7 +37,7 @@ jobs:
           security: loose
           port: 21
           local-dir: ./publish/
-          server-dir: /httpdocs/
+          server-dir: /
           dangerous-clean-slate: false
           exclude: |
             **/.git*
