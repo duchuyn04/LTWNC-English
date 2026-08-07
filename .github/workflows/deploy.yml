@@ -30,7 +30,7 @@ jobs:
       - name: Deploy via FTPS
         uses: SamKirkland/FTP-Deploy-Action@v4.3.6
         with:
-          server: ${{ secrets.PLESK_FTP_SERVER }}
+          server: domixi.click
           username: ${{ secrets.PLESK_FTP_USERNAME }}
           password: ${{ secrets.PLESK_FTP_PASSWORD }}
           protocol: ftps
