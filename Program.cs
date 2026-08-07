@@ -359,6 +359,7 @@ builder.Services.AddScoped<ltwnc.Controllers.ApiExceptionFilter>();
 
 var app = builder.Build();
 
+// Temporary one-time production repair endpoint; remove after migration.
 app.MapPost("/__ltwnc_repair_migration", async (HttpRequest request, AppDbContext dbContext) =>
 {
     if (!string.Equals(
