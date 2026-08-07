@@ -15,8 +15,9 @@ Thay đổi hai trang `Login` và `Register`, phần minh họa dùng chung tron
 - Nhãn đầu trang: `Tài khoản`
 - Tiêu đề: `Đăng nhập`
 - Mô tả: `Nhập thông tin tài khoản để tiếp tục.`
-- Nút Google: `Đăng nhập bằng Google`
+- Nút Google: `Đăng nhập bằng Google`, kèm logo Google dạng SVG inline
 - Dòng phân cách: `Hoặc đăng nhập bằng tài khoản`
+- Nút gửi biểu mẫu: `Đăng nhập`, không có ký hiệu mũi tên
 - Tùy chọn ghi nhớ: `Duy trì đăng nhập trên thiết bị này`
 - Liên kết đăng ký: `Chưa có tài khoản? Đăng ký`
 
@@ -25,7 +26,7 @@ Thay đổi hai trang `Login` và `Register`, phần minh họa dùng chung tron
 - Nhãn đầu trang: `Tài khoản mới`
 - Tiêu đề: `Tạo tài khoản`
 - Mô tả: `Điền thông tin bên dưới. Mã xác thực sẽ được gửi đến email của bạn.`
-- Nút Google: `Đăng ký bằng Google`
+- Nút Google: `Đăng ký bằng Google`, kèm logo Google dạng SVG inline
 - Dòng phân cách: `Hoặc đăng ký bằng email`
 - Nút gửi biểu mẫu: `Gửi mã xác thực`
 

@@ -13,7 +13,7 @@
 - Follow `docs/superpowers/specs/2026-08-07-neutral-auth-ui-design.md` and the approved browser prototype.
 - Preserve all authentication actions, form methods, Tag Helpers, validation attributes, autocomplete values, and antiforgery behavior.
 - Keep the current image, auth shell, green and cream palette, and responsive breakpoints.
-- Do not add a dependency or a custom Google icon asset.
+- Do not add a dependency or a separate Google icon asset; render the Google logo as inline SVG in both auth views.
 - Preserve existing uncommitted work, especially the `site.css` import in `_AuthLayout.cshtml` and token aliases at the start of `auth.css`.
 - Stage only this feature's hunks from `_AuthLayout.cshtml` and `auth.css`.
 
@@ -51,8 +51,12 @@ public sealed class AuthViewTests
         Assert.Contains("<h1 id=\"login-title\" class=\"auth-title\">Đăng nhập</h1>", login);
         Assert.Contains("Nhập thông tin tài khoản để tiếp tục.", login);
         Assert.Contains("Đăng nhập bằng Google", login);
+        Assert.Contains("class=\"auth-google-icon\"", login);
+        Assert.Contains("<svg class=\"auth-google-icon\"", login);
         Assert.Contains("Hoặc đăng nhập bằng tài khoản", login);
         Assert.Contains("Duy trì đăng nhập trên thiết bị này", login);
+        Assert.Contains("<button type=\"submit\" class=\"auth-submit\">Đăng nhập</button>", login);
+        Assert.DoesNotContain("Đăng nhập <span aria-hidden=\"true\">→</span>", login);
         Assert.Contains("Chưa có tài khoản? <a href=\"/Account/Register\">Đăng ký</a>", login);
         Assert.DoesNotContain("Sẵn sàng học tiếp?", login);
         Assert.DoesNotContain("auth-progress", login);
@@ -60,6 +64,8 @@ public sealed class AuthViewTests
         Assert.Contains("<p class=\"auth-eyebrow\">Tài khoản mới</p>", register);
         Assert.Contains("<h1 id=\"register-title\" class=\"auth-title\">Tạo tài khoản</h1>", register);
         Assert.Contains("Điền thông tin bên dưới. Mã xác thực sẽ được gửi đến email của bạn.", register);
+        Assert.Contains("class=\"auth-google-icon\"", register);
+        Assert.Contains("<svg class=\"auth-google-icon\"", register);
         Assert.Contains("Hoặc đăng ký bằng email", register);
         Assert.DoesNotContain("Tạo góc học tập.", register);
         Assert.DoesNotContain("auth-progress", register);
@@ -128,6 +134,10 @@ Keep the existing checkbox and links, changing only their visible copy:
 
 ```cshtml
 <span>Duy trì đăng nhập trên thiết bị này</span>
+```
+
+```cshtml
+<button type="submit" class="auth-submit">Đăng nhập</button>
 ```
 
 ```cshtml
