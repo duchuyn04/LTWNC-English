@@ -35,6 +35,30 @@ public sealed class AuthViewTests
         Assert.DoesNotContain("Tap to reveal", layout);
     }
 
+    [Fact]
+    public void AuthStylesSeparatePrimaryAndGoogleActions()
+    {
+        string css = Read("wwwroot/css/auth.css").Replace("\r\n", "\n");
+
+        Assert.DoesNotContain(".auth-progress", css);
+        Assert.Contains("""
+.auth-google-submit {
+    border-color: var(--auth-line);
+    color: var(--auth-ink);
+    background: #fff;
+    text-decoration: none;
+}
+""", css);
+        Assert.Contains("""
+.auth-google-submit:hover {
+    border-color: var(--auth-ink);
+    color: var(--auth-ink);
+    background: var(--sage-soft);
+}
+""", css);
+        Assert.Contains(".auth-divider::before, .auth-divider::after", css);
+    }
+
     private static string Read(string relativePath) =>
         File.ReadAllText(Path.Combine(FindRepositoryRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar)));
 
