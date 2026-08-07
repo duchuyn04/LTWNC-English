@@ -13,6 +13,7 @@ public sealed class AuthViewTests
         Assert.Contains("<h1 id=\"login-title\" class=\"auth-title\">Đăng nhập</h1>", login);
         Assert.Contains("Nhập thông tin tài khoản để tiếp tục.", login);
         Assert.Contains("Đăng nhập bằng Google", login);
+        Assert.Contains("class=\"auth-google-icon\"", login);
         Assert.Contains("Hoặc đăng nhập bằng tài khoản", login);
         Assert.Contains("Duy trì đăng nhập trên thiết bị này", login);
         Assert.Contains("<button type=\"submit\" class=\"auth-submit\">Đăng nhập</button>", login);
@@ -24,6 +25,7 @@ public sealed class AuthViewTests
         Assert.Contains("<p class=\"auth-eyebrow\">Tài khoản mới</p>", register);
         Assert.Contains("<h1 id=\"register-title\" class=\"auth-title\">Tạo tài khoản</h1>", register);
         Assert.Contains("Điền thông tin bên dưới. Mã xác thực sẽ được gửi đến email của bạn.", register);
+        Assert.Contains("class=\"auth-google-icon\"", register);
         Assert.Contains("Hoặc đăng ký bằng email", register);
         Assert.DoesNotContain("Tạo góc học tập.", register);
         Assert.DoesNotContain("auth-progress", register);
