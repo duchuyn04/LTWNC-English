@@ -485,7 +485,7 @@
             setSaveStatus('Đang lưu...', 'saving');
 
             const response = await apiFetch(`/api/flashcards/flashcard-sets/${setId}`, {
-                method: 'PUT',
+                method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(metadata)
             });
@@ -546,7 +546,7 @@
         const url = isNewCard
             ? '/api/flashcards/flashcards'
             : `/api/flashcards/flashcards/${data.id}`;
-        const method = isNewCard ? 'POST' : 'PUT';
+        const method = 'POST';
 
         try {
             const response = await apiFetch(url, {

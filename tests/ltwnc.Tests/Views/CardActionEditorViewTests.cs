@@ -57,6 +57,18 @@ public sealed class CardActionEditorViewTests
         Assert.Contains("input:not([data-card-selection])", script);
     }
 
+    [Fact]
+    public void Editor_update_requests_use_iis_compatible_post_routes()
+    {
+        string script = Read("wwwroot/js/unified-editor.js");
+        string controller = Read("Controllers/FlashcardsApiController.cs");
+
+        Assert.DoesNotContain("method: 'PUT'", script);
+        Assert.DoesNotContain(": 'PUT'", script);
+        Assert.Contains("[HttpPost(\"flashcard-sets/{id}\")]", controller);
+        Assert.Contains("[HttpPost(\"flashcards/{id}\")]", controller);
+    }
+
     private static string Read(string relativePath) =>
         File.ReadAllText(Path.Combine(FindRepositoryRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar)));
 

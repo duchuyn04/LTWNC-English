@@ -68,6 +68,7 @@ public class FlashcardsApiController : ControllerBase
 
     // Cập nhật thông tin bộ thẻ và trả về HTTP 204 khi thành công.
     [HttpPut("flashcard-sets/{id}")]
+    [HttpPost("flashcard-sets/{id}")]
     public async Task<IActionResult> UpdateSet(int id, UpdateSetRequest request)
     {
         // 1. Kiểm tra người gọi đã đăng nhập.
@@ -130,6 +131,7 @@ public class FlashcardsApiController : ControllerBase
 
     // Cập nhật nội dung, ảnh và trạng thái đánh sao của một thẻ.
     [HttpPut("flashcards/{id}")]
+    [HttpPost("flashcards/{id}")]
     public async Task<IActionResult> UpdateCard(int id, UpdateCardRequest request)
     {
         // 1. Kiểm tra người gọi đã đăng nhập.
