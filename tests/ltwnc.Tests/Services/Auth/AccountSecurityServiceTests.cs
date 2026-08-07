@@ -92,6 +92,42 @@ public sealed class AccountSecurityServiceTests
     }
 
     [Fact]
+    public async Task AdminCanLinkGoogleAccountViaOtp()
+    {
+        await using AppDbContext context = CreateContext();
+        CapturingEmailSender sender = new();
+        AccountSecurityService security = CreateSecurity(context, sender);
+        AuthService auth = CreateAuth(context);
+
+        string passwordHash = new PasswordHasher<AppUser>().HashPassword(
+            new AppUser { Email = "admin@example.com" },
+            "Password1");
+        Assert.True((await auth.CreateVerifiedLocalUserAsync(
+            "admin@example.com",
+            "admin",
+            passwordHash)).Succeeded);
+        AppUser admin = await context.AppUsers.SingleAsync();
+        admin.IsAdmin = true;
+        await context.SaveChangesAsync();
+
+        RegistrationStartResult start = await security.StartGoogleLinkOtpAsync(
+            admin.Id,
+            "google-admin-1",
+            "127.0.0.1");
+
+        Assert.True(start.Succeeded);
+        Assert.NotNull(start.ChallengeId);
+
+        AccountSecurityResult result = await security.CompleteGoogleLinkOtpAsync(
+            start.ChallengeId!,
+            "123456");
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(admin.Id, result.UserId);
+        Assert.Equal("google-admin-1", admin.GoogleSubjectId);
+    }
+
+    [Fact]
     public async Task PasswordResetReportsEmailFailureWithoutLeavingChallenge()
     {
         await using AppDbContext context = CreateContext();

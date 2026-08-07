@@ -320,15 +320,16 @@ public class AccountController : Controller
             return RedirectToAction(nameof(Login));
         }
 
-        if (user.IsAdmin)
-        {
-            TempData["Error"] = "Tài khoản Admin không sử dụng đăng nhập Google.";
-            return RedirectToAction(nameof(Login));
-        }
-
         if (string.Equals(user.GoogleSubjectId, googleSubjectId, StringComparison.Ordinal))
         {
             await _authService.SignInAsync(user, SessionCookieLifetime);
+
+            if (user.IsAdmin)
+            {
+                await RecordAdminSignInAuditAsync(user);
+                return Redirect("/Admin");
+            }
+
             return Redirect(GetSafeReturnUrl(returnUrl, "/Set"));
         }
 
@@ -373,7 +374,7 @@ public class AccountController : Controller
         }
 
         AppUser? user = await _authService.FindByIdAsync(payload.UserId, cancellationToken);
-        if (user == null || user.IsAdmin)
+        if (user == null)
         {
             ModelState.AddModelError(string.Empty, "Không thể liên kết tài khoản Google.");
             return View("LinkGoogle", model);
@@ -400,8 +401,7 @@ public class AccountController : Controller
             return View("LinkGoogle", model);
         }
 
-        await _authService.SignInAsync(user, SessionCookieLifetime);
-        return Redirect("/Set");
+        return await CompleteGoogleLinkSignInAsync(user);
     }
 
     [HttpPost]
@@ -492,8 +492,7 @@ public class AccountController : Controller
             return View(model);
         }
 
-        await _authService.SignInAsync(user, SessionCookieLifetime);
-        return Redirect("/Set");
+        return await CompleteGoogleLinkSignInAsync(user);
     }
 
     [HttpGet]
@@ -651,6 +650,19 @@ public class AccountController : Controller
             payload = new GoogleLinkPayload(string.Empty, string.Empty, string.Empty);
             return false;
         }
+    }
+
+    private async Task<IActionResult> CompleteGoogleLinkSignInAsync(AppUser user)
+    {
+        await _authService.SignInAsync(user, SessionCookieLifetime);
+
+        if (user.IsAdmin)
+        {
+            await RecordAdminSignInAuditAsync(user);
+            return Redirect("/Admin");
+        }
+
+        return Redirect("/Set");
     }
 
     private async Task RecordAdminSignInAuditAsync(AppUser user)

@@ -371,7 +371,7 @@ public sealed class AuthService : IAuthService
         string googleSubjectId,
         CancellationToken cancellationToken = default)
     {
-        if (user.IsAdmin || string.IsNullOrWhiteSpace(googleSubjectId))
+        if (string.IsNullOrWhiteSpace(googleSubjectId))
         {
             return AuthResult.Failure(new AuthError("GoogleLinkDenied", "Không thể liên kết tài khoản Google."));
         }

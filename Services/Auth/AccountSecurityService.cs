@@ -259,7 +259,7 @@ public sealed class AccountSecurityService : IAccountSecurityService
         CancellationToken cancellationToken = default)
     {
         AppUser? user = await _authService.FindByIdAsync(userId, cancellationToken);
-        if (user == null || user.IsAdmin || string.IsNullOrWhiteSpace(googleSubjectId))
+        if (user == null || string.IsNullOrWhiteSpace(googleSubjectId))
         {
             return new RegistrationStartResult(false, ErrorMessage: "Không thể liên kết tài khoản Google.");
         }
@@ -296,7 +296,7 @@ public sealed class AccountSecurityService : IAccountSecurityService
         AppUser? user = await _authService.FindByIdAsync(
             validation.Challenge.UserId,
             cancellationToken);
-        if (user == null || user.IsAdmin)
+        if (user == null)
         {
             return Failure("Không thể liên kết tài khoản Google.");
         }
