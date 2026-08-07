@@ -1,72 +1,58 @@
-/* Leaderboard: quiet editorial board with one dark focal card. */
-.lb-production,
-.lb-full-page {
+/* Leaderboard: quiet editorial board with one dark focal card.
+   Token dùng chung từ site.css — file này chỉ định nghĩa layout trang. */
+
+.lb-production {
     box-sizing: border-box;
+    width: min(100%, 72rem);
     margin: 0 auto;
+    padding: 1.75rem 1.25rem 3.5rem;
     color: var(--ink);
     font-family: var(--font-body);
 }
 
-.lb-production {
-    width: min(100%, 1440px);
-    padding: .75rem 1.75rem 3.5rem;
-}
-
-.lb-full-page {
-    width: min(100%, 1200px);
-    padding: .25rem 1.25rem 3.5rem;
-}
-
-.lb-header,
-.lb-full-header {
-    display: flex;
-    align-items: end;
-    justify-content: space-between;
-    gap: 1.5rem;
-}
+/* ---------- Header ---------- */
 
 .lb-header {
-    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-bottom: 1.75rem;
 }
 
-.lb-header > div,
-.lb-full-header > div {
+.lb-header > div {
     min-width: 0;
 }
 
 .lb-eyebrow,
 .lb-small-label {
     color: var(--brass-deep);
-    font-size: .66rem;
+    font-size: 0.6875rem;
     font-weight: 800;
-    letter-spacing: .12em;
-    line-height: 1.2;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
 }
 
-.lb-header h1,
-.lb-full-header h1 {
-    margin: .3rem 0 .35rem;
+.lb-header h1 {
+    margin: 0.35rem 0 0.4rem;
     color: var(--ink);
-    font-size: clamp(1.85rem, 3.5vw, 3.75rem);
+    font-size: clamp(1.75rem, 3.5vw, 3rem);
     font-weight: 800;
-    letter-spacing: -.045em;
-    line-height: 1.04;
+    letter-spacing: -0.035em;
+    line-height: 1.08;
 }
 
-.lb-header p,
-.lb-full-header p {
+.lb-header p {
     max-width: 58ch;
     margin: 0;
     color: var(--muted);
-    font-size: .78rem;
-    line-height: 1.45;
+    font-size: 0.875rem;
 }
 
 .lb-period {
     display: inline-flex;
     flex: 0 0 auto;
-    padding: .2rem;
+    padding: 0.2rem;
     border: 1px solid var(--line);
     border-radius: var(--radius-pill);
     background: var(--surface);
@@ -74,14 +60,16 @@
 }
 
 .lb-period a {
-    padding: .42rem .8rem;
+    padding: 0.5rem 0.9rem;
     border-radius: var(--radius-pill);
     color: var(--muted);
-    font-size: .72rem;
+    font-size: 0.75rem;
     font-weight: 700;
     line-height: 1;
     text-decoration: none;
     white-space: nowrap;
+    transition: color var(--duration-fast) var(--ease-out),
+                background-color var(--duration-fast) var(--ease-out);
 }
 
 .lb-period a:hover {
@@ -94,77 +82,70 @@
     background: var(--ink);
 }
 
+/* ---------- Podium: champion focal + runners ---------- */
+
 .lb-podium {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: end;
-    gap: .8rem;
-    margin: 0 0 1.25rem;
+    grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr);
+    gap: 0.9rem;
+    margin-bottom: 1.25rem;
 }
 
-.lb-podium-card {
+/* Chỉ 1 entry: champion chiếm trọn chiều ngang */
+.lb-podium:not(:has(.lb-podium-side)) {
+    grid-template-columns: minmax(0, 1fr);
+}
+
+.lb-champion {
     position: relative;
-    min-width: 0;
-    border-radius: var(--radius-card);
-    text-align: center;
-}
-
-.lb-podium-card--champion {
-    z-index: 1;
-    display: flex;
-    min-height: 350px;
-    grid-column: 2;
-    grid-row: 1;
-    flex-direction: column;
-    align-items: center;
-    justify-content: flex-start;
-    padding: 1.15rem .75rem .75rem;
+    display: grid;
+    justify-items: start;
+    align-content: start;
+    gap: 0.65rem;
     overflow: hidden;
-    color: var(--paper);
+    padding: 1.5rem 1.5rem 1.6rem;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius-card);
     background: var(--ink);
+    color: var(--paper);
     box-shadow: var(--shadow-lift);
 }
 
-.lb-rank-ghost {
+.lb-rank-mark {
     position: absolute;
-    top: .2rem;
-    right: .5rem;
-    color: rgba(247, 243, 233, .12);
-    font-size: 4.6rem;
+    top: 0.4rem;
+    right: 1rem;
+    color: color-mix(in srgb, var(--paper) 14%, transparent);
+    font-size: 4.5rem;
     font-weight: 800;
-    letter-spacing: -.08em;
+    font-variant-numeric: tabular-nums;
     line-height: 1;
+    letter-spacing: -0.04em;
+    user-select: none;
 }
 
-.lb-medal-tag {
+.lb-medal {
     display: inline-flex;
     align-items: center;
-    gap: .2rem;
+    gap: 0.4rem;
+    padding: 0.35rem 0.7rem;
     border-radius: var(--radius-pill);
-    font-size: .54rem;
-    font-weight: 800;
-    line-height: 1;
-    text-transform: uppercase;
-    white-space: nowrap;
-}
-
-.lb-medal-tag i {
-    font-size: .72rem;
-}
-
-.lb-podium-card--champion .lb-medal-tag {
-    position: relative;
-    z-index: 1;
-    align-self: flex-start;
-    padding: .34rem .52rem;
-    color: var(--ink);
     background: var(--brass);
+    color: var(--ink);
+    font-size: 0.7rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.lb-medal i {
+    font-size: 0.9rem;
 }
 
 .lb-avatar {
     display: grid;
-    width: 2.35rem;
-    height: 2.35rem;
+    width: 2.5rem;
+    height: 2.5rem;
     flex: 0 0 auto;
     place-items: center;
     overflow: hidden;
@@ -172,289 +153,211 @@
     border-radius: 50%;
     color: var(--ink);
     background: var(--surface-sunken);
-    font-size: .72rem;
+    font-size: 0.8rem;
     font-weight: 800;
 }
 
-.lb-avatar img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.lb-podium-card--champion .lb-avatar--large {
-    width: 4rem;
-    height: 4rem;
-    margin-top: .25rem;
-    border-color: rgba(247, 243, 233, .22);
+.lb-avatar--large {
+    width: 4.25rem;
+    height: 4.25rem;
+    border-color: color-mix(in srgb, var(--paper) 28%, transparent);
     color: var(--paper);
     background: var(--brass-deep);
-    font-size: 1rem;
+    font-size: 1.35rem;
 }
 
-.lb-podium-card--champion .lb-small-label {
-    margin-top: .55rem;
-    color: rgba(247, 243, 233, .6);
-    font-size: .47rem;
+.lb-champion .lb-small-label {
+    color: var(--brass);
 }
 
-.lb-podium-card--champion h2 {
-    max-width: 100%;
-    margin: .25rem 0 0;
-    overflow: hidden;
+.lb-champion h2 {
+    margin: 0;
     color: var(--paper);
-    font-size: 1.2rem;
-    font-weight: 700;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.lb-session-count {
-    display: block;
-    color: var(--muted-light);
-    font-size: .68rem;
-    line-height: 1.3;
-}
-
-.lb-champion-total {
-    display: flex;
-    width: 100%;
-    margin-top: auto;
-    padding: .48rem .45rem .4rem;
-    border: 1px solid rgba(247, 243, 233, .08);
-    border-radius: .5rem;
-    flex-direction: column;
-    gap: .1rem;
-    background: rgba(247, 243, 233, .08);
-}
-
-.lb-champion-total small {
-    color: rgba(247, 243, 233, .55);
-    font-size: .43rem;
-    letter-spacing: .08em;
-    text-transform: uppercase;
-}
-
-.lb-champion-total strong {
-    color: var(--paper);
-    font-size: .67rem;
-}
-
-.lb-podium-card--side {
-    display: flex;
-    min-height: 220px;
-    align-items: center;
-    padding: .7rem .55rem .55rem;
-    flex-direction: column;
-    border: 1px solid var(--line);
-    background: var(--surface);
-    box-shadow: var(--shadow-card);
-}
-
-.lb-podium-card--rank-2 {
-    grid-column: 1;
-    grid-row: 1;
-}
-
-.lb-podium-card--rank-3 {
-    grid-column: 3;
-    grid-row: 1;
-}
-
-.lb-side-topline {
-    display: flex;
-    width: 100%;
-    align-items: start;
-    justify-content: space-between;
-}
-
-.lb-rank-number {
-    color: var(--muted-light);
-    font-size: .78rem;
+    font-size: clamp(1.5rem, 2.6vw, 2.1rem);
     font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    overflow-wrap: anywhere;
+}
+
+.lb-champion strong {
+    color: var(--paper);
+    font-size: 1.05rem;
     font-variant-numeric: tabular-nums;
 }
 
-.lb-side-topline .lb-rank-number {
-    color: var(--line-strong);
-    font-size: 1.1rem;
-    letter-spacing: -.05em;
+.lb-champion small {
+    display: block;
+    margin-top: 0.15rem;
+    color: color-mix(in srgb, var(--paper) 62%, transparent);
+    font-size: 0.75rem;
 }
 
-.lb-medal-tag--2 {
-    padding: .24rem .38rem;
-    color: #67706b;
-    background: #f0f0eb;
+.lb-podium-side {
+    display: grid;
+    align-content: stretch;
+    gap: 0.9rem;
 }
 
-.lb-medal-tag--3 {
-    padding: .24rem .38rem;
-    color: #95603b;
-    background: #f6e9dc;
-}
-
-.lb-podium-card--side .lb-avatar {
-    width: 3rem;
-    height: 3rem;
-    margin: .35rem 0 .25rem;
-}
-
-.lb-side-name {
-    max-width: 100%;
-    overflow: hidden;
-    color: var(--ink);
-    font-size: .75rem;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
-
-.lb-side-total {
-    display: flex;
-    width: 100%;
-    margin-top: auto;
-    padding-top: .38rem;
-    border-top: 1px solid var(--line);
+.lb-runner {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
-    gap: .3rem;
-    color: var(--muted);
-    font-size: .48rem;
-}
-
-.lb-side-total strong {
-    color: var(--brass-deep);
-    font-size: .51rem;
-    font-weight: 700;
-    white-space: nowrap;
-}
-
-.lb-compact-table,
-.lb-full-table {
-    overflow: hidden;
+    gap: 0.75rem;
+    padding: 0.9rem 1.1rem;
     border: 1px solid var(--line);
     border-radius: var(--radius-card);
     background: var(--surface);
     box-shadow: var(--shadow-card);
 }
 
-.lb-table-head,
-.lb-table-row,
-.lb-full-table-head,
-.lb-full-row {
-    display: grid;
-    grid-template-columns: 3.2rem minmax(0, 1fr) 5.5rem 7.8rem;
-    align-items: center;
+.lb-runner .lb-rank-mark {
+    position: static;
+    color: var(--muted-light);
+    font-size: 1.05rem;
 }
 
-.lb-table-head,
-.lb-full-table-head {
-    min-height: 2.5rem;
-    padding: 0 .7rem;
-    color: var(--muted);
-    background: rgba(240, 235, 221, .36);
-    font-size: .58rem;
+.lb-runner strong {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ink);
+    font-size: 0.9rem;
     font-weight: 700;
-    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lb-runner small {
+    display: block;
+    color: var(--muted);
+    font-size: 0.72rem;
+}
+
+.lb-runner b {
+    color: var(--ink);
+    font-size: 0.8rem;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+/* ---------- Vị trí của bạn ---------- */
+
+.lb-current {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.9rem;
+    margin-bottom: 1.25rem;
+    padding: 0.8rem 1.1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    background: var(--surface-sunken);
+    box-shadow: inset 3px 0 var(--brass);
+}
+
+.lb-current-label {
+    color: var(--muted);
+    font-size: 0.6875rem;
+    font-weight: 800;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
 }
 
-.lb-table-head span:nth-child(3),
-.lb-table-head span:nth-child(4),
-.lb-full-table-head span:nth-child(3),
-.lb-full-table-head span:nth-child(4) {
-    text-align: right;
-}
-
-.lb-table-body,
-.lb-full-table-body {
-    list-style: none;
-    margin: 0;
-    padding: 0;
-}
-
-.lb-table-row {
-    min-height: 3.1rem;
-    padding: .25rem .7rem;
-    line-height: 1.2;
-    border-top: 1px solid var(--line);
-    font-size: .7rem;
-}
-
-.lb-table-row.is-viewer,
-.lb-full-row.is-viewer {
-    background: var(--brass-soft);
-}
-
-.lb-table-row .lb-rank-number {
-    font-size: .6rem;
+.lb-current-rank {
+    color: var(--brass-deep);
+    font-size: 1.05rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
 }
 
 .lb-person {
     display: flex;
     min-width: 0;
     align-items: center;
-    gap: .55rem;
+    gap: 0.6rem;
 }
 
 .lb-person strong {
+    display: block;
     min-width: 0;
     overflow: hidden;
     color: var(--ink);
-    font-size: .78rem;
+    font-size: 0.875rem;
     font-weight: 700;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
-.lb-avatar--small {
-    width: 1.35rem;
-    height: 1.35rem;
-    font-size: .48rem;
+.lb-person small {
+    display: block;
+    color: var(--muted);
+    font-size: 0.72rem;
 }
 
-.lb-session-value,
+.lb-current-progress {
+    color: var(--muted);
+    font-size: 0.75rem;
+}
+
 .lb-duration {
+    margin-left: auto;
     color: var(--ink);
-    font-size: .72rem;
+    font-size: 0.85rem;
+    font-weight: 700;
     font-variant-numeric: tabular-nums;
-    text-align: right;
     white-space: nowrap;
 }
 
-.lb-more-link {
-    display: flex;
-    width: fit-content;
-    margin: 1.25rem auto .35rem;
-    align-items: center;
-    gap: .25rem;
-    padding: .4rem .75rem;
-    border-radius: var(--radius-pill);
-    color: var(--paper);
-    background: var(--ink);
-    font-size: .5rem;
-    font-weight: 700;
-    text-decoration: none;
-}
+/* ---------- Danh sách hạng 4+ ---------- */
 
-.lb-more-link:hover {
-    color: var(--paper);
-    background: var(--ink-soft);
-    transform: translateY(-1px);
-}
-
-.lb-update-note {
+.lb-list {
+    display: grid;
+    gap: 0.5rem;
     margin: 0;
-    color: var(--muted-light);
-    font-size: .48rem;
-    text-align: center;
+    padding: 0;
+    list-style: none;
 }
+
+.lb-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 0.6rem 1.1rem;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    background: var(--surface);
+    transition: border-color var(--duration-fast) var(--ease-out);
+}
+
+.lb-row-rank {
+    width: 2ch;
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+}
+
+.lb-row.is-viewer {
+    border-color: var(--brass);
+    background: var(--brass-soft);
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .lb-row:hover {
+        border-color: var(--line-strong);
+    }
+}
+
+/* ---------- Empty state ---------- */
 
 .lb-empty {
     display: grid;
     min-height: 42vh;
     place-items: center;
     align-content: center;
-    gap: .65rem;
+    gap: 0.65rem;
     text-align: center;
 }
 
@@ -468,398 +371,53 @@
     font-size: 1.35rem;
 }
 
-.lb-empty p,
-.lb-full-empty {
+.lb-empty p {
+    max-width: 46ch;
     margin: 0;
     color: var(--muted);
-    font-size: .75rem;
+    font-size: 0.8rem;
 }
 
-/* Full board */
-.lb-back-link {
-    display: inline-flex;
-    align-items: center;
-    gap: .3rem;
-    margin-bottom: 1rem;
-    color: var(--muted);
-    font-size: .66rem;
-    text-decoration: none;
-}
+/* ---------- Responsive ---------- */
 
-.lb-back-link:hover {
-    color: var(--ink);
-}
+@media (max-width: 56rem) {
+    .lb-podium {
+        grid-template-columns: minmax(0, 1fr);
+    }
 
-.lb-full-header {
-    align-items: end;
-    margin-bottom: .75rem;
-}
-
-.lb-full-header h1 {
-    margin-top: 0;
-    font-size: clamp(2rem, 4vw, 3rem);
-}
-
-.lb-full-header p {
-    max-width: 66ch;
-    font-size: .7rem;
-}
-
-.lb-toolbar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: .8rem;
-    align-items: center;
-    margin-bottom: .65rem;
-    padding: .45rem .7rem;
-    border: 1px solid var(--line);
-    border-radius: var(--radius-control);
-    background: var(--surface);
-}
-
-.lb-search {
-    display: flex;
-    min-width: 0;
-    align-items: center;
-    gap: .4rem;
-    color: var(--muted-light);
-}
-
-.lb-search input {
-    width: 100%;
-    min-width: 0;
-    border: 0;
-    outline: 0;
-    color: var(--ink);
-    background: transparent;
-    font: .75rem var(--font-body);
-}
-
-.lb-search input::placeholder {
-    color: var(--muted-light);
-}
-
-.lb-toolbar-meta {
-    display: flex;
-    align-items: center;
-    gap: .8rem;
-    color: var(--muted);
-    font-size: .65rem;
-    white-space: nowrap;
-}
-
-.lb-toolbar-meta span {
-    display: inline-flex;
-    align-items: center;
-    gap: .25rem;
-}
-
-.lb-toolbar-meta i {
-    color: var(--brass-deep);
-}
-
-.lb-full-table {
-    border-radius: var(--radius-control);
-}
-
-.lb-full-table-head,
-.lb-full-row {
-    grid-template-columns: 3.2rem minmax(0, 1fr) 5.5rem 7.8rem;
-}
-
-.lb-full-row {
-    min-height: 2.7rem;
-    padding: .15rem .7rem;
-    border-top: 1px solid var(--line);
-    line-height: 1.2;
-}
-
-.lb-full-row--first {
-    background: rgba(245, 238, 220, .3);
-}
-
-.lb-full-row--first.is-viewer {
-    background: var(--brass-soft);
-}
-
-.lb-full-rank {
-    display: inline-flex;
-    align-items: center;
-    gap: .12rem;
-    color: var(--ink);
-    font-size: .75rem;
-    font-weight: 700;
-    font-variant-numeric: tabular-nums;
-}
-
-.lb-full-row--first .lb-full-rank {
-    color: var(--brass-deep);
-    font-size: 1rem;
-}
-
-.lb-full-row--first .lb-full-rank i {
-    font-size: .7rem;
-}
-
-.lb-full-person {
-    gap: .6rem;
-}
-
-.lb-full-person .lb-avatar {
-    width: 2.2rem;
-    height: 2.2rem;
-    background: var(--surface-sunken);
-}
-
-.lb-full-person > span:last-child {
-    display: block;
-    min-width: 0;
-}
-
-.lb-full-person strong {
-    display: block;
-    font-size: .8rem;
-}
-
-.lb-full-empty {
-    padding: 2rem 1rem;
-    text-align: center;
-}
-
-.lb-full-row[hidden] {
-    display: none;
-}
-
-@media (min-width: 1200px) {
-    .lb-production {
-        padding-right: .25rem;
-        padding-left: .25rem;
+    .lb-rank-mark {
+        font-size: 3.5rem;
     }
 }
 
-@media (max-width: 760px) {
-    .lb-header,
-    .lb-full-header {
-        align-items: flex-start;
-        flex-direction: row;
-    }
-
+@media (max-width: 40rem) {
     .lb-production {
-        padding-top: .65rem;
+        padding: 1rem 1rem 2.5rem;
     }
 
     .lb-header {
-        margin-bottom: .625rem;
-    }
-
-    .lb-eyebrow {
-        display: block;
-    }
-
-    .lb-header h1 {
-        margin-top: .2rem;
-        margin-bottom: .3rem;
-        font-size: 1.25rem;
-    }
-
-    .lb-full-header h1 {
-        font-size: 1.55rem;
-    }
-
-    .lb-header p,
-    .lb-full-header p {
-        max-width: none;
-        font-size: .6rem;
-        line-height: 1.3;
-    }
-
-    .lb-header .lb-period,
-    .lb-full-header .lb-period {
-        align-self: flex-start;
-    }
-
-    .lb-header .lb-period {
-        margin-top: 1.4rem;
-    }
-
-    .lb-full-header .lb-period {
-        margin-top: 1.95rem;
-    }
-
-    .lb-header .lb-period a {
-        padding-right: .55rem;
-        padding-left: .55rem;
-        font-size: .62rem;
-    }
-
-    .lb-full-header .lb-period a {
-        padding-right: .45rem;
-        padding-left: .45rem;
-        font-size: .6rem;
-    }
-
-    .lb-podium-card--champion {
-        min-height: 232px;
-    }
-
-    .lb-podium-card--side {
-        min-height: 148px;
-    }
-
-    .lb-toolbar {
-        grid-template-columns: minmax(0, 1fr) auto;
-    }
-
-    .lb-toolbar-meta {
-        justify-content: space-between;
-    }
-}
-
-@media (max-width: 560px) {
-    .lb-header p,
-    .lb-full-header p {
-        max-width: 36ch;
-    }
-
-    .lb-header h1 {
-        font-size: 1.25rem;
-    }
-
-    .lb-full-header h1 {
-        font-size: 1.55rem;
-    }
-
-    .lb-podium {
-        gap: .45rem;
-    }
-
-    .lb-podium-card--champion {
-        min-height: 232px;
-        padding-right: .5rem;
-        padding-left: .5rem;
-    }
-
-    .lb-podium-card--side {
-        min-height: 148px;
-        padding-right: .35rem;
-        padding-left: .35rem;
-    }
-
-    .lb-side-topline .lb-rank-number {
-        font-size: .95rem;
-    }
-
-    .lb-medal-tag {
-        font-size: .5rem;
-    }
-
-    .lb-side-name {
-        font-size: .7rem;
-    }
-
-    .lb-side-total {
-        font-size: .5rem;
-    }
-
-    .lb-side-total strong {
-        font-size: .52rem;
-    }
-
-    .lb-table-head,
-    .lb-table-row,
-    .lb-full-table-head,
-    .lb-full-row {
-        grid-template-columns: 2.35rem minmax(0, 1fr) 3.4rem 6.25rem;
-    }
-
-    .lb-table-head,
-    .lb-full-table-head {
-        padding-right: .45rem;
-        padding-left: .45rem;
-        font-size: .52rem;
-    }
-
-    .lb-table-row,
-    .lb-full-row {
-        padding-right: .45rem;
-        padding-left: .45rem;
-    }
-
-    .lb-table-row {
-        min-height: 2.25rem;
-    }
-
-    .lb-full-row {
-        min-height: 2.5rem;
-    }
-
-    .lb-person {
-        gap: .4rem;
-    }
-
-    .lb-person strong,
-    .lb-session-value,
-    .lb-duration {
-        font-size: .7rem;
-    }
-
-    .lb-full-person .lb-avatar {
-        width: 2rem;
-        height: 2rem;
-    }
-
-    .lb-more-link {
-        font-size: .6rem;
-    }
-
-    .lb-toolbar-meta {
-        gap: .4rem;
-        font-size: .58rem;
-    }
-}
-
-@media (max-width: 500px) {
-    .lb-header,
-    .lb-full-header {
         flex-direction: column;
-    }
-
-    .lb-header .lb-period,
-    .lb-full-header .lb-period {
-        align-self: flex-end;
-    }
-
-    .lb-toolbar {
-        grid-template-columns: 1fr;
-    }
-
-    .lb-toolbar-meta {
-        justify-content: space-between;
-    }
-}
-
-@media (max-width: 430px) {
-    .lb-podium {
-        grid-template-columns: 1fr;
-    }
-
-    .lb-podium-card--champion,
-    .lb-podium-card--rank-2,
-    .lb-podium-card--rank-3 {
-        grid-column: 1;
-        grid-row: auto;
-    }
-
-    .lb-podium-card--champion {
-        min-height: 220px;
-    }
-
-    .lb-podium-card--side {
-        min-height: 125px;
-    }
-
-    .lb-toolbar-meta {
         align-items: flex-start;
-        flex-direction: column;
+        gap: 0.9rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .lb-champion {
+        padding: 1.2rem 1.2rem 1.3rem;
+    }
+
+    .lb-runner {
+        padding: 0.75rem 0.9rem;
+        gap: 0.6rem;
+    }
+
+    .lb-duration {
+        margin-left: 0;
+        width: 100%;
+        text-align: left;
+    }
+
+    .lb-current {
+        gap: 0.6rem;
     }
 }

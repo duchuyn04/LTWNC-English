@@ -1,29 +1,5 @@
-:root {
-    color-scheme: light;
-    --paper: #F7F3E9;
-    --surface: #FFFDF7;
-    --surface-sunken: #F0EBDD;
-    --ink: #293226;
-    --ink-soft: #45503F;
-    --muted: #6E756C;
-    --muted-light: #9AA092;
-    --line: #E0E4DB;
-    --line-strong: #C9CFC0;
-    --sage: #DFE9D7;
-    --sage-soft: #EDF2E7;
-    --brass: #B7791F;
-    --brass-deep: #8F6115;
-    --brass-soft: #F5EEDC;
-    --radius-card: 16px;
-    --radius-control: 10px;
-    --radius-pill: 999px;
-    --shadow-card: 0 2px 10px rgba(41, 50, 38, 0.05);
-    --shadow-lift: 0 16px 40px rgba(41, 50, 38, 0.10);
-    --shadow-offset: 5px 5px 0 rgba(41, 50, 38, 0.14);
-    --font-body: "Be Vietnam Pro", sans-serif;
-    --font-display: var(--font-body);
-    --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
-}
+/* Token dùng chung lấy từ site.css (single source of truth) —
+   trang 404 load site.css trước file này. */
 
 *,
 *::before,

@@ -1,15 +1,18 @@
+/* Token dùng chung lấy từ site.css (single source of truth) —
+   _AuthLayout load site.css trước file này. Alias giữ nguyên tên --auth-*
+   để không phải đổi phần rule bên dưới. */
 :root {
-    --auth-paper: #f7f3e9;
-    --auth-surface: #fffdf7;
-    --auth-ink: #293226;
-    --auth-muted: #596155;
-    --auth-line: #c9cfc0;
-    --auth-brass: #b7791f;
-    --auth-brass-deep: #8f6115;
-    --auth-error: #a33b3b;
-    --auth-error-bg: #f7e9e5;
-    --auth-body: "Be Vietnam Pro", sans-serif;
-    --auth-display: var(--auth-body);
+    --auth-paper: var(--paper);
+    --auth-surface: var(--surface);
+    --auth-ink: var(--ink);
+    --auth-muted: var(--muted);
+    --auth-line: var(--line-strong);
+    --auth-brass: var(--brass);
+    --auth-brass-deep: var(--brass-deep);
+    --auth-error: var(--error);
+    --auth-error-bg: var(--error-bg);
+    --auth-body: var(--font-body);
+    --auth-display: var(--font-display);
 }
 
 * { box-sizing: border-box; }

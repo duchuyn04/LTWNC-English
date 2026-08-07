@@ -585,6 +585,11 @@ body {
     resize: vertical;
 }
 
+.unified-editor textarea.input-example-sentence,
+.unified-editor textarea.input-example-meaning {
+    min-height: 4.75rem;
+}
+
 .unified-editor #set-description {
     min-height: 5.25rem;
 }
@@ -692,11 +697,13 @@ body {
     height: 44px;
     place-items: center;
     border-radius: var(--radius-control);
-    color: var(--ue-muted);
-    font-weight: 800;
-    letter-spacing: -0.2em;
+    color: var(--ue-muted-light);
     cursor: grab;
     user-select: none;
+}
+
+.card-drag-handle i {
+    font-size: 1.15rem;
 }
 
 .card-drag-handle:active {
@@ -746,13 +753,14 @@ body {
 
 .card-summary {
     grid-area: summary;
-    display: grid;
+    display: flex;
     min-width: 0;
     width: 100%;
+    align-items: baseline;
     gap: var(--ue-space-xs);
     border: 0;
     border-radius: var(--radius-control);
-    padding: var(--ue-space-xs) var(--ue-space-2xs) 0;
+    padding: var(--ue-space-2xs) var(--ue-space-xs);
     background: transparent;
     color: var(--ue-ink);
     font: inherit;
@@ -765,20 +773,6 @@ body {
     background: var(--ue-sunken);
 }
 
-.card-summary-field {
-    display: grid;
-    min-width: 0;
-    gap: var(--ue-space-2xs);
-}
-
-.card-summary-field small {
-    color: var(--ue-muted);
-    font-size: 0.65rem;
-    font-weight: 800;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-}
-
 .card-term,
 .card-definition {
     min-width: 0;
@@ -789,7 +783,7 @@ body {
 
 .card-term {
     color: var(--ue-ink);
-    font-size: 0.9rem;
+    font-size: 0.95rem;
     font-weight: 700;
 }
 
@@ -802,6 +796,12 @@ body {
 .card-definition {
     color: var(--ue-ink-soft);
     font-size: 0.8125rem;
+}
+
+.card-definition:not(:empty)::before {
+    content: "—";
+    margin-right: var(--ue-space-xs);
+    color: var(--ue-muted-light);
 }
 
 .card-definition:empty::after {
@@ -823,8 +823,11 @@ body {
 }
 
 .card-actions .btn-toggle {
+    display: inline-flex;
     width: auto;
     min-width: 44px;
+    align-items: center;
+    justify-content: center;
     gap: var(--ue-space-2xs);
     padding-inline: var(--ue-space-xs);
 }
@@ -980,6 +983,10 @@ body {
     .card-actions button:hover {
         background: var(--ue-sunken);
         color: var(--ue-ink);
+    }
+
+    .flashcard-card.collapsed:hover {
+        border-color: var(--ue-line-strong);
     }
 
     .card-actions .btn-delete:hover {
@@ -1269,12 +1276,6 @@ body {
         display: inline;
     }
 
-    .card-summary {
-        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-        gap: var(--ue-space-lg);
-        padding: 0 var(--ue-space-sm);
-    }
-
     .form-row {
         grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     }
@@ -1341,6 +1342,13 @@ body {
     .editor-filter-empty {
         width: min(100%, 68rem);
         margin-inline: auto;
+    }
+
+    .card-drag-handle,
+    .btn-star,
+    .card-actions button {
+        width: 38px;
+        height: 38px;
     }
 
     .editor-quick-actions {

@@ -190,10 +190,12 @@ public sealed class ReviewFocusDeckViewTests
 
         foreach (string asset in assets[..4])
         {
-            Assert.Contains("Be Vietnam Pro", asset);
             Assert.DoesNotContain("Newsreader", asset, StringComparison.OrdinalIgnoreCase);
             Assert.DoesNotContain("Georgia", asset, StringComparison.OrdinalIgnoreCase);
         }
+
+        Assert.Contains("Be Vietnam Pro", assets[0]);
+        Assert.Contains("Be Vietnam Pro", assets[3]);
 
         foreach (string asset in assets[4..])
         {
@@ -203,6 +205,6 @@ public sealed class ReviewFocusDeckViewTests
         }
 
         Assert.Contains("--font-display: var(--font-body)", assets[0]);
-        Assert.Contains("--auth-display: var(--auth-body)", assets[1]);
+        Assert.Contains("--auth-display: var(--font-display)", assets[1]);
     }
 }

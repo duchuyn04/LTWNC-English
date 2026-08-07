@@ -620,18 +620,14 @@
         div.innerHTML = `
             <div class="card-header">
                 <input class="card-selection" type="checkbox" value="" data-card-selection disabled aria-label="Chọn thẻ mới" />
-                <span class="card-drag-handle" tabindex="0" aria-label="Kéo để đổi thứ tự">⋮⋮</span>
+                <span class="card-drag-handle" tabindex="0" aria-label="Kéo để đổi thứ tự">
+                    <i class="ph ph-dots-six-vertical" aria-hidden="true"></i>
+                </span>
                 <span class="card-number">00</span>
                 <button type="button" class="btn-star" aria-label="Đánh dấu sao" aria-pressed="false">☆</button>
                 <button type="button" class="card-summary" aria-label="Mở thẻ để chỉnh sửa" aria-expanded="true">
-                    <span class="card-summary-field">
-                        <small>Thuật ngữ</small>
-                        <strong class="card-term"></strong>
-                    </span>
-                    <span class="card-summary-field card-summary-definition">
-                        <small>Định nghĩa</small>
-                        <span class="card-definition"></span>
-                    </span>
+                    <strong class="card-term"></strong>
+                    <span class="card-definition"></span>
                 </button>
                 <div class="card-actions">
                     <button type="button" class="btn-move-up" aria-label="Đưa thẻ lên" title="Đưa thẻ lên">
@@ -670,13 +666,15 @@
                         <input class="form-control input-part-of-speech" placeholder="noun, verb…" />
                     </div>
                 </div>
-                <div class="form-group">
-                    <label>Ví dụ tiếng Anh</label>
-                    <textarea class="form-control input-example-sentence" rows="2" placeholder="Đặt thuật ngữ vào một câu thực tế"></textarea>
-                </div>
-                <div class="form-group">
-                    <label>Nghĩa câu ví dụ tiếng Việt</label>
-                    <textarea class="form-control input-example-meaning" rows="2" placeholder="Dịch nghĩa câu ví dụ"></textarea>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Ví dụ tiếng Anh</label>
+                        <textarea class="form-control input-example-sentence" rows="2" placeholder="Đặt thuật ngữ vào một câu thực tế"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>Nghĩa câu ví dụ tiếng Việt</label>
+                        <textarea class="form-control input-example-meaning" rows="2" placeholder="Dịch nghĩa câu ví dụ"></textarea>
+                    </div>
                 </div>
                 <div class="form-group">
                     <label>Từ đồng nghĩa</label>

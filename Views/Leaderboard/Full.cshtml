@@ -55,21 +55,24 @@
                     <small>@champion.SessionCount buổi học</small>
                 </div>
             </article>
-            <div class="lb-podium-side">
-                @for (var i = 1; i < Math.Min(3, Model.Entries.Count); i++)
-                {
-                    var entry = Model.Entries[i];
-                    <article class="lb-runner">
-                        <span class="lb-rank-mark">@((i + 1).ToString("00"))</span>
-                        <span class="lb-avatar" aria-hidden="true">@entry.AvatarInitial</span>
-                        <span>
-                            <strong>@entry.Username</strong>
-                            <small>@entry.SessionCount buổi học</small>
-                        </span>
-                        <b>@Duration(entry.TotalSeconds)</b>
-                    </article>
-                }
-            </div>
+            @if (Model.Entries.Count > 1)
+            {
+                <div class="lb-podium-side">
+                    @for (var i = 1; i < Math.Min(3, Model.Entries.Count); i++)
+                    {
+                        var entry = Model.Entries[i];
+                        <article class="lb-runner">
+                            <span class="lb-rank-mark">@((i + 1).ToString("00"))</span>
+                            <span class="lb-avatar" aria-hidden="true">@entry.AvatarInitial</span>
+                            <span>
+                                <strong>@entry.Username</strong>
+                                <small>@entry.SessionCount buổi học</small>
+                            </span>
+                            <b>@Duration(entry.TotalSeconds)</b>
+                        </article>
+                    }
+                </div>
+            }
         </section>
 
         @if (Model.ViewerEntry is not null && Model.ViewerEntry.Rank > Model.Entries.Count)

@@ -7,6 +7,8 @@
    ============================================================ */
 
 :root {
+    color-scheme: light;
+
     /* Surfaces */
     --paper: #F7F3E9;
     --surface: #FFFDF7;
