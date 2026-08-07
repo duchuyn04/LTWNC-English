@@ -281,37 +281,6 @@
         </div>
     </aside>
     <div id="settings-drawer-backdrop" class="settings-drawer-backdrop" hidden onclick="toggleSettingsDrawer(event)"></div>
-
-    <section id="completion-view" class="completion-view" aria-label="Hoàn thành">
-        <div class="completion-inner">
-            <span class="badge badge-green">Đã hoàn thành bộ thẻ</span>
-            <h2 class="completion-title">Hoàn thành phiên học</h2>
-            <p class="completion-copy">
-                Tiến độ của bạn đã được ghi nhận. Xem nhanh nhóm thẻ đã biết và nhóm cần ôn lại bên dưới.
-            </p>
-
-            <div class="stats-grid">
-                <div class="stat-card is-green">
-                    <span id="count-learned" class="stat-number">0</span>
-                    <span class="stat-label">Đã biết</span>
-                </div>
-                <div class="stat-card is-red">
-                    <span id="count-unlearned" class="stat-number">0</span>
-                    <span class="stat-label">Cần ôn</span>
-                </div>
-            </div>
-
-            <div class="completion-actions">
-                <button type="button" class="study-button is-red" onclick="restartStudy()">
-                    <span>Ôn lại</span>
-                    <span class="button-icon"><i class="ph ph-arrow-counter-clockwise" aria-hidden="true"></i></span>
-                </button>
-                <button type="button" class="primary-dark" onclick="completeStudySession()">
-                    Về trang học
-                </button>
-            </div>
-        </div>
-    </section>
 </div>
 
 @section Scripts {
@@ -361,10 +330,7 @@
         let isFlipped = false;
         let progressMode = false;
 
-        const sessionStats = {
-            learned: new Set(),
-            unlearned: new Set()
-        };
+        const ratedCards = new Set();
 
         let voices = [];
         const synth = window.speechSynthesis;
@@ -811,13 +777,7 @@
 
             const card = flashcards[currentIndex];
 
-            if (learned) {
-                sessionStats.learned.add(card.Id);
-                sessionStats.unlearned.delete(card.Id);
-            } else {
-                sessionStats.unlearned.add(card.Id);
-                sessionStats.learned.delete(card.Id);
-            }
+            ratedCards.add(card.Id);
 
             const vocabCard = vocabularyCards.find(c => c.Id === card.Id);
             if (vocabCard) {
@@ -834,7 +794,7 @@
             params.append('cardId', card.Id);
             params.append('learned', learned);
 
-            fetch(`/Study/${setId}/Flashcard/Mark`, {
+            const saveProgress = fetch(`/Study/${setId}/Flashcard/Mark`, {
                 method: 'POST',
                 headers: {
                     'X-Requested-With': 'XMLHttpRequest',
@@ -847,17 +807,12 @@
             })
             .catch(err => console.error('AJAX Error:', err));
 
-            const ratedCount = sessionStats.learned.size + sessionStats.unlearned.size;
-            if (ratedCount === flashcards.length) {
-                showCompletionScreen();
+            if (ratedCards.size === flashcards.length) {
+                saveProgress.finally(completeStudySession);
                 return;
             }
 
             nextCard();
-        }
-
-        function restartStudy() {
-            window.location.reload();
         }
 
         function completeStudySession() {
@@ -883,17 +838,6 @@
                 console.error('AJAX Error:', err);
                 window.location.href = `/Study/${setId}`;
             });
-        }
-
-        function showCompletionScreen() {
-            const learnedCount = sessionStats.learned.size;
-            const unlearnedCount = flashcards.length - learnedCount;
-
-            document.getElementById('count-learned').textContent = learnedCount;
-            document.getElementById('count-unlearned').textContent = unlearnedCount;
-
-            document.getElementById('study-view').style.display = 'none';
-            document.getElementById('completion-view').style.display = 'grid';
         }
 
         document.addEventListener('keydown', function(e) {

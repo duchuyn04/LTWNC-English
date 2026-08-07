@@ -77,7 +77,6 @@ public class HomeController : Controller
     }
 
     // Chọn trang 403 hoặc 404 dựa trên mã lỗi ban đầu của request.
-    [HttpGet]
     [AllowAnonymous]
     public IActionResult StatusCodePage()
     {

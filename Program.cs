@@ -316,22 +316,26 @@ builder.Services.AddRateLimiter(options =>
             });
     });
 });
+string dataProtectionKeyPath;
 if (builder.Environment.IsDevelopment() || builder.Environment.IsEnvironment("Testing"))
 {
-    string dataProtectionKeyPath = Path.Combine(
+    dataProtectionKeyPath = Path.Combine(
         builder.Environment.ContentRootPath,
         ".tmp",
         "data-protection-keys");
-    Directory.CreateDirectory(dataProtectionKeyPath);
-
-    // Lưu key local trong workspace để tránh lỗi quyền AppData khi chạy app bằng tool/CI/dev shell.
-    builder.Services.AddDataProtection()
-        .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyPath));
 }
 else
 {
-    builder.Services.AddDataProtection();
+    string configuredKeyPath = builder.Configuration["DataProtection:Path"]
+        ?? Path.Combine("App_Data", "DataProtection-Keys");
+    dataProtectionKeyPath = Path.IsPathRooted(configuredKeyPath)
+        ? configuredKeyPath
+        : Path.Combine(builder.Environment.ContentRootPath, configuredKeyPath);
 }
+
+Directory.CreateDirectory(dataProtectionKeyPath);
+builder.Services.AddDataProtection()
+    .PersistKeysToFileSystem(new DirectoryInfo(dataProtectionKeyPath));
 builder.Services.AddOptions<AiProvidersOptions>()
     .Bind(builder.Configuration.GetSection("AiProviders"));
 builder.Services.AddScoped<OpenAiCompatibleApiClient>();
@@ -354,6 +358,16 @@ builder.Services.AddControllersWithViews(options =>
 builder.Services.AddScoped<ltwnc.Controllers.ApiExceptionFilter>();
 
 var app = builder.Build();
+
+if (string.Equals(
+        Environment.GetEnvironmentVariable("APPLY_DATABASE_MIGRATIONS"),
+        "1",
+        StringComparison.Ordinal))
+{
+    using IServiceScope scope = app.Services.CreateScope();
+    AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    await dbContext.Database.MigrateAsync();
+}
 
 if (string.Equals(
         Environment.GetEnvironmentVariable("SMOKE_FIXTURES"),
@@ -412,21 +426,18 @@ app.UseRateLimiter();
 app.UseAuthorization();
 
 app.MapControllers();
-app.MapStaticAssets();
 app.MapAreaControllerRoute(
     name: "admin-root",
     areaName: "Admin",
     pattern: "Admin",
-    defaults: new { controller = "Dashboard", action = "Index" })
-    .WithStaticAssets();
+    defaults: new { controller = "Dashboard", action = "Index" });
 app.MapAreaControllerRoute(
     name: "admin",
     areaName: "Admin",
-    pattern: "Admin/{controller=Dashboard}/{action=Index}/{id?}")
-    .WithStaticAssets();
+    pattern: "Admin/{controller=Dashboard}/{action=Index}/{id?}");
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Home}/{action=Index}/{id?}")
-    .WithStaticAssets();
+    pattern: "{controller=Home}/{action=Index}/{id?}");
+app.MapStaticAssets();
 
 app.Run();
