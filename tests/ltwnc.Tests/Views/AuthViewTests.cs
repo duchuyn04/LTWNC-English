@@ -61,6 +61,21 @@ public sealed class AuthViewTests
         Assert.Contains(".auth-divider::before, .auth-divider::after", css);
     }
 
+    [Fact]
+    public void ValidationSummariesDoNotRenderBulletMarkers()
+    {
+        string siteCss = Read("wwwroot/css/site.css").Replace("\r\n", "\n");
+
+        Assert.Contains("""
+.validation-summary-errors ul,
+.auth-validation-summary ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+""", siteCss);
+    }
+
     private static string Read(string relativePath) =>
         File.ReadAllText(Path.Combine(FindRepositoryRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar)));
 

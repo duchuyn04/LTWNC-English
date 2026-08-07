@@ -999,6 +999,13 @@ a:hover {
     font-size: 0.8125rem;
 }
 
+.validation-summary-errors ul,
+.auth-validation-summary ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
 .input-validation-error {
     border-color: var(--error) !important;
 }

@@ -177,7 +177,6 @@ body.auth-page {
 
 .auth-validation-summary { margin-bottom: 4px; border-radius: 10px; color: var(--auth-error); background: var(--auth-error-bg); font-size: 12px; }
 .auth-validation-summary.validation-summary-errors { padding: 10px 12px; border: 1px solid rgba(163, 59, 59, .25); }
-.auth-validation-summary ul { margin: 0; padding-left: 18px; }
 .field-validation-error { color: var(--auth-error); font-size: 11px; }
 .input-validation-error { border-color: var(--auth-error); box-shadow: 0 0 0 2px rgba(163, 59, 59, .1); }
 
