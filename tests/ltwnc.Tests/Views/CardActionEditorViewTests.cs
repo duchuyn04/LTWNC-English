@@ -69,6 +69,20 @@ public sealed class CardActionEditorViewTests
         Assert.Contains("[HttpPost(\"flashcards/{id}\")]", controller);
     }
 
+    [Fact]
+    public void Editor_exposes_inline_add_card_control()
+    {
+        string view = Read("Views/FlashcardSet/Editor.cshtml");
+        string script = Read("wwwroot/js/unified-editor.js");
+        string css = Read("wwwroot/css/unified-editor.css");
+
+        Assert.Contains("data-add-card-after", view);
+        Assert.Contains("data-add-card-after", script);
+        Assert.Contains("function addCardAfter(card)", script);
+        Assert.Contains("container.insertBefore(newCard, card.nextElementSibling)", script);
+        Assert.Contains(".btn-add-after", css);
+    }
+
     private static string Read(string relativePath) =>
         File.ReadAllText(Path.Combine(FindRepositoryRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar)));
 

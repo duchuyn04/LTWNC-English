@@ -677,9 +677,26 @@
                     <input class="form-control input-synonyms" placeholder="Cách nhau bằng dấu phẩy" />
                 </div>
             </div>
+            <div class="card-add-after-wrap">
+                <button type="button"
+                        class="btn-add-after"
+                        data-add-card-after
+                        aria-label="Thêm thẻ sau thẻ này"
+                        title="Thêm thẻ sau thẻ này">
+                    <i class="ph ph-plus" aria-hidden="true"></i>
+                </button>
+            </div>
         `;
         bindCardEvents(div);
         return div;
+    }
+
+    function addCardAfter(card) {
+        const newCard = createEmptyCard();
+        container.insertBefore(newCard, card.nextElementSibling);
+        updateCardNumbering();
+        newCard.querySelector('.input-front').focus();
+        return newCard;
     }
 
     function setCardExpanded(card, expanded) {
@@ -697,6 +714,11 @@
 
     function bindCardEvents(card) {
         syncCardSelection(card);
+        card.querySelector('.btn-add-after')?.addEventListener('click', event => {
+            event.stopPropagation();
+            addCardAfter(card);
+        });
+
         const selection = card.querySelector('[data-card-selection]');
         selection?.addEventListener('click', event => event.stopPropagation());
         selection?.addEventListener('change', syncBatchToolbar);

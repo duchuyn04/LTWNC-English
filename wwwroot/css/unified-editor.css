@@ -847,6 +847,31 @@ body {
     background: var(--ue-surface);
 }
 
+.card-add-after-wrap {
+    display: flex;
+    justify-content: center;
+    padding: 0 var(--ue-space-md) var(--ue-space-sm);
+    background: var(--ue-surface);
+}
+
+.btn-add-after {
+    display: inline-grid;
+    width: 44px;
+    height: 44px;
+    place-items: center;
+    border: 1px solid var(--ue-line);
+    border-radius: var(--radius-pill);
+    background: var(--ue-surface);
+    color: var(--ue-accent-deep);
+    cursor: pointer;
+}
+
+.btn-add-after:hover,
+.btn-add-after:focus-visible {
+    border-color: var(--ue-accent-deep);
+    background: var(--ue-sunken);
+}
+
 .form-row {
     display: grid;
     min-width: 0;
