@@ -6,10 +6,11 @@ Let users add a flashcard quickly from the bottom of any existing card instead o
 
 ## User behavior
 
-- Each card shows an icon-only `+` button at its bottom.
+- Only the last card shows an icon-only `+` button at its bottom.
 - The button has an accessible label and tooltip: `Thêm thẻ sau thẻ này`.
-- Clicking it inserts one new card immediately after the clicked card.
+- Clicking it inserts one new card after the last card.
 - The new card is expanded and its `Thuật ngữ` input receives focus.
+- After insertion, the button is visible only on the new last card.
 - The existing toolbar `Thêm thẻ` button remains unchanged and appends a card.
 
 ## Implementation
@@ -22,6 +23,7 @@ Let users add a flashcard quickly from the bottom of any existing card instead o
   - renumber cards;
   - focus the new card's front input.
 - Bind the footer button in `bindCardEvents()`.
+- Use CSS to display the footer only on `.flashcard-card:last-child`, so it moves automatically after insertion, deletion, or reordering.
 - Keep existing autosave, validation, and finish behavior unchanged.
 - Add only the CSS needed for a full-width, keyboard-accessible footer control in `wwwroot/css/unified-editor.css`.
 

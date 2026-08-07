@@ -81,6 +81,7 @@ public sealed class CardActionEditorViewTests
         Assert.Contains("function addCardAfter(card)", script);
         Assert.Contains("container.insertBefore(newCard, card.nextElementSibling)", script);
         Assert.Contains(".btn-add-after", css);
+        Assert.Contains(".flashcard-card:last-child .card-add-after-wrap", css);
     }
 
     private static string Read(string relativePath) =>
