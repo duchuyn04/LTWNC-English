@@ -18,6 +18,7 @@ namespace ltwnc.Migrations
     [Migration("20260808000000_EnsureReviewSetReviewPolicyColumns")]
     public partial class EnsureReviewSetReviewPolicyColumns : Migration
     {
+        // Chạy một lần trên database production bị lệch migration history.
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
