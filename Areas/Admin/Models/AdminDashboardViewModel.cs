@@ -7,15 +7,12 @@ public sealed class AdminDashboardViewModel
     public DateOnly Today { get; init; }
     public string? RangeError { get; init; }
     public int PendingReportCount { get; init; }
-    public required AdminDashboardAiStatus AiStatus { get; init; }
     public IReadOnlyList<AdminDashboardActivityDay> Activity { get; init; } = [];
     public IReadOnlyList<AdminDashboardNewUserDay> NewUsers { get; init; } = [];
     public IReadOnlyList<AdminDashboardReportDay> Reports { get; init; } = [];
 
     public bool IsToday => From == Today && To == Today;
 }
-
-public sealed record AdminDashboardAiStatus(bool IsHealthy, string Title, string Detail);
 
 public sealed record AdminDashboardActivityDay(DateOnly Date, int Completed, int Abandoned);
 

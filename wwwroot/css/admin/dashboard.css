@@ -106,14 +106,6 @@
     font-size: 1.5rem;
 }
 
-.admin-dashboard-card.is-healthy > i {
-    color: var(--success);
-}
-
-.admin-dashboard-card.needs-attention > i {
-    color: var(--error);
-}
-
 .admin-dashboard-card strong {
     display: block;
     margin-top: 0.25rem;

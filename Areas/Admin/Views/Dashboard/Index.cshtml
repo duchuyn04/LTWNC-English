@@ -66,28 +66,15 @@
         <p class="admin-alert admin-alert--warning" data-popup="error">@Model.RangeError Đang hiển thị hôm nay.</p>
     }
 
-    <div class="admin-dashboard-status-grid">
-        <section class="admin-dashboard-card" aria-labelledby="pending-report-heading">
-            <i class="ph ph-flag" aria-hidden="true"></i>
-            <div>
-                <h2 id="pending-report-heading">Báo cáo đang chờ</h2>
-                <strong>@Model.PendingReportCount</strong>
-                <p>@(Model.PendingReportCount == 0 ? "Không có việc cần xử lý." : "Có báo cáo nội dung cần xem.")</p>
-            </div>
-            <a href="/Admin/ContentReports">Mở hàng đợi</a>
-        </section>
-
-        <section class="admin-dashboard-card @(Model.AiStatus.IsHealthy ? "is-healthy" : "needs-attention")"
-                 aria-labelledby="ai-status-heading">
-            <i class="ph @(Model.AiStatus.IsHealthy ? "ph-check-circle" : "ph-warning")" aria-hidden="true"></i>
-            <div>
-                <h2 id="ai-status-heading">Trạng thái AI</h2>
-                <strong>@Model.AiStatus.Title</strong>
-                <p>@Model.AiStatus.Detail</p>
-            </div>
-            <span>Cấu hình trong appsettings.json</span>
-        </section>
-    </div>
+    <section class="admin-dashboard-card" aria-labelledby="pending-report-heading">
+        <i class="ph ph-flag" aria-hidden="true"></i>
+        <div>
+            <h2 id="pending-report-heading">Báo cáo đang chờ</h2>
+            <strong>@Model.PendingReportCount</strong>
+            <p>@(Model.PendingReportCount == 0 ? "Không có việc cần xử lý." : "Có báo cáo nội dung cần xem.")</p>
+        </div>
+        <a href="/Admin/ContentReports">Mở hàng đợi</a>
+    </section>
 
     <div class="admin-dashboard-charts">
         <section class="admin-dashboard-chart @(hasActivity ? null : "is-empty")" aria-labelledby="activity-chart-heading">

@@ -2,9 +2,7 @@ using ltwnc.Areas.Admin;
 using ltwnc.Areas.Admin.Models;
 using ltwnc.Data;
 using ltwnc.Models.Entities;
-using ltwnc.Services.Ai;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Options;
 
 namespace ltwnc.Services.AdminDashboard;
 
@@ -16,16 +14,13 @@ public sealed class AdminDashboardService
 
     private readonly AppDbContext _context;
     private readonly TimeProvider _timeProvider;
-    private readonly AiProvidersOptions _aiProviders;
 
     public AdminDashboardService(
         AppDbContext context,
-        TimeProvider timeProvider,
-        IOptions<AiProvidersOptions> aiProviders)
+        TimeProvider timeProvider)
     {
         _context = context;
         _timeProvider = timeProvider;
-        _aiProviders = aiProviders.Value;
     }
 
     public async Task<AdminDashboardViewModel> GetAsync(
@@ -75,7 +70,6 @@ public sealed class AdminDashboardService
             Today = today,
             RangeError = error,
             PendingReportCount = pendingReportCount,
-            AiStatus = BuildAiStatus(_aiProviders),
             Activity = BuildActivity(from, to, sessions, nowUtc),
             NewUsers = BuildNewUsers(from, to, newUserCreatedAt),
             Reports = BuildReports(from, to, reportCreatedAt)
@@ -197,28 +191,6 @@ public sealed class AdminDashboardService
         }
 
         return counts.Select(item => new AdminDashboardReportDay(item.Key, item.Value)).ToArray();
-    }
-
-    private static AdminDashboardAiStatus BuildAiStatus(AiProvidersOptions options)
-    {
-        AiProviderOptions? provider = (options.Providers ?? [])
-            .Where(candidate => candidate.IsEnabled)
-            .OrderByDescending(candidate => candidate.IsPrimary)
-            .ThenBy(candidate => candidate.Priority)
-            .FirstOrDefault();
-
-        if (provider == null)
-        {
-            return new AdminDashboardAiStatus(
-                false,
-                "AI chưa cấu hình",
-                "Thêm provider trong appsettings.json.");
-        }
-
-        return new AdminDashboardAiStatus(
-            true,
-            "AI đã cấu hình",
-            $"Provider đang ưu tiên: {provider.Name}.");
     }
 
     private static DateTime ToUtc(DateOnly date, TimeOnly time)
