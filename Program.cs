@@ -366,6 +366,12 @@ if (string.Equals(
         "1",
         StringComparison.Ordinal))
 {
+    string migrationProbePath = Path.Combine(
+        app.Environment.ContentRootPath,
+        "App_Data",
+        "migration-probe.txt");
+    await File.WriteAllTextAsync(migrationProbePath, DateTimeOffset.UtcNow.ToString("O"));
+
     using IServiceScope scope = app.Services.CreateScope();
     AppDbContext dbContext = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await dbContext.Database.MigrateAsync();
