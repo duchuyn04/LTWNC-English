@@ -81,8 +81,6 @@ public sealed class ReviewSetViewModel
 
     public int NewCards { get; set; }
 
-    public bool IsPaused { get; set; }
-
     public ReviewSettingsViewModel Settings { get; set; } = new();
 }
 

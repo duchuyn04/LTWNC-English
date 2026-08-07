@@ -78,7 +78,7 @@
             <div class="review-focus__start-card-actions">
                 <form method="post" action="/Review/Set/@Model.SetId/Start">
                     @Html.AntiForgeryToken()
-                    <button type="submit" class="review-focus__primary" disabled="@Model.IsPaused">
+                    <button type="submit" class="review-focus__primary">
                         <span>Bắt đầu ôn tập</span>
                         <i class="ph ph-arrow-right" aria-hidden="true"></i>
                     </button>

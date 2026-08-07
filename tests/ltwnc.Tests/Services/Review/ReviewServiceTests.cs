@@ -555,7 +555,7 @@ public sealed class ReviewServiceTests
     }
 
     [Fact]
-    public async Task StartAsync_PausedSetSuppliesNeitherDueNorNewCards()
+    public async Task StartAsync_IgnoresLegacyPausedFlag()
     {
         await using AppDbContext context = CreateContext();
         await SeedSetCardsAsync(context, 1, 1, 2, newCardQuota: 5, reviewPaused: true);
@@ -573,15 +573,7 @@ public sealed class ReviewServiceTests
 
         ReviewSessionViewModel session = (await CreateService(context).StartAsync("user-1"))!;
 
-        Assert.All(session.Cards, card => Assert.True(card.FlashcardId >= 101));
-        Assert.DoesNotContain(session.Cards, card => card.FlashcardId == 1);
-
-        await CreateService(context).EndAsync("user-1", (await context.ReviewSessions.SingleAsync()).Id);
-        (await context.FlashcardSets.SingleAsync(set => set.Id == 1)).ReviewPaused = false;
-        await context.SaveChangesAsync();
-        ReviewSessionViewModel resumed = (await CreateService(context).StartAsync("user-1"))!;
-
-        Assert.Contains(resumed.Cards, card => card.FlashcardId == 1);
+        Assert.Contains(session.Cards, card => card.FlashcardId == 1);
     }
 
     [Fact]

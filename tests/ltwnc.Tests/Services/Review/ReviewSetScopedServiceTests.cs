@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace ltwnc.Tests.Services.Review;
 
 // Covers the per-set overload ReviewService.StartAsync(userId, setId):
-// set scope, ownership, paused sets, queue ordering, daily quota,
+// set scope, ownership, queue ordering, daily quota,
 // session resume and the immutable settings snapshot (issues 02 + 03).
 public sealed class ReviewSetScopedServiceTests
 {
@@ -43,7 +43,7 @@ public sealed class ReviewSetScopedServiceTests
     }
 
     [Fact]
-    public async Task StartAsync_WithPausedSet_ReturnsNull()
+    public async Task StartAsync_WithLegacyPausedSet_StillReturnsCards()
     {
         await using AppDbContext context = CreateContext();
         await SeedSetAsync(context, setId: 1, firstCardId: 1, count: 3, reviewPaused: true);
@@ -51,8 +51,8 @@ public sealed class ReviewSetScopedServiceTests
 
         ReviewSessionViewModel? session = await service.StartAsync("user-1", 1);
 
-        Assert.Null(session);
-        Assert.Empty(await context.ReviewSessions.ToListAsync());
+        Assert.NotNull(session);
+        Assert.Equal(3, session.TotalCards);
     }
 
     [Fact]

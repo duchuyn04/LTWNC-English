@@ -137,7 +137,7 @@ public sealed class ReviewControllerTests
     {
         var review = new Mock<IReviewService>();
         review.Setup(service => service.GetSetAsync("user-1", 5))
-            .ReturnsAsync(new ReviewSetViewModel { SetId = 5, IsPaused = false });
+            .ReturnsAsync(new ReviewSetViewModel { SetId = 5 });
         review.Setup(service => service.StartAsync("user-1", 5))
             .ReturnsAsync((ReviewSessionViewModel?)null);
         ReviewController controller = CreateController("user-1", review);
@@ -153,11 +153,11 @@ public sealed class ReviewControllerTests
     }
 
     [Fact]
-    public async Task Start_WithSetId_PausedSet_ShowsPausedMessage()
+    public async Task Start_WithSetId_NoSession_ShowsNoEligibleCardsMessage()
     {
         var review = new Mock<IReviewService>();
         review.Setup(service => service.GetSetAsync("user-1", 5))
-            .ReturnsAsync(new ReviewSetViewModel { SetId = 5, IsPaused = true });
+            .ReturnsAsync(new ReviewSetViewModel { SetId = 5 });
         review.Setup(service => service.StartAsync("user-1", 5))
             .ReturnsAsync((ReviewSessionViewModel?)null);
         ReviewController controller = CreateController("user-1", review);
@@ -165,7 +165,7 @@ public sealed class ReviewControllerTests
         IActionResult actual = await controller.Start(5);
 
         Assert.Equal(
-            "B\u1ed9 th\u1ebb \u0111ang t\u1ea1m d\u1eebng Review.",
+            "Ch\u01b0a c\u00f3 th\u1ebb ph\u00f9 h\u1ee3p \u0111\u1ec3 b\u1eaft \u0111\u1ea7u \u00f4n t\u1eadp.",
             controller.TempData["Message"]);
     }
 

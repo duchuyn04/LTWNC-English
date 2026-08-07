@@ -89,9 +89,7 @@ public sealed class ReviewController : Controller
         ReviewSessionViewModel? session = await _reviewService.StartAsync(userId, setId);
         if (session == null)
         {
-            TempData["Message"] = set.IsPaused
-                ? "Bộ thẻ đang tạm dừng Review."
-                : "Chưa có thẻ phù hợp để bắt đầu ôn tập.";
+            TempData["Message"] = "Chưa có thẻ phù hợp để bắt đầu ôn tập.";
             return RedirectToAction(nameof(Set), new { setId });
         }
 

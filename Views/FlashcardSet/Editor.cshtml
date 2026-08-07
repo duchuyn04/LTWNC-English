@@ -6,7 +6,7 @@
     // data-* bootstrap JS unified-editor.js: create/update set+cards, reorder, star, batch.
     // Antiforgery: token ẩn + header RequestVerificationToken cho fetch API.
     // AutoValidateAntiforgeryToken trên API; quarantine → UI hạn chế chỉnh.
-    // CSS unified-editor.css; offcanvas settings (public, review pause, quota).
+    // CSS unified-editor.css; offcanvas settings (public access).
     // Id null = tạo mới (POST create set); Id có = update (PUT) + load cards.
     ViewData["Title"] = Model.Id.HasValue ? "Chỉnh sửa bộ thẻ" : "Tạo bộ thẻ";
 }
@@ -20,7 +20,6 @@
      data-is-new="@(Model.Id.HasValue ? "false" : "true")"
      data-description="@(Model.Description ?? "")"
      data-is-public="@Model.IsPublic.ToString().ToLowerInvariant()"
-     data-review-paused="@Model.ReviewPaused.ToString().ToLowerInvariant()"
      data-is-quarantined="@Model.IsQuarantined.ToString().ToLowerInvariant()">
     @Html.AntiForgeryToken()
 
@@ -73,17 +72,6 @@
                     </label>
                 </div>
 
-                <div class="form-check form-switch editor-switch">
-                    <input class="form-check-input"
-                           type="checkbox"
-                           role="switch"
-                           id="set-review-paused"
-                           @(Model.ReviewPaused ? "checked" : "") />
-                    <label class="form-check-label" for="set-review-paused">
-                        <strong>Tạm dừng ôn tập</strong>
-                        <small>Không đưa thẻ của bộ này vào lượt ôn mới.</small>
-                    </label>
-                </div>
             </div>
 
             <div class="editor-sidebar-footer">

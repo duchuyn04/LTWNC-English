@@ -45,8 +45,7 @@ public sealed class ReviewService : IReviewService
         List<Flashcard> cards = await _context.Flashcards
             .Include(value => value.FlashcardSet)
             .Where(value => value.FlashcardSet != null
-                && value.FlashcardSet.UserId == userId
-                && !value.FlashcardSet.ReviewPaused)
+                && value.FlashcardSet.UserId == userId)
             .OrderBy(value => value.FlashcardSetId)
             .ThenBy(value => value.OrderIndex)
             .ThenBy(value => value.Id)
@@ -211,7 +210,6 @@ public sealed class ReviewService : IReviewService
                 && item.NextReviewAtUtc != null
                 && item.NextReviewAtUtc <= now),
             NewCards = cardIds.Count(id => !progress.ContainsKey(id)),
-            IsPaused = set.ReviewPaused,
             Settings = settings
         };
     }
@@ -227,7 +225,7 @@ public sealed class ReviewService : IReviewService
         FlashcardSet? set = await _context.FlashcardSets
             .AsNoTracking()
             .SingleOrDefaultAsync(value => value.Id == setId && value.UserId == userId);
-        if (set == null || set.ReviewPaused)
+        if (set == null)
         {
             return null;
         }

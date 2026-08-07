@@ -28,7 +28,7 @@ public sealed class ReviewModeStrategy : IStudyModeStrategy
         }
 
         bool canReview = await _context.FlashcardSets
-            .AnyAsync(set => set.Id == setId && set.UserId == userId && !set.ReviewPaused);
+            .AnyAsync(set => set.Id == setId && set.UserId == userId);
         if (!canReview)
         {
             return new List<Flashcard>();
@@ -59,7 +59,7 @@ public sealed class ReviewModeStrategy : IStudyModeStrategy
             EstimatedSeconds = cards.Count * 20,
             UnavailableReason = isAvailable
                 ? null
-                : "Đăng nhập bằng tài khoản sở hữu bộ và bỏ tạm dừng Review để học."
+                : "Bộ chưa có thẻ phù hợp để ôn tập."
         };
     }
 }

@@ -16,6 +16,25 @@ public sealed class CardActionEditorViewTests
     }
 
     [Fact]
+    public void SetEditorsNoLongerExposeReviewPause()
+    {
+        foreach (string path in new[]
+        {
+            "Views/FlashcardSet/Create.cshtml",
+            "Views/FlashcardSet/Edit.cshtml",
+            "Views/FlashcardSet/Editor.cshtml"
+        })
+        {
+            Assert.DoesNotContain("ReviewPaused", Read(path));
+            Assert.DoesNotContain("Tạm dừng ôn", Read(path));
+        }
+
+        string script = Read("wwwroot/js/unified-editor.js");
+        Assert.DoesNotContain("setReviewPausedInput", script);
+        Assert.DoesNotContain("reviewPaused", script);
+    }
+
+    [Fact]
     public void Editor_script_posts_batch_commands_and_offers_undo()
     {
         string script = Read("wwwroot/js/unified-editor.js");

@@ -1,7 +1,7 @@
 @model CreateSetViewModel
 @{
     // FILE: Form tạo bộ thẻ — FlashcardSetController.Create GET/POST.
-    // Model: CreateSetViewModel (Title, Description, IsPublic, NewCardQuota, ReviewPaused...).
+    // Model: CreateSetViewModel (Title, Description, IsPublic).
     // POST thành công → redirect Details hoặc Editor.
     // Tag Helpers + antiforgery; set-management.css.
     ViewData["Title"] = "Tạo bộ thẻ mới";
@@ -33,11 +33,6 @@
                     <div class="mb-4 form-check">
                         <input asp-for="IsPublic" class="form-check-input" />
                         <label asp-for="IsPublic" class="set-check-label">Công khai, mọi người có thể xem và học</label>
-                    </div>
-
-                    <div class="mb-4 form-check">
-                        <input asp-for="ReviewPaused" class="form-check-input" />
-                        <label asp-for="ReviewPaused" class="set-check-label">Tạm dừng ôn bộ này</label>
                     </div>
 
                     <button type="submit" class="btn-primary-custom w-100">Tiếp tục thêm thẻ</button>
