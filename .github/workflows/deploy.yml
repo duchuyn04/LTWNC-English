@@ -1,0 +1,50 @@
+name: Deploy to Tenten
+
+on:
+  push:
+    branches: [master]
+    # Do not deploy the workflow-only commit itself.
+    paths-ignore:
+      - .github/workflows/deploy.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Publish
+        run: dotnet publish ltwnc.csproj -c Release --no-self-contained -o ./publish
+
+      - name: Deploy via FTPS
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.6
+        with:
+          server: ${{ secrets.PLESK_FTP_SERVER }}
+          username: ${{ secrets.PLESK_FTP_USERNAME }}
+          password: ${{ secrets.PLESK_FTP_PASSWORD }}
+          protocol: ftps
+          security: loose
+          port: 21
+          local-dir: ./publish/
+          server-dir: /httpdocs/
+          dangerous-clean-slate: false
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/.ftp-deploy-sync-state.json
+            **/appsettings*.json
+            **/web.config
+            **/logs/**
+            **/App_Data/**
+            **/wwwroot/uploads/**
