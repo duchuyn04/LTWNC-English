@@ -1,16 +1,12 @@
 @model QuizResultViewModel
 @{
     // FILE: Kết quả quiz + danh sách câu sai.
-    // Model: QuizResultViewModel; partial _QuizResultActions render 2 lần (top/bottom) qua ViewDataDictionary modifier.
+    // Model: QuizResultViewModel; partial _QuizResultActions render cụm hành động phía trên.
     // WrongAnswers → link học lại subset; QuizQuestionFactory backend tạo câu.
-    // Partial _QuizResultActions dùng chung: truyền modifier class qua ViewData (không nhân đôi markup).
+    // Partial _QuizResultActions dùng chung để giữ markup kết quả gọn.
     ViewDataDictionary topActionsViewData = new(ViewData)
     {
         ["ResultActionsModifier"] = "quiz-result-actions--top"
-    };
-    ViewDataDictionary bottomActionsViewData = new(ViewData)
-    {
-        ["ResultActionsModifier"] = "quiz-result-actions--bottom"
     };
     ViewData["Title"] = "Kết quả trắc nghiệm";
 }
@@ -78,6 +74,5 @@
             <p class="quiz-perfect">Tuyệt vời! Bạn đã trả lời đúng tất cả câu hỏi.</p>
         }
 
-        <partial name="_QuizResultActions" model="Model" view-data="bottomActionsViewData" />
     </main>
 </div>

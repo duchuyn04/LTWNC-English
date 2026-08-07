@@ -46,6 +46,14 @@ public sealed class PopupNotificationViewTests
     }
 
     [Fact]
+    public void QuizResultRendersActionsOnlyOnce()
+    {
+        string view = Read("Views/Study/QuizResult.cshtml");
+
+        Assert.Equal(1, view.Split("<partial name=\"_QuizResultActions\"", StringSplitOptions.None).Length - 1);
+    }
+
+    [Fact]
     public void DynamicBatchFeedbackUsesSharedPopupBehavior()
     {
         string script = Read("wwwroot/js/flashcard-editor.js");
