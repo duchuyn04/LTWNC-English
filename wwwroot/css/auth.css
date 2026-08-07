@@ -135,6 +135,18 @@ body.auth-page {
 
 .auth-submit:hover { color: #fff; background: #354130; }
 
+.auth-submit-secondary {
+    border-color: var(--auth-line);
+    color: var(--auth-ink);
+    background: transparent;
+}
+
+.auth-submit-secondary:hover {
+    border-color: var(--auth-ink);
+    color: var(--auth-ink);
+    background: var(--sage-soft);
+}
+
 .auth-google-icon {
     width: 18px;
     height: 18px;

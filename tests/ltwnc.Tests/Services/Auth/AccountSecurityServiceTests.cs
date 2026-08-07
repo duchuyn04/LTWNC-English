@@ -92,6 +92,29 @@ public sealed class AccountSecurityServiceTests
     }
 
     [Fact]
+    public async Task PasswordResetReportsEmailFailureWithoutLeavingChallenge()
+    {
+        await using AppDbContext context = CreateContext();
+        AuthService auth = CreateAuth(context);
+        Assert.True((await auth.CreateVerifiedLocalUserAsync(
+            "learner@example.com",
+            "learner",
+            new PasswordHasher<AppUser>().HashPassword(
+                new AppUser { Email = "learner@example.com" },
+                "Password1"))).Succeeded);
+
+        AccountSecurityService security = CreateSecurity(context, new FailingEmailSender());
+
+        PasswordResetStartResult result = await security.StartPasswordResetAsync(
+            "learner@example.com",
+            "127.0.0.1");
+
+        Assert.False(result.Succeeded);
+        Assert.Contains("email", result.ErrorMessage, StringComparison.OrdinalIgnoreCase);
+        Assert.Empty(context.EmailOtpChallenges);
+    }
+
+    [Fact]
     public async Task PasswordResetChangesPasswordAndRevokesOldSecurityStamp()
     {
         await using AppDbContext context = CreateContext();
@@ -126,7 +149,7 @@ public sealed class AccountSecurityServiceTests
 
     private static AccountSecurityService CreateSecurity(
         AppDbContext context,
-        CapturingEmailSender sender)
+        IEmailMessageSender sender)
     {
         AuthService auth = CreateAuth(context);
         IPasswordHasher<AppUser> hasher = new PasswordHasher<AppUser>();
@@ -173,6 +196,18 @@ public sealed class AccountSecurityServiceTests
         {
             LastBody = body;
             return Task.CompletedTask;
+        }
+    }
+
+    private sealed class FailingEmailSender : IEmailMessageSender
+    {
+        public Task SendAsync(
+            string recipient,
+            string subject,
+            string body,
+            CancellationToken cancellationToken = default)
+        {
+            throw new InvalidOperationException("SMTP failed");
         }
     }
 

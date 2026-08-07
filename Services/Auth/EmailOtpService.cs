@@ -145,6 +145,13 @@ public sealed class EmailOtpService : IEmailOtpService
         }
         catch
         {
+            foreach (EmailOtpChallenge challenge in activeChallenges)
+            {
+                challenge.UsedAtUtc = null;
+            }
+
+            _db.EmailOtpChallenges.Remove(challengeToSave);
+            await _db.SaveChangesAsync(cancellationToken);
             return new OtpSendResult(false, ErrorMessage: "Không thể gửi email lúc này. Vui lòng thử lại sau.");
         }
 

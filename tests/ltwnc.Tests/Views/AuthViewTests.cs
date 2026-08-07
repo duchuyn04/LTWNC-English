@@ -38,6 +38,33 @@ public sealed class AuthViewTests
     }
 
     [Fact]
+    public void ForgotPasswordStaysOnEmailFormWhenOtpSendFails()
+    {
+        string controller = Read("Controllers/AccountController.cs").Replace("\r\n", "\n");
+
+        Assert.Contains("""
+        if (!result.Succeeded)
+        {
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Không thể gửi email lúc này.");
+            return View(model);
+        }
+
+        return RedirectToAction(nameof(ResetPassword), new { challengeId = result.ChallengeId });
+""", controller);
+    }
+
+    [Fact]
+    public void PasswordRecoveryKeepsPrimaryAndSecondaryActionsDistinct()
+    {
+        string resetView = Read("Views/Account/ResetPassword.cshtml");
+        string css = Read("wwwroot/css/auth.css").Replace("\r\n", "\n");
+
+        Assert.Contains("class=\"auth-submit auth-submit-secondary\"", resetView);
+        Assert.Contains(".auth-submit-secondary", css);
+        Assert.Contains("background: transparent;", css);
+    }
+
+    [Fact]
     public void AuthStylesSeparatePrimaryAndGoogleActions()
     {
         string css = Read("wwwroot/css/auth.css").Replace("\r\n", "\n");

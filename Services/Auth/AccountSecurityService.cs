@@ -15,7 +15,8 @@ public sealed record RegistrationStartResult(
 
 public sealed record PasswordResetStartResult(
     bool Succeeded,
-    string ChallengeId);
+    string ChallengeId,
+    string? ErrorMessage = null);
 
 public sealed record AccountSecurityResult(
     bool Succeeded,
@@ -205,7 +206,12 @@ public sealed class AccountSecurityService : IAccountSecurityService
             userId: user.Id,
             requestIpAddress: requestIpAddress,
             cancellationToken: cancellationToken);
-        return new PasswordResetStartResult(true, sent.ChallengeId ?? fallbackChallengeId);
+        return sent.Succeeded
+            ? new PasswordResetStartResult(true, sent.ChallengeId ?? fallbackChallengeId)
+            : new PasswordResetStartResult(
+                false,
+                fallbackChallengeId,
+                sent.ErrorMessage);
     }
 
     public async Task<AccountSecurityResult> CompletePasswordResetAsync(

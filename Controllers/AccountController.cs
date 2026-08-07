@@ -518,6 +518,12 @@ public class AccountController : Controller
             model.Email,
             GetRequestIpAddress(),
             cancellationToken);
+        if (!result.Succeeded)
+        {
+            ModelState.AddModelError(string.Empty, result.ErrorMessage ?? "Không thể gửi email lúc này.");
+            return View(model);
+        }
+
         return RedirectToAction(nameof(ResetPassword), new { challengeId = result.ChallengeId });
     }
 
