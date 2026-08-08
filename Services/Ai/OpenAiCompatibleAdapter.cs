@@ -49,7 +49,8 @@ public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
             ],
             isXiaomiMimo ? null : request.MaxTokens,
             isXiaomiMimo ? request.MaxTokens : null,
-            0.3m);
+            0.3m,
+            new OpenAiResponseFormat("json_object"));
 
         try
         {

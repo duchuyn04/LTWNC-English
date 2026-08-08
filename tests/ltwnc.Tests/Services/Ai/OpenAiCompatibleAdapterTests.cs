@@ -38,6 +38,7 @@ public sealed class OpenAiCompatibleAdapterTests
         Assert.Equal(800, root.GetProperty("max_tokens").GetInt32());
         Assert.False(root.TryGetProperty("max_completion_tokens", out _));
         Assert.Equal(0.3m, root.GetProperty("temperature").GetDecimal());
+        Assert.Equal("json_object", root.GetProperty("response_format").GetProperty("type").GetString());
     }
 
     [Fact]

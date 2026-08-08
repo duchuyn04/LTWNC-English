@@ -12,6 +12,9 @@ internal sealed record OpenAiChatMessage(
     [property: JsonPropertyName("role")] string Role,
     [property: JsonPropertyName("content")] string Content);
 
+internal sealed record OpenAiResponseFormat(
+    [property: JsonPropertyName("type")] string Type);
+
 internal sealed record OpenAiChatRequest(
     [property: JsonPropertyName("model")] string Model,
     [property: JsonPropertyName("messages")] IReadOnlyList<OpenAiChatMessage> Messages,
@@ -19,7 +22,8 @@ internal sealed record OpenAiChatRequest(
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? MaxTokens,
     [property: JsonPropertyName("max_completion_tokens"),
      JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)] int? MaxCompletionTokens,
-    [property: JsonPropertyName("temperature")] decimal Temperature);
+    [property: JsonPropertyName("temperature")] decimal Temperature,
+    [property: JsonPropertyName("response_format")] OpenAiResponseFormat ResponseFormat);
 
 internal sealed class OpenAiChatResponse
 {
