@@ -42,6 +42,31 @@ public sealed class OpenAiCompatibleAdapterTests
     }
 
     [Fact]
+    public async Task CompleteAsync_RetriesOnceWhenProviderReturnsEmptyContent()
+    {
+        int attempts = 0;
+        (OpenAiCompatibleAdapter adapter, StubHttpMessageHandler handler) = CreateAdapter(
+            _ =>
+            {
+                attempts++;
+                return Response(
+                    HttpStatusCode.OK,
+                    attempts == 1
+                        ? "{\"choices\":[{\"message\":{\"content\":\"\"}}]}"
+                        : "{\"choices\":[{\"message\":{\"content\":\"retry succeeded\"}}]}");
+            });
+
+        string result = await adapter.CompleteAsync(
+            Connection("https://127.0.0.1/v1"),
+            null,
+            new AiCompletionRequest("system", "user"),
+            CancellationToken.None);
+
+        Assert.Equal("retry succeeded", result);
+        Assert.Equal(2, handler.CallCount);
+    }
+
+    [Fact]
     public async Task CompleteAsync_XiaomiMimoUsesMaxCompletionTokensOnly()
     {
         (OpenAiCompatibleAdapter adapter, StubHttpMessageHandler handler) = CreateAdapter(

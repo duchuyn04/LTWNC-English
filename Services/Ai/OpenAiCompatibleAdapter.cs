@@ -3,6 +3,8 @@ namespace ltwnc.Services.Ai;
 // Adapter: chuyển contract của application sang contract riêng của OpenAI-compatible API client.
 public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
 {
+    // ponytail: one retry covers DeepSeek's documented empty-content glitch; add backoff only if it persists.
+    private const int EmptyResponseRetryCount = 1;
     private readonly OpenAiCompatibleApiClient _client;
 
     public OpenAiCompatibleAdapter(OpenAiCompatibleApiClient client)
@@ -54,19 +56,25 @@ public sealed class OpenAiCompatibleAdapter : IAiProviderAdapter
 
         try
         {
-            OpenAiChatResponse response = await _client.CompleteAsync(
-                ToClientConfiguration(connection),
-                apiKey,
-                openAiRequest,
-                cancellationToken);
-            string? content = response.Choices?.FirstOrDefault()?.Message?.Content;
-            if (string.IsNullOrWhiteSpace(content))
+            for (int attempt = 0; ; attempt++)
             {
-                throw new AiProviderUnavailableException(
-                    $"{connection.Name} trả response không đúng chuẩn OpenAI.");
-            }
+                OpenAiChatResponse response = await _client.CompleteAsync(
+                    ToClientConfiguration(connection),
+                    apiKey,
+                    openAiRequest,
+                    cancellationToken);
+                string? content = response.Choices?.FirstOrDefault()?.Message?.Content;
+                if (!string.IsNullOrWhiteSpace(content))
+                {
+                    return content;
+                }
 
-            return content;
+                if (attempt >= EmptyResponseRetryCount)
+                {
+                    throw new AiProviderUnavailableException(
+                        $"{connection.Name} trả response không đúng chuẩn OpenAI.");
+                }
+            }
         }
         catch (OpenAiClientException exception)
         {
